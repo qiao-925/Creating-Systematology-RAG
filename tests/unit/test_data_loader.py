@@ -43,7 +43,7 @@ class TestMarkdownLoader:
     def test_load_wrong_extension(self, tmp_path):
         """测试加载错误扩展名的文件"""
         txt_file = tmp_path / "test.txt"
-        txt_file.write_text("This is a text file")
+        txt_file.write_text("This is a text file", encoding='utf-8')
         
         loader = MarkdownLoader()
         doc = loader.load_file(txt_file)
@@ -81,9 +81,9 @@ class TestMarkdownLoader:
         test_dir.mkdir()
         
         # 创建不同类型的文件
-        (test_dir / "doc.md").write_text("# Markdown")
-        (test_dir / "doc.txt").write_text("Text file")
-        (test_dir / "doc.py").write_text("print('Python')")
+        (test_dir / "doc.md").write_text("# Markdown", encoding='utf-8')
+        (test_dir / "doc.txt").write_text("Text file", encoding='utf-8')
+        (test_dir / "doc.py").write_text("print('Python')", encoding='utf-8')
         
         loader = MarkdownLoader()
         docs = loader.load_directory(test_dir)
@@ -210,7 +210,7 @@ class TestDocumentProcessor:
         
         docs = [
             Document(text="短", metadata={}),
-            Document(text="这是一个足够长的文档内容" * 3, metadata={}),
+            Document(text="这是一个足够长的文档内容，确保长度超过50字符，这样才能通过过滤测试这是一个足够长的文档内容，确保长度超过50字符，这样才能通过过滤测试这是一个足够长的文档内容，确保长度超过50字符，这样才能通过过滤测试这是一个足够长的文档内容，确保长度超过50字符，这样才能通过过滤测试走", metadata={}),
             Document(text="中等长度的文档内容", metadata={})
         ]
         
@@ -251,8 +251,8 @@ class TestLoadDocumentsHelpers:
         test_dir = tmp_path / "test"
         test_dir.mkdir()
         
-        # 创建包含多余空白的文档
-        (test_dir / "doc.md").write_text("# 标题\n\n\n\n内容    有    空格")
+        # 创建包含多余空白的文档，使用 UTF-8 编码
+        (test_dir / "doc.md").write_text("# 标题\n\n\n\n内容    有    空格", encoding='utf-8')
         
         docs = load_documents_from_directory(test_dir, clean=True)
         
@@ -272,7 +272,7 @@ class TestLoadDocumentsHelpers:
 def test_file_extension_recognition(filename, should_load, tmp_path):
     """参数化测试：文件扩展名识别"""
     test_file = tmp_path / filename
-    test_file.write_text("# Test content")
+    test_file.write_text("# Test content", encoding='utf-8')
     
     loader = MarkdownLoader()
     doc = loader.load_file(test_file)

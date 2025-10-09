@@ -122,7 +122,7 @@ class TestDataValidation:
   
   前后空白  
 """
-        (test_dir / "dirty.md").write_text(dirty_content)
+        (test_dir / "dirty.md").write_text(dirty_content, encoding='utf-8')
         
         # 加载并清理
         documents = load_documents_from_directory(test_dir, clean=True)

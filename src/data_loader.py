@@ -205,13 +205,23 @@ class DocumentProcessor:
         # 移除多余的空白字符
         text = re.sub(r'[ \t]+', ' ', text)
         
-        # 移除多余的空行（保留最多两个连续换行）
-        text = re.sub(r'\n{3,}', '\n\n', text)
-        
         # 移除行首行尾空白
         lines = [line.strip() for line in text.split('\n')]
-        text = '\n'.join(lines)
         
+        # 移除多余的空行（保留最多一个空行，即最多两个连续换行）
+        cleaned_lines = []
+        prev_empty = False
+        for line in lines:
+            if line:  # 非空行
+                cleaned_lines.append(line)
+                prev_empty = False
+            else:  # 空行
+                if not prev_empty:  # 只保留第一个空行
+                    cleaned_lines.append(line)
+                    prev_empty = True
+                # 连续的空行跳过
+        
+        text = '\n'.join(cleaned_lines)
         return text.strip()
     
     @staticmethod
@@ -269,8 +279,17 @@ def load_documents_from_directory(directory_path: str | Path,
     
     if clean:
         processor = DocumentProcessor()
+        # Document.text 是只读属性，需要创建新的 Document 对象
+        cleaned_documents = []
         for doc in documents:
-            doc.text = processor.clean_text(doc.text)
+            cleaned_text = processor.clean_text(doc.text)
+            cleaned_doc = LlamaDocument(
+                text=cleaned_text,
+                metadata=doc.metadata,
+                id_=doc.id_
+            )
+            cleaned_documents.append(cleaned_doc)
+        return cleaned_documents
     
     return documents
 
@@ -290,8 +309,17 @@ def load_documents_from_urls(urls: List[str], clean: bool = True) -> List[LlamaD
     
     if clean:
         processor = DocumentProcessor()
+        # Document.text 是只读属性，需要创建新的 Document 对象
+        cleaned_documents = []
         for doc in documents:
-            doc.text = processor.clean_text(doc.text)
+            cleaned_text = processor.clean_text(doc.text)
+            cleaned_doc = LlamaDocument(
+                text=cleaned_text,
+                metadata=doc.metadata,
+                id_=doc.id_
+            )
+            cleaned_documents.append(cleaned_doc)
+        return cleaned_documents
     
     return documents
 

@@ -12,16 +12,6 @@ from src.query_engine import QueryEngine
 class TestQueryPipeline:
     """查询流程集成测试"""
     
-    @pytest.fixture
-    def prepared_index_manager(self, temp_vector_store, sample_documents):
-        """准备好的索引管理器"""
-        manager = IndexManager(
-            collection_name="query_pipeline_test",
-            persist_dir=temp_vector_store
-        )
-        manager.build_index(sample_documents, show_progress=False)
-        return manager
-    
     def test_index_to_retrieval_pipeline(self, prepared_index_manager):
         """测试从索引到检索的流程"""
         # 步骤1：验证索引已构建
@@ -41,19 +31,29 @@ class TestQueryPipeline:
         scores = [r['score'] for r in results]
         assert scores == sorted(scores, reverse=True), "结果应该按相似度降序排列"
     
-    def test_query_with_mock_llm(self, prepared_index_manager, mocker):
-        """测试完整查询流程（使用Mock LLM）"""
-        # Mock LLM
-        mock_llm = mocker.Mock()
-        mock_response = mocker.Mock()
-        mock_response.__str__ = lambda self: "系统科学是研究系统的科学。[1]"
-        mock_response.source_nodes = []
+    def test_query_with_mock_llm(self, prepared_index_manager, mocker, monkeypatch):
+        """测试完整查询流程（使用Mock响应）"""
+        # Mock Response 对象
+        from llama_index.core.schema import NodeWithScore, TextNode
         
-        mock_llm.complete.return_value = mock_response
-        mocker.patch('src.query_engine.OpenAI', return_value=mock_llm)
+        mock_response = mocker.Mock()
+        mock_response.__str__ = mocker.Mock(return_value="系统科学是研究系统的科学。[1]")
+        
+        # 创建真实的 source_nodes
+        test_node = TextNode(
+            text="系统科学是研究系统的一般规律和方法的科学。",
+            metadata={"title": "系统科学", "source": "test"}
+        )
+        mock_response.source_nodes = [NodeWithScore(node=test_node, score=0.9)]
+        
+        # 设置环境变量
+        monkeypatch.setenv('DEEPSEEK_API_KEY', 'test_key_for_mock')
         
         # 创建查询引擎
         query_engine = QueryEngine(prepared_index_manager)
+        
+        # Mock 内部查询引擎的 query 方法
+        query_engine.query_engine.query = mocker.Mock(return_value=mock_response)
         
         # 执行查询
         answer, sources = query_engine.query("什么是系统科学？")
@@ -62,18 +62,31 @@ class TestQueryPipeline:
         assert isinstance(answer, str)
         assert len(answer) > 0
         assert isinstance(sources, list)
+        assert len(sources) > 0
     
-    def test_multiple_queries_same_index(self, prepared_index_manager, mocker):
+    def test_multiple_queries_same_index(self, prepared_index_manager, mocker, monkeypatch):
         """测试在同一个索引上执行多次查询"""
-        # Mock LLM
-        mock_llm = mocker.Mock()
-        mock_response = mocker.Mock()
-        mock_response.__str__ = lambda self: "测试答案"
-        mock_response.source_nodes = []
-        mock_llm.complete.return_value = mock_response
-        mocker.patch('src.query_engine.OpenAI', return_value=mock_llm)
+        # Mock Response 对象
+        from llama_index.core.schema import NodeWithScore, TextNode
         
+        mock_response = mocker.Mock()
+        mock_response.__str__ = mocker.Mock(return_value="测试答案")
+        
+        # 创建真实的 source_nodes
+        test_node = TextNode(
+            text="测试内容",
+            metadata={"title": "测试", "source": "test"}
+        )
+        mock_response.source_nodes = [NodeWithScore(node=test_node, score=0.8)]
+        
+        # 设置环境变量
+        monkeypatch.setenv('DEEPSEEK_API_KEY', 'test_key_for_mock')
+        
+        # 创建查询引擎
         query_engine = QueryEngine(prepared_index_manager)
+        
+        # Mock 内部查询引擎的 query 方法
+        query_engine.query_engine.query = mocker.Mock(return_value=mock_response)
         
         # 多次查询
         questions = [

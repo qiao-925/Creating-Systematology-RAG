@@ -270,6 +270,7 @@ class TestChatManager:
 
 @pytest.mark.slow
 @pytest.mark.requires_real_api
+@pytest.mark.xfail(reason="DeepSeek completions API需要beta endpoint，llama_index兼容性问题")
 class TestChatManagerWithRealAPI:
     """使用真实API的对话管理器测试"""
     

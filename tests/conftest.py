@@ -10,6 +10,16 @@ from pathlib import Path
 # 添加src到Python路径
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+# 设置环境编码为 UTF-8（Windows兼容）
+if sys.platform == "win32":
+    os.environ["PYTHONIOENCODING"] = "utf-8"
+    # 设置标准输出编码
+    import io
+    if sys.stdout.encoding != 'utf-8':
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+    if sys.stderr.encoding != 'utf-8':
+        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+
 
 # ==================== 环境配置 ====================
 
@@ -23,6 +33,60 @@ def project_root():
 def test_data_dir():
     """测试数据目录"""
     return Path(__file__).parent / "fixtures" / "sample_docs"
+
+
+@pytest.fixture(autouse=True, scope="session")
+def patch_deepseek_support():
+    """全局 patch llama_index 和 tiktoken 以支持 DeepSeek 模型"""
+    patches = []
+    
+    try:
+        # Patch 1: llama_index context size
+        from llama_index.llms.openai import utils as openai_utils
+        original_fn = openai_utils.openai_modelname_to_contextsize
+        
+        def patched_context_fn(modelname: str) -> int:
+            """支持 DeepSeek 和其他自定义模型"""
+            if "deepseek" in modelname.lower():
+                return 32768  # DeepSeek context window
+            # 对于其他未知模型，返回默认值而不是抛出异常
+            try:
+                return original_fn(modelname)
+            except ValueError:
+                return 4096  # 默认 context window
+        
+        openai_utils.openai_modelname_to_contextsize = patched_context_fn
+        patches.append(('openai_utils', original_fn))
+    except ImportError:
+        pass
+    
+    try:
+        # Patch 2: tiktoken encoding
+        import tiktoken
+        original_encoding_fn = tiktoken.encoding_for_model
+        
+        def patched_encoding_fn(model_name: str):
+            """支持 DeepSeek 模型的 tiktoken"""
+            if "deepseek" in model_name.lower():
+                # DeepSeek 使用类似 GPT-3.5 的 tokenizer
+                return tiktoken.get_encoding("cl100k_base")
+            return original_encoding_fn(model_name)
+        
+        tiktoken.encoding_for_model = patched_encoding_fn
+        patches.append(('tiktoken', original_encoding_fn))
+    except ImportError:
+        pass
+    
+    yield
+    
+    # 恢复原始函数
+    for patch_type, original_fn in patches:
+        if patch_type == 'openai_utils':
+            from llama_index.llms.openai import utils as openai_utils
+            openai_utils.openai_modelname_to_contextsize = original_fn
+        elif patch_type == 'tiktoken':
+            import tiktoken
+            tiktoken.encoding_for_model = original_fn
 
 
 @pytest.fixture(autouse=True)
@@ -121,6 +185,25 @@ def sample_documents():
             metadata={"title": "系统工程", "source": "test", "id": 3}
         )
     ]
+
+
+# ==================== 索引管理器 ====================
+
+@pytest.fixture
+def prepared_index_manager(temp_vector_store, sample_documents):
+    """准备好的索引管理器（全局fixture）"""
+    from src.indexer import IndexManager
+    manager = IndexManager(
+        collection_name="global_test",
+        persist_dir=temp_vector_store
+    )
+    manager.build_index(sample_documents, show_progress=False)
+    yield manager
+    # 清理
+    try:
+        manager.clear_index()
+    except Exception:
+        pass
 
 
 # ==================== Mock配置 ====================

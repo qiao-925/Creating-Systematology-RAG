@@ -12,6 +12,33 @@ from llama_index.llms.openai import OpenAI
 from src.config import config
 from src.indexer import IndexManager
 
+# ==== DeepSeek 支持补丁 ====
+# llama_index 不认识 deepseek-chat 模型，需要 patch 验证函数
+try:
+    import llama_index.llms.openai.utils
+    _original_fn = llama_index.llms.openai.utils.openai_modelname_to_contextsize
+    
+    def _patched_fn(modelname: str) -> int:
+        """支持 DeepSeek 等自定义 OpenAI 兼容模型"""
+        if "deepseek" in modelname.lower():
+            return 32768  # DeepSeek context window
+        try:
+            return _original_fn(modelname)
+        except ValueError:
+            return 4096  # 默认值
+    
+    # 替换函数
+    llama_index.llms.openai.utils.openai_modelname_to_contextsize = _patched_fn
+    
+    # 同时也需要替换已经导入base模块中的引用
+    try:
+        import llama_index.llms.openai.base
+        llama_index.llms.openai.base.openai_modelname_to_contextsize = _patched_fn
+    except Exception:
+        pass
+except Exception:
+    pass
+
 
 class QueryEngine:
     """查询引擎"""
@@ -48,11 +75,17 @@ class QueryEngine:
             raise ValueError("未设置DEEPSEEK_API_KEY，请检查环境变量或配置文件")
         
         print(f"🤖 初始化DeepSeek LLM: {self.model}")
+        # DeepSeek 使用 OpenAI 兼容接口
+        # 通过设置 default_context_window 避免 llama_index 验证模型名
         self.llm = OpenAI(
             api_key=self.api_key,
             api_base=self.api_base,
             model=self.model,
-            temperature=0.1,  # 降低温度以获得更稳定的回答
+            temperature=0.1,
+            max_tokens=4096,
+            # 关键：显式设置 context_window，避免从模型名推断
+            default_context_window=32768,  # DeepSeek context window
+            additional_kwargs={},
         )
         
         # 获取索引
@@ -143,11 +176,17 @@ class SimpleQueryEngine:
         if not self.api_key:
             raise ValueError("未设置DEEPSEEK_API_KEY")
         
+        # DeepSeek 使用 OpenAI 兼容接口
+        # 通过设置 default_context_window 避免 llama_index 验证模型名
         self.llm = OpenAI(
             api_key=self.api_key,
             api_base=self.api_base,
             model=self.model,
             temperature=0.1,
+            max_tokens=4096,
+            # 关键：显式设置 context_window，避免从模型名推断
+            default_context_window=32768,  # DeepSeek context window
+            additional_kwargs={},
         )
         
         # 获取索引

@@ -60,6 +60,26 @@ DEEPSEEK_API_KEY=your_api_key_here
 
 ## 🚀 快速开始
 
+### 使用 Makefile
+
+```bash
+make help            # 查看所有可用命令
+make install         # 安装依赖
+make test-cov        # 运行测试并查看覆盖率
+make run             # 启动应用
+```
+
+**常用命令**：
+```bash
+make test            # 运行所有测试
+make test-unit       # 只运行单元测试
+make test-fast       # 快速测试（跳过慢速测试）
+make clean           # 清理生成文件
+make dev             # 一键设置开发环境
+```
+
+> **Windows 用户**: 建议安装 [WSL](https://docs.microsoft.com/en-us/windows/wsl/install) 或使用 [Git Bash](https://git-scm.com/downloads) 来运行 make 命令
+
 ### 方式一：Web 界面（推荐）
 
 1. 启动 Streamlit 应用：
