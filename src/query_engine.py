@@ -6,7 +6,7 @@
 from typing import List, Optional, Tuple
 from llama_index.core import VectorStoreIndex
 from llama_index.core.query_engine import CitationQueryEngine
-from llama_index.core.schema import Response
+from llama_index.core.base.response.schema import Response
 from llama_index.llms.openai import OpenAI
 
 from src.config import config
