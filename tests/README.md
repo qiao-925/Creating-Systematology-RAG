@@ -556,9 +556,9 @@ pytest --cov=src --cov-report=html            # HTML报告
 
 ## 📚 相关资源
 
-- 📖 [完整测试指南](../docs/TESTING_GUIDE.md) - 详细的测试体系文档
-- 🚀 [快速开始](../docs/TEST_QUICKSTART.md) - 5分钟上手
-- 💻 [开发者指南](../docs/DEVELOPER_GUIDE.md) - 开发规范
+- 📖 [文档中心](../docs/README.md) - 完整的文档导航
+- 🏗️ [架构设计](../docs/ARCHITECTURE.md) - 系统架构和设计思路
+- 📚 [API参考](../docs/API.md) - 完整的API接口文档
 
 ---
 
