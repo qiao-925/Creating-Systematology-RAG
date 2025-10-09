@@ -918,7 +918,6 @@ chat_manager.save_current_session()
 ## 相关文档
 
 - [架构设计](ARCHITECTURE.md) - 系统架构和设计思路
-- [开发者指南](DEVELOPER_GUIDE.md) - 详细的代码说明和开发指南
 - [技术决策](DECISIONS.md) - 技术选型的原因
 - [开发日志](CHANGELOG.md) - 项目进展记录
 

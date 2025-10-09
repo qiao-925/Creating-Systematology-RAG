@@ -18,12 +18,10 @@ Creating-Systematology-RAG/
 ├── streamlit-test.py              # 🧪 Streamlit测试文件
 │
 ├── docs/                          # 📚 文档中心
-│   ├── README.md                  # 📖 文档中心首页
-│   ├── INDEX.md                   # 🗂️ 文档索引和导航
+│   ├── README.md                  # 📖 文档中心首页（整合导航）
 │   │
 │   ├── QUICKSTART.md              # 🚀 快速开始指南（5分钟上手）
 │   ├── ARCHITECTURE.md            # 🏗️ 架构设计文档（系统架构、设计思路）
-│   ├── DEVELOPER_GUIDE.md         # 👨‍💻 开发者指南（代码详解、开发任务）
 │   ├── API.md                     # 📚 API参考文档（接口文档）
 │   ├── PROJECT_STRUCTURE.md       # 📁 项目结构说明（本文件）
 │   │
@@ -84,13 +82,11 @@ Creating-Systematology-RAG/
 
 **核心技术文档**（必读）：
 - `ARCHITECTURE.md` - 系统架构和设计思路 ⭐
-- `DEVELOPER_GUIDE.md` - 详细的代码说明和开发指南 ⭐
 - `API.md` - 完整的API接口文档
 
 **用户文档**：
 - `QUICKSTART.md` - 5分钟快速上手
-- `README.md` - 文档中心首页
-- `INDEX.md` - 文档导航和索引
+- `README.md` - 文档中心首页（整合导航）
 
 **管理文档**：
 - `DECISIONS.md` - 技术决策记录
@@ -174,10 +170,10 @@ indexer.py
 
 | 类型 | 数量 | 总字数（约） |
 |------|------|-------------|
-| 技术文档 | 4个 | 19,000+ |
-| 用户文档 | 3个 | 3,000+ |
+| 技术文档 | 2个 | 12,000+ |
+| 用户文档 | 2个 | 10,000+ |
 | 管理文档 | 3个 | 3,000+ |
-| **合计** | **10个** | **25,000+** |
+| **合计** | **7个** | **25,000+** |
 
 ### 示例数据
 
@@ -210,8 +206,8 @@ indexer.py
 | **如何使用** | `README.md` |
 | **快速开始** | `docs/QUICKSTART.md` |
 | **系统架构** | `docs/ARCHITECTURE.md` |
-| **代码详解** | `docs/DEVELOPER_GUIDE.md` |
 | **API接口** | `docs/API.md` |
+| **文档导航** | `docs/README.md` |
 | **技术选型原因** | `docs/DECISIONS.md` |
 | **项目进展** | `docs/CHANGELOG.md` |
 | **未来计划** | `docs/TODO.md` |
@@ -392,12 +388,11 @@ examples/           # 示例代码
 
 - [README.md](../README.md) - 项目概览
 - [架构设计](ARCHITECTURE.md) - 系统架构详解
-- [开发者指南](DEVELOPER_GUIDE.md) - 开发说明
-- [文档导航](INDEX.md) - 所有文档索引
+- [文档中心](README.md) - 文档导航和索引
 
 ---
 
-**最后更新**: 2025-10-07
+**最后更新**: 2025-10-09
 
 **维护者**: 项目团队
 

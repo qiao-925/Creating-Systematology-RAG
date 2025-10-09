@@ -74,8 +74,8 @@ test-performance: install-test
 
 test-cov: install-test
 	@echo "📊 运行测试并生成覆盖率报告..."
-	uv run pytest tests/ --cov=src --cov-report=html --cov-report=term-missing
-	@echo "✓ 覆盖率报告: htmlcov/index.html"
+	uv run pytest tests/ --cov=src --cov-report=term-missing
+	@echo "✓ 覆盖率报告已显示在终端"
 
 test-fast: install-test
 	@echo "⚡ 运行快速测试..."

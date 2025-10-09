@@ -1,6 +1,6 @@
 # 文档中心
 
-欢迎来到系统科学知识库RAG应用的文档中心！
+> 欢迎来到系统科学知识库RAG应用的文档中心！快速找到您需要的文档。
 
 ## 📚 文档列表
 
@@ -9,9 +9,6 @@
 | 文档 | 说明 | 推荐度 |
 |------|------|--------|
 | [架构设计](ARCHITECTURE.md) | 系统架构、模块设计、数据流程 | ⭐⭐⭐ |
-| [开发者指南](DEVELOPER_GUIDE.md) | 详细代码解析、开发任务、调试技巧 | ⭐⭐⭐ |
-| [测试指南](TESTING_GUIDE.md) | 完整的测试体系和策略 | ⭐⭐⭐ |
-| [测试快速开始](TEST_QUICKSTART.md) | 5分钟运行测试 | ⭐⭐ |
 | [API参考](API.md) | 完整的API接口文档 | ⭐⭐ |
 
 ### 用户文档
@@ -19,7 +16,6 @@
 | 文档 | 说明 |
 |------|------|
 | [快速开始](QUICKSTART.md) | 5分钟快速上手指南 |
-| [文档导航](INDEX.md) | 按需求和角色查找文档 |
 
 ### 项目管理
 
@@ -30,45 +26,168 @@
 | [待办事项](TODO.md) | 未来计划 |
 | [项目结构](PROJECT_STRUCTURE.md) | 目录和文件组织说明 |
 
+---
+
 ## 🚀 快速导航
 
 ### 我想...
 
 - **快速使用** → [快速开始](QUICKSTART.md)
-- **理解架构** → [架构设计](ARCHITECTURE.md) ⭐
-- **开发代码** → [开发者指南](DEVELOPER_GUIDE.md) ⭐
-- **编写测试** → [测试指南](TESTING_GUIDE.md) ⭐
+- **理解架构** → [架构设计](ARCHITECTURE.md) ⭐ **强烈推荐**
+  - 整体架构图
+  - 模块设计思路
+  - 数据流程详解
+  - 核心技术选型说明
+  - 扩展指南
 - **查询接口** → [API参考](API.md)
-- **找文档** → [文档导航](INDEX.md)
+  - 所有模块的完整接口文档
+  - 参数说明和使用示例
+- **了解技术决策** → [技术决策](DECISIONS.md)
+  - 为什么选择这些技术
+  - 每个决策的原因和权衡
+- **了解项目结构** → [项目结构](PROJECT_STRUCTURE.md)
+  - 完整的目录结构
+  - 文件组织说明
+- **查看进展** → [开发日志](CHANGELOG.md) / [待办事项](TODO.md)
+
+---
+
+## 📖 按角色推荐
+
+### 👤 普通用户
+1. [项目主页](../README.md) - 了解这是什么
+2. [快速开始](QUICKSTART.md) - 开始使用
+
+### 👨‍💻 开发者（第一次接触项目）
+1. [项目主页](../README.md) - 项目概览
+2. [架构设计](ARCHITECTURE.md) - 理解整体架构 ⭐
+3. [API参考](API.md) - 查阅接口
+
+### 🔧 开发者（需要添加功能）
+1. [架构设计 - 扩展指南](ARCHITECTURE.md#扩展指南)
+2. [API参考](API.md) - 了解现有接口
+
+### 🎨 开发者（需要修改UI）
+1. [app.py](../app.py) - Streamlit应用代码
+2. [架构设计](ARCHITECTURE.md) - 理解系统架构
+
+### 📊 项目经理/产品经理
+1. [项目主页](../README.md) - 功能概览
+2. [技术决策](DECISIONS.md) - 技术选型原因
+3. [待办事项](TODO.md) - 未来规划
+
+---
+
+## 📝 按主题查找
+
+### 配置管理
+- [架构设计 - 配置管理模块](ARCHITECTURE.md#1-配置管理模块srconfigpy)
+- [API - Config类](API.md#srcconfig)
+
+### 数据加载
+- [架构设计 - 数据加载模块](ARCHITECTURE.md#2-数据加载模块srcdata_loaderpy)
+- [API - DataLoader类](API.md#srcdata_loader)
+
+### 索引构建
+- [架构设计 - 索引构建模块](ARCHITECTURE.md#3-索引构建模块srcindexerpy)
+- [API - IndexManager类](API.md#srcindexer)
+
+### 查询引擎
+- [架构设计 - 查询引擎模块](ARCHITECTURE.md#4-查询引擎模块srcquery_enginepy)
+- [API - QueryEngine类](API.md#srcquery_engine)
+
+### 对话管理
+- [架构设计 - 对话管理模块](ARCHITECTURE.md#5-对话管理模块srcchat_managerpy)
+- [API - ChatManager类](API.md#srcchat_manager)
+
+### 扩展开发
+- [架构设计 - 扩展指南](ARCHITECTURE.md#扩展指南)
+
+### 性能优化
+- [架构设计 - 性能优化建议](ARCHITECTURE.md#性能优化建议)
+
+---
+
+## 🔍 快速查找
+
+### 关键词索引
+
+**A**
+- API密钥配置 → [快速开始](QUICKSTART.md)
+- API接口 → [API参考](API.md)
+
+**C**
+- Chroma数据库 → [架构设计 - 索引构建](ARCHITECTURE.md#3-索引构建模块srcindexerpy)
+- CLI工具 → [项目主页 - CLI工具](../README.md#方式二命令行工具)
+- Citation（引用溯源）→ [架构设计 - 查询引擎](ARCHITECTURE.md#4-查询引擎模块srcquery_enginepy)
+
+**D**
+- DeepSeek集成 → [架构设计 - 查询引擎](ARCHITECTURE.md#4-查询引擎模块srcquery_enginepy)
+
+**E**
+- Embedding模型 → [技术决策 - ADR-004](DECISIONS.md#adr-004-使用本地embedding模型)
+- 扩展功能 → [架构设计 - 扩展指南](ARCHITECTURE.md#扩展指南)
+
+**L**
+- LlamaIndex → [架构设计 - LlamaIndex架构集成](ARCHITECTURE.md#llamaindex-架构集成)
+
+**M**
+- Markdown加载 → [API - MarkdownLoader](API.md#markdownloader-类)
+- 多轮对话 → [架构设计 - 对话管理](ARCHITECTURE.md#5-对话管理模块srcchat_managerpy)
+
+**P**
+- 性能优化 → [架构设计 - 性能优化](ARCHITECTURE.md#性能优化建议)
+
+**Q**
+- 查询引擎 → [API - QueryEngine](API.md#queryengine-类)
+
+**V**
+- 向量数据库 → [技术决策 - ADR-003](DECISIONS.md#adr-003-选择chroma作为向量数据库)
+
+**W**
+- 网页抓取 → [API - WebLoader](API.md#webloader-类)
+
+---
+
+## 💡 常见问题快速查找
+
+| 问题 | 文档位置 |
+|------|---------|
+| 如何安装和启动？ | [快速开始](QUICKSTART.md) |
+| 如何添加新的数据源？ | [架构设计 - 扩展指南](ARCHITECTURE.md#1-添加新的数据源) |
+| 如何切换LLM模型？ | [架构设计 - 切换LLM](ARCHITECTURE.md#3-切换-llm) |
+| API密钥如何配置？ | [快速开始 - 配置API密钥](QUICKSTART.md#第二步配置-api-密钥) |
+| 为什么选择这些技术？ | [技术决策](DECISIONS.md) |
+| 各个模块的接口是什么？ | [API参考](API.md) |
+
+---
 
 ## 📖 推荐阅读路径
 
-### 新用户（10分钟）
-1. [项目主页](../README.md) - 了解项目
-2. [快速开始](QUICKSTART.md) - 开始使用
+### 路径1：快速使用（10分钟）
+1. [项目主页](../README.md) - 了解项目（2分钟）
+2. [快速开始](QUICKSTART.md) - 开始使用（8分钟）
 
-### 开发者（1小时）
-1. [项目主页](../README.md) - 项目概览
+### 路径2：深入理解（30分钟）
+1. [项目主页](../README.md) - 项目概览（2分钟）
 2. [架构设计](ARCHITECTURE.md) - 理解架构（20分钟）⭐
-3. [开发者指南](DEVELOPER_GUIDE.md) - 代码细节（30分钟）⭐
-4. [API参考](API.md) - 按需查阅
+3. [技术决策](DECISIONS.md) - 技术选型（8分钟）
 
-### 路径3：开发准备（60分钟）
-1. [项目主页](../README.md) - 项目概览
+### 路径3：开发准备（40分钟）
+1. [项目主页](../README.md) - 项目概览（2分钟）
 2. [架构设计](ARCHITECTURE.md) - 理解架构（20分钟）⭐
-3. [开发者指南](DEVELOPER_GUIDE.md) - 代码细节（30分钟）⭐
-4. [API参考](API.md) - 按需查阅
+3. [API参考](API.md) - 接口文档（18分钟）
 
-### 路径4：测试开发（30分钟）
-1. [测试指南](TESTING_GUIDE.md) - 完整测试体系（20分钟）⭐
-2. 运行示例测试 - 10分钟
+---
 
 ## 📊 文档统计
 
-- **总文档数**: 11个
-- **总字数**: 约32,000+字
-- **代码示例**: 150+个
-- **最后更新**: 2025-10-07
+- **总文档数**: 7个
+- **总字数**: 约22,000+字
+- **代码示例**: 90+个
+- **最后更新**: 2025-10-09
+
+---
 
 ## 🤝 贡献文档
 
@@ -79,5 +198,5 @@
 
 ---
 
-**提示**: 建议从 [架构设计文档](ARCHITECTURE.md) 开始，它能帮助你快速建立对整个系统的认知！
+**💡 提示**: 建议从 [架构设计文档](ARCHITECTURE.md) 开始，它能帮助你快速建立对整个系统的认知！
 

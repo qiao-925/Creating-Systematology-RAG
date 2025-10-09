@@ -706,7 +706,6 @@ else:
 
 ## 相关文档
 
-- [开发者指南](DEVELOPER_GUIDE.md) - 详细的代码说明和开发指南
 - [API参考](API.md) - 完整的API接口文档
 - [技术决策](DECISIONS.md) - 技术选型的原因和考量
 - [开发日志](CHANGELOG.md) - 项目进展记录
