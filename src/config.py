@@ -35,6 +35,13 @@ class Config:
         self.RAW_DATA_PATH = self._get_path("RAW_DATA_PATH", "data/raw")
         self.PROCESSED_DATA_PATH = self._get_path("PROCESSED_DATA_PATH", "data/processed")
         
+        # 会话和日志路径配置
+        self.SESSIONS_PATH = self._get_path("SESSIONS_PATH", "sessions")
+        self.ACTIVITY_LOG_PATH = self._get_path("ACTIVITY_LOG_PATH", "logs/activity")
+        
+        # GitHub 元数据配置
+        self.GITHUB_METADATA_PATH = self._get_path("GITHUB_METADATA_PATH", "data/github_metadata.json")
+        
         # 索引配置
         self.CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "512"))
         self.CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "50"))
@@ -45,8 +52,23 @@ class Config:
         self.APP_PORT = int(os.getenv("APP_PORT", "8501"))
         
         # GitHub数据源配置
-        self.GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
+        # 注意：GITHUB_TOKEN 现在是用户级别的配置，不再从环境变量读取
+        # 每个用户在 UI 中配置自己的 Token，存储在用户数据中
         self.GITHUB_DEFAULT_BRANCH = os.getenv("GITHUB_DEFAULT_BRANCH", "main")
+        
+        # 维基百科配置
+        self.ENABLE_WIKIPEDIA = os.getenv("ENABLE_WIKIPEDIA", "true").lower() == "true"
+        self.WIKIPEDIA_AUTO_LANG = os.getenv("WIKIPEDIA_AUTO_LANG", "true").lower() == "true"
+        self.WIKIPEDIA_THRESHOLD = float(os.getenv("WIKIPEDIA_THRESHOLD", "0.6"))
+        self.WIKIPEDIA_MAX_RESULTS = int(os.getenv("WIKIPEDIA_MAX_RESULTS", "2"))
+        self.WIKIPEDIA_PRELOAD_CONCEPTS = [
+            concept.strip() 
+            for concept in os.getenv(
+                "WIKIPEDIA_PRELOAD_CONCEPTS",
+                "系统科学,钱学森,系统工程,控制论,信息论"
+            ).split(',')
+            if concept.strip()
+        ]
         
     def _get_path(self, env_var: str, default: str) -> Path:
         """获取路径配置，支持相对路径和绝对路径"""
@@ -65,6 +87,8 @@ class Config:
             self.VECTOR_STORE_PATH,
             self.RAW_DATA_PATH,
             self.PROCESSED_DATA_PATH,
+            self.SESSIONS_PATH,
+            self.ACTIVITY_LOG_PATH,
         ]
         
         for directory in directories:
@@ -98,10 +122,16 @@ class Config:
     LLM_MODEL={self.LLM_MODEL},
     EMBEDDING_MODEL={self.EMBEDDING_MODEL},
     VECTOR_STORE_PATH={self.VECTOR_STORE_PATH},
+    SESSIONS_PATH={self.SESSIONS_PATH},
+    ACTIVITY_LOG_PATH={self.ACTIVITY_LOG_PATH},
+    GITHUB_METADATA_PATH={self.GITHUB_METADATA_PATH},
     CHUNK_SIZE={self.CHUNK_SIZE},
     CHUNK_OVERLAP={self.CHUNK_OVERLAP},
     SIMILARITY_TOP_K={self.SIMILARITY_TOP_K},
-    GITHUB_DEFAULT_BRANCH={self.GITHUB_DEFAULT_BRANCH}
+    GITHUB_DEFAULT_BRANCH={self.GITHUB_DEFAULT_BRANCH},
+    ENABLE_WIKIPEDIA={self.ENABLE_WIKIPEDIA},
+    WIKIPEDIA_THRESHOLD={self.WIKIPEDIA_THRESHOLD},
+    WIKIPEDIA_MAX_RESULTS={self.WIKIPEDIA_MAX_RESULTS}
 )"""
 
 

@@ -149,6 +149,8 @@ class ChatManager:
         model: Optional[str] = None,
         memory_token_limit: int = 3000,
         similarity_top_k: Optional[int] = None,
+        auto_save: bool = True,
+        user_email: Optional[str] = None,
     ):
         """初始化对话管理器
         
@@ -159,9 +161,13 @@ class ChatManager:
             model: 模型名称
             memory_token_limit: 记忆token限制
             similarity_top_k: 检索相似文档数量
+            auto_save: 是否自动保存会话
+            user_email: 用户邮箱（用于会话目录隔离）
         """
         self.index_manager = index_manager
         self.similarity_top_k = similarity_top_k or config.SIMILARITY_TOP_K
+        self.auto_save = auto_save
+        self.user_email = user_email
         
         # 配置DeepSeek LLM
         self.api_key = api_key or config.DEEPSEEK_API_KEY
@@ -276,10 +282,77 @@ class ChatManager:
             print(f"🤖 AI: {answer[:100]}...")
             print(f"📚 引用来源: {len(sources)} 个")
             
+            # 自动保存会话
+            if self.auto_save:
+                self.save_current_session()
+            
             return answer, sources
             
         except Exception as e:
             print(f"❌ 对话失败: {e}")
+            raise
+    
+    async def stream_chat(self, message: str):
+        """异步流式对话（用于Web应用）
+        
+        Args:
+            message: 用户消息
+            
+        Yields:
+            dict: 包含type和data的字典
+                - type='token': data为文本token
+                - type='sources': data为引用来源列表
+                - type='done': data为完整答案
+        """
+        import asyncio
+        
+        if self.current_session is None:
+            self.start_session()
+        
+        try:
+            print(f"\n💬 用户: {message}")
+            
+            # 执行流式对话
+            response_stream = self.chat_engine.stream_chat(message)
+            
+            # 收集完整答案
+            full_answer = ""
+            
+            # 流式输出token
+            for token in response_stream.response_gen:
+                full_answer += token
+                yield {'type': 'token', 'data': token}
+                # 添加打字机效果延迟
+                await asyncio.sleep(0.02)
+            
+            # 提取引用来源
+            sources = []
+            if hasattr(response_stream, 'source_nodes') and response_stream.source_nodes:
+                for i, node in enumerate(response_stream.source_nodes, 1):
+                    source = {
+                        'index': i,
+                        'text': node.node.text,
+                        'score': node.score if hasattr(node, 'score') else None,
+                        'metadata': node.node.metadata,
+                    }
+                    sources.append(source)
+            
+            # 添加到会话历史
+            self.current_session.add_turn(message, full_answer, sources)
+            
+            print(f"🤖 AI: {full_answer[:100]}...")
+            print(f"📚 引用来源: {len(sources)} 个")
+            
+            # 自动保存会话
+            if self.auto_save:
+                self.save_current_session()
+            
+            # 返回引用来源和完整答案
+            yield {'type': 'sources', 'data': sources}
+            yield {'type': 'done', 'data': full_answer}
+            
+        except Exception as e:
+            print(f"❌ 流式对话失败: {e}")
             raise
     
     def get_current_session(self) -> Optional[ChatSession]:
@@ -290,14 +363,18 @@ class ChatManager:
         """保存当前会话
         
         Args:
-            save_dir: 保存目录，默认为项目根目录/sessions
+            save_dir: 保存目录，默认为配置的会话目录
         """
         if self.current_session is None:
             print("⚠️  没有活动会话需要保存")
             return
         
         if save_dir is None:
-            save_dir = config.PROJECT_ROOT / "sessions"
+            # 如果有用户邮箱，保存到用户专属目录
+            if self.user_email:
+                save_dir = config.SESSIONS_PATH / self.user_email
+            else:
+                save_dir = config.SESSIONS_PATH
         
         self.current_session.save(save_dir)
     

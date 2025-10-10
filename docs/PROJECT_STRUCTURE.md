@@ -32,10 +32,13 @@ Creating-Systematology-RAG/
 ├── src/                           # 💻 源代码（核心业务逻辑）
 │   ├── __init__.py                # 📦 包初始化文件
 │   ├── config.py                  # ⚙️ 配置管理（环境变量、参数）
-│   ├── data_loader.py             # 📥 数据加载（Markdown、网页）
+│   ├── logger.py                  # 📋 日志系统（应用日志配置）
+│   ├── data_loader.py             # 📥 数据加载（Markdown、网页、GitHub）
 │   ├── indexer.py                 # 🗂️ 索引构建（向量化、存储）
 │   ├── query_engine.py            # 🔍 查询引擎（问答、引用溯源）
-│   └── chat_manager.py            # 💬 对话管理（多轮对话、会话）
+│   ├── chat_manager.py            # 💬 对话管理（多轮对话、会话）
+│   ├── user_manager.py            # 👤 用户管理（注册、登录、会话关联）
+│   └── activity_logger.py         # 📊 行为日志（用户操作追踪）
 │
 ├── data/                          # 📁 数据目录
 │   ├── raw/                       # 📄 原始文档存储
@@ -52,7 +55,14 @@ Creating-Systematology-RAG/
 │   └── chroma.sqlite3             # SQLite数据库文件（自动生成）
 │
 ├── sessions/                      # 💾 对话会话记录（自动生成）
-│   └── session_*.json             # 会话文件
+│   └── {user_email}/              # 用户专属会话目录
+│       └── session_*.json         # 会话文件
+│
+├── logs/                          # 📋 日志目录（自动生成）
+│   ├── YYYY-MM-DD.log             # 应用日志（按日期）
+│   └── activity/                  # 用户行为日志
+│       └── {user_email}/          # 用户专属日志目录
+│           └── activity.jsonl     # 行为日志（JSONL格式）
 │
 ├── .git/                          # 🔧 Git版本控制
 ├── .gitignore                     # 🚫 Git忽略文件
@@ -101,21 +111,25 @@ Creating-Systematology-RAG/
 | 模块 | 职责 | 依赖关系 |
 |------|------|---------|
 | `config.py` | 配置管理 | 基础模块，无依赖 |
-| `data_loader.py` | 数据加载 | 依赖 config |
-| `indexer.py` | 索引构建 | 依赖 config, data_loader |
-| `query_engine.py` | 查询引擎 | 依赖 config, indexer |
-| `chat_manager.py` | 对话管理 | 依赖 config, indexer |
+| `logger.py` | 日志系统 | 依赖 config |
+| `data_loader.py` | 数据加载（Markdown、网页、GitHub） | 依赖 config, logger |
+| `indexer.py` | 索引构建 | 依赖 config, data_loader, logger |
+| `query_engine.py` | 查询引擎 | 依赖 config, indexer, logger |
+| `chat_manager.py` | 对话管理 | 依赖 config, indexer, logger |
+| `user_manager.py` | 用户管理（注册、登录、会话关联） | 依赖 config, logger |
+| `activity_logger.py` | 用户行为日志（操作追踪） | 依赖 config, logger |
 
 **依赖关系图**：
 ```
 config.py (基础)
     ↓
-data_loader.py
+logger.py
     ↓
-indexer.py
-    ↓
-    ├── query_engine.py
-    └── chat_manager.py
+    ├── data_loader.py → indexer.py → query_engine.py
+    │                           ↓
+    │                     chat_manager.py
+    ├── user_manager.py
+    └── activity_logger.py
 ```
 
 ### data/ - 数据目录

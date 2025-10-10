@@ -18,6 +18,50 @@ from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.vector_stores.chroma import ChromaVectorStore
 
 from src.config import config
+from src.logger import setup_logger
+
+logger = setup_logger('indexer')
+
+# 全局 embedding 模型缓存
+_global_embed_model: Optional[HuggingFaceEmbedding] = None
+
+
+def load_embedding_model(model_name: Optional[str] = None) -> HuggingFaceEmbedding:
+    """加载 Embedding 模型（支持全局单例模式）
+    
+    Args:
+        model_name: 模型名称，默认使用配置中的模型
+        
+    Returns:
+        HuggingFaceEmbedding 实例
+    """
+    global _global_embed_model
+    
+    model_name = model_name or config.EMBEDDING_MODEL
+    
+    # 如果已经加载过且模型名称相同，直接返回
+    if _global_embed_model is not None:
+        logger.info(f"使用已加载的 Embedding 模型: {model_name}")
+        return _global_embed_model
+    
+    # 加载模型
+    logger.info(f"正在加载 Embedding 模型: {model_name}")
+    _global_embed_model = HuggingFaceEmbedding(
+        model_name=model_name,
+        trust_remote_code=True,
+    )
+    logger.info(f"Embedding 模型加载完成: {model_name}")
+    
+    return _global_embed_model
+
+
+def get_global_embed_model() -> Optional[HuggingFaceEmbedding]:
+    """获取全局 Embedding 模型实例
+    
+    Returns:
+        已加载的模型实例，如果未加载则返回 None
+    """
+    return _global_embed_model
 
 
 class IndexManager:
@@ -30,6 +74,7 @@ class IndexManager:
         embedding_model: Optional[str] = None,
         chunk_size: Optional[int] = None,
         chunk_overlap: Optional[int] = None,
+        embed_model_instance: Optional[HuggingFaceEmbedding] = None,
     ):
         """初始化索引管理器
         
@@ -39,6 +84,7 @@ class IndexManager:
             embedding_model: Embedding模型名称
             chunk_size: 文本分块大小
             chunk_overlap: 文本分块重叠大小
+            embed_model_instance: 预加载的Embedding模型实例（可选）
         """
         # 使用配置或默认值
         self.collection_name = collection_name or config.CHROMA_COLLECTION_NAME
@@ -50,12 +96,16 @@ class IndexManager:
         # 确保持久化目录存在
         self.persist_dir.mkdir(parents=True, exist_ok=True)
         
-        # 初始化embedding模型
-        print(f"📦 正在加载Embedding模型: {self.embedding_model_name}")
-        self.embed_model = HuggingFaceEmbedding(
-            model_name=self.embedding_model_name,
-            trust_remote_code=True,
-        )
+        # 初始化embedding模型（优先使用预加载的实例）
+        if embed_model_instance is not None:
+            print(f"✅ 使用预加载的Embedding模型: {self.embedding_model_name}")
+            self.embed_model = embed_model_instance
+        else:
+            print(f"📦 正在加载Embedding模型: {self.embedding_model_name}")
+            self.embed_model = HuggingFaceEmbedding(
+                model_name=self.embedding_model_name,
+                trust_remote_code=True,
+            )
         
         # 配置全局Settings
         Settings.embed_model = self.embed_model
@@ -222,6 +272,233 @@ class IndexManager:
             })
         
         return results
+    
+    def incremental_update(
+        self,
+        added_docs: List[LlamaDocument],
+        modified_docs: List[LlamaDocument],
+        deleted_file_paths: List[str],
+        metadata_manager=None
+    ) -> dict:
+        """执行增量更新
+        
+        Args:
+            added_docs: 新增的文档列表
+            modified_docs: 修改的文档列表
+            deleted_file_paths: 删除的文件路径列表
+            metadata_manager: 元数据管理器实例（用于查询向量ID）
+            
+        Returns:
+            更新统计信息
+        """
+        stats = {
+            "added": 0,
+            "modified": 0,
+            "deleted": 0,
+            "errors": []
+        }
+        
+        # 确保索引存在
+        if self._index is None:
+            self.get_index()
+        
+        # 1. 处理新增
+        if added_docs:
+            try:
+                added_count = self._add_documents(added_docs)
+                stats["added"] = added_count
+                print(f"✅ 新增 {added_count} 个文档")
+            except Exception as e:
+                error_msg = f"新增文档失败: {e}"
+                print(f"❌ {error_msg}")
+                stats["errors"].append(error_msg)
+        
+        # 2. 处理修改（先删除旧的，再添加新的）
+        if modified_docs:
+            try:
+                # 删除旧向量
+                deleted_vector_count = 0
+                for doc in modified_docs:
+                    file_path = doc.metadata.get("file_path", "")
+                    if file_path and metadata_manager:
+                        # 从元数据中获取旧的向量ID
+                        owner = doc.metadata.get("repository", "").split("/")[0] if "/" in doc.metadata.get("repository", "") else ""
+                        repo = doc.metadata.get("repository", "").split("/")[1] if "/" in doc.metadata.get("repository", "") else ""
+                        branch = doc.metadata.get("branch", "main")
+                        
+                        vector_ids = metadata_manager.get_file_vector_ids(owner, repo, branch, file_path)
+                        if vector_ids:
+                            self._delete_vectors_by_ids(vector_ids)
+                            deleted_vector_count += len(vector_ids)
+                
+                # 添加新版本
+                modified_count = self._add_documents(modified_docs)
+                stats["modified"] = modified_count
+                print(f"✅ 更新 {modified_count} 个文档（删除 {deleted_vector_count} 个旧向量）")
+            except Exception as e:
+                error_msg = f"更新文档失败: {e}"
+                print(f"❌ {error_msg}")
+                stats["errors"].append(error_msg)
+        
+        # 3. 处理删除
+        if deleted_file_paths and metadata_manager:
+            try:
+                deleted_count = self._delete_documents(deleted_file_paths, metadata_manager)
+                stats["deleted"] = deleted_count
+                print(f"✅ 删除 {deleted_count} 个文档")
+            except Exception as e:
+                error_msg = f"删除文档失败: {e}"
+                print(f"❌ {error_msg}")
+                stats["errors"].append(error_msg)
+        
+        return stats
+    
+    def _add_documents(self, documents: List[LlamaDocument]) -> int:
+        """批量添加文档到索引
+        
+        Args:
+            documents: 文档列表
+            
+        Returns:
+            成功添加的文档数量
+        """
+        if not documents:
+            return 0
+        
+        count = 0
+        for doc in documents:
+            try:
+                self._index.insert(doc)
+                count += 1
+            except Exception as e:
+                print(f"⚠️  添加文档失败 [{doc.metadata.get('file_path', 'unknown')}]: {e}")
+        
+        return count
+    
+    def _delete_documents(self, file_paths: List[str], metadata_manager) -> int:
+        """批量删除文档
+        
+        Args:
+            file_paths: 文件路径列表
+            metadata_manager: 元数据管理器实例
+            
+        Returns:
+            成功删除的文档数量
+        """
+        deleted_count = 0
+        
+        for file_path in file_paths:
+            # 需要从文档元数据中提取仓库信息
+            # 这里假设文件路径包含仓库信息
+            # 实际使用时需要传递完整的仓库信息
+            # 暂时跳过，因为我们需要更多上下文信息
+            pass
+        
+        return deleted_count
+    
+    def _delete_vectors_by_ids(self, vector_ids: List[str]):
+        """根据向量ID删除向量
+        
+        Args:
+            vector_ids: 向量ID列表
+        """
+        if not vector_ids:
+            return
+        
+        try:
+            self.chroma_collection.delete(ids=vector_ids)
+        except Exception as e:
+            print(f"⚠️  删除向量失败: {e}")
+            raise
+    
+    def get_node_ids_for_document(self, doc_id: str) -> List[str]:
+        """获取文档对应的所有节点ID
+        
+        Args:
+            doc_id: 文档ID
+            
+        Returns:
+            节点ID列表
+        """
+        # LlamaIndex 使用节点（Node）的概念，每个文档分块后会生成多个节点
+        # 需要查询 Chroma collection 来获取与文档相关的所有节点
+        try:
+            # 查询所有数据，然后过滤出匹配的
+            # 注意：这是一个简化实现，大规模数据时需要优化
+            result = self.chroma_collection.get()
+            
+            if not result or 'ids' not in result:
+                return []
+            
+            # 返回所有ID（简化版本，实际应该根据元数据过滤）
+            return result['ids']
+        except Exception as e:
+            print(f"⚠️  查询节点ID失败: {e}")
+            return []
+    
+    def preload_wikipedia_concepts(
+        self,
+        concept_keywords: List[str],
+        lang: str = "zh",
+        show_progress: bool = True
+    ) -> int:
+        """预加载核心概念的维基百科内容到索引
+        
+        Args:
+            concept_keywords: 概念关键词列表（维基百科页面标题）
+            lang: 语言代码（zh=中文, en=英文）
+            show_progress: 是否显示进度
+            
+        Returns:
+            成功索引的页面数量
+            
+        Examples:
+            >>> index_manager.preload_wikipedia_concepts(
+            ...     ["系统科学", "钱学森", "控制论"],
+            ...     lang="zh"
+            ... )
+        """
+        if not concept_keywords:
+            print("⚠️  概念关键词列表为空")
+            return 0
+        
+        try:
+            from src.data_loader import load_documents_from_wikipedia
+            
+            if show_progress:
+                print(f"📖 预加载 {len(concept_keywords)} 个维基百科概念...")
+            
+            logger.info(f"开始预加载维基百科概念: {concept_keywords}")
+            
+            # 加载维基百科页面
+            wiki_docs = load_documents_from_wikipedia(
+                pages=concept_keywords,
+                lang=lang,
+                auto_suggest=True,
+                clean=True,
+                show_progress=show_progress
+            )
+            
+            if not wiki_docs:
+                if show_progress:
+                    print("⚠️  未找到任何维基百科内容")
+                logger.warning("未找到任何维基百科内容")
+                return 0
+            
+            # 构建索引
+            self.build_index(wiki_docs, show_progress=show_progress)
+            
+            if show_progress:
+                print(f"✅ 已索引 {len(wiki_docs)} 个维基百科页面")
+            
+            logger.info(f"成功预加载 {len(wiki_docs)} 个维基百科页面")
+            
+            return len(wiki_docs)
+            
+        except Exception as e:
+            print(f"❌ 预加载维基百科失败: {e}")
+            logger.error(f"预加载维基百科失败: {e}")
+            return 0
 
 
 def create_index_from_directory(

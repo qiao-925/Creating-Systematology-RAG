@@ -31,17 +31,26 @@ def setup_logger(name: str, log_dir: Optional[Path] = None) -> logging.Logger:
     if logger.handlers:
         return logger
     
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
     logger.propagate = False
     
     # 文件处理器（按日期）
     log_file = log_dir / f"{datetime.now().strftime('%Y-%m-%d')}.log"
     file_handler = logging.FileHandler(log_file, encoding='utf-8')
-    file_handler.setLevel(logging.INFO)
+    file_handler.setLevel(logging.DEBUG)
     
-    # 控制台处理器（只显示 WARNING 及以上）
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.WARNING)
+    # 控制台处理器（显示所有级别）
+    # 注意：Windows 下需要特殊处理编码
+    import sys
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.DEBUG)
+    
+    # 尝试设置控制台编码为 UTF-8
+    try:
+        if hasattr(sys.stdout, 'reconfigure'):
+            sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass  # 如果失败，忽略（某些环境不支持）
     
     # 格式化器
     formatter = logging.Formatter(
