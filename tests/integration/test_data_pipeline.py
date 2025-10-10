@@ -5,7 +5,7 @@
 
 import pytest
 from pathlib import Path
-from src.data_loader import load_documents_from_directory
+from src.data_loader import load_documents_from_directory, load_documents_from_github
 from src.indexer import IndexManager
 
 
@@ -87,6 +87,62 @@ class TestDataPipeline:
         
         # 文档数量应该相同
         assert count1 == count2
+    
+    def test_github_to_index_pipeline(self, mocker, temp_vector_store):
+        """测试 GitHub → Indexer 完整流程（Mock）"""
+        # Mock GitHub Reader
+        from llama_index.core import Document
+        
+        mock_docs = [
+            Document(
+                text="# GitHub Repository\nThis is from a GitHub repo.",
+                metadata={"file_path": "README.md"}
+            ),
+            Document(
+                text="# Documentation\nSome docs from GitHub.",
+                metadata={"file_path": "docs/guide.md"}
+            )
+        ]
+        
+        mock_reader = mocker.Mock()
+        mock_reader.load_data.return_value = mock_docs
+        
+        mocker.patch('src.data_loader.GithubRepositoryReader', return_value=mock_reader)
+        mocker.patch('src.data_loader.GithubClient')
+        
+        # 步骤1：从 GitHub 加载文档
+        print("\n步骤1：从 GitHub 加载文档")
+        documents = load_documents_from_github(
+            owner="test", 
+            repo="test-repo", 
+            branch="main"
+        )
+        
+        assert len(documents) == 2, "应该加载2个文档"
+        assert all(doc.metadata['source_type'] == 'github' for doc in documents)
+        assert all(doc.metadata['repository'] == 'test/test-repo' for doc in documents)
+        
+        # 步骤2：构建索引
+        print("步骤2：构建索引")
+        index_manager = IndexManager(
+            collection_name="github_test",
+            persist_dir=temp_vector_store
+        )
+        index = index_manager.build_index(documents, show_progress=False)
+        
+        assert index is not None
+        
+        # 步骤3：验证索引
+        print("步骤3：验证索引")
+        stats = index_manager.get_stats()
+        assert stats['document_count'] > 0
+        
+        # 步骤4：测试检索
+        print("步骤4：测试检索")
+        results = index_manager.search("GitHub", top_k=2)
+        
+        assert len(results) > 0
+        assert any("GitHub" in r['text'] for r in results)
 
 
 @pytest.mark.integration

@@ -106,8 +106,9 @@ class Config:
 **职责**：从多种数据源加载和预处理文档
 
 **核心组件**（使用LlamaIndex官方组件）：
-- `SimpleDirectoryReader`：加载本地文件（支持40+格式）
-- `SimpleWebPageReader`：抓取网页内容
+- `MarkdownLoader`：加载本地 Markdown 文件
+- `WebLoader`：抓取网页内容
+- `GithubLoader`：从 GitHub 仓库加载文档
 - `DocumentProcessor`：可选的文档预处理工具
 
 **设计思路**：
@@ -146,6 +147,35 @@ def load_documents_from_urls(urls):
     return reader.load_data(urls)
 ```
 
+**GithubRepositoryReader 使用**：
+```python
+from llama_index.readers.github import GithubRepositoryReader, GithubClient
+
+def load_documents_from_github(owner, repo, branch=None, github_token=None):
+    """使用官方GithubRepositoryReader加载GitHub仓库"""
+    github_client = GithubClient(github_token=github_token) if github_token else GithubClient()
+    
+    reader = GithubRepositoryReader(
+        github_client=github_client,
+        owner=owner,
+        repo=repo,
+        use_parser=False,
+        verbose=False,
+    )
+    
+    documents = reader.load_data(branch=branch or "main")
+    
+    # 增强元数据
+    for doc in documents:
+        doc.metadata.update({
+            "source_type": "github",
+            "repository": f"{owner}/{repo}",
+            "branch": branch or "main",
+        })
+    
+    return documents
+```
+
 **优势**：
 - **代码简化**：从~300行减少到~50行（减少83%）
 - **功能更强**：支持40+文件格式，易于扩展
@@ -156,6 +186,9 @@ def load_documents_from_urls(urls):
 - 新增文件格式：在`required_exts`中添加扩展名（如`.pdf`、`.docx`）
 - 自定义元数据：使用`file_metadata`参数添加自定义元数据提取逻辑
 - 自定义预处理：使用`DocumentProcessor`进行文本清理
+- GitHub 文件过滤：使用`filter_file_extensions`参数过滤特定文件类型
+- GitHub 目录过滤：使用`filter_directories`参数只加载特定目录
+- 新增数据源：参考 LlamaHub (https://llamahub.ai/) 查找更多官方 Reader
 
 ---
 
@@ -495,31 +528,58 @@ LlamaIndex → OpenAI SDK → DeepSeek API → 返回生成文本
 
 ### 1. 添加新的数据源
 
+**参考案例**：GitHub 数据源集成（2025-10-10）
+
 **步骤**：
 
-1. 创建新的 Loader 类：
+1. **查找官方 Reader**（推荐）：
+   - 访问 LlamaHub：https://llamahub.ai/
+   - 搜索需要的数据源（如 Notion、Google Drive、PDF 等）
+   - 使用官方 Reader，避免重复造轮子
+
+2. **创建 Loader 类**（参考 GithubLoader）：
 
 ```python
 # src/data_loader.py
 
-class PDFLoader:
-    def load_file(self, file_path: Path) -> Optional[LlamaDocument]:
-        # 1. 读取 PDF
-        # 2. 提取文本
-        # 3. 构建元数据
-        # 4. 返回 LlamaDocument
-        pass
+from llama_index.readers.github import GithubRepositoryReader, GithubClient
+
+class GithubLoader:
+    def __init__(self, github_token: Optional[str] = None):
+        self.github_client = GithubClient(github_token=github_token) if github_token else GithubClient()
+    
+    def load_repository(self, owner: str, repo: str, branch: Optional[str] = None) -> List[LlamaDocument]:
+        reader = GithubRepositoryReader(
+            github_client=self.github_client,
+            owner=owner,
+            repo=repo,
+        )
+        documents = reader.load_data(branch=branch or "main")
+        
+        # 增强元数据
+        for doc in documents:
+            doc.metadata.update({
+                "source_type": "github",
+                "repository": f"{owner}/{repo}",
+                "branch": branch or "main",
+            })
+        
+        return documents
 ```
 
-2. 添加便捷函数：
+3. **添加便捷函数**：
 
 ```python
-def load_documents_from_pdfs(directory: Path) -> List[LlamaDocument]:
-    loader = PDFLoader()
-    return loader.load_directory(directory)
+def load_documents_from_github(owner, repo, branch=None, github_token=None) -> List[LlamaDocument]:
+    loader = GithubLoader(github_token=github_token)
+    return loader.load_repository(owner, repo, branch)
 ```
 
-3. 在 UI 中集成（如需要）。
+4. **添加 CLI 命令**（参考 `cmd_import_github`）。
+
+5. **编写测试**（单元测试 + 集成测试）。
+
+6. **更新文档**（DECISIONS.md、CHANGELOG.md 等）。
 
 ### 2. 切换向量数据库
 

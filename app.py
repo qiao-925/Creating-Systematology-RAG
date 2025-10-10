@@ -14,8 +14,9 @@ sys.path.insert(0, str(Path(__file__).parent))
 from src.config import config
 from src.indexer import IndexManager, create_index_from_directory
 from src.chat_manager import ChatManager
-from src.data_loader import load_documents_from_urls
+from src.data_loader import load_documents_from_urls, load_documents_from_github
 from src.query_engine import format_sources
+from src.user_manager import UserManager
 
 
 # 页面配置
@@ -29,6 +30,20 @@ st.set_page_config(
 
 def init_session_state():
     """初始化会话状态"""
+    # 用户管理
+    if 'user_manager' not in st.session_state:
+        st.session_state.user_manager = UserManager()
+    
+    if 'logged_in' not in st.session_state:
+        st.session_state.logged_in = False
+    
+    if 'user_email' not in st.session_state:
+        st.session_state.user_email = None
+    
+    if 'collection_name' not in st.session_state:
+        st.session_state.collection_name = None
+    
+    # 索引和对话管理
     if 'index_manager' not in st.session_state:
         st.session_state.index_manager = None
     
@@ -46,8 +61,10 @@ def load_index():
     """加载或创建索引"""
     try:
         if st.session_state.index_manager is None:
+            # 使用用户专属的 collection
+            collection_name = st.session_state.collection_name or config.CHROMA_COLLECTION_NAME
             with st.spinner("🔧 初始化索引管理器..."):
-                st.session_state.index_manager = IndexManager()
+                st.session_state.index_manager = IndexManager(collection_name=collection_name)
                 st.success("✅ 索引管理器已初始化")
         
         return st.session_state.index_manager
@@ -183,6 +200,46 @@ def sidebar():
         
         st.divider()
         
+        # GitHub 导入
+        with st.expander("📦 从 GitHub 导入", expanded=False):
+            github_owner = st.text_input("仓库所有者", placeholder="microsoft", key="github_owner")
+            github_repo = st.text_input("仓库名称", placeholder="TypeScript", key="github_repo")
+            github_branch = st.text_input("分支", value="main", key="github_branch")
+            github_token = st.text_input(
+                "Token（可选）", 
+                type="password", 
+                help="私有仓库需要提供",
+                key="github_token"
+            )
+            
+            if st.button("📥 导入 GitHub 仓库", key="import_github_btn"):
+                if not github_owner or not github_repo:
+                    st.error("请填写仓库所有者和名称")
+                else:
+                    index_manager = load_index()
+                    if index_manager:
+                        with st.spinner(f"正在从 GitHub 加载 {github_owner}/{github_repo}..."):
+                            try:
+                                documents = load_documents_from_github(
+                                    owner=github_owner,
+                                    repo=github_repo,
+                                    branch=github_branch,
+                                    github_token=github_token if github_token else None,
+                                    show_progress=False  # Streamlit 不需要控制台进度条
+                                )
+                                
+                                if documents:
+                                    index_manager.build_index(documents, show_progress=False)
+                                    st.session_state.index_built = True
+                                    st.success(f"✅ 成功导入 {len(documents)} 个文件！")
+                                    st.rerun()
+                                else:
+                                    st.warning("⚠️ 未能加载任何文件")
+                            except Exception as e:
+                                st.error(f"❌ 导入失败: {e}")
+        
+        st.divider()
+        
         # 会话管理
         st.subheader("💬 会话管理")
         col1, col2 = st.columns(2)
@@ -217,12 +274,78 @@ def main():
     """主界面"""
     init_session_state()
     
-    # 显示侧边栏
+    # 用户认证界面
+    if not st.session_state.logged_in:
+        st.title("🔐 用户登录")
+        st.caption("简单的用户管理（仅用于反馈收集）")
+        
+        tab1, tab2 = st.tabs(["登录", "注册"])
+        
+        with tab1:
+            st.subheader("登录")
+            email = st.text_input("邮箱", key="login_email", placeholder="user@example.com")
+            password = st.text_input("密码", type="password", key="login_password")
+            
+            if st.button("登录", type="primary"):
+                if not email or not password:
+                    st.error("请填写邮箱和密码")
+                else:
+                    collection = st.session_state.user_manager.login(email, password)
+                    if collection:
+                        st.session_state.logged_in = True
+                        st.session_state.user_email = email
+                        st.session_state.collection_name = collection
+                        st.success("登录成功！")
+                        st.rerun()
+                    else:
+                        st.error("邮箱或密码错误")
+        
+        with tab2:
+            st.subheader("注册")
+            email = st.text_input("邮箱", key="register_email", placeholder="user@example.com")
+            password = st.text_input("密码", type="password", key="register_password")
+            password_confirm = st.text_input("确认密码", type="password", key="register_password_confirm")
+            
+            if st.button("注册", type="primary"):
+                if not email or not password:
+                    st.error("请填写邮箱和密码")
+                elif password != password_confirm:
+                    st.error("两次密码不一致")
+                elif len(password) < 6:
+                    st.error("密码长度至少6位")
+                else:
+                    if st.session_state.user_manager.register(email, password):
+                        st.success("注册成功！请登录")
+                    else:
+                        st.error("该邮箱已注册")
+        
+        st.divider()
+        
+        st.info("💡 提示：这是简单的演示用户系统，仅用于数据隔离和反馈收集")
+        
+        st.stop()  # 未登录则停止，不显示后续内容
+    
+    # 已登录，显示侧边栏
     sidebar()
     
     # 主标题
     st.title(config.APP_TITLE)
     st.caption("基于LlamaIndex和DeepSeek的系统科学知识问答系统")
+    
+    # 显示用户信息
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.caption(f"👤 当前用户: {st.session_state.user_email}")
+    with col2:
+        if st.button("退出登录", key="logout_btn"):
+            st.session_state.logged_in = False
+            st.session_state.user_email = None
+            st.session_state.collection_name = None
+            st.session_state.index_manager = None
+            st.session_state.chat_manager = None
+            st.session_state.messages = []
+            st.session_state.index_built = False
+            st.rerun()
     
     # 检查索引状态
     if not st.session_state.index_built:
@@ -240,7 +363,8 @@ def main():
             2. **加载文档**
                - 上传Markdown文件，或
                - 将文档放在 `data/raw/` 目录，点击"加载data/raw目录"，或
-               - 输入网页URL
+               - 输入网页URL，或
+               - 从 GitHub 仓库导入
             
             3. **开始对话**
                - 在下方输入框提问
@@ -252,7 +376,8 @@ def main():
             - ✅ **引用溯源**：每个答案都标注来源文档
             - ✅ **多轮对话**：支持上下文追问
             - ✅ **会话保存**：可以保存和恢复对话历史
-            - ✅ **多种数据源**：Markdown文件、网页内容
+            - ✅ **多种数据源**：Markdown文件、网页内容、GitHub仓库
+            - ✅ **用户隔离**：每个用户独立的知识库
             """)
         return
     

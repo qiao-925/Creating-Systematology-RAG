@@ -44,6 +44,10 @@ class Config:
         self.APP_TITLE = os.getenv("APP_TITLE", "系统科学知识库RAG")
         self.APP_PORT = int(os.getenv("APP_PORT", "8501"))
         
+        # GitHub数据源配置
+        self.GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
+        self.GITHUB_DEFAULT_BRANCH = os.getenv("GITHUB_DEFAULT_BRANCH", "main")
+        
     def _get_path(self, env_var: str, default: str) -> Path:
         """获取路径配置，支持相对路径和绝对路径"""
         path_str = os.getenv(env_var, default)
@@ -96,7 +100,8 @@ class Config:
     VECTOR_STORE_PATH={self.VECTOR_STORE_PATH},
     CHUNK_SIZE={self.CHUNK_SIZE},
     CHUNK_OVERLAP={self.CHUNK_OVERLAP},
-    SIMILARITY_TOP_K={self.SIMILARITY_TOP_K}
+    SIMILARITY_TOP_K={self.SIMILARITY_TOP_K},
+    GITHUB_DEFAULT_BRANCH={self.GITHUB_DEFAULT_BRANCH}
 )"""
 
 

@@ -201,4 +201,65 @@
 
 ---
 
+## ADR-008: 集成 GitHub 数据源
+
+**日期**: 2025-10-10
+
+**状态**: 已接受
+
+**背景**: 
+- 现有系统支持本地 Markdown 文件和网页数据源
+- 越来越多技术文档和开源项目托管在 GitHub
+- 需要一种便捷方式从 GitHub 仓库导入文档作为知识库
+
+**决策**: 集成 GitHub 仓库作为第三种数据源，使用 LlamaIndex 的 `GithubRepositoryReader`
+
+**理由**:
+
+**1. 技术选型：使用 GithubRepositoryReader 而非 GithubClient**
+- `GithubRepositoryReader` 是高层封装，专为文档加载设计
+- 返回标准 `Document` 对象，可直接用于索引
+- 自动处理文件遍历、内容读取、元数据提取
+- `GithubClient` 是底层 API 客户端，需要手动处理所有逻辑
+
+**2. 架构一致性**
+- 与现有 `MarkdownLoader` 和 `WebLoader` 保持相同的设计模式
+- 统一的 API 接口：`load_repository()` 和便捷函数 `load_documents_from_github()`
+- 元数据标准化：`source_type`, `repository`, `branch` 等
+
+**3. 简洁实现原则**
+- 暂不支持文件类型过滤（保持简单）
+- 暂不支持子目录过滤（遵循最小改动）
+- 暂不集成到 Streamlit UI（保持 CLI 为主）
+
+**实施方案**:
+- 依赖：`llama-index-readers-github>=0.2.0`
+- 配置：环境变量支持 `GITHUB_TOKEN` 和 `GITHUB_DEFAULT_BRANCH`
+- CLI：新增 `import-github` 命令
+- 测试：8 个单元测试 + 1 个集成测试
+
+**对比分析**:
+
+| 特性 | GithubRepositoryReader | GithubClient |
+|------|----------------------|--------------|
+| 定位 | 文档加载器 | API 客户端 |
+| 返回值 | Document 列表 | 原始 API 数据 |
+| 使用难度 | 低（开箱即用） | 高（需手动处理） |
+| 代码量 | ~90 行 | ~200+ 行 |
+| 维护成本 | 低（官方维护） | 高（自行维护） |
+
+**影响范围**:
+- ✅ 不影响现有数据加载器（隔离良好）
+- ✅ 不影响索引和查询模块（统一接口）
+- ✅ 测试覆盖率提升：data_loader 从 30% → 53%
+
+**后续扩展**:
+- 如需文件类型过滤：可参考 `GithubRepositoryReader` 的 `filter_file_extensions` 参数
+- 如需子目录过滤：可添加 `filter_directories` 参数
+- 如需 UI 集成：可在 Streamlit 中添加仓库输入表单
+
+**决策记录**: 本集成遵循"奥卡姆剃刀"原则，保持简单实用，后续根据实际需求迭代优化。
+
+---
+
 

@@ -6,7 +6,7 @@
 
 - 🎯 **引用溯源**：每个回答都标注具体的来源文档和段落
 - 💬 **多轮对话**：支持上下文追问，智能理解对话历史
-- 📚 **多数据源**：支持 Markdown 文件和网页内容
+- 📚 **多数据源**：支持 Markdown 文件、网页内容和 GitHub 仓库
 - 🚀 **简洁界面**：基于 Streamlit 的现代化 Web 界面
 - 🔧 **灵活配置**：支持本地 embedding 模型和 API 切换
 
@@ -40,9 +40,12 @@ cd Creating-Systematology-RAG
 cp env.template .env
 # 编辑 .env 文件，添加你的 DeepSeek API 密钥
 # DEEPSEEK_API_KEY=your_api_key_here
+
+# 可选：如需从 GitHub 私有仓库导入
+# GITHUB_TOKEN=your_github_token_here
 ```
 
-> 💡 **提示**: 这是唯一需要手动配置的步骤
+> 💡 **提示**: DEEPSEEK_API_KEY 是必需的，GITHUB_TOKEN 仅在访问私有仓库时需要
 
 #### 3. 一键安装和启动
 
@@ -107,6 +110,10 @@ python main.py import-docs ./data/raw --recursive
 
 # 从 URL 导入
 python main.py import-urls https://example.com/article1 https://example.com/article2
+
+# 从 GitHub 仓库导入
+python main.py import-github microsoft TypeScript --branch main
+python main.py import-github yourorg yourrepo --token YOUR_GITHUB_TOKEN
 ```
 
 **单次查询**：

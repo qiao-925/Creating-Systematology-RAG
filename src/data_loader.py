@@ -1,6 +1,6 @@
 """
 数据加载器模块
-支持从多种数据源加载文档：Markdown文件、网页等
+支持从多种数据源加载文档：Markdown文件、网页、GitHub仓库等
 """
 
 import re
@@ -10,8 +10,20 @@ from urllib.parse import urlparse
 
 import requests
 from bs4 import BeautifulSoup
+from tqdm import tqdm
 from llama_index.core import Document
 from llama_index.core.schema import Document as LlamaDocument
+
+try:
+    from llama_index.readers.github import GithubRepositoryReader, GithubClient
+except ImportError:
+    GithubRepositoryReader = None
+    GithubClient = None
+
+from src.logger import setup_logger
+
+# 创建日志器
+logger = setup_logger('data_loader')
 
 
 class MarkdownLoader:
@@ -189,6 +201,166 @@ class WebLoader:
         return documents
 
 
+class GithubLoader:
+    """GitHub仓库内容加载器"""
+    
+    def __init__(self, github_token: Optional[str] = None):
+        """初始化GitHub加载器
+        
+        Args:
+            github_token: GitHub访问令牌（可选，用于访问私有仓库）
+        """
+        if GithubRepositoryReader is None:
+            raise ImportError(
+                "需要安装 llama-index-readers-github 包。"
+                "运行: pip install llama-index-readers-github"
+            )
+        
+        self.github_token = github_token
+        self.github_client = GithubClient(github_token=github_token) if github_token else GithubClient()
+    
+    def load_repository(self, 
+                       owner: str, 
+                       repo: str, 
+                       branch: Optional[str] = None,
+                       show_progress: bool = True) -> List[LlamaDocument]:
+        """从GitHub仓库加载文档
+        
+        Args:
+            owner: 仓库所有者
+            repo: 仓库名称
+            branch: 分支名称（可选，默认为仓库默认分支）
+            show_progress: 是否显示进度条
+            
+        Returns:
+            Document对象列表
+        """
+        try:
+            branch = branch or "main"
+            logger.info(f"开始加载 GitHub 仓库: {owner}/{repo}, 分支: {branch}")
+            
+            if show_progress:
+                print(f"📦 正在从 GitHub 加载 {owner}/{repo} (分支: {branch})...")
+            
+            # 创建 Reader
+            reader = GithubRepositoryReader(
+                github_client=self.github_client,
+                owner=owner,
+                repo=repo,
+                use_parser=False,
+                verbose=False,
+            )
+            
+            # 加载文档
+            documents = reader.load_data(branch=branch)
+            
+            if not documents:
+                logger.warning(f"仓库 {owner}/{repo} 未返回任何文档")
+                print(f"⚠️  仓库为空或无可读文件")
+                return []
+            
+            # 增强元数据（带进度条）
+            if show_progress:
+                print(f"正在处理 {len(documents)} 个文件...")
+                iterator = tqdm(documents, desc="增强元数据", unit="文件")
+            else:
+                iterator = documents
+            
+            for doc in iterator:
+                if not doc.metadata:
+                    doc.metadata = {}
+                doc.metadata.update({
+                    "source_type": "github",
+                    "repository": f"{owner}/{repo}",
+                    "branch": branch,
+                })
+            
+            if show_progress:
+                print(f"✅ 成功加载 {len(documents)} 个文件")
+            
+            logger.info(f"成功加载 {len(documents)} 个文件从 {owner}/{repo}")
+            return documents
+            
+        except Exception as e:
+            # 详细错误处理
+            error_msg = self._handle_error(e, owner, repo)
+            logger.error(f"加载失败 {owner}/{repo}: {error_msg}")
+            return []
+    
+    def load_repositories(self, repo_configs: List[dict]) -> List[LlamaDocument]:
+        """批量加载多个GitHub仓库
+        
+        Args:
+            repo_configs: 仓库配置列表，每个配置包含 owner, repo, branch
+            
+        Returns:
+            Document对象列表
+        """
+        all_documents = []
+        
+        for config in repo_configs:
+            owner = config.get("owner")
+            repo = config.get("repo")
+            branch = config.get("branch")
+            
+            if not owner or not repo:
+                print(f"⚠️  跳过无效配置: {config}")
+                continue
+            
+            documents = self.load_repository(owner, repo, branch)
+            all_documents.extend(documents)
+        
+        print(f"\n📚 总共从 {len(repo_configs)} 个仓库加载了 {len(all_documents)} 个文件")
+        return all_documents
+    
+    def _handle_error(self, error: Exception, owner: str, repo: str) -> str:
+        """统一错误处理
+        
+        Args:
+            error: 异常对象
+            owner: 仓库所有者
+            repo: 仓库名称
+            
+        Returns:
+            错误描述字符串
+        """
+        error_type = type(error).__name__
+        error_str = str(error)
+        
+        # 网络相关错误
+        if isinstance(error, requests.Timeout):
+            print(f"❌ 网络超时: {owner}/{repo}")
+            print("   建议：1) 检查网络连接 2) 稍后重试")
+            return "网络超时"
+        
+        elif isinstance(error, requests.ConnectionError):
+            print(f"❌ 网络连接失败")
+            print("   建议：1) 检查网络 2) 检查代理设置")
+            return "网络连接失败"
+        
+        # GitHub API 错误（通过错误消息判断）
+        elif "404" in error_str or "Not Found" in error_str:
+            print(f"❌ 仓库不存在: {owner}/{repo}")
+            print("   请检查：1) 仓库名拼写 2) 是否为私有仓库（需要Token）")
+            return "仓库不存在(404)"
+        
+        elif "403" in error_str or "Forbidden" in error_str or "rate limit" in error_str.lower():
+            print(f"❌ 访问被拒绝: {owner}/{repo}")
+            print("   请检查：1) Token权限 2) API限流（GitHub限制：每小时60次）")
+            return "访问被拒绝(403)"
+        
+        elif "401" in error_str or "Unauthorized" in error_str or "Bad credentials" in error_str:
+            print(f"❌ 认证失败")
+            print("   请检查：1) Token是否正确 2) Token是否过期")
+            return "认证失败(401)"
+        
+        # 通用错误
+        else:
+            print(f"❌ 未知错误: {error_type}: {error}")
+            print(f"   请报告此问题到项目 Issue")
+            return f"{error_type}: {error_str}"
+
+
 class DocumentProcessor:
     """文档预处理器"""
     
@@ -310,6 +482,44 @@ def load_documents_from_urls(urls: List[str], clean: bool = True) -> List[LlamaD
     if clean:
         processor = DocumentProcessor()
         # Document.text 是只读属性，需要创建新的 Document 对象
+        cleaned_documents = []
+        for doc in documents:
+            cleaned_text = processor.clean_text(doc.text)
+            cleaned_doc = LlamaDocument(
+                text=cleaned_text,
+                metadata=doc.metadata,
+                id_=doc.id_
+            )
+            cleaned_documents.append(cleaned_doc)
+        return cleaned_documents
+    
+    return documents
+
+
+def load_documents_from_github(owner: str,
+                               repo: str,
+                               branch: Optional[str] = None,
+                               github_token: Optional[str] = None,
+                               clean: bool = True,
+                               show_progress: bool = True) -> List[LlamaDocument]:
+    """从GitHub仓库加载文档（便捷函数）
+    
+    Args:
+        owner: 仓库所有者
+        repo: 仓库名称
+        branch: 分支名称（可选）
+        github_token: GitHub访问令牌（可选）
+        clean: 是否清理文本
+        show_progress: 是否显示进度条
+        
+    Returns:
+        Document对象列表
+    """
+    loader = GithubLoader(github_token=github_token)
+    documents = loader.load_repository(owner, repo, branch, show_progress=show_progress)
+    
+    if clean and documents:
+        processor = DocumentProcessor()
         cleaned_documents = []
         for doc in documents:
             cleaned_text = processor.clean_text(doc.text)

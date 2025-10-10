@@ -13,7 +13,11 @@ from src.config import config
 from src.indexer import IndexManager, create_index_from_directory, create_index_from_urls
 from src.query_engine import QueryEngine, format_sources
 from src.chat_manager import ChatManager
-from src.data_loader import load_documents_from_directory, load_documents_from_urls
+from src.data_loader import (
+    load_documents_from_directory, 
+    load_documents_from_urls,
+    load_documents_from_github
+)
 
 
 def cmd_import_docs(args):
@@ -80,6 +84,49 @@ def cmd_import_urls(args):
         
         if not documents:
             print("⚠️  未成功加载任何网页")
+            return 1
+        
+        # 创建或更新索引
+        print(f"\n🔨 构建索引...")
+        index_manager = IndexManager(collection_name=args.collection)
+        index_manager.build_index(documents)
+        
+        # 显示统计
+        stats = index_manager.get_stats()
+        print(f"\n📊 索引统计:")
+        print(f"   文档数量: {stats['document_count']}")
+        
+        print("\n✅ 导入完成")
+        return 0
+        
+    except Exception as e:
+        print(f"\n❌ 导入失败: {e}")
+        return 1
+
+
+def cmd_import_github(args):
+    """从GitHub仓库导入命令"""
+    print("=" * 60)
+    print("📦 从GitHub仓库导入文档")
+    print("=" * 60)
+    
+    owner = args.owner
+    repo = args.repo
+    branch = args.branch or config.GITHUB_DEFAULT_BRANCH
+    github_token = args.token or config.GITHUB_TOKEN
+    
+    try:
+        # 加载GitHub仓库
+        print(f"\n📂 加载仓库: {owner}/{repo} (分支: {branch})")
+        documents = load_documents_from_github(
+            owner=owner,
+            repo=repo,
+            branch=branch,
+            github_token=github_token if github_token else None
+        )
+        
+        if not documents:
+            print("⚠️  未成功加载任何文件")
             return 1
         
         # 创建或更新索引
@@ -278,6 +325,10 @@ def main():
   python main.py import-urls url1 url2 url3
   python main.py import-urls --file urls.txt
   
+  # 从GitHub仓库导入
+  python main.py import-github microsoft TypeScript --branch main
+  python main.py import-github owner repo --token YOUR_TOKEN
+  
   # 单次查询
   python main.py query "什么是系统科学？"
   
@@ -311,6 +362,14 @@ def main():
     parser_urls.add_argument('urls', nargs='*', help='URL列表')
     parser_urls.add_argument('--file', help='包含URL列表的文件')
     parser_urls.set_defaults(func=cmd_import_urls)
+    
+    # import-github命令
+    parser_github = subparsers.add_parser('import-github', help='从GitHub仓库导入文档')
+    parser_github.add_argument('owner', help='仓库所有者')
+    parser_github.add_argument('repo', help='仓库名称')
+    parser_github.add_argument('--branch', help=f'分支名称 (默认: {config.GITHUB_DEFAULT_BRANCH})')
+    parser_github.add_argument('--token', help='GitHub访问令牌')
+    parser_github.set_defaults(func=cmd_import_github)
     
     # query命令
     parser_query = subparsers.add_parser('query', help='执行单次查询')

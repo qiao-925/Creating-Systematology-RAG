@@ -7,8 +7,10 @@ from pathlib import Path
 from src.data_loader import (
     MarkdownLoader,
     WebLoader,
+    GithubLoader,
     DocumentProcessor,
-    load_documents_from_directory
+    load_documents_from_directory,
+    load_documents_from_github
 )
 
 
@@ -162,6 +164,166 @@ class TestWebLoader:
         """测试超时设置"""
         loader = WebLoader(timeout=5)
         assert loader.timeout == 5
+
+
+class TestGithubLoader:
+    """GitHub加载器测试"""
+    
+    def test_load_repository_success(self, mocker):
+        """测试成功加载公开仓库"""
+        # Mock GithubRepositoryReader
+        mock_doc = mocker.Mock()
+        mock_doc.text = "# Test Repository\nThis is test content"
+        mock_doc.metadata = {"file_path": "README.md"}
+        mock_doc.id_ = "test-id"
+        
+        mock_reader = mocker.Mock()
+        mock_reader.load_data.return_value = [mock_doc]
+        
+        mocker.patch('src.data_loader.GithubRepositoryReader', return_value=mock_reader)
+        mocker.patch('src.data_loader.GithubClient')
+        
+        loader = GithubLoader()
+        docs = loader.load_repository("testowner", "testrepo", "main")
+        
+        assert len(docs) == 1
+        assert docs[0].metadata['source_type'] == 'github'
+        assert docs[0].metadata['repository'] == 'testowner/testrepo'
+        assert docs[0].metadata['branch'] == 'main'
+    
+    def test_load_repository_with_token(self, mocker):
+        """测试使用Token加载"""
+        mock_github_client = mocker.Mock()
+        mocker.patch('src.data_loader.GithubClient', return_value=mock_github_client)
+        
+        mock_doc = mocker.Mock()
+        mock_doc.text = "Content"
+        mock_doc.metadata = {}
+        mock_doc.id_ = "test-id"
+        
+        mock_reader = mocker.Mock()
+        mock_reader.load_data.return_value = [mock_doc]
+        mocker.patch('src.data_loader.GithubRepositoryReader', return_value=mock_reader)
+        
+        loader = GithubLoader(github_token="test_token")
+        docs = loader.load_repository("owner", "repo")
+        
+        assert len(docs) == 1
+        assert loader.github_token == "test_token"
+    
+    def test_load_repository_error_handling(self, mocker):
+        """测试错误仓库处理"""
+        mock_reader = mocker.Mock()
+        mock_reader.load_data.side_effect = Exception("Repository not found")
+        
+        mocker.patch('src.data_loader.GithubRepositoryReader', return_value=mock_reader)
+        mocker.patch('src.data_loader.GithubClient')
+        
+        loader = GithubLoader()
+        docs = loader.load_repository("invalid", "repo")
+        
+        assert len(docs) == 0  # 错误时返回空列表
+    
+    def test_load_repository_default_branch(self, mocker):
+        """测试默认分支"""
+        mock_doc = mocker.Mock()
+        mock_doc.text = "Content"
+        mock_doc.metadata = {}
+        mock_doc.id_ = "test-id"
+        
+        mock_reader = mocker.Mock()
+        mock_reader.load_data.return_value = [mock_doc]
+        
+        mocker.patch('src.data_loader.GithubRepositoryReader', return_value=mock_reader)
+        mocker.patch('src.data_loader.GithubClient')
+        
+        loader = GithubLoader()
+        docs = loader.load_repository("owner", "repo", branch=None)
+        
+        # 应该使用默认的 main 分支
+        assert len(docs) == 1
+        assert docs[0].metadata['branch'] == 'main'
+    
+    def test_load_repositories_batch(self, mocker):
+        """测试批量加载多个仓库"""
+        mock_doc1 = mocker.Mock()
+        mock_doc1.text = "Content 1"
+        mock_doc1.metadata = {}
+        mock_doc1.id_ = "id1"
+        
+        mock_doc2 = mocker.Mock()
+        mock_doc2.text = "Content 2"
+        mock_doc2.metadata = {}
+        mock_doc2.id_ = "id2"
+        
+        mock_reader = mocker.Mock()
+        mock_reader.load_data.side_effect = [[mock_doc1], [mock_doc2]]
+        
+        mocker.patch('src.data_loader.GithubRepositoryReader', return_value=mock_reader)
+        mocker.patch('src.data_loader.GithubClient')
+        
+        loader = GithubLoader()
+        repo_configs = [
+            {"owner": "owner1", "repo": "repo1", "branch": "main"},
+            {"owner": "owner2", "repo": "repo2", "branch": "dev"}
+        ]
+        docs = loader.load_repositories(repo_configs)
+        
+        assert len(docs) == 2
+    
+    def test_load_repositories_skip_invalid_config(self, mocker):
+        """测试跳过无效配置"""
+        mock_doc = mocker.Mock()
+        mock_doc.text = "Content"
+        mock_doc.metadata = {}
+        mock_doc.id_ = "test-id"
+        
+        mock_reader = mocker.Mock()
+        mock_reader.load_data.return_value = [mock_doc]
+        
+        mocker.patch('src.data_loader.GithubRepositoryReader', return_value=mock_reader)
+        mocker.patch('src.data_loader.GithubClient')
+        
+        loader = GithubLoader()
+        repo_configs = [
+            {"owner": "valid", "repo": "repo"},  # 有效
+            {"owner": "valid"},  # 缺少 repo
+            {"repo": "repo"},  # 缺少 owner
+            {}  # 空配置
+        ]
+        docs = loader.load_repositories(repo_configs)
+        
+        assert len(docs) == 1  # 只加载了有效的配置
+    
+    def test_metadata_enrichment(self, mocker):
+        """测试元数据验证"""
+        mock_doc = mocker.Mock()
+        mock_doc.text = "Content"
+        mock_doc.metadata = {"original_key": "original_value"}
+        mock_doc.id_ = "test-id"
+        
+        mock_reader = mocker.Mock()
+        mock_reader.load_data.return_value = [mock_doc]
+        
+        mocker.patch('src.data_loader.GithubRepositoryReader', return_value=mock_reader)
+        mocker.patch('src.data_loader.GithubClient')
+        
+        loader = GithubLoader()
+        docs = loader.load_repository("owner", "repo", "dev")
+        
+        assert len(docs) == 1
+        assert docs[0].metadata['source_type'] == 'github'
+        assert docs[0].metadata['repository'] == 'owner/repo'
+        assert docs[0].metadata['branch'] == 'dev'
+        assert docs[0].metadata['original_key'] == 'original_value'  # 原有元数据保留
+    
+    def test_import_error_handling(self, mocker):
+        """测试缺少依赖时的错误处理"""
+        # 临时模拟缺少 GithubRepositoryReader
+        mocker.patch('src.data_loader.GithubRepositoryReader', None)
+        
+        with pytest.raises(ImportError, match="需要安装 llama-index-readers-github"):
+            GithubLoader()
 
 
 class TestDocumentProcessor:

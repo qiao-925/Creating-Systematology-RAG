@@ -41,6 +41,8 @@ from src.config import config  # 使用全局实例
 | `SIMILARITY_TOP_K` | int | 检索相似文档数量 | 3 |
 | `APP_TITLE` | str | 应用标题 | `系统科学知识库RAG` |
 | `APP_PORT` | int | 应用端口 | 8501 |
+| `GITHUB_TOKEN` | str | GitHub访问令牌 | 从环境变量读取（可选） |
+| `GITHUB_DEFAULT_BRANCH` | str | 默认分支名称 | `main` |
 
 #### 方法
 
@@ -178,6 +180,90 @@ docs = loader.load_urls(urls)
 
 ---
 
+### GithubLoader 类
+
+从 GitHub 仓库加载文档。
+
+#### 构造函数
+
+```python
+GithubLoader(github_token: Optional[str] = None)
+```
+
+**参数**：
+- `github_token` (Optional[str]): GitHub 访问令牌，用于访问私有仓库。公开仓库可不提供。
+
+**示例**：
+```python
+from src.data_loader import GithubLoader
+
+# 访问公开仓库
+loader = GithubLoader()
+
+# 访问私有仓库
+loader = GithubLoader(github_token="ghp_xxxxx")
+```
+
+#### 方法
+
+##### `load_repository(owner: str, repo: str, branch: Optional[str] = None) -> List[LlamaDocument]`
+
+从 GitHub 仓库加载所有文件。
+
+**参数**：
+- `owner` (str): 仓库所有者（用户名或组织名）
+- `repo` (str): 仓库名称
+- `branch` (Optional[str]): 分支名称，默认为 `"main"`
+
+**返回**：
+- `List[LlamaDocument]`: 文档列表，失败时返回空列表
+
+**元数据**：
+每个文档包含以下元数据：
+- `source_type`: `"github"`
+- `repository`: 格式为 `"owner/repo"`
+- `branch`: 分支名称
+- `file_path`: 文件在仓库中的路径
+
+**示例**：
+```python
+from src.data_loader import GithubLoader
+
+loader = GithubLoader()
+docs = loader.load_repository("microsoft", "TypeScript", branch="main")
+
+for doc in docs:
+    print(f"文件: {doc.metadata['file_path']}")
+    print(f"仓库: {doc.metadata['repository']}")
+    print(f"分支: {doc.metadata['branch']}")
+```
+
+##### `load_repositories(repo_configs: List[dict]) -> List[LlamaDocument]`
+
+批量加载多个 GitHub 仓库。
+
+**参数**：
+- `repo_configs` (List[dict]): 仓库配置列表，每个配置包含：
+  - `owner` (str): 仓库所有者（必需）
+  - `repo` (str): 仓库名称（必需）
+  - `branch` (Optional[str]): 分支名称（可选）
+
+**返回**：
+- `List[LlamaDocument]`: 所有仓库的文档列表
+
+**示例**：
+```python
+repo_configs = [
+    {"owner": "microsoft", "repo": "TypeScript", "branch": "main"},
+    {"owner": "facebook", "repo": "react", "branch": "main"}
+]
+
+docs = loader.load_repositories(repo_configs)
+print(f"从 {len(repo_configs)} 个仓库加载了 {len(docs)} 个文件")
+```
+
+---
+
 ### DocumentProcessor 类
 
 文档预处理器（静态方法）。
@@ -270,6 +356,39 @@ from src.data_loader import load_documents_from_urls
 
 urls = ["https://example.com/article"]
 docs = load_documents_from_urls(urls)
+```
+
+#### `load_documents_from_github(owner: str, repo: str, branch: Optional[str] = None, github_token: Optional[str] = None, clean: bool = True) -> List[LlamaDocument]`
+
+从 GitHub 仓库加载文档。
+
+**参数**：
+- `owner` (str): 仓库所有者
+- `repo` (str): 仓库名称
+- `branch` (Optional[str]): 分支名称，默认为 `"main"`
+- `github_token` (Optional[str]): GitHub 访问令牌（可选）
+- `clean` (bool): 是否清理文本，默认 `True`
+
+**返回**：
+- `List[LlamaDocument]`: 文档列表
+
+**示例**：
+```python
+from src.data_loader import load_documents_from_github
+
+# 公开仓库
+docs = load_documents_from_github("microsoft", "TypeScript", branch="main")
+
+# 私有仓库
+docs = load_documents_from_github(
+    owner="yourorg",
+    repo="yourrepo",
+    github_token="ghp_xxxxx"
+)
+
+# 使用配置中的 Token
+from src.config import config
+docs = load_documents_from_github("owner", "repo", github_token=config.GITHUB_TOKEN)
 ```
 
 ---
