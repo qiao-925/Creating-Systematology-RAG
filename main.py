@@ -169,7 +169,7 @@ def cmd_query(args):
         
         # 执行查询
         print(f"💬 问题: {args.question}\n")
-        answer, sources = query_engine.query(args.question)
+        answer, sources, _ = query_engine.query(args.question)
         
         print(f"🤖 答案:\n{answer}\n")
         print(format_sources(sources))

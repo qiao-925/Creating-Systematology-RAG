@@ -9,6 +9,7 @@
 - [src.indexer](#srcindexer)
 - [src.query_engine](#srcquery_engine)
 - [src.chat_manager](#srcchat_manager)
+- [src.phoenix_utils](#srcphoenix_utils)
 
 ---
 
@@ -180,40 +181,39 @@ docs = loader.load_urls(urls)
 
 ---
 
-### GithubLoader 类
+### load_documents_from_github 函数
 
-从 GitHub 仓库加载文档。
+从 GitHub 仓库加载文档（使用 LangChain GitLoader + 本地 Git 克隆）。
 
-#### 构造函数
+**新特性**：
+- 首次加载会克隆仓库到本地（`data/github_repos/`）
+- 后续使用 `git pull` 增量更新，比 API 方式更快
+- 支持两级增量检测：commit SHA 快速检测 + 文件哈希精细比对
+
+#### 函数签名
 
 ```python
-GithubLoader(github_token: Optional[str] = None)
+def load_documents_from_github(
+    owner: str,
+    repo: str,
+    branch: Optional[str] = None,
+    github_token: Optional[str] = None,
+    clean: bool = True,
+    show_progress: bool = True,
+    filter_directories: Optional[List[str]] = None,
+    filter_file_extensions: Optional[List[str]] = None
+) -> List[LlamaDocument]
 ```
-
-**参数**：
-- `github_token` (Optional[str]): GitHub 访问令牌，用于访问私有仓库。公开仓库可不提供。
-
-**示例**：
-```python
-from src.data_loader import GithubLoader
-
-# 访问公开仓库
-loader = GithubLoader()
-
-# 访问私有仓库
-loader = GithubLoader(github_token="ghp_xxxxx")
-```
-
-#### 方法
-
-##### `load_repository(owner: str, repo: str, branch: Optional[str] = None) -> List[LlamaDocument]`
-
-从 GitHub 仓库加载所有文件。
 
 **参数**：
 - `owner` (str): 仓库所有者（用户名或组织名）
 - `repo` (str): 仓库名称
 - `branch` (Optional[str]): 分支名称，默认为 `"main"`
+- `github_token` (Optional[str]): GitHub Token，公开仓库可选，私有仓库必需
+- `clean` (bool): 是否清理文本中的多余空白，默认 `True`
+- `show_progress` (bool): 是否显示进度信息，默认 `True`
+- `filter_directories` (Optional[List[str]]): 只加载指定目录，如 `["docs", "examples"]`
+- `filter_file_extensions` (Optional[List[str]]): 只加载指定扩展名，如 `[".md", ".py"]`
 
 **返回**：
 - `List[LlamaDocument]`: 文档列表，失败时返回空列表
@@ -224,19 +224,39 @@ loader = GithubLoader(github_token="ghp_xxxxx")
 - `repository`: 格式为 `"owner/repo"`
 - `branch`: 分支名称
 - `file_path`: 文件在仓库中的路径
+- `file_name`: 文件名
+- `url`: GitHub 文件链接
 
 **示例**：
 ```python
-from src.data_loader import GithubLoader
+from src.data_loader import load_documents_from_github
 
-loader = GithubLoader()
-docs = loader.load_repository("microsoft", "TypeScript", branch="main")
+# 加载公开仓库
+docs = load_documents_from_github("microsoft", "TypeScript", branch="main")
+
+# 加载私有仓库（需要 Token）
+docs = load_documents_from_github(
+    "myorg", "private-repo",
+    github_token="ghp_xxxxx"
+)
+
+# 只加载特定目录和文件类型
+docs = load_documents_from_github(
+    "owner", "repo",
+    filter_directories=["docs"],
+    filter_file_extensions=[".md"]
+)
 
 for doc in docs:
     print(f"文件: {doc.metadata['file_path']}")
-    print(f"仓库: {doc.metadata['repository']}")
-    print(f"分支: {doc.metadata['branch']}")
+    print(f"URL: {doc.metadata['url']}")
 ```
+
+**注意事项**：
+- 首次克隆大型仓库可能需要较长时间
+- 本地仓库存储在 `data/github_repos/owner/repo_branch/`
+- 使用浅克隆（`--depth 1`）节省空间和时间
+- 自动排除 `.git/`, `__pycache__/`, `.pyc` 等文件
 
 ##### `load_repositories(repo_configs: List[dict]) -> List[LlamaDocument]`
 
@@ -1023,6 +1043,198 @@ print(f"答案: {answer}")
 # 6. 保存会话
 chat_manager.save_current_session()
 ```
+
+---
+
+## src.phoenix_utils
+
+Phoenix可观测性工具模块，提供RAG流程的实时追踪和可视化功能。
+
+### 主要函数
+
+#### `start_phoenix_ui(port: int = 6006) -> Optional[Any]`
+
+启动Phoenix可视化平台并配置OpenTelemetry追踪。
+
+**参数**：
+- `port` (int, 可选)：Phoenix Web界面端口，默认6006
+
+**返回**：
+- Phoenix会话对象（如果启动成功）
+- `None`（如果启动失败，如依赖未安装）
+
+**功能**：
+1. 启动Phoenix Web应用（http://localhost:6006）
+2. 配置OpenTelemetry追踪器
+3. 自动追踪所有LlamaIndex操作
+
+**示例**：
+```python
+from src.phoenix_utils import start_phoenix_ui
+
+# 启动Phoenix（默认端口6006）
+session = start_phoenix_ui()
+
+# 启动Phoenix（自定义端口）
+session = start_phoenix_ui(port=7007)
+
+# 之后的所有LlamaIndex操作都会被自动追踪
+```
+
+**追踪的操作**：
+- 🔍 检索操作（向量相似度搜索）
+- 🤖 LLM调用（prompt和响应）
+- 📊 Embedding计算
+- ⏱️ 各环节耗时
+
+**访问界面**：
+- 启动成功后访问：http://localhost:6006
+- 实时查看追踪数据和可视化图表
+
+---
+
+#### `stop_phoenix_ui() -> None`
+
+停止Phoenix可视化平台。
+
+**示例**：
+```python
+from src.phoenix_utils import stop_phoenix_ui
+
+stop_phoenix_ui()
+```
+
+**注意**：通常不需要手动调用，应用退出时会自动清理。
+
+---
+
+#### `is_phoenix_running() -> bool`
+
+检查Phoenix是否正在运行。
+
+**返回**：
+- `True`：Phoenix正在运行
+- `False`：Phoenix未运行
+
+**示例**：
+```python
+from src.phoenix_utils import is_phoenix_running
+
+if is_phoenix_running():
+    print("Phoenix 正在运行")
+else:
+    print("Phoenix 未运行")
+```
+
+---
+
+#### `get_phoenix_url() -> str`
+
+获取Phoenix Web界面的访问URL。
+
+**返回**：
+- Phoenix访问地址字符串（如 `http://localhost:6006`）
+
+**示例**：
+```python
+from src.phoenix_utils import get_phoenix_url
+
+url = get_phoenix_url()
+print(f"Phoenix URL: {url}")
+```
+
+---
+
+### Phoenix功能特性
+
+Phoenix提供以下可视化和分析功能：
+
+1. **追踪视图（Traces）**：
+   - 查看每次查询的完整执行链路
+   - 时间线视图展示各环节耗时
+   - 查看LLM的完整prompt和响应
+
+2. **向量空间（Embeddings）**：
+   - 可视化文档的向量分布
+   - 探索embedding聚类
+   - 检查语义相似性
+
+3. **性能分析（Performance）**：
+   - 统计检索时间
+   - 统计LLM调用时间
+   - Token使用量分析
+
+4. **评估（Evaluations）**：
+   - 查询质量评分
+   - 检索相关性分析
+   - 生成质量指标
+
+---
+
+### 集成示例
+
+**完整的调试工作流**：
+
+```python
+from src.config import config
+from src.indexer import IndexManager
+from src.query_engine import QueryEngine
+from src.phoenix_utils import start_phoenix_ui, get_phoenix_url
+
+# 1. 启动Phoenix
+phoenix_session = start_phoenix_ui()
+print(f"Phoenix已启动: {get_phoenix_url()}")
+
+# 2. 创建查询引擎（启用调试）
+index_manager = IndexManager()
+query_engine = QueryEngine(index_manager, enable_debug=True)
+
+# 3. 执行查询（所有操作自动被追踪）
+answer, sources, trace_info = query_engine.query(
+    "什么是系统科学？",
+    collect_trace=True
+)
+
+# 4. 查看追踪信息
+print(f"检索耗时: {trace_info['retrieval_time']:.2f}秒")
+print(f"平均相似度: {trace_info['avg_score']:.3f}")
+
+# 5. 在浏览器中打开Phoenix查看完整追踪
+# 访问 http://localhost:6006
+```
+
+**Web界面使用**：
+
+在Streamlit应用（`app.py`）中，Phoenix已集成到侧边栏的"🔍 调试模式"中：
+
+1. 点击"启动Phoenix UI"按钮
+2. Phoenix会在后台启动
+3. 点击显示的链接访问Phoenix界面
+4. 执行查询时，追踪数据自动发送到Phoenix
+5. 在Phoenix界面实时查看分析结果
+
+---
+
+### 技术说明
+
+**OpenTelemetry集成**：
+- Phoenix使用OpenTelemetry标准进行追踪
+- `LlamaIndexInstrumentor`自动注入追踪代码
+- 无需修改业务代码，即可实现全链路追踪
+
+**与LlamaDebugHandler的区别**：
+
+| 特性 | LlamaDebugHandler | Phoenix |
+|------|------------------|---------|
+| 输出方式 | 控制台/文件日志 | Web界面可视化 |
+| 启动成本 | 轻量级，即时 | 需要启动Web服务 |
+| 分析能力 | 文本日志 | 图表、统计、探索 |
+| 适用场景 | 快速调试 | 深度分析 |
+
+**推荐使用场景**：
+- **快速调试**：使用LlamaDebugHandler
+- **深度分析**：使用Phoenix
+- **最佳实践**：两者结合使用
 
 ---
 

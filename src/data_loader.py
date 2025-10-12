@@ -18,10 +18,14 @@ except ImportError:
     SimpleWebPageReader = None
 
 try:
-    from llama_index.readers.github import GithubRepositoryReader, GithubClient
+    from langchain_community.document_loaders import GitLoader
 except ImportError:
-    GithubRepositoryReader = None
-    GithubClient = None
+    GitLoader = None
+
+try:
+    from src.git_repository_manager import GitRepositoryManager
+except ImportError:
+    GitRepositoryManager = None
 
 try:
     from llama_index.readers.wikipedia import WikipediaReader
@@ -29,6 +33,7 @@ except ImportError:
     WikipediaReader = None
 
 from src.logger import setup_logger
+from src.config import config
 
 # 创建日志器
 logger = setup_logger('data_loader')
@@ -295,6 +300,100 @@ def load_documents_from_urls(urls: List[str],
         return []
 
 
+def _build_file_filter(
+    filter_directories: Optional[List[str]] = None,
+    filter_file_extensions: Optional[List[str]] = None
+):
+    """构建文件过滤器函数
+    
+    将用户友好的参数格式转换为 LangChain GitLoader 需要的 lambda 函数
+    
+    Args:
+        filter_directories: 只包含指定目录的文件（例如: ["docs", "examples"]）
+        filter_file_extensions: 只包含指定扩展名的文件（例如: [".md", ".py"]）
+        
+    Returns:
+        文件过滤器函数 file_filter(file_path: str) -> bool
+    """
+    def file_filter(file_path: str) -> bool:
+        """判断文件是否应该被加载
+        
+        Args:
+            file_path: 相对于仓库根目录的文件路径
+            
+        Returns:
+            是否加载该文件
+        """
+        # 默认排除的目录和文件
+        excluded_dirs = {'.git', '__pycache__', 'node_modules', '.venv', 'venv', '.pytest_cache'}
+        excluded_exts = {'.pyc', '.pyo', '.lock', '.log'}
+        
+        # 检查是否在排除目录中
+        path_parts = file_path.split('/')
+        if any(part in excluded_dirs for part in path_parts):
+            return False
+        
+        # 检查是否是排除的扩展名
+        if any(file_path.endswith(ext) for ext in excluded_exts):
+            return False
+        
+        # 如果指定了目录过滤
+        if filter_directories:
+            if not any(file_path.startswith(d.rstrip('/') + '/') or file_path.startswith(d.rstrip('/')) 
+                      for d in filter_directories):
+                return False
+        
+        # 如果指定了扩展名过滤
+        if filter_file_extensions:
+            if not any(file_path.endswith(ext) for ext in filter_file_extensions):
+                return False
+        
+        return True
+    
+    return file_filter
+
+
+def _convert_langchain_to_llama_doc(
+    lc_doc,
+    owner: str,
+    repo: str,
+    branch: str
+) -> LlamaDocument:
+    """将 LangChain Document 转换为 LlamaIndex LlamaDocument
+    
+    Args:
+        lc_doc: LangChain Document 对象
+        owner: 仓库所有者
+        repo: 仓库名称
+        branch: 分支名称
+        
+    Returns:
+        LlamaDocument 对象
+    """
+    # 从 LangChain Document 提取信息
+    file_path = lc_doc.metadata.get('file_path', lc_doc.metadata.get('source', ''))
+    file_name = lc_doc.metadata.get('file_name', '')
+    
+    # 如果没有 file_name，从 file_path 中提取
+    if not file_name and file_path:
+        file_name = file_path.split('/')[-1]
+    
+    # 构建 LlamaDocument
+    return LlamaDocument(
+        text=lc_doc.page_content,
+        metadata={
+            'file_path': file_path,
+            'file_name': file_name,
+            'source': lc_doc.metadata.get('source', ''),
+            'source_type': 'github',
+            'repository': f"{owner}/{repo}",
+            'branch': branch,
+            'url': f"https://github.com/{owner}/{repo}/blob/{branch}/{file_path}",
+        },
+        id_=f"github_{owner}_{repo}_{branch}_{file_path}"
+    )
+
+
 def load_documents_from_github(owner: str,
                                repo: str,
                                branch: Optional[str] = None,
@@ -303,31 +402,35 @@ def load_documents_from_github(owner: str,
                                show_progress: bool = True,
                                filter_directories: Optional[List[str]] = None,
                                filter_file_extensions: Optional[List[str]] = None) -> List[LlamaDocument]:
-    """从GitHub仓库加载文档（使用官方 GithubRepositoryReader）
+    """从GitHub仓库加载文档（使用 LangChain GitLoader + 本地 Git 克隆）
     
     Args:
         owner: 仓库所有者
         repo: 仓库名称
         branch: 分支名称（可选，默认 main）
-        github_token: GitHub访问令牌（可选，未提供则尝试从环境变量 GITHUB_TOKEN 获取）
+        github_token: GitHub访问令牌（公开仓库可选，私有仓库必需）
         clean: 是否清理文本
         show_progress: 是否显示进度条
         filter_directories: 只加载指定目录（列表格式，如 ["docs", "examples"]）
         filter_file_extensions: 只加载指定扩展名（列表格式，如 [".md", ".py"]）
-                               默认排除图片、二进制等文件
         
     Returns:
         Document对象列表
         
     Notes:
-        - 公开仓库无需 token，但配置 token 可提高 API 限额（60次/小时 → 5000次/小时）
-        - filter 参数内部会自动转换为官方 API 要求的元组格式
-        - 默认会过滤掉图片、压缩包等二进制文件
+        - 首次加载会克隆仓库到本地（data/github_repos/），后续使用 git pull 增量更新
+        - 公开仓库可不提供 Token，私有仓库需要 Token
+        - 默认会过滤掉 .git/, __pycache__, .pyc 等文件
     """
-    if GithubRepositoryReader is None or GithubClient is None:
-        safe_print("❌ 缺少依赖：llama-index-readers-github")
-        safe_print("   安装：pip install llama-index-readers-github")
-        logger.error("GithubRepositoryReader 未安装")
+    if GitLoader is None:
+        safe_print("❌ 缺少依赖：langchain-community")
+        safe_print("   安装：pip install langchain-community")
+        logger.error("GitLoader 未安装")
+        return []
+    
+    if GitRepositoryManager is None:
+        safe_print("❌ GitRepositoryManager 未安装")
+        logger.error("GitRepositoryManager 未安装")
         return []
     
     try:
@@ -337,105 +440,81 @@ def load_documents_from_github(owner: str,
         if show_progress:
             safe_print(f"📦 正在从 GitHub 加载 {owner}/{repo} (分支: {branch})...")
         
-        # 创建 GitHub 客户端
-        # GitHub Token 是用户级别的配置，必须通过参数传递
-        if not github_token:
-            error_msg = (
-                "需要提供 GitHub Token。\n"
-                "请在 Web 界面的 '🔑 GitHub Token 配置' 中保存您的 Token。\n"
-                "获取 Token：https://github.com/settings/tokens\n"
-                "权限设置：公开仓库无需勾选任何权限，私有仓库勾选 'repo'"
-            )
-            if show_progress:
-                safe_print(f"❌ {error_msg}")
-            raise ValueError(error_msg)
+        # 步骤 1: 使用 GitRepositoryManager 克隆或更新仓库
+        git_manager = GitRepositoryManager(config.GITHUB_REPOS_PATH)
         
-        # 使用用户提供的 Token 创建客户端
-        github_client = GithubClient(github_token=github_token, verbose=False)
         if show_progress:
-            safe_print(f"✅ 使用用户的 GitHub Token（API 限额：5000次/小时）")
+            safe_print(f"🔄 正在克隆/更新仓库到本地...")
         
-        # 如果未指定文件扩展名，使用默认的文本文件列表
-        # 注意：根据官方文档，filter 参数格式为元组 (列表, FilterType)
-        if filter_file_extensions is None:
-            # 默认排除图片、二进制等文件
-            filter_file_extensions = (
-                ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.pdf', '.zip', '.tar', '.gz', 
-                 '.exe', '.dll', '.so', '.dylib', '.bin', '.dat', '.pyc', '.pyo', '.lock'],
-                GithubRepositoryReader.FilterType.EXCLUDE,
-            )
-        elif isinstance(filter_file_extensions, list):
-            # 如果传入的是列表，转换为元组格式（默认为 INCLUDE）
-            filter_file_extensions = (filter_file_extensions, GithubRepositoryReader.FilterType.INCLUDE)
-        
-        # filter_directories 同样需要元组格式
-        if filter_directories is not None and isinstance(filter_directories, list):
-            filter_directories = (filter_directories, GithubRepositoryReader.FilterType.INCLUDE)
-        
-        # 使用 GithubRepositoryReader 加载仓库
-        reader = GithubRepositoryReader(
-            github_client=github_client,
-            owner=owner,
-            repo=repo,
-            use_parser=False,
-            verbose=False,
-            filter_directories=filter_directories,
-            filter_file_extensions=filter_file_extensions,
-        )
-        
-        # 尝试加载指定分支
         try:
-            documents = reader.load_data(branch=branch)
-        except Exception as e:
-            error_str = str(e)
-            # 如果是 main 分支不存在，尝试 master
-            if "404" in error_str and branch == "main":
-                logger.info("main 分支不存在，尝试 master 分支")
-                if show_progress:
-                    safe_print("⚠️  main 分支不存在，尝试 master 分支...")
-                branch = "master"
-                documents = reader.load_data(branch=branch)
-            else:
-                raise
+            repo_path, commit_sha = git_manager.clone_or_update(
+                owner=owner,
+                repo=repo,
+                branch=branch,
+                github_token=github_token
+            )
+            logger.info(f"仓库路径: {repo_path}, Commit: {commit_sha[:8]}")
+            
+            if show_progress:
+                safe_print(f"✅ 仓库已同步 (Commit: {commit_sha[:8]})")
+                
+        except RuntimeError as e:
+            error_msg = str(e)
+            if show_progress:
+                safe_print(f"❌ Git 操作失败: {error_msg}")
+            logger.error(f"Git 操作失败: {error_msg}")
+            return []
         
-        if not documents:
+        # 步骤 2: 构建文件过滤器
+        file_filter = _build_file_filter(filter_directories, filter_file_extensions)
+        
+        # 步骤 3: 使用 LangChain GitLoader 加载文档
+        if show_progress:
+            safe_print(f"📄 正在加载文档...")
+        
+        try:
+            loader = GitLoader(
+                repo_path=str(repo_path),
+                branch=branch,
+                file_filter=file_filter
+            )
+            
+            lc_documents = loader.load()
+            
+        except Exception as e:
+            error_msg = str(e)
+            if show_progress:
+                safe_print(f"❌ 加载文档失败: {error_msg}")
+            logger.error(f"GitLoader 加载失败: {error_msg}")
+            return []
+        
+        if not lc_documents:
             logger.warning(f"仓库 {owner}/{repo} 没有文档")
             if show_progress:
-                safe_print(f"⚠️  仓库为空或没有支持的文件类型")
+                safe_print(f"⚠️  仓库为空或没有符合过滤条件的文件")
             return []
         
         if show_progress:
-            safe_print(f"找到 {len(documents)} 个文件")
+            safe_print(f"找到 {len(lc_documents)} 个文件")
         
-        # 增强元数据并显示进度
-        iterator = tqdm(documents, desc="处理文件", unit="个") if show_progress else documents
+        # 步骤 4: 转换 LangChain Document -> LlamaIndex LlamaDocument
+        iterator = tqdm(lc_documents, desc="转换文档", unit="个") if show_progress else lc_documents
         
         processed_docs = []
-        for doc in iterator:
-            # 获取文件路径
-            file_path = doc.metadata.get('file_path', '')
-            file_name = doc.metadata.get('file_name', file_path.split('/')[-1] if file_path else 'unknown')
-            
-            # 增强元数据
-            doc.metadata.update({
-                "source_type": "github",
-                "repository": f"{owner}/{repo}",
-                "branch": branch,
-                "url": f"https://github.com/{owner}/{repo}/blob/{branch}/{file_path}",
-            })
-            
-            # 确保基础元数据存在
-            if not doc.metadata.get('file_name'):
-                doc.metadata['file_name'] = file_name
-            
-            processed_docs.append(doc)
+        for lc_doc in iterator:
+            try:
+                llama_doc = _convert_langchain_to_llama_doc(lc_doc, owner, repo, branch)
+                processed_docs.append(llama_doc)
+            except Exception as e:
+                logger.warning(f"转换文档失败: {e}, 跳过该文档")
+                continue
         
         if show_progress:
             safe_print(f"✅ 成功加载 {len(processed_docs)} 个文件")
         
         logger.info(f"成功加载 {len(processed_docs)} 个文件从 {owner}/{repo}")
         
-        # 可选的文本清理
+        # 步骤 5: 可选的文本清理
         if clean:
             processor = DocumentProcessor()
             cleaned_documents = []
@@ -475,6 +554,10 @@ def sync_github_repository(
 ) -> tuple:
     """增量同步 GitHub 仓库
     
+    使用两级检测机制：
+    1. 快速检测：比较 commit SHA，无变化直接跳过
+    2. 精细检测：文件级哈希比对，只索引变更文件
+    
     Args:
         owner: 仓库所有者
         repo: 仓库名称
@@ -486,11 +569,49 @@ def sync_github_repository(
         filter_file_extensions: 只加载指定扩展名（可选）
         
     Returns:
-        (所有文档列表, FileChange对象)
+        (所有文档列表, FileChange对象, commit_sha)
     """
     from src.metadata_manager import FileChange
     
-    # 1. 加载当前仓库的所有文档
+    # 步骤 1: 克隆/更新仓库，获取最新 commit SHA
+    if GitRepositoryManager is None:
+        logger.error("GitRepositoryManager 未安装")
+        return [], FileChange(), None
+    
+    try:
+        git_manager = GitRepositoryManager(config.GITHUB_REPOS_PATH)
+        repo_path, commit_sha = git_manager.clone_or_update(
+            owner=owner,
+            repo=repo,
+            branch=branch,
+            github_token=github_token
+        )
+        
+        if show_progress:
+            safe_print(f"✅ 仓库已同步 (Commit: {commit_sha[:8]})")
+        
+    except RuntimeError as e:
+        logger.error(f"Git 操作失败: {e}")
+        if show_progress:
+            safe_print(f"❌ Git 操作失败: {e}")
+        return [], FileChange(), None
+    
+    # 步骤 2: 快速检测 - 检查 commit SHA 是否变化
+    old_metadata = metadata_manager.get_repository_metadata(owner, repo, branch)
+    
+    if old_metadata:
+        old_commit_sha = old_metadata.get('last_commit_sha', '')
+        if old_commit_sha == commit_sha:
+            # Commit 未变化，跳过加载
+            if show_progress:
+                safe_print(f"✅ 仓库无新提交，跳过加载")
+            logger.info(f"仓库 {owner}/{repo}@{branch} 无新提交 (Commit: {commit_sha[:8]})")
+            return [], FileChange(), commit_sha
+    
+    # 步骤 3: 有新提交，加载文档
+    if show_progress:
+        safe_print(f"\n📄 检测到新提交，正在加载文档...")
+    
     documents = load_documents_from_github(
         owner=owner,
         repo=repo,
@@ -504,11 +625,11 @@ def sync_github_repository(
     
     if not documents:
         logger.warning(f"未能加载任何文档从 {owner}/{repo}")
-        return [], FileChange()
+        return [], FileChange(), commit_sha
     
-    # 2. 检测变更
+    # 步骤 4: 精细检测 - 文件级变更
     if show_progress:
-        safe_print(f"\n🔍 正在检测变更...")
+        safe_print(f"\n🔍 正在检测文件变更...")
     
     changes = metadata_manager.detect_changes(owner, repo, branch, documents)
     
@@ -516,9 +637,9 @@ def sync_github_repository(
         if changes.has_changes():
             safe_print(f"📊 检测结果: {changes.summary()}")
         else:
-            safe_print(f"✅ 没有检测到变更")
+            safe_print(f"✅ 没有检测到文件变更")
     
-    return documents, changes
+    return documents, changes, commit_sha
 
 
 def _handle_github_error(error: Exception, owner: str, repo: str, show_progress: bool = True) -> str:

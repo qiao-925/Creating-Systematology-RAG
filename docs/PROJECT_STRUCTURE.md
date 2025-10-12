@@ -35,10 +35,12 @@ Creating-Systematology-RAG/
 │   ├── logger.py                  # 📋 日志系统（应用日志配置）
 │   ├── data_loader.py             # 📥 数据加载（Markdown、网页、GitHub）
 │   ├── indexer.py                 # 🗂️ 索引构建（向量化、存储）
-│   ├── query_engine.py            # 🔍 查询引擎（问答、引用溯源）
-│   ├── chat_manager.py            # 💬 对话管理（多轮对话、会话）
+│   ├── query_engine.py            # 🔍 查询引擎（问答、引用溯源、调试支持）
+│   ├── chat_manager.py            # 💬 对话管理（多轮对话、会话、调试支持）
 │   ├── user_manager.py            # 👤 用户管理（注册、登录、会话关联）
-│   └── activity_logger.py         # 📊 行为日志（用户操作追踪）
+│   ├── activity_logger.py         # 📊 行为日志（用户操作追踪）
+│   ├── phoenix_utils.py           # 🔍 Phoenix工具（RAG可观测性、追踪）
+│   └── metadata_manager.py        # 📝 元数据管理（GitHub增量更新）
 │
 ├── data/                          # 📁 数据目录
 │   ├── raw/                       # 📄 原始文档存储
@@ -114,10 +116,12 @@ Creating-Systematology-RAG/
 | `logger.py` | 日志系统 | 依赖 config |
 | `data_loader.py` | 数据加载（Markdown、网页、GitHub） | 依赖 config, logger |
 | `indexer.py` | 索引构建 | 依赖 config, data_loader, logger |
-| `query_engine.py` | 查询引擎 | 依赖 config, indexer, logger |
-| `chat_manager.py` | 对话管理 | 依赖 config, indexer, logger |
+| `query_engine.py` | 查询引擎（含调试支持） | 依赖 config, indexer, logger |
+| `chat_manager.py` | 对话管理（含调试支持） | 依赖 config, indexer, logger |
 | `user_manager.py` | 用户管理（注册、登录、会话关联） | 依赖 config, logger |
 | `activity_logger.py` | 用户行为日志（操作追踪） | 依赖 config, logger |
+| `phoenix_utils.py` | Phoenix可观测性工具 | 依赖 logger |
+| `metadata_manager.py` | GitHub元数据管理 | 依赖 config, logger |
 
 **依赖关系图**：
 ```

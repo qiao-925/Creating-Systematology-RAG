@@ -64,6 +64,7 @@
 2. **依赖注入**：通过构造函数传递依赖，便于测试和替换
 3. **配置驱动**：所有配置集中管理，易于调整
 4. **分层架构**：清晰的层次划分，便于维护和扩展
+5. **可观测性优先**：集成调试和追踪工具，系统行为透明可见
 
 ---
 
@@ -400,6 +401,77 @@ class ChatSession:
 - 自定义记忆策略：替换 `ChatMemoryBuffer`
 - 调整记忆容量：修改 `memory_token_limit`
 - 添加会话元数据：扩展 `ChatSession` 类
+
+---
+
+### 6. Phoenix可观测性工具（src/phoenix_utils.py）
+
+**职责**：提供RAG流程可观测性，实时追踪和可视化
+
+**核心功能**：
+- `start_phoenix_ui()`：启动Phoenix Web界面
+- `stop_phoenix_ui()`：停止Phoenix服务
+- `is_phoenix_running()`：检查Phoenix状态
+- `get_phoenix_url()`：获取Phoenix访问地址
+
+**设计思路**：
+- **集成Phoenix平台**：使用Arize Phoenix进行LLM/RAG可视化追踪
+- **OpenTelemetry集成**：通过OpenTelemetry标准追踪LlamaIndex调用链路
+- **单例模式**：全局唯一的Phoenix会话，避免重复启动
+- **自动化追踪**：使用`LlamaIndexInstrumentor`自动记录所有RAG操作
+
+**工作原理**：
+```
+启动Phoenix
+  ↓
+1. 启动Phoenix Web服务（默认端口6006）
+  ↓
+2. 注册OpenTelemetry追踪器
+  ↓
+3. 配置LlamaIndex Instrumentor
+  ↓
+4. LlamaIndex操作自动被追踪
+   - 检索操作（retrieval）
+   - LLM调用（completion）
+   - Embedding计算
+  ↓
+5. 数据实时发送到Phoenix
+  ↓
+6. Web界面可视化展示
+```
+
+**核心实现**：
+```python
+def start_phoenix_ui(port: int = 6006):
+    import phoenix as px
+    from phoenix.otel import register
+    from openinference.instrumentation.llama_index import LlamaIndexInstrumentor
+    
+    # 启动Phoenix应用
+    session = px.launch_app(port=port)
+    
+    # 配置OpenTelemetry追踪
+    tracer_provider = register()
+    LlamaIndexInstrumentor().instrument(tracer_provider=tracer_provider)
+    
+    return session
+```
+
+**Phoenix功能特性**：
+- 📊 **实时追踪**：查看每次查询的完整执行流程
+- 🔍 **向量空间可视化**：探索embedding分布和聚类
+- 📈 **性能分析**：检索时间、LLM调用时间、token使用量
+- 🐛 **问题诊断**：定位检索质量问题、生成质量问题
+- 📉 **统计分析**：历史查询趋势、质量指标统计
+
+**与LlamaDebugHandler配合**：
+- **LlamaDebugHandler**：控制台和文件日志，轻量级调试
+- **Phoenix**：Web界面可视化，深度分析和探索
+
+**扩展点**：
+- 自定义追踪指标：扩展OpenTelemetry spans
+- 数据持久化：配置Phoenix存储后端
+- 评估集成：结合评估框架（如Ragas）
 
 ---
 

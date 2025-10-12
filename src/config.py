@@ -27,6 +27,10 @@ class Config:
         self.LLM_MODEL = os.getenv("LLM_MODEL", "deepseek-chat")
         self.EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "BAAI/bge-base-zh-v1.5")
         
+        # HuggingFace镜像配置
+        self.HF_ENDPOINT = os.getenv("HF_ENDPOINT", "https://hf-mirror.com")
+        self.HF_OFFLINE_MODE = os.getenv("HF_OFFLINE_MODE", "false").lower() == "true"
+        
         # 向量数据库配置
         self.VECTOR_STORE_PATH = self._get_path("VECTOR_STORE_PATH", "vector_store")
         self.CHROMA_COLLECTION_NAME = os.getenv("CHROMA_COLLECTION_NAME", "systematology_docs")
@@ -39,7 +43,8 @@ class Config:
         self.SESSIONS_PATH = self._get_path("SESSIONS_PATH", "sessions")
         self.ACTIVITY_LOG_PATH = self._get_path("ACTIVITY_LOG_PATH", "logs/activity")
         
-        # GitHub 元数据配置
+        # GitHub 配置
+        self.GITHUB_REPOS_PATH = self._get_path("GITHUB_REPOS_PATH", "data/github_repos")
         self.GITHUB_METADATA_PATH = self._get_path("GITHUB_METADATA_PATH", "data/github_metadata.json")
         
         # 索引配置
@@ -89,6 +94,7 @@ class Config:
             self.PROCESSED_DATA_PATH,
             self.SESSIONS_PATH,
             self.ACTIVITY_LOG_PATH,
+            self.GITHUB_REPOS_PATH,
         ]
         
         for directory in directories:
@@ -121,6 +127,8 @@ class Config:
     DEEPSEEK_API_BASE={self.DEEPSEEK_API_BASE},
     LLM_MODEL={self.LLM_MODEL},
     EMBEDDING_MODEL={self.EMBEDDING_MODEL},
+    HF_ENDPOINT={self.HF_ENDPOINT},
+    HF_OFFLINE_MODE={self.HF_OFFLINE_MODE},
     VECTOR_STORE_PATH={self.VECTOR_STORE_PATH},
     SESSIONS_PATH={self.SESSIONS_PATH},
     ACTIVITY_LOG_PATH={self.ACTIVITY_LOG_PATH},

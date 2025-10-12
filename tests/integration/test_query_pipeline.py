@@ -56,7 +56,7 @@ class TestQueryPipeline:
         query_engine.query_engine.query = mocker.Mock(return_value=mock_response)
         
         # 执行查询
-        answer, sources = query_engine.query("什么是系统科学？")
+        answer, sources, _ = query_engine.query("什么是系统科学？")
         
         # 验证结果
         assert isinstance(answer, str)
@@ -96,7 +96,7 @@ class TestQueryPipeline:
         ]
         
         for question in questions:
-            answer, sources = query_engine.query(question)
+            answer, sources, _ = query_engine.query(question)
             assert isinstance(answer, str)
             assert isinstance(sources, list)
 

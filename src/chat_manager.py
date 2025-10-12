@@ -151,6 +151,7 @@ class ChatManager:
         similarity_top_k: Optional[int] = None,
         auto_save: bool = True,
         user_email: Optional[str] = None,
+        enable_debug: bool = False,
     ):
         """初始化对话管理器
         
@@ -163,11 +164,13 @@ class ChatManager:
             similarity_top_k: 检索相似文档数量
             auto_save: 是否自动保存会话
             user_email: 用户邮箱（用于会话目录隔离）
+            enable_debug: 是否启用调试模式
         """
         self.index_manager = index_manager
         self.similarity_top_k = similarity_top_k or config.SIMILARITY_TOP_K
         self.auto_save = auto_save
         self.user_email = user_email
+        self.enable_debug = enable_debug
         
         # 配置DeepSeek LLM
         self.api_key = api_key or config.DEEPSEEK_API_KEY
@@ -175,6 +178,14 @@ class ChatManager:
         
         if not self.api_key:
             raise ValueError("未设置DEEPSEEK_API_KEY")
+        
+        # 配置调试模式
+        if self.enable_debug:
+            from llama_index.core import Settings
+            from llama_index.core.callbacks import CallbackManager, LlamaDebugHandler
+            print("🔍 对话管理器：启用调试模式")
+            llama_debug = LlamaDebugHandler(print_trace_on_end=True)
+            Settings.callback_manager = CallbackManager([llama_debug])
         
         print(f"🤖 初始化DeepSeek LLM (对话模式): {self.model}")
         # 使用官方 DeepSeek 集成

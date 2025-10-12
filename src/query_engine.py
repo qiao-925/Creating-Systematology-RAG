@@ -1,17 +1,23 @@
 """
 查询引擎模块
 集成DeepSeek API，实现带引用溯源的查询功能
+支持Phoenix可观测性和LlamaDebugHandler调试
 """
 
-from typing import List, Optional, Tuple
-from llama_index.core import VectorStoreIndex
+import time
+from typing import List, Optional, Tuple, Dict, Any
+from llama_index.core import VectorStoreIndex, Settings
 from llama_index.core.query_engine import CitationQueryEngine
 from llama_index.core.base.response.schema import Response
 from llama_index.core.schema import Document as LlamaDocument
+from llama_index.core.callbacks import CallbackManager, LlamaDebugHandler
 from llama_index.llms.deepseek import DeepSeek
 
 from src.config import config
 from src.indexer import IndexManager
+from src.logger import setup_logger
+
+logger = setup_logger('query_engine')
 
 
 class QueryEngine:
@@ -25,6 +31,7 @@ class QueryEngine:
         model: Optional[str] = None,
         similarity_top_k: Optional[int] = None,
         citation_chunk_size: int = 512,
+        enable_debug: bool = False,
     ):
         """初始化查询引擎
         
@@ -35,10 +42,12 @@ class QueryEngine:
             model: 模型名称
             similarity_top_k: 检索相似文档数量
             citation_chunk_size: 引用块大小
+            enable_debug: 是否启用调试模式（LlamaDebugHandler）
         """
         self.index_manager = index_manager
         self.similarity_top_k = similarity_top_k or config.SIMILARITY_TOP_K
         self.citation_chunk_size = citation_chunk_size
+        self.enable_debug = enable_debug
         
         # 配置DeepSeek LLM
         self.api_key = api_key or config.DEEPSEEK_API_KEY
@@ -46,6 +55,13 @@ class QueryEngine:
         
         if not self.api_key:
             raise ValueError("未设置DEEPSEEK_API_KEY，请检查环境变量或配置文件")
+        
+        # 配置调试模式
+        if self.enable_debug:
+            print("🔍 启用调试模式（LlamaDebugHandler）")
+            self.llama_debug = LlamaDebugHandler(print_trace_on_end=True)
+            Settings.callback_manager = CallbackManager([self.llama_debug])
+            logger.info("调试模式已启用")
         
         print(f"🤖 初始化DeepSeek LLM: {self.model}")
         # 使用官方 DeepSeek 集成
@@ -70,20 +86,39 @@ class QueryEngine:
         
         print("✅ 查询引擎初始化完成")
     
-    def query(self, question: str) -> Tuple[str, List[dict]]:
+    def query(self, question: str, collect_trace: bool = False) -> Tuple[str, List[dict], Optional[Dict[str, Any]]]:
         """执行查询并返回带引用的答案
         
         Args:
             question: 用户问题
+            collect_trace: 是否收集详细的追踪信息（用于调试模式）
             
         Returns:
-            (答案文本, 引用来源列表)
+            (答案文本, 引用来源列表, 追踪信息字典)
+            
+        Note:
+            追踪信息包含：检索时间、检索到的chunk、相似度分数、LLM调用时间等
         """
+        trace_info = None
+        
         try:
             print(f"\n💬 查询: {question}")
             
+            if collect_trace:
+                trace_info = {
+                    "query": question,
+                    "start_time": time.time(),
+                    "retrieval": {},
+                    "llm_generation": {}
+                }
+            
+            # ===== 1. 执行检索 =====
+            retrieval_start = time.time()
+            
             # 执行查询
             response: Response = self.query_engine.query(question)
+            
+            retrieval_time = time.time() - retrieval_start
             
             # 提取答案
             answer = str(response)
@@ -100,12 +135,33 @@ class QueryEngine:
                     }
                     sources.append(source)
             
+            # ===== 2. 收集追踪信息 =====
+            if collect_trace and trace_info:
+                trace_info["retrieval"] = {
+                    "time_cost": round(retrieval_time, 2),
+                    "top_k": self.similarity_top_k,
+                    "chunks_retrieved": len(sources),
+                    "chunks": sources,
+                    "avg_score": round(sum(s['score'] for s in sources if s['score']) / len(sources), 3) if sources else 0,
+                }
+                
+                trace_info["llm_generation"] = {
+                    "model": self.model,
+                    "response_length": len(answer),
+                }
+                
+                trace_info["total_time"] = round(time.time() - trace_info["start_time"], 2)
+                
+                # 记录详细日志
+                logger.debug(f"查询追踪: {trace_info}")
+            
             print(f"✅ 查询完成，找到 {len(sources)} 个引用来源")
             
-            return answer, sources
+            return answer, sources, trace_info
             
         except Exception as e:
             print(f"❌ 查询失败: {e}")
+            logger.error(f"查询失败: {e}")
             raise
     
     async def stream_query(self, question: str):
@@ -369,7 +425,7 @@ class HybridQueryEngine:
             
             # Step 1: 本地知识库检索
             print("🔍 正在查询本地知识库...")
-            local_answer, local_sources = self.local_engine.query(question)
+            local_answer, local_sources, _ = self.local_engine.query(question)
             
             # Step 2: 判断是否需要维基百科补充
             wikipedia_sources = []

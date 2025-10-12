@@ -72,7 +72,7 @@ class TestQueryEngine:
         mock_response.source_nodes = [mock_node]
         mock_query_engine.query_engine.query = mocker.Mock(return_value=mock_response)
         
-        answer, sources = mock_query_engine.query("测试问题")
+        answer, sources, _ = mock_query_engine.query("测试问题")
         
         assert isinstance(answer, str)
         assert isinstance(sources, list)
@@ -86,7 +86,7 @@ class TestQueryEngine:
         
         mock_query_engine.query_engine.query = mocker.Mock(return_value=mock_response)
         
-        answer, sources = mock_query_engine.query("测试问题")
+        answer, sources, _ = mock_query_engine.query("测试问题")
         
         assert isinstance(answer, str)
         assert isinstance(sources, list)
@@ -218,7 +218,7 @@ class TestQueryEngineWithRealAPI:
     def test_real_query(self, real_query_engine):
         """测试真实的查询（需要API）"""
         question = "什么是系统科学？"
-        answer, sources = real_query_engine.query(question)
+        answer, sources, _ = real_query_engine.query(question)
         
         # 基本验证
         assert isinstance(answer, str)

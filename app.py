@@ -12,11 +12,12 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent))
 
 from src.config import config
-from src.indexer import IndexManager, create_index_from_directory
+from src.indexer import IndexManager, create_index_from_directory, get_embedding_model_status
 from src.chat_manager import ChatManager
 from src.data_loader import load_documents_from_urls, load_documents_from_github, load_documents_from_wikipedia
 from src.query_engine import format_sources, HybridQueryEngine
 from src.user_manager import UserManager
+from src.phoenix_utils import start_phoenix_ui, stop_phoenix_ui, is_phoenix_running, get_phoenix_url
 
 
 # 页面配置
@@ -111,6 +112,16 @@ def init_session_state():
     if 'github_repos' not in st.session_state:
         # 从元数据中加载已存在的仓库列表
         st.session_state.github_repos = st.session_state.metadata_manager.list_repositories()
+    
+    # 调试模式配置
+    if 'debug_mode_enabled' not in st.session_state:
+        st.session_state.debug_mode_enabled = False
+    
+    if 'phoenix_enabled' not in st.session_state:
+        st.session_state.phoenix_enabled = False
+    
+    if 'collect_trace' not in st.session_state:
+        st.session_state.collect_trace = False
 
 
 def load_index():
@@ -147,7 +158,10 @@ def load_chat_manager():
         
         if st.session_state.chat_manager is None:
             with st.spinner("🤖 初始化对话管理器..."):
-                st.session_state.chat_manager = ChatManager(index_manager)
+                st.session_state.chat_manager = ChatManager(
+                    index_manager,
+                    enable_debug=st.session_state.debug_mode_enabled
+                )
                 st.session_state.chat_manager.start_session()
                 st.success("✅ 对话管理器已初始化")
         
@@ -211,6 +225,43 @@ def display_hybrid_sources(local_sources, wikipedia_sources):
                 
                 if i < len(wikipedia_sources):
                     st.divider()
+
+
+def display_trace_info(trace_info: dict):
+    """显示查询追踪信息
+    
+    Args:
+        trace_info: 追踪信息字典
+    """
+    if not trace_info:
+        return
+    
+    with st.expander("📊 查询追踪信息", expanded=True):
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.metric("总耗时", f"{trace_info.get('total_time', 0)}s")
+        
+        with col2:
+            retrieval_info = trace_info.get('retrieval', {})
+            st.metric("检索耗时", f"{retrieval_info.get('time_cost', 0)}s")
+        
+        with col3:
+            st.metric("召回数量", retrieval_info.get('chunks_retrieved', 0))
+        
+        st.divider()
+        
+        # 检索详情
+        st.markdown("**🔍 检索详情**")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.text(f"Top K: {retrieval_info.get('top_k', 0)}")
+            st.text(f"平均相似度: {retrieval_info.get('avg_score', 0)}")
+        
+        with col2:
+            llm_info = trace_info.get('llm_generation', {})
+            st.text(f"LLM模型: {llm_info.get('model', 'N/A')}")
+            st.text(f"回答长度: {llm_info.get('response_length', 0)} 字符")
 
 
 def load_hybrid_query_engine():
@@ -395,7 +446,7 @@ def sidebar():
                                         github_token = st.session_state.user_github_token or None
                                         
                                         # 加载并检测（首次会标记所有文件为新增）
-                                        documents, changes = sync_github_repository(
+                                        documents, changes, commit_sha = sync_github_repository(
                                             owner=github_owner,
                                             repo=github_repo,
                                             branch=github_branch,
@@ -408,12 +459,13 @@ def sidebar():
                                             # 添加到索引
                                             index_manager.build_index(documents, show_progress=False)
                                             
-                                            # 更新元数据
+                                            # 更新元数据（包含 commit_sha）
                                             st.session_state.metadata_manager.update_repository_metadata(
                                                 owner=github_owner,
                                                 repo=github_repo,
                                                 branch=github_branch,
-                                                documents=documents
+                                                documents=documents,
+                                                commit_sha=commit_sha
                                             )
                                             
                                             # 刷新仓库列表
@@ -451,7 +503,7 @@ def sidebar():
                             
                             try:
                                 from src.data_loader import sync_github_repository
-                                _, changes = sync_github_repository(
+                                _, changes, _ = sync_github_repository(
                                     owner=owner,
                                     repo=repo_name,
                                     branch=branch,
@@ -492,7 +544,7 @@ def sidebar():
                                     from src.data_loader import sync_github_repository
                                     
                                     # 1. 检测变更
-                                    documents, changes = sync_github_repository(
+                                    documents, changes, commit_sha = sync_github_repository(
                                         owner=owner,
                                         repo=repo_name,
                                         branch=branch,
@@ -722,6 +774,84 @@ def sidebar():
         
         st.divider()
         
+        # ========== 调试模式 ==========
+        st.subheader("🔍 调试模式")
+        st.caption("RAG流程可观测性工具")
+        
+        # Phoenix可视化平台
+        with st.expander("📊 Phoenix可视化平台", expanded=False):
+            st.markdown("""
+            **Phoenix** 是开源的LLM可观测性平台，提供：
+            - 📊 实时追踪RAG查询流程
+            - 🔍 向量检索可视化
+            - 📈 性能分析和统计
+            - 🐛 调试和问题诊断
+            """)
+            
+            if is_phoenix_running():
+                st.success(f"✅ Phoenix已启动")
+                st.markdown(f"**访问地址：** [{get_phoenix_url()}]({get_phoenix_url()})")
+                
+                if st.button("🛑 停止Phoenix", use_container_width=True):
+                    stop_phoenix_ui()
+                    st.session_state.phoenix_enabled = False
+                    st.success("Phoenix已停止")
+                    st.rerun()
+            else:
+                if st.button("🚀 启动Phoenix UI", type="primary", use_container_width=True):
+                    with st.spinner("正在启动Phoenix..."):
+                        session = start_phoenix_ui(port=6006)
+                        if session:
+                            st.session_state.phoenix_enabled = True
+                            st.success("✅ Phoenix已启动！")
+                            st.rerun()
+                        else:
+                            st.error("❌ Phoenix启动失败，请检查依赖是否安装")
+        
+        st.divider()
+        
+        # LlamaDebugHandler调试
+        with st.expander("🐛 LlamaDebugHandler调试", expanded=False):
+            st.markdown("""
+            **LlamaDebugHandler** 是LlamaIndex内置的调试工具：
+            - 📝 输出详细的执行日志
+            - 🔎 显示LLM调用和检索过程
+            - ⚡ 轻量级，无需额外服务
+            """)
+            
+            debug_enabled = st.checkbox(
+                "启用调试日志",
+                value=st.session_state.debug_mode_enabled,
+                help="在控制台输出详细的调试信息"
+            )
+            st.session_state.debug_mode_enabled = debug_enabled
+            
+            if debug_enabled:
+                st.info("ℹ️ 调试日志将输出到控制台和日志文件")
+        
+        st.divider()
+        
+        # 追踪信息收集
+        with st.expander("📈 查询追踪信息", expanded=False):
+            st.markdown("""
+            收集每次查询的详细指标：
+            - ⏱️ 检索时间和LLM生成时间
+            - 📊 相似度分数统计
+            - 📝 完整的chunk内容
+            """)
+            
+            trace_enabled = st.checkbox(
+                "启用追踪信息收集",
+                value=st.session_state.collect_trace,
+                help="在界面上显示详细的查询追踪信息"
+            )
+            st.session_state.collect_trace = trace_enabled
+            
+            if trace_enabled:
+                st.info("ℹ️ 追踪信息将在每次查询后显示")
+        
+        st.divider()
+        
         # 清空索引
         st.subheader("⚙️ 高级操作")
         if st.button("🗑️ 清空索引", help="删除所有已索引的文档"):
@@ -936,6 +1066,54 @@ def main():
                     import traceback
                     st.error(f"❌ 查询失败: {e}")
                     st.error(traceback.format_exc())
+    
+    # 页面底部：显示模型状态
+    display_model_status()
+
+
+def display_model_status():
+    """在页面底部显示 Embedding 模型状态"""
+    st.markdown("---")
+    
+    try:
+        status = get_embedding_model_status()
+        
+        # 使用 expander 默认收起
+        with st.expander("🔧 Embedding 模型状态", expanded=False):
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                st.markdown("**模型信息**")
+                st.text(f"名称: {status['model_name']}")
+                if status['loaded']:
+                    st.success("✅ 已加载到内存")
+                else:
+                    st.info("💤 未加载（首次使用时加载）")
+            
+            with col2:
+                st.markdown("**缓存状态**")
+                if status['cache_exists']:
+                    st.success("✅ 本地缓存存在")
+                    st.caption("后续使用无需联网")
+                else:
+                    st.warning("⚠️  本地无缓存")
+                    st.caption("首次使用将从镜像下载")
+            
+            with col3:
+                st.markdown("**网络配置**")
+                if status['offline_mode']:
+                    st.info("📴 离线模式")
+                    st.caption("仅使用本地缓存")
+                else:
+                    st.info(f"🌐 在线模式")
+                    st.caption(f"镜像: {status['mirror']}")
+            
+            # 详细信息（可折叠）
+            with st.expander("查看详细信息", expanded=False):
+                st.json(status)
+    
+    except Exception as e:
+        st.error(f"获取模型状态失败: {e}")
 
 
 if __name__ == "__main__":

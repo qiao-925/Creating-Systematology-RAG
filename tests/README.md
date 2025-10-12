@@ -241,10 +241,18 @@ tests/
 │   ├── test_query_engine.py    # 查询引擎测试（8个）
 │   └── test_chat_manager.py    # 对话管理测试（15个）
 ├── integration/             # 集成测试（~15个）
-│   ├── test_data_pipeline.py   # 数据处理流程（8个）
-│   └── test_query_pipeline.py  # 查询流程（7个）
+│   ├── test_data_pipeline.py      # 数据处理流程（8个）
+│   ├── test_query_pipeline.py     # 查询流程（7个）
+│   └── test_phoenix_integration.py # Phoenix集成测试（5个）
 ├── performance/             # 性能测试（~13个）
 │   └── test_performance.py     # 性能基准测试
+├── tools/                   # 🆕 诊断和配置工具
+│   ├── check_hf_config.py      # HF配置快速检查
+│   ├── test_hf_config.py       # HF配置完整测试
+│   ├── test_hf_mirror.py       # HF镜像测试
+│   ├── test_env_vars.py        # 环境变量验证
+│   ├── download_model.py       # 手动下载模型
+│   └── README.md               # 工具使用说明
 └── fixtures/                # 测试数据
     └── sample_docs/
 ```
@@ -339,6 +347,48 @@ make clean             # 清理临时文件
 # 或一次性完成
 make test-all
 ```
+
+---
+
+---
+
+## 🔧 诊断工具
+
+`tests/tools/` 目录提供了配置验证和问题诊断工具。
+
+### 快速使用
+
+```bash
+# 快速检查 HuggingFace 配置
+uv run python tests/tools/check_hf_config.py
+
+# 完整测试 HF 配置和模型加载
+uv run python tests/tools/test_hf_config.py
+
+# 测试镜像配置
+uv run python tests/tools/test_hf_mirror.py
+
+# 验证环境变量
+uv run python tests/tools/test_env_vars.py
+
+# 手动下载模型
+uv run python tests/tools/download_model.py
+
+# 测试 Phoenix 集成
+uv run python tests/integration/test_phoenix_integration.py
+```
+
+### 故障排查流程
+
+遇到模型加载超时问题时，按顺序执行：
+
+1. **检查配置** → `check_hf_config.py`
+2. **验证环境变量** → `test_env_vars.py`  
+3. **测试镜像** → `test_hf_mirror.py`
+4. **手动下载** → `download_model.py`
+5. **完整测试** → `test_hf_config.py`
+
+详细说明见：[tests/tools/README.md](tools/README.md)
 
 ---
 

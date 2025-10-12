@@ -3,6 +3,7 @@
 负责构建和管理向量索引，集成Chroma向量数据库
 """
 
+import os
 from pathlib import Path
 from typing import List, Optional
 
@@ -26,6 +27,29 @@ logger = setup_logger('indexer')
 _global_embed_model: Optional[HuggingFaceEmbedding] = None
 
 
+def _setup_huggingface_env():
+    """配置 HuggingFace 环境变量（镜像和离线模式）
+    
+    注意：环境变量已在 src/__init__.py 中预设，这里仅用于日志记录和确认
+    """
+    # 设置镜像地址
+    if config.HF_ENDPOINT:
+        os.environ['HF_ENDPOINT'] = config.HF_ENDPOINT
+        os.environ['HUGGINGFACE_HUB_ENDPOINT'] = config.HF_ENDPOINT
+        os.environ['HF_HUB_ENDPOINT'] = config.HF_ENDPOINT  # 新版本使用这个
+        logger.info(f"🌐 使用 HuggingFace 镜像: {config.HF_ENDPOINT}")
+    
+    # 设置离线模式
+    if config.HF_OFFLINE_MODE:
+        os.environ['HF_HUB_OFFLINE'] = '1'
+        os.environ['TRANSFORMERS_OFFLINE'] = '1'
+        logger.info(f"📴 启用离线模式（仅使用本地缓存）")
+    else:
+        # 确保离线模式关闭
+        os.environ.pop('HF_HUB_OFFLINE', None)
+        os.environ.pop('TRANSFORMERS_OFFLINE', None)
+
+
 def load_embedding_model(model_name: Optional[str] = None) -> HuggingFaceEmbedding:
     """加载 Embedding 模型（支持全局单例模式）
     
@@ -41,16 +65,45 @@ def load_embedding_model(model_name: Optional[str] = None) -> HuggingFaceEmbeddi
     
     # 如果已经加载过且模型名称相同，直接返回
     if _global_embed_model is not None:
-        logger.info(f"使用已加载的 Embedding 模型: {model_name}")
+        logger.info(f"✅ 使用已加载的 Embedding 模型: {model_name}")
         return _global_embed_model
     
+    # 配置 HuggingFace 环境变量
+    _setup_huggingface_env()
+    
     # 加载模型
-    logger.info(f"正在加载 Embedding 模型: {model_name}")
-    _global_embed_model = HuggingFaceEmbedding(
-        model_name=model_name,
-        trust_remote_code=True,
-    )
-    logger.info(f"Embedding 模型加载完成: {model_name}")
+    logger.info(f"📦 正在加载 Embedding 模型: {model_name}")
+    
+    try:
+        # 显式指定缓存目录以确保使用本地缓存
+        cache_folder = str(Path.home() / ".cache" / "huggingface")
+        _global_embed_model = HuggingFaceEmbedding(
+            model_name=model_name,
+            trust_remote_code=True,
+            cache_folder=cache_folder,
+        )
+        logger.info(f"✅ Embedding 模型加载完成: {model_name}")
+        logger.info(f"📁 缓存目录: {cache_folder}")
+    except Exception as e:
+        # 如果是离线模式且缺少缓存，尝试切换到在线模式
+        if config.HF_OFFLINE_MODE and "offline" in str(e).lower():
+            logger.warning(f"⚠️  离线模式下本地无缓存，自动切换到在线模式尝试下载")
+            os.environ.pop('HF_HUB_OFFLINE', None)
+            
+            try:
+                cache_folder = str(Path.home() / ".cache" / "huggingface")
+                _global_embed_model = HuggingFaceEmbedding(
+                    model_name=model_name,
+                    trust_remote_code=True,
+                    cache_folder=cache_folder,
+                )
+                logger.info(f"✅ Embedding 模型下载并加载完成: {model_name}")
+            except Exception as retry_error:
+                logger.error(f"❌ 模型加载失败: {retry_error}")
+                raise
+        else:
+            logger.error(f"❌ 模型加载失败: {e}")
+            raise
     
     return _global_embed_model
 
@@ -62,6 +115,42 @@ def get_global_embed_model() -> Optional[HuggingFaceEmbedding]:
         已加载的模型实例，如果未加载则返回 None
     """
     return _global_embed_model
+
+
+def get_embedding_model_status() -> dict:
+    """获取 Embedding 模型状态信息
+    
+    Returns:
+        包含模型状态的字典：
+        {
+            "loaded": bool,              # 是否已加载
+            "model_name": str,           # 模型名称
+            "cache_dir": str,            # 缓存目录
+            "cache_exists": bool,        # 本地缓存是否存在
+            "offline_mode": bool,        # 是否离线模式
+            "mirror": str,               # 镜像地址
+        }
+    """
+    import os
+    from pathlib import Path
+    
+    model_name = config.EMBEDDING_MODEL
+    
+    # 检查缓存目录
+    cache_root = Path.home() / ".cache" / "huggingface" / "hub"
+    # HuggingFace 缓存格式: models--{org}--{model}
+    model_cache_name = model_name.replace("/", "--")
+    cache_dir = cache_root / f"models--{model_cache_name}"
+    cache_exists = cache_dir.exists()
+    
+    return {
+        "loaded": _global_embed_model is not None,
+        "model_name": model_name,
+        "cache_dir": str(cache_dir),
+        "cache_exists": cache_exists,
+        "offline_mode": config.HF_OFFLINE_MODE,
+        "mirror": config.HF_ENDPOINT if config.HF_ENDPOINT else "huggingface.co (官方)",
+    }
 
 
 class IndexManager:
@@ -101,11 +190,39 @@ class IndexManager:
             print(f"✅ 使用预加载的Embedding模型: {self.embedding_model_name}")
             self.embed_model = embed_model_instance
         else:
+            # 配置 HuggingFace 环境变量
+            _setup_huggingface_env()
+            
             print(f"📦 正在加载Embedding模型: {self.embedding_model_name}")
-            self.embed_model = HuggingFaceEmbedding(
-                model_name=self.embedding_model_name,
-                trust_remote_code=True,
-            )
+            
+            try:
+                cache_folder = str(Path.home() / ".cache" / "huggingface")
+                self.embed_model = HuggingFaceEmbedding(
+                    model_name=self.embedding_model_name,
+                    trust_remote_code=True,
+                    cache_folder=cache_folder,
+                )
+                print(f"✅ 模型加载完成")
+            except Exception as e:
+                # 如果是离线模式且缺少缓存，尝试切换到在线模式
+                if config.HF_OFFLINE_MODE and "offline" in str(e).lower():
+                    print(f"⚠️  离线模式下本地无缓存，自动切换到在线模式尝试下载...")
+                    os.environ.pop('HF_HUB_OFFLINE', None)
+                    
+                    try:
+                        cache_folder = str(Path.home() / ".cache" / "huggingface")
+                        self.embed_model = HuggingFaceEmbedding(
+                            model_name=self.embedding_model_name,
+                            trust_remote_code=True,
+                            cache_folder=cache_folder,
+                        )
+                        print(f"✅ 模型下载并加载完成")
+                    except Exception as retry_error:
+                        print(f"❌ 模型加载失败: {retry_error}")
+                        raise
+                else:
+                    print(f"❌ 模型加载失败: {e}")
+                    raise
         
         # 配置全局Settings
         Settings.embed_model = self.embed_model

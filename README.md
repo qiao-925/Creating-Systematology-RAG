@@ -12,19 +12,23 @@
 - 📜 **历史会话**：侧边栏显示历史会话列表，一键加载恢复
 - 👤 **用户隔离**：每个用户独立的知识库和会话数据
 - 📊 **行为追踪**：记录用户操作日志，支持数据分析
+- 🔍 **RAG可观测性**：集成Phoenix和LlamaDebugHandler，实时追踪检索和生成流程
 - 🚀 **简洁界面**：基于 Streamlit 的现代化 Web 界面
 - 🔧 **灵活配置**：支持本地 embedding 模型和 API 切换
 
 ## 🛠️ 技术栈
 
 - **Python 3.12+** - 编程语言
-- **uv** - 依赖管理
-- **LlamaIndex** - RAG 框架
+- **uv** - 依赖管理和包管理
+- **LlamaIndex** - RAG 核心框架
+- **LangChain** - 文档加载器（GitHub集成）
 - **DeepSeek API** - 大语言模型
 - **Chroma** - 向量数据库
 - **Streamlit** - Web 界面
-- **HuggingFace Embeddings** - 本地向量模型
-- **pytest** - 测试框架（88个测试用例）
+- **HuggingFace Embeddings** - 本地向量模型（支持镜像和离线）
+- **Git** - GitHub仓库本地克隆和增量更新
+- **pytest** - 测试框架（158个测试用例）
+- **Phoenix** - RAG可观测性平台
 
 ## 🚀 快速开始
 
@@ -37,7 +41,21 @@ git clone <repository-url>
 cd Creating-Systematology-RAG
 ```
 
-#### 2. 配置 API 密钥
+#### 2. 系统要求
+
+- **Git**: 用于克隆GitHub仓库（首次加载和增量更新）
+  ```bash
+  # 检查是否安装
+  git --version
+  
+  # 如未安装（Ubuntu/Debian）
+  sudo apt install git
+  
+  # 如未安装（macOS）
+  brew install git
+  ```
+
+#### 3. 配置 API 密钥
 
 复制并编辑环境变量文件：
 
@@ -45,14 +63,10 @@ cd Creating-Systematology-RAG
 cp env.template .env
 # 编辑 .env 文件，添加你的 DeepSeek API 密钥
 # DEEPSEEK_API_KEY=your_api_key_here
-
-# 可选：如需从 GitHub 私有仓库导入
-# GITHUB_TOKEN=your_github_token_here
 ```
 
-> 💡 **提示**: DEEPSEEK_API_KEY 是必需的，GITHUB_TOKEN 仅在访问私有仓库时需要
 
-#### 3. 一键安装和启动
+#### 4. 一键安装和启动
 
 ```bash
 make              # 安装依赖 + 运行测试（验证环境）
@@ -116,9 +130,12 @@ python main.py import-docs ./data/raw --recursive
 # 从 URL 导入
 python main.py import-urls https://example.com/article1 https://example.com/article2
 
-# 从 GitHub 仓库导入
+# 从 GitHub 仓库导入（本地克隆方式）
 python main.py import-github microsoft TypeScript --branch main
 python main.py import-github yourorg yourrepo --token YOUR_GITHUB_TOKEN
+
+# 注：GitHub仓库会被克隆到 data/github_repos/ 目录
+# 后续更新使用 git pull 增量同步，速度更快
 ```
 
 **单次查询**：
@@ -153,7 +170,7 @@ python main.py stats
 ### 五、测试
 
 ```bash
-make test         # 运行所有测试（88个测试用例）
+make test         # 运行所有测试（158个测试用例）
 make test-fast    # 快速测试
 make test-cov     # 查看覆盖率报告
 ```
@@ -213,11 +230,52 @@ LLM_MODEL=deepseek-chat
 # Embedding 模型
 EMBEDDING_MODEL=BAAI/bge-base-zh-v1.5
 
+# HuggingFace 镜像配置（解决国内网络访问慢的问题）
+HF_ENDPOINT=https://hf-mirror.com     # 国内镜像加速，默认启用
+HF_OFFLINE_MODE=false                  # 离线模式（强制使用本地缓存）
+
 # 索引参数
 CHUNK_SIZE=512
 CHUNK_OVERLAP=50
 SIMILARITY_TOP_K=3
 ```
+
+### 🌐 HuggingFace 模型加载配置
+
+#### `HF_ENDPOINT` - 镜像加速
+
+**功能**：配置 HuggingFace 模型下载镜像，解决国内访问 huggingface.co 超时问题。
+
+**可选值**：
+- `https://hf-mirror.com` （默认，推荐）- HF-Mirror 国内镜像
+- `https://www.modelscope.cn/models` - ModelScope 镜像
+- 留空 - 使用官方地址 huggingface.co（国内较慢）
+
+**工作原理**：
+- 首次运行时，从配置的镜像下载模型到本地缓存 `~/.cache/huggingface/`
+- 后续运行直接从本地缓存加载，无需联网
+- 即使需要联网检查更新，也会访问镜像地址（速度快）
+
+#### `HF_OFFLINE_MODE` - 离线模式
+
+**功能**：强制仅使用本地缓存，完全不联网。
+
+**可选值**：
+- `false` （默认）- 在线模式，优先使用缓存，必要时联网
+- `true` - 离线模式，仅使用本地缓存
+
+**行为说明**：
+- `true` + 本地有缓存 = ✅ 正常加载，完全离线
+- `true` + 本地无缓存 = ⚠️ 自动切换到在线模式并警告（下载后可离线）
+- `false` = 正常在线模式（推荐）
+
+#### 查看模型状态
+
+在 Web 界面底部点击 "🔧 Embedding 模型状态" 可查看：
+- ✅ 模型是否已加载到内存
+- 💾 本地缓存是否存在
+- 🌐 当前使用的镜像地址
+- 📴 离线模式是否启用
 
 ## 🔧 高级功能
 
@@ -363,6 +421,58 @@ WIKIPEDIA_PRELOAD_CONCEPTS=系统科学,钱学森,系统工程,控制论,信息�
 ## 🤝 贡献
 
 欢迎提交 Issue 和 Pull Request！
+
+## 🔍 RAG可观测性与调试
+
+### Phoenix可视化平台（推荐）
+
+Phoenix是开源的LLM可观测性平台，专为RAG系统设计：
+
+**启动方式**：
+1. 在Web界面侧边栏点击 "🔍 调试模式" → "📊 Phoenix可视化平台"
+2. 点击"🚀 启动Phoenix UI"
+3. 访问 `http://localhost:6006` 查看可视化界面
+
+**功能特性**：
+- 📊 **实时追踪**：查看完整的RAG查询流程（检索→上下文构建→生成）
+- 🔍 **向量可视化**：探索embedding空间，理解检索机制
+- 📈 **性能分析**：统计检索时间、LLM调用时间、相似度分布
+- 🐛 **问题诊断**：定位检索失败、生成质量等问题
+
+### LlamaDebugHandler调试
+
+轻量级的控制台调试工具：
+
+**启用方式**：
+在侧边栏 "🔍 调试模式" → "🐛 LlamaDebugHandler调试" 中勾选"启用调试日志"
+
+**输出内容**：
+- LLM调用的完整prompt和响应
+- 检索到的所有chunk和相似度分数
+- 内部事件和执行流程
+
+调试日志会输出到：
+- 控制台（运行streamlit的终端）
+- 日志文件（`logs/YYYY-MM-DD.log`）
+
+### 查询追踪信息
+
+收集每次查询的详细指标：
+
+**启用方式**：
+在侧边栏 "🔍 调试模式" → "📈 查询追踪信息" 中勾选"启用追踪信息收集"
+
+**显示内容**：
+- ⏱️ 各环节耗时（检索、生成）
+- 📊 相似度分数统计
+- 📝 召回的chunk数量和内容
+
+### 使用建议
+
+1. **日常开发**：使用LlamaDebugHandler快速查看日志
+2. **深度调试**：启动Phoenix进行可视化分析
+3. **性能优化**：开启追踪信息收集关键指标
+4. **问题诊断**：结合Phoenix和日志定位问题
 
 ## 📄 许可
 

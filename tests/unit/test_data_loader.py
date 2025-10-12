@@ -201,20 +201,24 @@ class TestLoadDocumentsFromUrls:
 
 
 class TestLoadDocumentsFromGithub:
-    """测试GitHub加载功能（使用 GithubRepositoryReader）"""
+    """测试GitHub加载功能（使用 GitLoader + GitRepositoryManager）"""
     
     def test_load_repository_success(self, mocker):
         """测试成功加载公开仓库"""
-        mock_doc = mocker.Mock()
-        mock_doc.text = "# Test Repository\nContent"
-        mock_doc.metadata = {"file_path": "README.md", "file_name": "README.md"}
-        mock_doc.id_ = "test-id"
+        # Mock GitRepositoryManager
+        mock_git_manager = mocker.Mock()
+        mock_git_manager.clone_or_update.return_value = (Path("/tmp/repo"), "abc123def456" * 5)
+        mocker.patch('src.data_loader.GitRepositoryManager', return_value=mock_git_manager)
         
-        mock_reader = mocker.Mock()
-        mock_reader.load_data.return_value = [mock_doc]
+        # Mock LangChain Document
+        mock_lc_doc = mocker.Mock()
+        mock_lc_doc.page_content = "# Test Repository\nContent"
+        mock_lc_doc.metadata = {"file_path": "README.md", "source": "README.md"}
         
-        mocker.patch('src.data_loader.GithubRepositoryReader', return_value=mock_reader)
-        mocker.patch('src.data_loader.GithubClient')
+        # Mock GitLoader
+        mock_loader = mocker.Mock()
+        mock_loader.load.return_value = [mock_lc_doc]
+        mocker.patch('src.data_loader.GitLoader', return_value=mock_loader)
         
         docs = load_documents_from_github("testowner", "testrepo", "main", show_progress=False)
         
@@ -226,17 +230,20 @@ class TestLoadDocumentsFromGithub:
     
     def test_load_repository_with_token(self, mocker):
         """测试使用Token加载"""
-        mock_github_client = mocker.Mock()
-        mocker.patch('src.data_loader.GithubClient', return_value=mock_github_client)
+        # Mock GitRepositoryManager
+        mock_git_manager = mocker.Mock()
+        mock_git_manager.clone_or_update.return_value = (Path("/tmp/repo"), "abc123def456" * 5)
+        mocker.patch('src.data_loader.GitRepositoryManager', return_value=mock_git_manager)
         
-        mock_doc = mocker.Mock()
-        mock_doc.text = "Content"
-        mock_doc.metadata = {"file_path": "test.md"}
-        mock_doc.id_ = "test-id"
+        # Mock LangChain Document
+        mock_lc_doc = mocker.Mock()
+        mock_lc_doc.page_content = "Content"
+        mock_lc_doc.metadata = {"file_path": "test.md", "source": "test.md"}
         
-        mock_reader = mocker.Mock()
-        mock_reader.load_data.return_value = [mock_doc]
-        mocker.patch('src.data_loader.GithubRepositoryReader', return_value=mock_reader)
+        # Mock GitLoader
+        mock_loader = mocker.Mock()
+        mock_loader.load.return_value = [mock_lc_doc]
+        mocker.patch('src.data_loader.GitLoader', return_value=mock_loader)
         
         docs = load_documents_from_github(
             "owner", "repo",
@@ -245,54 +252,55 @@ class TestLoadDocumentsFromGithub:
         )
         
         assert len(docs) == 1
+        # 验证 Token 被传递给 GitRepositoryManager
+        mock_git_manager.clone_or_update.assert_called_once()
+        call_kwargs = mock_git_manager.clone_or_update.call_args[1]
+        assert call_kwargs['github_token'] == "test_token"
     
     def test_load_repository_default_branch(self, mocker):
         """测试默认分支"""
-        mock_doc = mocker.Mock()
-        mock_doc.text = "Content"
-        mock_doc.metadata = {"file_path": "file.md"}
-        mock_doc.id_ = "test-id"
+        # Mock GitRepositoryManager
+        mock_git_manager = mocker.Mock()
+        mock_git_manager.clone_or_update.return_value = (Path("/tmp/repo"), "abc123def456" * 5)
+        mocker.patch('src.data_loader.GitRepositoryManager', return_value=mock_git_manager)
         
-        mock_reader = mocker.Mock()
-        mock_reader.load_data.return_value = [mock_doc]
+        # Mock LangChain Document
+        mock_lc_doc = mocker.Mock()
+        mock_lc_doc.page_content = "Content"
+        mock_lc_doc.metadata = {"file_path": "file.md", "source": "file.md"}
         
-        mocker.patch('src.data_loader.GithubRepositoryReader', return_value=mock_reader)
-        mocker.patch('src.data_loader.GithubClient')
+        # Mock GitLoader
+        mock_loader = mocker.Mock()
+        mock_loader.load.return_value = [mock_lc_doc]
+        mocker.patch('src.data_loader.GitLoader', return_value=mock_loader)
         
         docs = load_documents_from_github("owner", "repo", branch=None, show_progress=False)
         
         assert len(docs) == 1
         assert docs[0].metadata['branch'] == 'main'
     
-    def test_load_repository_fallback_to_master(self, mocker):
-        """测试main分支不存在时回退到master"""
-        mock_doc = mocker.Mock()
-        mock_doc.text = "Content"
-        mock_doc.metadata = {"file_path": "file.md"}
-        mock_doc.id_ = "test-id"
-        
-        mock_reader = mocker.Mock()
-        # 第一次调用抛出404错误，第二次成功
-        mock_reader.load_data.side_effect = [
-            Exception("404: Branch not found"),
-            [mock_doc]
-        ]
-        
-        mocker.patch('src.data_loader.GithubRepositoryReader', return_value=mock_reader)
-        mocker.patch('src.data_loader.GithubClient')
+    def test_git_operation_failure(self, mocker):
+        """测试 Git 操作失败"""
+        # Mock GitRepositoryManager 抛出 RuntimeError
+        mock_git_manager = mocker.Mock()
+        mock_git_manager.clone_or_update.side_effect = RuntimeError("Git 操作失败")
+        mocker.patch('src.data_loader.GitRepositoryManager', return_value=mock_git_manager)
         
         docs = load_documents_from_github("owner", "repo", show_progress=False)
         
-        assert len(docs) == 1
-        assert docs[0].metadata['branch'] == 'master'
+        assert len(docs) == 0
     
     def test_load_repository_empty(self, mocker):
-        """测试空仓库"""
-        mock_reader = mocker.Mock()
-        mock_reader.load_data.return_value = []
+        """测试空仓库（无文档）"""
+        # Mock GitRepositoryManager
+        mock_git_manager = mocker.Mock()
+        mock_git_manager.clone_or_update.return_value = (Path("/tmp/repo"), "abc123def456" * 5)
+        mocker.patch('src.data_loader.GitRepositoryManager', return_value=mock_git_manager)
         
-        mocker.patch('src.data_loader.GithubRepositoryReader', return_value=mock_reader)
-        mocker.patch('src.data_loader.GithubClient')
+        # Mock GitLoader 返回空列表
+        mock_loader = mocker.Mock()
+        mock_loader.load.return_value = []
+        mocker.patch('src.data_loader.GitLoader', return_value=mock_loader)
         
         docs = load_documents_from_github("owner", "repo", show_progress=False)
         
@@ -300,16 +308,20 @@ class TestLoadDocumentsFromGithub:
     
     def test_load_repository_with_cleaning(self, mocker):
         """测试加载时清理文本"""
-        mock_doc = mocker.Mock()
-        mock_doc.text = "Content    with    spaces\n\n\n\n"
-        mock_doc.metadata = {"file_path": "file.md"}
-        mock_doc.id_ = "test-id"
+        # Mock GitRepositoryManager
+        mock_git_manager = mocker.Mock()
+        mock_git_manager.clone_or_update.return_value = (Path("/tmp/repo"), "abc123def456" * 5)
+        mocker.patch('src.data_loader.GitRepositoryManager', return_value=mock_git_manager)
         
-        mock_reader = mocker.Mock()
-        mock_reader.load_data.return_value = [mock_doc]
+        # Mock LangChain Document
+        mock_lc_doc = mocker.Mock()
+        mock_lc_doc.page_content = "Content    with    spaces\n\n\n\n"
+        mock_lc_doc.metadata = {"file_path": "file.md", "source": "file.md"}
         
-        mocker.patch('src.data_loader.GithubRepositoryReader', return_value=mock_reader)
-        mocker.patch('src.data_loader.GithubClient')
+        # Mock GitLoader
+        mock_loader = mocker.Mock()
+        mock_loader.load.return_value = [mock_lc_doc]
+        mocker.patch('src.data_loader.GitLoader', return_value=mock_loader)
         
         docs = load_documents_from_github("owner", "repo", clean=True, show_progress=False)
         
@@ -319,8 +331,7 @@ class TestLoadDocumentsFromGithub:
     
     def test_load_repository_missing_dependency(self, mocker):
         """测试缺少依赖时的处理"""
-        mocker.patch('src.data_loader.GithubRepositoryReader', None)
-        mocker.patch('src.data_loader.GithubClient', None)
+        mocker.patch('src.data_loader.GitLoader', None)
         
         docs = load_documents_from_github("owner", "repo", show_progress=False)
         
@@ -328,16 +339,22 @@ class TestLoadDocumentsFromGithub:
     
     def test_load_repository_with_filters(self, mocker):
         """测试使用文件过滤器"""
-        mock_doc = mocker.Mock()
-        mock_doc.text = "Python code"
-        mock_doc.metadata = {"file_path": "code.py"}
-        mock_doc.id_ = "test-id"
+        # Mock GitRepositoryManager
+        mock_git_manager = mocker.Mock()
+        mock_git_manager.clone_or_update.return_value = (Path("/tmp/repo"), "abc123def456" * 5)
+        mocker.patch('src.data_loader.GitRepositoryManager', return_value=mock_git_manager)
         
-        mock_reader = mocker.Mock()
-        mock_reader.load_data.return_value = [mock_doc]
+        # Mock LangChain Document
+        mock_lc_doc = mocker.Mock()
+        mock_lc_doc.page_content = "Python code"
+        mock_lc_doc.metadata = {"file_path": "code.py", "source": "code.py"}
         
-        mocker.patch('src.data_loader.GithubRepositoryReader', return_value=mock_reader)
-        mocker.patch('src.data_loader.GithubClient')
+        # Mock GitLoader
+        mock_loader_class = mocker.Mock()
+        mock_loader = mocker.Mock()
+        mock_loader.load.return_value = [mock_lc_doc]
+        mock_loader_class.return_value = mock_loader
+        mocker.patch('src.data_loader.GitLoader', mock_loader_class)
         
         docs = load_documents_from_github(
             "owner", "repo",
@@ -346,6 +363,10 @@ class TestLoadDocumentsFromGithub:
         )
         
         assert len(docs) == 1
+        # 验证 file_filter 被传递给 GitLoader
+        call_kwargs = mock_loader_class.call_args[1]
+        assert 'file_filter' in call_kwargs
+        assert callable(call_kwargs['file_filter'])
     
     def test_metadata_enrichment(self, mocker):
         """测试元数据增强"""
