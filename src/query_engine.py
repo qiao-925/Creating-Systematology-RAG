@@ -32,6 +32,7 @@ class QueryEngine:
         similarity_top_k: Optional[int] = None,
         citation_chunk_size: int = 512,
         enable_debug: bool = False,
+        similarity_threshold: Optional[float] = None,
     ):
         """初始化查询引擎
         
@@ -43,11 +44,13 @@ class QueryEngine:
             similarity_top_k: 检索相似文档数量
             citation_chunk_size: 引用块大小
             enable_debug: 是否启用调试模式（LlamaDebugHandler）
+            similarity_threshold: 相似度阈值，低于此值启用推理模式
         """
         self.index_manager = index_manager
         self.similarity_top_k = similarity_top_k or config.SIMILARITY_TOP_K
         self.citation_chunk_size = citation_chunk_size
         self.enable_debug = enable_debug
+        self.similarity_threshold = similarity_threshold or config.SIMILARITY_THRESHOLD
         
         # 配置DeepSeek LLM
         self.api_key = api_key or config.DEEPSEEK_API_KEY
@@ -68,7 +71,7 @@ class QueryEngine:
         self.llm = DeepSeek(
             api_key=self.api_key,
             model=self.model,
-            temperature=0.1,
+            temperature=0.5,  # 提高温度以增强推理能力
             max_tokens=4096,
         )
         
@@ -134,6 +137,19 @@ class QueryEngine:
                         'metadata': node.node.metadata,
                     }
                     sources.append(source)
+            
+            # ===== 过滤低质量结果并评估检索质量 =====
+            high_quality_sources = [s for s in sources if s.get('score', 0) >= self.similarity_threshold]
+            max_score = max([s.get('score', 0) for s in sources]) if sources else 0
+            
+            if len(high_quality_sources) < len(sources):
+                logger.info(f"过滤了 {len(sources) - len(high_quality_sources)} 个低质量结果（阈值: {self.similarity_threshold}）")
+            
+            if max_score < self.similarity_threshold:
+                print(f"⚠️  检索质量较低（最高相似度: {max_score:.2f}），答案可能更多依赖模型推理")
+                logger.warning(f"检索质量较低，最高相似度: {max_score:.2f}，阈值: {self.similarity_threshold}")
+            elif len(high_quality_sources) >= 2:
+                print(f"✅ 检索质量良好（高质量结果: {len(high_quality_sources)}个，最高相似度: {max_score:.2f}）")
             
             # ===== 2. 收集追踪信息 =====
             if collect_trace and trace_info:
@@ -254,7 +270,7 @@ class SimpleQueryEngine:
         self.llm = DeepSeek(
             api_key=self.api_key,
             model=self.model,
-            temperature=0.1,
+            temperature=0.5,  # 提高温度以增强推理能力
             max_tokens=4096,
         )
         
@@ -385,7 +401,7 @@ class HybridQueryEngine:
         self.llm = DeepSeek(
             api_key=self.api_key,
             model=self.model,
-            temperature=0.1,
+            temperature=0.5,  # 提高温度以增强推理能力
             max_tokens=4096,
         )
         

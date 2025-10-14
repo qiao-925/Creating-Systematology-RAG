@@ -51,14 +51,13 @@ class Config:
         self.CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "512"))
         self.CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "50"))
         self.SIMILARITY_TOP_K = int(os.getenv("SIMILARITY_TOP_K", "3"))
+        self.SIMILARITY_THRESHOLD = float(os.getenv("SIMILARITY_THRESHOLD", "0.5"))  # 相似度阈值，低于此值会启用推理模式
         
         # 应用配置
         self.APP_TITLE = os.getenv("APP_TITLE", "系统科学知识库RAG")
         self.APP_PORT = int(os.getenv("APP_PORT", "8501"))
         
-        # GitHub数据源配置
-        # 注意：GITHUB_TOKEN 现在是用户级别的配置，不再从环境变量读取
-        # 每个用户在 UI 中配置自己的 Token，存储在用户数据中
+        # GitHub数据源配置（仅支持公开仓库）
         self.GITHUB_DEFAULT_BRANCH = os.getenv("GITHUB_DEFAULT_BRANCH", "main")
         
         # 维基百科配置

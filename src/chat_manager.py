@@ -39,13 +39,15 @@ class ChatTurn:
 class ChatSession:
     """对话会话"""
     
-    def __init__(self, session_id: Optional[str] = None):
+    def __init__(self, session_id: Optional[str] = None, title: Optional[str] = None):
         """初始化对话会话
         
         Args:
             session_id: 会话ID，如果不提供则自动生成
+            title: 会话标题，如果不提供则自动生成
         """
         self.session_id = session_id or self._generate_session_id()
+        self.title = title or ""
         self.history: List[ChatTurn] = []
         self.created_at = datetime.now().isoformat()
         self.updated_at = self.created_at
@@ -71,6 +73,25 @@ class ChatSession:
         )
         self.history.append(turn)
         self.updated_at = turn.timestamp
+        
+        # 如果是第一轮对话且没有标题，自动生成标题
+        if len(self.history) == 1 and not self.title:
+            self.title = self._generate_title(question)
+    
+    @staticmethod
+    def _generate_title(first_question: str) -> str:
+        """根据第一条问题生成会话标题
+        
+        Args:
+            first_question: 第一条用户问题
+            
+        Returns:
+            会话标题
+        """
+        # 取前20个字符作为标题
+        if len(first_question) > 20:
+            return first_question[:20] + "..."
+        return first_question
     
     def get_history(self, last_n: Optional[int] = None) -> List[ChatTurn]:
         """获取对话历史
@@ -94,6 +115,7 @@ class ChatSession:
         """转换为字典"""
         return {
             'session_id': self.session_id,
+            'title': self.title,
             'created_at': self.created_at,
             'updated_at': self.updated_at,
             'history': [turn.to_dict() for turn in self.history]
@@ -102,7 +124,10 @@ class ChatSession:
     @classmethod
     def from_dict(cls, data: dict):
         """从字典创建"""
-        session = cls(session_id=data['session_id'])
+        session = cls(
+            session_id=data['session_id'],
+            title=data.get('title', '')  # 兼容旧版本没有title的数据
+        )
         session.created_at = data['created_at']
         session.updated_at = data['updated_at']
         session.history = [ChatTurn.from_dict(turn) for turn in data['history']]
@@ -143,7 +168,7 @@ class ChatManager:
     
     def __init__(
         self,
-        index_manager: IndexManager,
+        index_manager: Optional[IndexManager] = None,
         api_key: Optional[str] = None,
         api_base: Optional[str] = None,
         model: Optional[str] = None,
@@ -152,11 +177,12 @@ class ChatManager:
         auto_save: bool = True,
         user_email: Optional[str] = None,
         enable_debug: bool = False,
+        similarity_threshold: Optional[float] = None,
     ):
         """初始化对话管理器
         
         Args:
-            index_manager: 索引管理器
+            index_manager: 索引管理器（可选，None时为纯LLM对话模式）
             api_key: DeepSeek API密钥
             api_base: API端点
             model: 模型名称
@@ -165,12 +191,14 @@ class ChatManager:
             auto_save: 是否自动保存会话
             user_email: 用户邮箱（用于会话目录隔离）
             enable_debug: 是否启用调试模式
+            similarity_threshold: 相似度阈值，低于此值启用推理模式
         """
         self.index_manager = index_manager
         self.similarity_top_k = similarity_top_k or config.SIMILARITY_TOP_K
         self.auto_save = auto_save
         self.user_email = user_email
         self.enable_debug = enable_debug
+        self.similarity_threshold = similarity_threshold or config.SIMILARITY_THRESHOLD
         
         # 配置DeepSeek LLM
         self.api_key = api_key or config.DEEPSEEK_API_KEY
@@ -192,7 +220,7 @@ class ChatManager:
         self.llm = DeepSeek(
             api_key=self.api_key,
             model=self.model,
-            temperature=0.3,  # 对话模式可以稍微高一点温度
+            temperature=0.6,  # 提高温度以增强推理能力
         )
         
         # 创建记忆缓冲区
@@ -200,23 +228,39 @@ class ChatManager:
             token_limit=memory_token_limit,
         )
         
-        # 获取索引
-        self.index = self.index_manager.get_index()
-        
         # 创建聊天引擎
-        print("💬 创建多轮对话引擎")
-        self.chat_engine = CondensePlusContextChatEngine.from_defaults(
-            retriever=self.index.as_retriever(similarity_top_k=self.similarity_top_k),
-            llm=self.llm,
-            memory=self.memory,
-            context_prompt=(
-                "你是一位系统科学领域的专家助手。"
-                "请基于以下上下文信息回答用户的问题。"
-                "如果上下文中没有相关信息，请诚实地说明。"
-                "\n\n上下文信息:\n{context_str}\n\n"
-                "请用中文回答问题。"
-            ),
-        )
+        if self.index_manager:
+            # 有索引：使用RAG增强的对话引擎
+            self.index = self.index_manager.get_index()
+            print("💬 创建RAG增强对话引擎")
+            self.chat_engine = CondensePlusContextChatEngine.from_defaults(
+                retriever=self.index.as_retriever(similarity_top_k=self.similarity_top_k),
+                llm=self.llm,
+                memory=self.memory,
+                context_prompt=(
+                    "你是一位系统科学领域的资深专家，拥有深厚的理论基础和丰富的实践经验。\n\n"
+                    "【知识库参考】\n{context_str}\n\n"
+                    "【回答要求】\n"
+                    "1. 充分理解用户问题的深层含义和背景\n"
+                    "2. 优先使用知识库中的权威信息作为基础\n"
+                    "3. 结合你的专业知识进行深入分析和推理\n"
+                    "4. 当知识库信息不足时，可基于专业原理进行合理推断，但需说明这是推理结论\n"
+                    "5. 提供完整、深入、有洞察力的回答\n\n"
+                    "请用中文回答问题。"
+                ),
+            )
+        else:
+            # 无索引：使用纯LLM对话引擎
+            from llama_index.core.chat_engine import SimpleChatEngine
+            print("💬 创建纯LLM对话引擎（无知识库）")
+            self.chat_engine = SimpleChatEngine.from_defaults(
+                llm=self.llm,
+                memory=self.memory,
+                system_prompt=(
+                    "你是一位系统科学领域的资深专家，拥有深厚的理论基础和丰富的实践经验。\n"
+                    "请用中文回答用户的问题，提供专业、深入的见解。"
+                )
+            )
         
         # 当前会话
         self.current_session: Optional[ChatSession] = None
@@ -275,7 +319,7 @@ class ChatManager:
             # 提取答案
             answer = str(response)
             
-            # 提取引用来源
+            # 提取引用来源（仅RAG模式有）
             sources = []
             if hasattr(response, 'source_nodes') and response.source_nodes:
                 for i, node in enumerate(response.source_nodes, 1):
@@ -287,11 +331,24 @@ class ChatManager:
                     }
                     sources.append(source)
             
+            # 评估检索质量（仅RAG模式）
+            if self.index_manager and sources:
+                max_score = max([s.get('score', 0) for s in sources]) if sources else 0
+                high_quality_sources = [s for s in sources if s.get('score', 0) >= self.similarity_threshold]
+                
+                if max_score < self.similarity_threshold:
+                    print(f"⚠️  检索质量较低（最高相似度: {max_score:.2f}），答案可能更多依赖模型推理")
+                elif len(high_quality_sources) >= 2:
+                    print(f"✅ 检索质量良好（高质量结果: {len(high_quality_sources)}个，最高相似度: {max_score:.2f}）")
+            elif not self.index_manager:
+                print("💡 纯LLM模式（无知识库检索）")
+            
             # 添加到会话历史
             self.current_session.add_turn(message, answer, sources)
             
             print(f"🤖 AI: {answer[:100]}...")
-            print(f"📚 引用来源: {len(sources)} 个")
+            if sources:
+                print(f"📚 引用来源: {len(sources)} 个")
             
             # 自动保存会话
             if self.auto_save:
@@ -384,8 +441,14 @@ class ChatManager:
             # 如果有用户邮箱，保存到用户专属目录
             if self.user_email:
                 save_dir = config.SESSIONS_PATH / self.user_email
+                print(f"📁 [DEBUG] 保存到用户目录: {save_dir}")
             else:
                 save_dir = config.SESSIONS_PATH
+                print(f"📁 [DEBUG] 保存到默认目录: {save_dir}")
+        
+        print(f"💾 [DEBUG] 开始保存会话: {self.current_session.session_id}")
+        print(f"💾 [DEBUG] 用户邮箱: {self.user_email}")
+        print(f"💾 [DEBUG] 会话历史条数: {len(self.current_session.history)}")
         
         self.current_session.save(save_dir)
     
@@ -395,6 +458,82 @@ class ChatManager:
             self.current_session.clear_history()
         self.memory.reset()
         print("🔄 会话已重置")
+
+
+def get_user_sessions_metadata(user_email: str) -> List[Dict[str, Any]]:
+    """获取用户所有会话的元数据（用于UI展示）
+    
+    Args:
+        user_email: 用户邮箱
+        
+    Returns:
+        会话元数据列表，每项包含：
+        - session_id: 会话ID
+        - title: 会话标题
+        - created_at: 创建时间
+        - updated_at: 更新时间
+        - message_count: 消息数量
+        - file_path: 文件路径
+    """
+    sessions_dir = config.SESSIONS_PATH / user_email
+    
+    print(f"📁 [DEBUG] 查找会话目录: {sessions_dir}")
+    
+    if not sessions_dir.exists():
+        print(f"⚠️  [DEBUG] 会话目录不存在: {sessions_dir}")
+        return []
+    
+    sessions_metadata = []
+    
+    print(f"📂 [DEBUG] 开始扫描会话文件...")
+    for session_file in sessions_dir.glob("*.json"):
+        print(f"📄 [DEBUG] 找到会话文件: {session_file}")
+        try:
+            # 读取会话文件
+            with open(session_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            # 提取元数据
+            metadata = {
+                'session_id': data.get('session_id', ''),
+                'title': data.get('title', '新对话'),
+                'created_at': data.get('created_at', ''),
+                'updated_at': data.get('updated_at', ''),
+                'message_count': len(data.get('history', [])),
+                'file_path': str(session_file)
+            }
+            
+            # 如果没有标题，尝试从第一条消息生成
+            if not metadata['title'] and data.get('history'):
+                first_question = data['history'][0].get('question', '')
+                metadata['title'] = first_question[:20] + ('...' if len(first_question) > 20 else '')
+            
+            sessions_metadata.append(metadata)
+            
+        except Exception as e:
+            print(f"⚠️ 加载会话文件失败: {session_file}, 错误: {e}")
+            continue
+    
+    # 按更新时间倒序排序（最新的在前）
+    sessions_metadata.sort(key=lambda x: x['updated_at'], reverse=True)
+    
+    return sessions_metadata
+
+
+def load_session_from_file(file_path: str) -> Optional[ChatSession]:
+    """从文件加载会话
+    
+    Args:
+        file_path: 会话文件路径
+        
+    Returns:
+        ChatSession对象，如果加载失败返回None
+    """
+    try:
+        return ChatSession.load(Path(file_path))
+    except Exception as e:
+        print(f"❌ 加载会话失败: {file_path}, 错误: {e}")
+        return None
 
 
 if __name__ == "__main__":

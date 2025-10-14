@@ -148,31 +148,35 @@ def load_documents_from_urls(urls):
     return reader.load_data(urls)
 ```
 
-**GithubRepositoryReader 使用**：
+**GitHub 仓库加载（基于 Git 克隆）**：
 ```python
-from llama_index.readers.github import GithubRepositoryReader, GithubClient
+from langchain_community.document_loaders import GitLoader
+from src.git_repository_manager import GitRepositoryManager
 
-def load_documents_from_github(owner, repo, branch=None, github_token=None):
-    """使用官方GithubRepositoryReader加载GitHub仓库"""
-    github_client = GithubClient(github_token=github_token) if github_token else GithubClient()
+def load_documents_from_github(owner, repo, branch=None):
+    """使用 Git 克隆加载 GitHub 仓库（仅支持公开仓库）"""
+    git_manager = GitRepositoryManager(config.GITHUB_REPOS_PATH)
     
-    reader = GithubRepositoryReader(
-        github_client=github_client,
-        owner=owner,
-        repo=repo,
-        use_parser=False,
-        verbose=False,
-    )
+    # 克隆或更新仓库
+    repo_path, commit_sha = git_manager.clone_or_update(owner, repo, branch or "main")
     
-    documents = reader.load_data(branch=branch or "main")
+    # 使用 LangChain GitLoader 加载文档
+    loader = GitLoader(repo_path=str(repo_path))
+    lc_documents = loader.load()
     
-    # 增强元数据
-    for doc in documents:
-        doc.metadata.update({
-            "source_type": "github",
-            "repository": f"{owner}/{repo}",
-            "branch": branch or "main",
-        })
+    # 转换为 LlamaIndex Document 格式
+    documents = []
+    for lc_doc in lc_documents:
+        llama_doc = LlamaDocument(
+            text=lc_doc.page_content,
+            metadata={
+                "source_type": "github",
+                "repository": f"{owner}/{repo}",
+                "branch": branch or "main",
+                "file_path": lc_doc.metadata.get("file_path", ""),
+            }
+        )
+        documents.append(llama_doc)
     
     return documents
 ```
@@ -609,43 +613,46 @@ LlamaIndex → OpenAI SDK → DeepSeek API → 返回生成文本
    - 搜索需要的数据源（如 Notion、Google Drive、PDF 等）
    - 使用官方 Reader，避免重复造轮子
 
-2. **创建 Loader 类**（参考 GithubLoader）：
+2. **创建加载函数**（参考当前实现）：
 
 ```python
 # src/data_loader.py
 
-from llama_index.readers.github import GithubRepositoryReader, GithubClient
+from langchain_community.document_loaders import GitLoader
+from src.git_repository_manager import GitRepositoryManager
 
-class GithubLoader:
-    def __init__(self, github_token: Optional[str] = None):
-        self.github_client = GithubClient(github_token=github_token) if github_token else GithubClient()
+def load_documents_from_github(owner, repo, branch=None) -> List[LlamaDocument]:
+    """加载 GitHub 仓库（仅支持公开仓库）"""
+    git_manager = GitRepositoryManager(config.GITHUB_REPOS_PATH)
     
-    def load_repository(self, owner: str, repo: str, branch: Optional[str] = None) -> List[LlamaDocument]:
-        reader = GithubRepositoryReader(
-            github_client=self.github_client,
-            owner=owner,
-            repo=repo,
-        )
-        documents = reader.load_data(branch=branch or "main")
-        
-        # 增强元数据
-        for doc in documents:
-            doc.metadata.update({
+    # 克隆或更新仓库
+    repo_path, commit_sha = git_manager.clone_or_update(owner, repo, branch or "main")
+    
+    # 使用 LangChain GitLoader 加载
+    loader = GitLoader(repo_path=str(repo_path))
+    lc_documents = loader.load()
+    
+    # 转换为 LlamaIndex 格式并增强元数据
+    documents = []
+    for lc_doc in lc_documents:
+        llama_doc = LlamaDocument(
+            text=lc_doc.page_content,
+            metadata={
                 "source_type": "github",
                 "repository": f"{owner}/{repo}",
                 "branch": branch or "main",
-            })
-        
-        return documents
+                "file_path": lc_doc.metadata.get("file_path", ""),
+            }
+        )
+        documents.append(llama_doc)
+    
+    return documents
 ```
 
-3. **添加便捷函数**：
-
-```python
-def load_documents_from_github(owner, repo, branch=None, github_token=None) -> List[LlamaDocument]:
-    loader = GithubLoader(github_token=github_token)
-    return loader.load_repository(owner, repo, branch)
-```
+3. **注意事项**：
+- ⚠️ 当前仅支持公开仓库
+- Git 仓库存储在 `data/github_repos/` 目录
+- 使用浅克隆（`--depth 1`）节省空间
 
 4. **添加 CLI 命令**（参考 `cmd_import_github`）。
 

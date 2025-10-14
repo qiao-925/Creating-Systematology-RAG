@@ -84,8 +84,7 @@ class UserManager:
                 "created_at": datetime.now().isoformat(),
                 "is_test_account": True,  # 标记为测试账号
                 "active_session_id": None,  # 当前活跃会话ID
-                "sessions": [],  # 会话列表
-                "github_token": ""  # 用户的 GitHub Token（每个用户独立）
+                "sessions": []  # 会话列表
             }
             
             self._save()
@@ -96,9 +95,6 @@ class UserManager:
             if "sessions" not in self.users[test_email]:
                 self.users[test_email]["sessions"] = []
                 self.users[test_email]["active_session_id"] = None
-                updated = True
-            if "github_token" not in self.users[test_email]:
-                self.users[test_email]["github_token"] = ""
                 updated = True
             if updated:
                 self._save()
@@ -127,8 +123,7 @@ class UserManager:
             "collection_name": collection_name,
             "created_at": datetime.now().isoformat(),
             "active_session_id": None,
-            "sessions": [],
-            "github_token": ""  # 用户的 GitHub Token
+            "sessions": []
         }
         
         self._save()
@@ -240,45 +235,6 @@ class UserManager:
         self.users[email]["active_session_id"] = session_id
         self._save()
         logger.info(f"用户 {email} 设置活跃会话: {session_id}")
-    
-    def get_github_token(self, email: str) -> str:
-        """获取用户的 GitHub Token
-        
-        Args:
-            email: 用户邮箱
-            
-        Returns:
-            用户的 GitHub Token，如果未设置则返回空字符串
-        """
-        if email not in self.users:
-            return ""
-        
-        # 向后兼容：如果旧用户没有 github_token 字段
-        if "github_token" not in self.users[email]:
-            self.users[email]["github_token"] = ""
-            self._save()
-        
-        return self.users[email].get("github_token", "")
-    
-    def set_github_token(self, email: str, token: str) -> bool:
-        """设置用户的 GitHub Token
-        
-        Args:
-            email: 用户邮箱
-            token: GitHub Token
-            
-        Returns:
-            True: 设置成功
-            False: 用户不存在
-        """
-        if email not in self.users:
-            logger.warning(f"用户不存在: {email}")
-            return False
-        
-        self.users[email]["github_token"] = token
-        self._save()
-        logger.info(f"用户 {email} 的 GitHub Token 已更新")
-        return True
     
     def _save(self):
         """保存用户数据到文件"""

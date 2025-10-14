@@ -5,7 +5,7 @@
 
 import os
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple, Dict
 
 import chromadb
 from llama_index.core import (
@@ -65,14 +65,15 @@ def load_embedding_model(model_name: Optional[str] = None) -> HuggingFaceEmbeddi
     
     # 如果已经加载过且模型名称相同，直接返回
     if _global_embed_model is not None:
-        logger.info(f"✅ 使用已加载的 Embedding 模型: {model_name}")
+        logger.info(f"✅ 使用缓存的 Embedding 模型（全局变量）: {model_name}")
+        logger.info(f"   模型对象ID: {id(_global_embed_model)}")
         return _global_embed_model
     
     # 配置 HuggingFace 环境变量
     _setup_huggingface_env()
     
     # 加载模型
-    logger.info(f"📦 正在加载 Embedding 模型: {model_name}")
+    logger.info(f"📦 开始加载 Embedding 模型（全新加载）: {model_name}")
     
     try:
         # 显式指定缓存目录以确保使用本地缓存
@@ -106,6 +107,17 @@ def load_embedding_model(model_name: Optional[str] = None) -> HuggingFaceEmbeddi
             raise
     
     return _global_embed_model
+
+
+def set_global_embed_model(model: HuggingFaceEmbedding):
+    """设置全局 Embedding 模型实例
+    
+    Args:
+        model: HuggingFaceEmbedding 实例
+    """
+    global _global_embed_model
+    _global_embed_model = model
+    logger.debug("🔧 设置全局 Embedding 模型")
 
 
 def get_global_embed_model() -> Optional[HuggingFaceEmbedding]:
@@ -255,7 +267,7 @@ class IndexManager:
         self,
         documents: List[LlamaDocument],
         show_progress: bool = True
-    ) -> VectorStoreIndex:
+    ) -> Tuple[VectorStoreIndex, Dict[str, List[str]]]:
         """构建或更新索引
         
         Args:
@@ -263,11 +275,11 @@ class IndexManager:
             show_progress: 是否显示进度
             
         Returns:
-            VectorStoreIndex对象
+            (VectorStoreIndex对象, 文件路径到向量ID的映射)
         """
         if not documents:
             print("⚠️  没有文档可索引")
-            return self.get_index()
+            return self.get_index(), {}
         
         print(f"\n🔨 开始构建索引，共 {len(documents)} 个文档")
         print(f"   分块参数: size={self.chunk_size}, overlap={self.chunk_overlap}")
@@ -291,7 +303,18 @@ class IndexManager:
             stats = self.get_stats()
             print(f"📊 索引统计: {stats}")
             
-            return self._index
+            # 构建向量ID映射
+            vector_ids_map = {}
+            for doc in documents:
+                file_path = doc.metadata.get("file_path", "")
+                if file_path:
+                    # 查询该文件的向量ID
+                    vector_ids = self._get_vector_ids_by_metadata(file_path)
+                    vector_ids_map[file_path] = vector_ids
+            
+            print(f"📋 已记录 {len(vector_ids_map)} 个文件的向量ID映射")
+            
+            return self._index, vector_ids_map
             
         except Exception as e:
             print(f"❌ 索引构建失败: {e}")
@@ -422,9 +445,24 @@ class IndexManager:
         # 1. 处理新增
         if added_docs:
             try:
-                added_count = self._add_documents(added_docs)
+                added_count, added_vector_ids = self._add_documents(added_docs)
                 stats["added"] = added_count
                 print(f"✅ 新增 {added_count} 个文档")
+                
+                # 更新元数据的向量ID
+                if metadata_manager and added_docs:
+                    for doc in added_docs:
+                        file_path = doc.metadata.get("file_path", "")
+                        if file_path and file_path in added_vector_ids:
+                            owner = doc.metadata.get("repository", "").split("/")[0] if "/" in doc.metadata.get("repository", "") else ""
+                            repo = doc.metadata.get("repository", "").split("/")[1] if "/" in doc.metadata.get("repository", "") else ""
+                            branch = doc.metadata.get("branch", "main")
+                            
+                            if owner and repo:
+                                metadata_manager.update_file_vector_ids(
+                                    owner, repo, branch, file_path,
+                                    added_vector_ids[file_path]
+                                )
             except Exception as e:
                 error_msg = f"新增文档失败: {e}"
                 print(f"❌ {error_msg}")
@@ -449,9 +487,24 @@ class IndexManager:
                             deleted_vector_count += len(vector_ids)
                 
                 # 添加新版本
-                modified_count = self._add_documents(modified_docs)
+                modified_count, modified_vector_ids = self._add_documents(modified_docs)
                 stats["modified"] = modified_count
                 print(f"✅ 更新 {modified_count} 个文档（删除 {deleted_vector_count} 个旧向量）")
+                
+                # 更新元数据的向量ID
+                if metadata_manager and modified_docs:
+                    for doc in modified_docs:
+                        file_path = doc.metadata.get("file_path", "")
+                        if file_path and file_path in modified_vector_ids:
+                            owner = doc.metadata.get("repository", "").split("/")[0] if "/" in doc.metadata.get("repository", "") else ""
+                            repo = doc.metadata.get("repository", "").split("/")[1] if "/" in doc.metadata.get("repository", "") else ""
+                            branch = doc.metadata.get("branch", "main")
+                            
+                            if owner and repo:
+                                metadata_manager.update_file_vector_ids(
+                                    owner, repo, branch, file_path,
+                                    modified_vector_ids[file_path]
+                                )
             except Exception as e:
                 error_msg = f"更新文档失败: {e}"
                 print(f"❌ {error_msg}")
@@ -470,17 +523,17 @@ class IndexManager:
         
         return stats
     
-    def _add_documents(self, documents: List[LlamaDocument]) -> int:
+    def _add_documents(self, documents: List[LlamaDocument]) -> Tuple[int, Dict[str, List[str]]]:
         """批量添加文档到索引
         
         Args:
             documents: 文档列表
             
         Returns:
-            成功添加的文档数量
+            (成功添加的文档数量, 文件路径到向量ID的映射)
         """
         if not documents:
-            return 0
+            return 0, {}
         
         count = 0
         for doc in documents:
@@ -490,7 +543,15 @@ class IndexManager:
             except Exception as e:
                 print(f"⚠️  添加文档失败 [{doc.metadata.get('file_path', 'unknown')}]: {e}")
         
-        return count
+        # 获取向量ID映射
+        vector_ids_map = {}
+        for doc in documents:
+            file_path = doc.metadata.get("file_path", "")
+            if file_path:
+                vector_ids = self._get_vector_ids_by_metadata(file_path)
+                vector_ids_map[file_path] = vector_ids
+        
+        return count, vector_ids_map
     
     def _delete_documents(self, file_paths: List[str], metadata_manager) -> int:
         """批量删除文档
@@ -512,6 +573,28 @@ class IndexManager:
             pass
         
         return deleted_count
+    
+    def _get_vector_ids_by_metadata(self, file_path: str) -> List[str]:
+        """通过文件路径查询对应的向量ID列表
+        
+        Args:
+            file_path: 文件路径
+            
+        Returns:
+            向量ID列表
+        """
+        if not file_path:
+            return []
+        
+        try:
+            # 查询 Chroma collection，匹配 file_path
+            results = self.chroma_collection.get(
+                where={"file_path": file_path}
+            )
+            return results.get('ids', []) if results else []
+        except Exception as e:
+            print(f"⚠️  查询向量ID失败 [{file_path}]: {e}")
+            return []
     
     def _delete_vectors_by_ids(self, vector_ids: List[str]):
         """根据向量ID删除向量

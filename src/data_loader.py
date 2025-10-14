@@ -397,18 +397,18 @@ def _convert_langchain_to_llama_doc(
 def load_documents_from_github(owner: str,
                                repo: str,
                                branch: Optional[str] = None,
-                               github_token: Optional[str] = None,
                                clean: bool = True,
                                show_progress: bool = True,
                                filter_directories: Optional[List[str]] = None,
                                filter_file_extensions: Optional[List[str]] = None) -> List[LlamaDocument]:
     """从GitHub仓库加载文档（使用 LangChain GitLoader + 本地 Git 克隆）
     
+    仅支持公开仓库。
+    
     Args:
         owner: 仓库所有者
         repo: 仓库名称
         branch: 分支名称（可选，默认 main）
-        github_token: GitHub访问令牌（公开仓库可选，私有仓库必需）
         clean: 是否清理文本
         show_progress: 是否显示进度条
         filter_directories: 只加载指定目录（列表格式，如 ["docs", "examples"]）
@@ -419,7 +419,7 @@ def load_documents_from_github(owner: str,
         
     Notes:
         - 首次加载会克隆仓库到本地（data/github_repos/），后续使用 git pull 增量更新
-        - 公开仓库可不提供 Token，私有仓库需要 Token
+        - 仅支持公开仓库，不支持私有仓库
         - 默认会过滤掉 .git/, __pycache__, .pyc 等文件
     """
     if GitLoader is None:
@@ -450,8 +450,7 @@ def load_documents_from_github(owner: str,
             repo_path, commit_sha = git_manager.clone_or_update(
                 owner=owner,
                 repo=repo,
-                branch=branch,
-                github_token=github_token
+                branch=branch
             )
             logger.info(f"仓库路径: {repo_path}, Commit: {commit_sha[:8]}")
             
@@ -547,12 +546,11 @@ def sync_github_repository(
     repo: str,
     branch: str,
     metadata_manager,
-    github_token: Optional[str] = None,
     show_progress: bool = True,
     filter_directories: Optional[List[str]] = None,
     filter_file_extensions: Optional[List[str]] = None
 ) -> tuple:
-    """增量同步 GitHub 仓库
+    """增量同步 GitHub 仓库（仅支持公开仓库）
     
     使用两级检测机制：
     1. 快速检测：比较 commit SHA，无变化直接跳过
@@ -563,7 +561,6 @@ def sync_github_repository(
         repo: 仓库名称
         branch: 分支名称
         metadata_manager: 元数据管理器实例
-        github_token: GitHub访问令牌（可选）
         show_progress: 是否显示进度
         filter_directories: 只加载指定目录（可选）
         filter_file_extensions: 只加载指定扩展名（可选）
@@ -583,8 +580,7 @@ def sync_github_repository(
         repo_path, commit_sha = git_manager.clone_or_update(
             owner=owner,
             repo=repo,
-            branch=branch,
-            github_token=github_token
+            branch=branch
         )
         
         if show_progress:
@@ -616,7 +612,6 @@ def sync_github_repository(
         owner=owner,
         repo=repo,
         branch=branch,
-        github_token=github_token,
         clean=True,
         show_progress=show_progress,
         filter_directories=filter_directories,
@@ -771,15 +766,13 @@ def parse_github_url(url: str) -> Optional[dict]:
 
 def load_documents_from_github_url(
     github_url: str,
-    github_token: Optional[str] = None,
     clean: bool = True,
     show_progress: bool = True
 ) -> List[LlamaDocument]:
-    """从 GitHub URL 加载文档（需要提供 Token）
+    """从 GitHub URL 加载文档（仅支持公开仓库）
     
     Args:
         github_url: GitHub 仓库 URL（如：https://github.com/owner/repo）
-        github_token: GitHub Token（必需）
         clean: 是否清理文本
         show_progress: 是否显示进度条
         
@@ -788,14 +781,12 @@ def load_documents_from_github_url(
         
     Examples:
         >>> docs = load_documents_from_github_url(
-        ...     "https://github.com/microsoft/TypeScript",
-        ...     github_token="ghp_xxxx"
+        ...     "https://github.com/microsoft/TypeScript"
         ... )
     
     Note:
-        - GitHub Token 是必需的，无法使用匿名访问
-        - 在 Web 界面中，Token 从用户数据中自动获取
-        - 获取 Token：https://github.com/settings/tokens
+        - 仅支持公开仓库
+        - 私有仓库将无法访问
     """
     # 解析 URL
     repo_info = parse_github_url(github_url)
@@ -804,23 +795,11 @@ def load_documents_from_github_url(
         safe_print(f"❌ 无法解析 GitHub URL: {github_url}")
         return []
     
-    # Token 必须提供
-    if not github_token:
-        error_msg = (
-            "需要提供 GitHub Token。\n"
-            "请在 Web 界面的 '🔑 GitHub Token 配置' 中保存您的 Token。\n"
-            "获取 Token：https://github.com/settings/tokens"
-        )
-        if show_progress:
-            safe_print(f"❌ {error_msg}")
-        raise ValueError(error_msg)
-    
     # 调用原有函数加载文档
     return load_documents_from_github(
         owner=repo_info['owner'],
         repo=repo_info['repo'],
         branch=repo_info['branch'],
-        github_token=github_token,
         clean=clean,
         show_progress=show_progress
     )

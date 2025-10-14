@@ -247,15 +247,12 @@ class TestLoadDocumentsFromGithub:
         
         docs = load_documents_from_github(
             "owner", "repo",
-            github_token="test_token",
             show_progress=False
         )
         
         assert len(docs) == 1
-        # 验证 Token 被传递给 GitRepositoryManager
+        # 验证 GitRepositoryManager 被调用
         mock_git_manager.clone_or_update.assert_called_once()
-        call_kwargs = mock_git_manager.clone_or_update.call_args[1]
-        assert call_kwargs['github_token'] == "test_token"
     
     def test_load_repository_default_branch(self, mocker):
         """测试默认分支"""

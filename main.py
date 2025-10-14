@@ -43,7 +43,7 @@ def cmd_import_docs(args):
         # 创建或更新索引
         print(f"\n🔨 构建索引...")
         index_manager = IndexManager(collection_name=args.collection)
-        index_manager.build_index(documents)
+        _, _ = index_manager.build_index(documents)
         
         # 显示统计
         stats = index_manager.get_stats()
@@ -89,7 +89,7 @@ def cmd_import_urls(args):
         # 创建或更新索引
         print(f"\n🔨 构建索引...")
         index_manager = IndexManager(collection_name=args.collection)
-        index_manager.build_index(documents)
+        _, _ = index_manager.build_index(documents)
         
         # 显示统计
         stats = index_manager.get_stats()
@@ -113,16 +113,14 @@ def cmd_import_github(args):
     owner = args.owner
     repo = args.repo
     branch = args.branch or config.GITHUB_DEFAULT_BRANCH
-    github_token = args.token or config.GITHUB_TOKEN
     
     try:
-        # 加载GitHub仓库
+        # 加载GitHub仓库（仅支持公开仓库）
         print(f"\n📂 加载仓库: {owner}/{repo} (分支: {branch})")
         documents = load_documents_from_github(
             owner=owner,
             repo=repo,
-            branch=branch,
-            github_token=github_token if github_token else None
+            branch=branch
         )
         
         if not documents:
@@ -132,7 +130,7 @@ def cmd_import_github(args):
         # 创建或更新索引
         print(f"\n🔨 构建索引...")
         index_manager = IndexManager(collection_name=args.collection)
-        index_manager.build_index(documents)
+        _, _ = index_manager.build_index(documents)
         
         # 显示统计
         stats = index_manager.get_stats()
@@ -325,9 +323,8 @@ def main():
   python main.py import-urls url1 url2 url3
   python main.py import-urls --file urls.txt
   
-  # 从GitHub仓库导入
+  # 从GitHub仓库导入（仅支持公开仓库）
   python main.py import-github microsoft TypeScript --branch main
-  python main.py import-github owner repo --token YOUR_TOKEN
   
   # 单次查询
   python main.py query "什么是系统科学？"
@@ -363,12 +360,11 @@ def main():
     parser_urls.add_argument('--file', help='包含URL列表的文件')
     parser_urls.set_defaults(func=cmd_import_urls)
     
-    # import-github命令
-    parser_github = subparsers.add_parser('import-github', help='从GitHub仓库导入文档')
+    # import-github命令（仅支持公开仓库）
+    parser_github = subparsers.add_parser('import-github', help='从GitHub仓库导入文档（仅支持公开仓库）')
     parser_github.add_argument('owner', help='仓库所有者')
     parser_github.add_argument('repo', help='仓库名称')
     parser_github.add_argument('--branch', help=f'分支名称 (默认: {config.GITHUB_DEFAULT_BRANCH})')
-    parser_github.add_argument('--token', help='GitHub访问令牌')
     parser_github.set_defaults(func=cmd_import_github)
     
     # query命令

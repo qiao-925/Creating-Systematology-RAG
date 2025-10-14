@@ -30,18 +30,18 @@ class TestGitRepositoryManager:
         assert repo_path == tmp_path / "microsoft" / "TypeScript_main"
     
     def test_build_clone_url_with_token(self, tmp_path):
-        """测试构建克隆 URL（带 Token）"""
+        """测试构建克隆 URL（公开仓库）"""
         manager = GitRepositoryManager(tmp_path)
         
-        url = manager._build_clone_url("owner", "repo", "test_token")
+        url = manager._build_clone_url("owner", "repo")
         
-        assert url == "https://test_token@github.com/owner/repo.git"
+        assert url == "https://github.com/owner/repo.git"
     
     def test_build_clone_url_without_token(self, tmp_path):
-        """测试构建克隆 URL（不带 Token）"""
+        """测试构建克隆 URL（公开仓库）- 别名测试"""
         manager = GitRepositoryManager(tmp_path)
         
-        url = manager._build_clone_url("owner", "repo", None)
+        url = manager._build_clone_url("owner", "repo")
         
         assert url == "https://github.com/owner/repo.git"
     
@@ -155,7 +155,7 @@ class TestGitRepositoryManager:
         mock_run.return_value = mock_result
         
         repo_path, commit_sha = manager.clone_or_update(
-            "owner", "repo", "main", None
+            "owner", "repo", "main"
         )
         
         assert repo_path == tmp_path / "owner" / "repo_main"
@@ -178,7 +178,7 @@ class TestGitRepositoryManager:
         repo_path.mkdir(parents=True)
         
         returned_path, commit_sha = manager.clone_or_update(
-            "owner", "repo", "main", None
+            "owner", "repo", "main"
         )
         
         assert returned_path == repo_path
@@ -207,16 +207,6 @@ class TestGitRepositoryManager:
         
         # 不应该抛出异常
         manager.cleanup_repo("owner", "repo", "main")
-    
-    def test_sanitize_git_output(self, tmp_path):
-        """测试清理 Git 输出中的敏感信息"""
-        manager = GitRepositoryManager(tmp_path)
-        
-        output = "Cloning into 'repo'... https://ghp_abc123@github.com/owner/repo.git"
-        sanitized = manager._sanitize_git_output(output)
-        
-        assert "ghp_abc123" not in sanitized
-        assert "https://***@github.com" in sanitized
     
     @patch('subprocess.run')
     def test_check_git_available(self, mock_run, tmp_path):

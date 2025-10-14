@@ -197,7 +197,6 @@ def load_documents_from_github(
     owner: str,
     repo: str,
     branch: Optional[str] = None,
-    github_token: Optional[str] = None,
     clean: bool = True,
     show_progress: bool = True,
     filter_directories: Optional[List[str]] = None,
@@ -209,11 +208,13 @@ def load_documents_from_github(
 - `owner` (str): 仓库所有者（用户名或组织名）
 - `repo` (str): 仓库名称
 - `branch` (Optional[str]): 分支名称，默认为 `"main"`
-- `github_token` (Optional[str]): GitHub Token，公开仓库可选，私有仓库必需
 - `clean` (bool): 是否清理文本中的多余空白，默认 `True`
 - `show_progress` (bool): 是否显示进度信息，默认 `True`
 - `filter_directories` (Optional[List[str]]): 只加载指定目录，如 `["docs", "examples"]`
 - `filter_file_extensions` (Optional[List[str]]): 只加载指定扩展名，如 `[".md", ".py"]`
+
+**注意**：
+- ⚠️ 仅支持公开仓库，私有仓库无法访问
 
 **返回**：
 - `List[LlamaDocument]`: 文档列表，失败时返回空列表
@@ -233,12 +234,6 @@ from src.data_loader import load_documents_from_github
 
 # 加载公开仓库
 docs = load_documents_from_github("microsoft", "TypeScript", branch="main")
-
-# 加载私有仓库（需要 Token）
-docs = load_documents_from_github(
-    "myorg", "private-repo",
-    github_token="ghp_xxxxx"
-)
 
 # 只加载特定目录和文件类型
 docs = load_documents_from_github(
@@ -378,15 +373,14 @@ urls = ["https://example.com/article"]
 docs = load_documents_from_urls(urls)
 ```
 
-#### `load_documents_from_github(owner: str, repo: str, branch: Optional[str] = None, github_token: Optional[str] = None, clean: bool = True) -> List[LlamaDocument]`
+#### `load_documents_from_github(owner: str, repo: str, branch: Optional[str] = None, clean: bool = True) -> List[LlamaDocument]`
 
-从 GitHub 仓库加载文档。
+从 GitHub 仓库加载文档（仅支持公开仓库）。
 
 **参数**：
 - `owner` (str): 仓库所有者
 - `repo` (str): 仓库名称
 - `branch` (Optional[str]): 分支名称，默认为 `"main"`
-- `github_token` (Optional[str]): GitHub 访问令牌（可选）
 - `clean` (bool): 是否清理文本，默认 `True`
 
 **返回**：
@@ -398,17 +392,6 @@ from src.data_loader import load_documents_from_github
 
 # 公开仓库
 docs = load_documents_from_github("microsoft", "TypeScript", branch="main")
-
-# 私有仓库
-docs = load_documents_from_github(
-    owner="yourorg",
-    repo="yourrepo",
-    github_token="ghp_xxxxx"
-)
-
-# 使用配置中的 Token
-from src.config import config
-docs = load_documents_from_github("owner", "repo", github_token=config.GITHUB_TOKEN)
 ```
 
 ---

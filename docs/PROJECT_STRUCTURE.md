@@ -13,8 +13,11 @@ Creating-Systematology-RAG/
 ├── uv.lock                         # 🔒 依赖锁定文件（uv生成）
 ├── .python-version                 # 🐍 Python版本指定
 │
-├── app.py                          # 🖥️ Streamlit Web应用（用户界面）
+├── app.py                          # 🖥️ Streamlit Web应用主页（聊天界面）
 ├── main.py                         # ⌨️ CLI命令行工具（批量操作、管理）
+├── pages/                          # 📄 Streamlit多页面应用
+│   └── 1_⚙️_设置.py               # ⚙️ 设置页面（详细配置）
+│
 ├── streamlit-test.py              # 🧪 Streamlit测试文件
 │
 ├── docs/                          # 📚 文档中心
@@ -33,6 +36,7 @@ Creating-Systematology-RAG/
 │   ├── __init__.py                # 📦 包初始化文件
 │   ├── config.py                  # ⚙️ 配置管理（环境变量、参数）
 │   ├── logger.py                  # 📋 日志系统（应用日志配置）
+│   ├── ui_components.py           # 🎨 UI共用组件（Streamlit复用函数）
 │   ├── data_loader.py             # 📥 数据加载（Markdown、网页、GitHub）
 │   ├── indexer.py                 # 🗂️ 索引构建（向量化、存储）
 │   ├── query_engine.py            # 🔍 查询引擎（问答、引用溯源、调试支持）
@@ -80,7 +84,9 @@ Creating-Systematology-RAG/
 | 文件 | 用途 | 是否必需 |
 |------|------|---------|
 | `README.md` | 项目主文档，包含项目介绍、安装、使用说明 | ✅ 必需 |
-| `app.py` | Streamlit Web应用主文件 | ✅ 必需 |
+| `app.py` | Streamlit Web应用主页（聊天界面） | ✅ 必需 |
+| `pages/` | Streamlit多页面应用目录 | ✅ 必需 |
+| `pages/1_⚙️_设置.py` | 设置页面（数据源、配置、调试工具） | ✅ 必需 |
 | `main.py` | CLI命令行工具 | ✅ 必需 |
 | `pyproject.toml` | Python项目配置文件，定义依赖 | ✅ 必需 |
 | `uv.lock` | 依赖锁定文件，确保环境一致性 | ✅ 必需 |
@@ -114,6 +120,7 @@ Creating-Systematology-RAG/
 |------|------|---------|
 | `config.py` | 配置管理 | 基础模块，无依赖 |
 | `logger.py` | 日志系统 | 依赖 config |
+| `ui_components.py` | UI共用组件（Streamlit复用函数） | 依赖 config, indexer, query_engine, chat_manager |
 | `data_loader.py` | 数据加载（Markdown、网页、GitHub） | 依赖 config, logger |
 | `indexer.py` | 索引构建 | 依赖 config, data_loader, logger |
 | `query_engine.py` | 查询引擎（含调试支持） | 依赖 config, indexer, logger |
@@ -202,6 +209,59 @@ logger.py
 
 ---
 
+## 🎨 UI架构说明
+
+### Streamlit 多页面应用
+
+本项目采用Streamlit的多页面架构，提供更清晰的功能组织：
+
+**主页 (app.py)** - 聊天界面
+- 用户登录/注册
+- 对话主界面
+- 精简的侧边栏（快速操作）
+  - 📊 索引状态展示
+  - 🐙 GitHub仓库导入
+  - 📁 本地文档上传
+  - 💬 会话管理
+  - ⚙️ 进入设置页按钮
+
+**设置页 (pages/1_⚙️_设置.py)** - 详细配置
+- Tab1: 📦 数据源管理
+  - 网页URL导入
+  - 本地目录加载
+  - GitHub高级管理
+  - 维基百科预索引
+- Tab2: 🔧 查询配置
+  - 维基百科增强设置
+  - 检索参数调整
+- Tab3: 🐛 开发者工具
+  - Phoenix可视化平台
+  - LlamaDebugHandler调试
+  - 查询追踪信息
+- Tab4: ⚙️ 系统设置
+  - 索引管理
+  - 模型状态
+  - 系统信息
+
+### UI组件复用 (src/ui_components.py)
+
+提取的共用组件函数：
+- `init_session_state()` - 会话状态初始化
+- `preload_embedding_model()` - 模型预加载
+- `load_index()` - 索引加载
+- `load_chat_manager()` - 对话管理器加载
+- `load_hybrid_query_engine()` - 混合查询引擎加载
+- `display_hybrid_sources()` - 混合来源展示
+- `display_model_status()` - 模型状态展示
+
+### 页面导航
+
+- Streamlit自动在侧边栏顶部添加页面导航
+- `st.switch_page()` 用于程序化页面跳转
+- session_state在所有页面间共享
+
+---
+
 ## 🔍 文件查找指南
 
 ### 我想修改...
@@ -213,7 +273,9 @@ logger.py
 | **修改索引逻辑** | `src/indexer.py` |
 | **调整查询行为** | `src/query_engine.py` |
 | **改进对话功能** | `src/chat_manager.py` |
-| **修改Web界面** | `app.py` |
+| **修改主页界面** | `app.py`（聊天界面） |
+| **修改设置页面** | `pages/1_⚙️_设置.py`（配置界面） |
+| **修改UI组件** | `src/ui_components.py`（共用函数） |
 | **修改CLI命令** | `main.py` |
 | **更新文档** | `docs/` 目录 |
 
@@ -410,9 +472,13 @@ examples/           # 示例代码
 
 ---
 
-**最后更新**: 2025-10-09
+**最后更新**: 2025-10-14
 
 **维护者**: 项目团队
+
+**更新日志**:
+- 2025-10-14: 重构UI为多页面架构，添加设置页面
+- 2025-10-09: 初始版本
 
 如有任何关于项目结构的问题，欢迎查看相关文档或提交Issue！
 

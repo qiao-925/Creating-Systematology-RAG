@@ -1,5 +1,154 @@
 # 开发日志
 
+## 2025-10-14
+
+### 推理能力增强：优化Prompt + Temperature + 质量控制
+
+**目标**: 增强模型推理能力，减少对知识库检索的过度依赖  
+**状态**: ✅ 已完成  
+**类型**: ⚡ Enhancement（功能增强）
+
+#### 核心改进
+
+**问题分析**:
+- ❌ Prompt过于强调"基于上下文"，抑制模型推理
+- ❌ Temperature=0.1-0.3过低，导致机械引用检索结果
+- ❌ 缺少检索质量评估，低质量结果也被强制使用
+- ❌ 系统过度依赖知识库，推理能力未充分发挥
+
+**实施的改进**:
+
+1. **Prompt优化** (`src/chat_manager.py`)
+   - ✅ 强调"资深专家"身份，激活专业知识
+   - ✅ 要求"深入分析和推理"
+   - ✅ 允许"基于专业原理推断"
+   - ✅ 追求"有洞察力的回答"
+
+2. **Temperature参数提升**
+   - ✅ QueryEngine: 0.1 → 0.5
+   - ✅ ChatManager: 0.3 → 0.6
+   - ✅ SimpleQueryEngine: 0.1 → 0.5
+   - ✅ HybridQueryEngine: 0.1 → 0.5
+
+3. **相似度阈值过滤机制**
+   - ✅ 新增 `SIMILARITY_THRESHOLD=0.5` 配置
+   - ✅ 实时评估检索质量
+   - ✅ 低质量时提示"答案可能更多依赖模型推理"
+   - ✅ 高质量时显示检索状态
+
+#### 修改文件
+
+**核心代码** (3个文件):
+- `src/config.py`: 新增 `SIMILARITY_THRESHOLD` 配置
+- `src/query_engine.py`: Temperature提升，新增质量评估逻辑
+- `src/chat_manager.py`: Prompt优化，Temperature提升，新增质量评估
+
+**配置文件**:
+- `env.template`: 新增 `SIMILARITY_THRESHOLD` 配置说明
+
+**文档**:
+- `docs/REASONING_IMPROVEMENTS.md`: 详细改进文档
+- `docs/CHANGELOG.md`: 本条目
+
+#### 效果
+
+**改进前**:
+- 强烈依赖检索结果，几乎"照搬"
+- Temperature过低，回答保守、缺乏创造性
+- 低质量检索结果也被强制使用
+
+**改进后**:
+- ✅ 平衡检索与推理，鼓励深度分析
+- ✅ 增强推理和创造性
+- ✅ 智能评估检索质量，提供状态反馈
+- ✅ 低质量时自动启用推理模式
+
+**用户体验提升**:
+```
+# 高质量检索
+✅ 检索质量良好（高质量结果: 3个，最高相似度: 0.85）
+🤖 AI: [基于知识库的权威回答]
+
+# 低质量检索
+⚠️  检索质量较低（最高相似度: 0.35），答案可能更多依赖模型推理
+🤖 AI: [基于原理推理的回答]
+```
+
+#### 技术细节
+
+参数调整:
+| 参数 | 改进前 | 改进后 | 影响 |
+|------|--------|--------|------|
+| QueryEngine.temperature | 0.1 | 0.5 | 推理能力 ↑ |
+| ChatManager.temperature | 0.3 | 0.6 | 对话创造性 ↑ |
+| SIMILARITY_THRESHOLD | 无 | 0.5 | 质量控制 ✓ |
+
+验证测试:
+- ✅ 配置正确加载
+- ✅ Temperature参数更新
+- ✅ Prompt包含6个推理关键词
+- ✅ 相似度过滤逻辑完整
+
+---
+
+### GitHub数据源简化：仅支持公开仓库
+
+**目标**: 删除所有GitHub Token相关功能，简化系统为仅支持公开仓库  
+**状态**: ✅ 已完成  
+**类型**: ⚠️ Breaking Change（仅影响私有仓库用户）
+
+#### 核心变更
+
+**背景**:
+- Token管理增加用户负担和安全风险
+- 大部分用户只需要访问公开仓库
+- Token相关代码约150行，增加维护成本
+
+**删除的功能**:
+- ❌ 删除所有 `github_token` 参数
+- ❌ 删除用户数据中的Token字段
+- ❌ 删除Web界面的Token配置UI
+- ❌ 删除Token安全清理相关代码
+
+#### 修改文件
+
+**核心代码** (6个文件):
+- `src/git_repository_manager.py`: 简化URL构建，删除Token参数
+- `src/data_loader.py`: 删除3个函数的Token参数
+- `src/user_manager.py`: 删除Token字段和相关方法
+- `src/config.py`: 删除Token相关注释
+- `app.py`: 删除Token配置UI（约50行）
+- `main.py`: 删除`--token`命令行参数
+
+**测试代码**:
+- `tests/unit/test_data_loader.py`: 删除Token相关测试
+
+**配置文件**:
+- `env.template`: 删除GITHUB_TOKEN配置项
+
+**文档更新**:
+- `docs/API.md`: 更新API文档，删除Token参数说明
+- `docs/ARCHITECTURE.md`: 更新架构示例代码
+- `docs/DECISIONS.md`: 添加ADR-011决策记录
+- `docs/CHANGELOG.md`: 本条目
+
+#### 影响
+
+**代码优化**:
+- ✅ 代码量减少约150-200行
+- ✅ 配置更简洁
+- ✅ 维护成本降低
+- ✅ 安全风险减少
+
+**功能限制**:
+- ⚠️ 无法访问私有仓库（如有需要，可使用SSH密钥方式）
+
+**向后兼容**:
+- ✅ 现有公开仓库数据不受影响
+- ✅ API签名简化但核心功能保持
+
+---
+
 ## 2025-10-12
 
 ### GitHub数据源架构重构：从API到Git克隆

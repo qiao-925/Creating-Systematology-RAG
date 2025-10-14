@@ -70,32 +70,25 @@ class GitRepositoryManager:
         repo_dir_name = f"{repo}_{branch}"
         return self.repos_base_path / owner / repo_dir_name
     
-    def _build_clone_url(self, owner: str, repo: str, github_token: Optional[str]) -> str:
-        """构建克隆 URL
+    def _build_clone_url(self, owner: str, repo: str) -> str:
+        """构建克隆 URL（仅支持公开仓库）
         
         Args:
             owner: 仓库所有者
             repo: 仓库名称
-            github_token: GitHub Token（可选）
             
         Returns:
             HTTPS 克隆 URL
         """
-        if github_token:
-            # 使用 Token 认证
-            return f"https://{github_token}@github.com/{owner}/{repo}.git"
-        else:
-            # 公开仓库，无需认证
-            return f"https://github.com/{owner}/{repo}.git"
+        return f"https://github.com/{owner}/{repo}.git"
     
     def clone_or_update(
         self,
         owner: str,
         repo: str,
-        branch: str,
-        github_token: Optional[str] = None
+        branch: str
     ) -> Tuple[Path, str]:
-        """克隆或更新仓库
+        """克隆或更新仓库（仅支持公开仓库）
         
         如果本地不存在，执行 git clone
         如果已存在，执行 git pull
@@ -104,7 +97,6 @@ class GitRepositoryManager:
             owner: 仓库所有者
             repo: 仓库名称
             branch: 分支名称
-            github_token: GitHub Token（可选，公开仓库不需要）
             
         Returns:
             (本地仓库路径, 当前 commit SHA)
@@ -113,7 +105,7 @@ class GitRepositoryManager:
             RuntimeError: Git 操作失败时
         """
         repo_path = self.get_repo_path(owner, repo, branch)
-        clone_url = self._build_clone_url(owner, repo, github_token)
+        clone_url = self._build_clone_url(owner, repo)
         
         try:
             if not repo_path.exists():
@@ -161,7 +153,6 @@ class GitRepositoryManager:
         ]
         
         try:
-            # 注意：不输出 cmd 到日志，避免泄露 Token
             logger.debug(f"执行 git clone 到 {repo_path}")
             
             result = subprocess.run(
@@ -173,9 +164,7 @@ class GitRepositoryManager:
             )
             
             if result.returncode != 0:
-                # 清理 stderr 中的 Token（如果有）
-                stderr = self._sanitize_git_output(result.stderr)
-                raise RuntimeError(f"git clone 失败: {stderr}")
+                raise RuntimeError(f"git clone 失败: {result.stderr}")
             
             logger.info(f"克隆成功: {repo_path}")
             
@@ -212,8 +201,7 @@ class GitRepositoryManager:
             )
             
             if result.returncode != 0:
-                stderr = self._sanitize_git_output(result.stderr)
-                logger.warning(f"切换分支失败: {stderr}")
+                logger.warning(f"切换分支失败: {result.stderr}")
             
             # 2. 拉取最新更改
             pull_cmd = ['git', 'pull', 'origin', branch]
@@ -227,8 +215,7 @@ class GitRepositoryManager:
             )
             
             if result.returncode != 0:
-                stderr = self._sanitize_git_output(result.stderr)
-                raise RuntimeError(f"git pull 失败: {stderr}")
+                raise RuntimeError(f"git pull 失败: {result.stderr}")
             
             stdout = result.stdout.strip()
             if "Already up to date" in stdout or "已经是最新的" in stdout:
@@ -294,25 +281,6 @@ class GitRepositoryManager:
                 raise
         else:
             logger.warning(f"仓库不存在，无需删除: {repo_path}")
-    
-    def _sanitize_git_output(self, output: str) -> str:
-        """清理 Git 输出中的敏感信息（如 Token）
-        
-        Args:
-            output: Git 命令的输出
-            
-        Returns:
-            清理后的输出
-        """
-        # 替换 URL 中的 Token
-        # 例如: https://ghp_xxx@github.com -> https://***@github.com
-        import re
-        sanitized = re.sub(
-            r'https://[^@]+@github\.com',
-            'https://***@github.com',
-            output
-        )
-        return sanitized
 
 
 if __name__ == "__main__":
@@ -333,7 +301,7 @@ if __name__ == "__main__":
         try:
             # 使用一个小型测试仓库
             repo_path, commit_sha = manager.clone_or_update(
-                "octocat", "Hello-World", "master", github_token=None
+                "octocat", "Hello-World", "master"
             )
             print(f"   ✅ 克隆成功: {repo_path}")
             print(f"   Commit: {commit_sha[:8]}\n")
@@ -341,7 +309,7 @@ if __name__ == "__main__":
             # 测试 2: 更新仓库（应该显示已是最新）
             print("2. 测试更新仓库...")
             repo_path2, commit_sha2 = manager.clone_or_update(
-                "octocat", "Hello-World", "master", github_token=None
+                "octocat", "Hello-World", "master"
             )
             print(f"   ✅ 更新成功")
             print(f"   Commit 未变: {commit_sha == commit_sha2}\n")
