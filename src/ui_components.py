@@ -26,8 +26,6 @@ def preload_embedding_model():
         # 确保全局变量也有模型引用
         from src.indexer import set_global_embed_model
         set_global_embed_model(st.session_state.embed_model)
-        # 显示缓存命中信息
-        st.caption(f"✅ Embedding 模型已缓存（对象ID: {id(st.session_state.embed_model)}）")
         return
     
     # 检查是否已经有全局模型

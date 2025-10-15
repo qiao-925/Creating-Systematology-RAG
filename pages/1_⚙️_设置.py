@@ -39,6 +39,306 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# ========== Claude风格CSS样式（与主页保持一致） ==========
+st.markdown("""
+<style>
+/* ============================================================
+   Claude风格设计系统 - 极简优雅
+   ============================================================ */
+
+/* 全局字体和配色 */
+:root {
+    --color-bg-primary: #F5F5F0;
+    --color-bg-sidebar: #EEEEE9;
+    --color-bg-card: #FFFFFF;
+    --color-bg-hover: #F9F9F6;
+    --color-text-primary: #2C2C2C;
+    --color-text-secondary: #6B6B6B;
+    --color-accent: #D97706;
+    --color-accent-hover: #B45309;
+    --color-border: #E5E5E0;
+    --color-border-light: #F0F0EB;
+}
+
+/* 全局字体 - 衬线字体增强可读性 */
+.stApp {
+    font-family: "Noto Serif SC", "Source Han Serif SC", "Georgia", "Times New Roman", serif;
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-primary);
+}
+
+/* 顶部区域 - 改为温暖米色 */
+.stApp > header {
+    background-color: var(--color-bg-primary) !important;
+}
+
+/* 底部区域 - 改为温暖米色 */
+.stApp > footer {
+    background-color: var(--color-bg-primary) !important;
+}
+
+/* 主内容区域背景 */
+.main .block-container {
+    background-color: var(--color-bg-primary);
+}
+
+/* 主内容区域 */
+.main .block-container {
+    padding-top: 2.5rem;
+    padding-bottom: 3rem;
+    max-width: 100%;
+}
+
+/* 正文字体大小和行高 */
+p, div, span {
+    font-size: 16px;
+    line-height: 1.7;
+}
+
+/* 标题层级 - 优雅的字重和间距 */
+h1 {
+    font-size: 2rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--color-text-primary);
+    margin-bottom: 0.75rem;
+}
+
+h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--color-text-primary);
+    margin-bottom: 0.5rem;
+}
+
+h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin-bottom: 0.5rem;
+}
+
+/* 侧边栏 - 温暖的米色背景 */
+[data-testid="stSidebar"] {
+    background-color: var(--color-bg-sidebar);
+    border-right: 1px solid var(--color-border);
+    width: 280px !important;
+}
+
+[data-testid="stSidebar"] .stMarkdown {
+    font-size: 0.9rem;
+}
+
+[data-testid="stSidebar"] h1, 
+[data-testid="stSidebar"] h2, 
+[data-testid="stSidebar"] h3 {
+    color: var(--color-text-primary);
+}
+
+/* 按钮 - 温暖的强调色 */
+.stButton button {
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    border: none;
+    box-shadow: none;
+    font-family: inherit;
+}
+
+/* 主要按钮 */
+.stButton button[kind="primary"] {
+    background-color: var(--color-accent);
+    color: white;
+    border: none;
+}
+
+.stButton button[kind="primary"]:hover {
+    background-color: var(--color-accent-hover);
+    transform: none;
+    box-shadow: none;
+}
+
+/* 次要按钮 */
+.stButton button[kind="secondary"] {
+    background-color: transparent;
+    border: 1px solid var(--color-border);
+    color: var(--color-text-primary);
+}
+
+.stButton button[kind="secondary"]:hover {
+    background-color: var(--color-bg-hover);
+    border-color: var(--color-border);
+}
+
+/* 输入框 - 简洁边框，使用温暖米色背景 */
+.stTextInput input, 
+.stTextArea textarea {
+    border-radius: 10px;
+    border: 1px solid var(--color-border);
+    padding: 0.75rem 1rem;
+    background-color: var(--color-bg-primary);
+    font-size: 16px;
+    font-family: inherit;
+    color: var(--color-text-primary);
+}
+
+.stTextInput input:focus, 
+.stTextArea textarea:focus {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 1px var(--color-accent);
+    outline: none;
+}
+
+/* 展开器 - 极简设计，使用温暖米色 */
+.streamlit-expanderHeader {
+    background-color: var(--color-bg-primary);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--color-border-light);
+    transition: all 0.2s ease;
+}
+
+.streamlit-expanderHeader:hover {
+    background-color: var(--color-bg-hover);
+    border-color: var(--color-border);
+}
+
+.streamlit-expanderContent {
+    background-color: var(--color-bg-primary);
+    border: none;
+    padding: 1rem;
+}
+
+/* 分隔线 */
+hr {
+    margin: 1.5rem 0;
+    border: none;
+    border-top: 1px solid var(--color-border);
+}
+
+/* 提示文字 */
+.stCaption {
+    color: var(--color-text-secondary);
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+/* 指标卡片 */
+[data-testid="stMetric"] {
+    background-color: var(--color-bg-card);
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--color-border-light);
+    box-shadow: none;
+}
+
+[data-testid="stMetric"] label {
+    color: var(--color-text-secondary);
+    font-size: 0.875rem;
+}
+
+[data-testid="stMetric"] [data-testid="stMetricValue"] {
+    color: var(--color-text-primary);
+    font-weight: 600;
+}
+
+/* 提示消息 - 使用温暖米色背景 */
+.stSuccess, .stError, .stInfo, .stWarning {
+    border-radius: 8px;
+    padding: 1rem;
+    border: 1px solid var(--color-border);
+}
+
+.stInfo {
+    background-color: var(--color-bg-primary);
+    border-color: var(--color-border);
+}
+
+/* 代码块 */
+code {
+    font-family: "JetBrains Mono", "Fira Code", "Courier New", monospace;
+    background-color: var(--color-bg-hover);
+    padding: 0.2em 0.4em;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+pre code {
+    padding: 1rem;
+    border-radius: 8px;
+}
+
+/* 滚动条 - 柔和样式 */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--color-bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--color-text-secondary);
+}
+
+/* 选项卡 */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 0.5rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.stTabs [data-baseweb="tab"] {
+    border-radius: 8px 8px 0 0;
+    padding: 0.75rem 1.5rem;
+    color: var(--color-text-secondary);
+    border: none;
+    background-color: transparent;
+}
+
+.stTabs [data-baseweb="tab"]:hover {
+    background-color: var(--color-bg-hover);
+    color: var(--color-text-primary);
+}
+
+.stTabs [aria-selected="true"] {
+    background-color: var(--color-bg-card);
+    color: var(--color-accent);
+    border-bottom: 2px solid var(--color-accent);
+}
+
+/* 文件上传器 */
+[data-testid="stFileUploader"] {
+    border: 1px dashed var(--color-border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    background-color: var(--color-bg-card);
+}
+
+/* 下拉选择框 */
+.stSelectbox [data-baseweb="select"] {
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+}
+
+/* Checkbox */
+.stCheckbox {
+    color: var(--color-text-primary);
+}
+
+/* Spinner加载动画 */
+.stSpinner > div {
+    border-top-color: var(--color-accent) !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 # 预加载模型和初始化状态
 preload_embedding_model()
 init_session_state()

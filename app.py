@@ -74,7 +74,33 @@ def display_trace_info(trace_info: dict):
 def sidebar():
     """侧边栏 - 精简版，只保留核心功能"""
     with st.sidebar:
-        st.title("📚 快速操作")
+        # ========== 应用标题区域 ==========
+        st.title("📚 " + config.APP_TITLE)
+        st.caption("基于LlamaIndex和DeepSeek的系统科学知识问答系统")
+        
+        # ========== 模型状态区域 ==========
+        if st.session_state.get('embed_model_loaded') and st.session_state.get('embed_model'):
+            st.caption(f"✅ Embedding 模型已缓存（对象ID: {id(st.session_state.embed_model)}）")
+        
+        st.markdown("---")
+        
+        # ========== 用户信息区域 ==========
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            st.caption(f"👤 {st.session_state.user_email}")
+        with col2:
+            if st.button("退出", key="logout_btn_sidebar", help="退出登录"):
+                st.session_state.logged_in = False
+                st.session_state.user_email = None
+                st.session_state.collection_name = None
+                st.session_state.index_manager = None
+                st.session_state.chat_manager = None
+                st.session_state.messages = []
+                st.session_state.index_built = False
+                st.rerun()
+        st.markdown("---")
+        
+        st.subheader("🚀 快速操作")
         
         # 显示索引状态
         st.subheader("📊 索引状态")
@@ -159,160 +185,337 @@ def sidebar():
 
 def main():
     """主界面"""
-    # ========== 自定义CSS样式 ==========
+    # ========== Claude风格CSS样式 ==========
     st.markdown("""
     <style>
-    /* 全局样式优化 */
+    /* ============================================================
+       Claude风格设计系统 - 极简优雅
+       ============================================================ */
+    
+    /* 全局字体和配色 */
+    :root {
+        --color-bg-primary: #F5F5F0;
+        --color-bg-sidebar: #EEEEE9;
+        --color-bg-card: #FFFFFF;
+        --color-bg-hover: #F9F9F6;
+        --color-text-primary: #2C2C2C;
+        --color-text-secondary: #6B6B6B;
+        --color-accent: #D97706;
+        --color-accent-hover: #B45309;
+        --color-border: #E5E5E0;
+        --color-border-light: #F0F0EB;
+    }
+    
+    /* 全局字体 - 衬线字体增强可读性 */
     .stApp {
-        max-width: 100%;
-        background-color: #ffffff;
+        font-family: "Noto Serif SC", "Source Han Serif SC", "Georgia", "Times New Roman", serif;
+        background-color: var(--color-bg-primary);
+        color: var(--color-text-primary);
+    }
+    
+    /* 顶部区域 - 改为温暖米色 */
+    .stApp > header {
+        background-color: var(--color-bg-primary) !important;
+    }
+    
+    /* 底部区域 - 改为温暖米色 */
+    .stApp > footer {
+        background-color: var(--color-bg-primary) !important;
+    }
+    
+    /* 主内容区域背景 */
+    .main .block-container {
+        background-color: var(--color-bg-primary);
     }
     
     /* 主内容区域 */
     .main .block-container {
-        padding-top: 2rem;
-        padding-bottom: 2rem;
+        padding-top: 2.5rem;
+        padding-bottom: 3rem;
+        max-width: 100%;
     }
     
-    /* 消息容器样式优化 */
-    .stChatMessage {
-        padding: 1.2rem 1.5rem;
-        border-radius: 0.75rem;
-        margin-bottom: 1rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    /* 正文字体大小和行高 */
+    p, div, span {
+        font-size: 16px;
+        line-height: 1.7;
     }
     
-    /* 用户消息样式 */
-    [data-testid="stChatMessageContent"] {
-        font-size: 0.95rem;
-        line-height: 1.6;
+    /* 标题层级 - 优雅的字重和间距 */
+    h1 {
+        font-size: 2rem;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        color: var(--color-text-primary);
+        margin-bottom: 0.75rem;
     }
     
-    /* 侧边栏优化 */
+    h2 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        color: var(--color-text-primary);
+        margin-bottom: 0.5rem;
+    }
+    
+    h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--color-text-primary);
+        margin-bottom: 0.5rem;
+    }
+    
+    /* 侧边栏 - 温暖的米色背景 */
     [data-testid="stSidebar"] {
-        background-color: #fafafa;
-        border-right: 1px solid #e5e7eb;
+        background-color: var(--color-bg-sidebar);
+        border-right: 1px solid var(--color-border);
+        width: 280px !important;
     }
     
     [data-testid="stSidebar"] .stMarkdown {
         font-size: 0.9rem;
     }
     
-    /* 按钮样式优化 */
+    [data-testid="stSidebar"] h1, 
+    [data-testid="stSidebar"] h2, 
+    [data-testid="stSidebar"] h3 {
+        color: var(--color-text-primary);
+    }
+    
+    /* 消息容器 - 简洁无阴影，使用温暖米色 */
+    .stChatMessage {
+        padding: 1.5rem 1.75rem;
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+        border: none;
+        box-shadow: none;
+        background-color: var(--color-bg-card);
+    }
+    
+    /* 用户消息 - 浅米色背景 */
+    .stChatMessage[data-testid="user-message"] {
+        background-color: var(--color-bg-hover);
+    }
+    
+    /* AI消息 - 温暖米色背景 */
+    .stChatMessage[data-testid="assistant-message"] {
+        background-color: var(--color-bg-primary);
+    }
+    
+    /* 消息内容文字 */
+    [data-testid="stChatMessageContent"] {
+        font-size: 16px;
+        line-height: 1.7;
+        color: var(--color-text-primary);
+    }
+    
+    /* 按钮 - 温暖的强调色 */
     .stButton button {
-        border-radius: 0.5rem;
+        border-radius: 8px;
         font-weight: 500;
         transition: all 0.2s ease;
+        border: none;
+        box-shadow: none;
+        font-family: inherit;
     }
     
-    .stButton button:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    }
-    
-    /* 主要按钮（会话项）样式 */
+    /* 主要按钮 */
     .stButton button[kind="primary"] {
-        background-color: #dbeafe;
-        border-left: 3px solid #3b82f6;
-        color: #1e40af;
+        background-color: var(--color-accent);
+        color: white;
+        border: none;
     }
     
+    .stButton button[kind="primary"]:hover {
+        background-color: var(--color-accent-hover);
+        transform: none;
+        box-shadow: none;
+    }
+    
+    /* 次要按钮 */
     .stButton button[kind="secondary"] {
-        background-color: #f9fafb;
-        border: 1px solid #e5e7eb;
+        background-color: transparent;
+        border: 1px solid var(--color-border);
+        color: var(--color-text-primary);
     }
     
     .stButton button[kind="secondary"]:hover {
-        background-color: #f3f4f6;
-        border-color: #d1d5db;
+        background-color: var(--color-bg-hover);
+        border-color: var(--color-border);
     }
     
-    /* 输入框样式 */
-    .stTextInput input, .stChatInput textarea {
-        border-radius: 0.5rem;
-        border: 1px solid #e5e7eb;
+    /* 输入框 - 简洁边框，使用温暖米色背景 */
+    .stTextInput input, 
+    .stTextArea textarea,
+    .stChatInput textarea {
+        border-radius: 10px;
+        border: 1px solid var(--color-border);
         padding: 0.75rem 1rem;
+        background-color: var(--color-bg-primary);
+        font-size: 16px;
+        font-family: inherit;
+        color: var(--color-text-primary);
     }
     
-    .stTextInput input:focus, .stChatInput textarea:focus {
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    .stTextInput input:focus, 
+    .stTextArea textarea:focus,
+    .stChatInput textarea:focus {
+        border-color: var(--color-accent);
+        box-shadow: 0 0 0 1px var(--color-accent);
+        outline: none;
     }
     
-    /* 聊天输入框居中 - 强制居中布局 */
+    /* 聊天输入框居中 */
     .stChatInput {
-        max-width: 80% !important;
+        max-width: 800px !important;
         margin: 0 auto !important;
-        display: block !important;
     }
     
-    /* 输入框容器居中 */
     [data-testid="stChatInput"] {
-        max-width: 80% !important;
+        max-width: 800px !important;
         margin: 0 auto !important;
     }
     
-    /* 展开器样式 */
+    /* 展开器 - 极简设计，使用温暖米色 */
     .streamlit-expanderHeader {
-        background-color: #f9fafb;
-        border-radius: 0.5rem;
+        background-color: var(--color-bg-primary);
+        border-radius: 8px;
         padding: 0.75rem 1rem;
-        border: 1px solid #e5e7eb;
+        border: 1px solid var(--color-border-light);
+        transition: all 0.2s ease;
     }
     
     .streamlit-expanderHeader:hover {
-        background-color: #f3f4f6;
+        background-color: var(--color-bg-hover);
+        border-color: var(--color-border);
     }
     
-    /* 分隔线样式 */
+    .streamlit-expanderContent {
+        background-color: var(--color-bg-primary);
+        border: none;
+        padding: 1rem;
+    }
+    
+    /* 分隔线 */
     hr {
         margin: 1.5rem 0;
-        border-color: #e5e7eb;
+        border: none;
+        border-top: 1px solid var(--color-border);
     }
     
-    /* 标题样式 */
-    h1, h2, h3 {
-        font-weight: 600;
-        letter-spacing: -0.02em;
-    }
-    
-    /* 提示文字样式 */
+    /* 提示文字 */
     .stCaption {
-        color: #6b7280;
+        color: var(--color-text-secondary);
+        font-size: 0.875rem;
+        line-height: 1.5;
+    }
+    
+    /* 指标卡片 */
+    [data-testid="stMetric"] {
+        background-color: var(--color-bg-card);
+        padding: 1rem;
+        border-radius: 8px;
+        border: 1px solid var(--color-border-light);
+        box-shadow: none;
+    }
+    
+    [data-testid="stMetric"] label {
+        color: var(--color-text-secondary);
         font-size: 0.875rem;
     }
     
-    /* 指标卡片样式 */
-    [data-testid="stMetric"] {
-        background-color: #f9fafb;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        border: 1px solid #e5e7eb;
+    [data-testid="stMetric"] [data-testid="stMetricValue"] {
+        color: var(--color-text-primary);
+        font-weight: 600;
     }
     
-    /* 成功/错误/信息提示样式 */
+    /* 提示消息 - 使用温暖米色背景 */
     .stSuccess, .stError, .stInfo, .stWarning {
-        border-radius: 0.5rem;
+        border-radius: 8px;
         padding: 1rem;
+        border: 1px solid var(--color-border);
     }
     
-    /* 滚动条样式 */
+    .stInfo {
+        background-color: var(--color-bg-primary);
+        border-color: var(--color-border);
+    }
+    
+    /* 代码块 */
+    code {
+        font-family: "JetBrains Mono", "Fira Code", "Courier New", monospace;
+        background-color: var(--color-bg-hover);
+        padding: 0.2em 0.4em;
+        border-radius: 4px;
+        font-size: 0.9em;
+    }
+    
+    pre code {
+        padding: 1rem;
+        border-radius: 8px;
+    }
+    
+    /* 滚动条 - 柔和样式 */
     ::-webkit-scrollbar {
         width: 8px;
         height: 8px;
     }
     
     ::-webkit-scrollbar-track {
-        background: #f1f1f1;
+        background: var(--color-bg-primary);
     }
     
     ::-webkit-scrollbar-thumb {
-        background: #c1c1c1;
+        background: var(--color-border);
         border-radius: 4px;
     }
     
     ::-webkit-scrollbar-thumb:hover {
-        background: #a8a8a8;
+        background: var(--color-text-secondary);
+    }
+    
+    /* 选项卡 */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 0.5rem;
+        border-bottom: 1px solid var(--color-border);
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        border-radius: 8px 8px 0 0;
+        padding: 0.75rem 1.5rem;
+        color: var(--color-text-secondary);
+        border: none;
+        background-color: transparent;
+    }
+    
+    .stTabs [data-baseweb="tab"]:hover {
+        background-color: var(--color-bg-hover);
+        color: var(--color-text-primary);
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background-color: var(--color-bg-card);
+        color: var(--color-accent);
+        border-bottom: 2px solid var(--color-accent);
+    }
+    
+    /* 文件上传器 */
+    [data-testid="stFileUploader"] {
+        border: 1px dashed var(--color-border);
+        border-radius: 8px;
+        padding: 1.5rem;
+        background-color: var(--color-bg-card);
+    }
+    
+    /* 下拉选择框 */
+    .stSelectbox [data-baseweb="select"] {
+        border-radius: 8px;
+        border: 1px solid var(--color-border);
+    }
+    
+    /* Spinner加载动画 */
+    .stSpinner > div {
+        border-top-color: var(--color-accent) !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -377,25 +580,6 @@ def main():
     # 已登录，显示侧边栏
     sidebar()
     
-    # 主标题
-    st.title(config.APP_TITLE)
-    st.caption("基于LlamaIndex和DeepSeek的系统科学知识问答系统")
-    
-    # 显示用户信息
-    col1, col2 = st.columns([3, 1])
-    with col1:
-        st.caption(f"👤 当前用户: {st.session_state.user_email}")
-    with col2:
-        if st.button("退出登录", key="logout_btn"):
-            st.session_state.logged_in = False
-            st.session_state.user_email = None
-            st.session_state.collection_name = None
-            st.session_state.index_manager = None
-            st.session_state.chat_manager = None
-            st.session_state.messages = []
-            st.session_state.index_built = False
-            st.rerun()
-    
     # 显示知识库状态提示
     if not st.session_state.index_built:
         st.info("💡 当前为纯对话模式，导入文档后可获得知识增强")
@@ -442,9 +626,9 @@ def main():
         del st.session_state.load_session_path
         st.rerun()
     
-    # ========== 主内容区域居中布局 ==========
+    # ========== 主内容区域居中布局（800px最大宽度） ==========
     # 创建三列布局，中间列为主要内容区域
-    left_spacer, main_content, right_spacer = st.columns([1, 8, 1])
+    left_spacer, main_content, right_spacer = st.columns([1, 6, 1])
     
     with main_content:
         # 显示对话历史
@@ -577,7 +761,7 @@ def main():
     # 用户输入（chat_input 无法放入 columns，但通过 CSS 居中）
     if prompt := st.chat_input("请输入您的问题..."):
         # 创建居中布局来显示新消息
-        _, center_col, _ = st.columns([1, 8, 1])
+        _, center_col, _ = st.columns([1, 6, 1])
         
         with center_col:
             # 显示用户消息
