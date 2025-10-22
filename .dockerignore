@@ -1,0 +1,47 @@
+# Python 缓存
+__pycache__/
+*.py[cod]
+*.pyc
+
+# 虚拟环境
+venv/
+.venv/
+ENV/
+env/
+
+# 测试和覆盖率
+.pytest_cache/
+.coverage
+htmlcov/
+tests/
+
+# 本地数据（不打包到镜像）
+vector_store/
+sessions/
+data/processed/
+data/users.json
+data/github_metadata.json
+data/github_repos/
+
+# 日志
+*.log
+logs/
+
+# IDE 和 Git
+.git/
+.idea/
+.vscode/
+*.swp
+
+# 环境变量（敏感信息）
+.env
+
+# 文档和任务日志
+docs/
+agent-task-log/
+README.md
+*.md
+
+# 其他
+.DS_Store
+Thumbs.db

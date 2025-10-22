@@ -102,6 +102,28 @@ make start        # = make + make run（一键启动）
 
 ---
 
+## 🚀 在线部署
+
+### Zeabur 一键部署（推荐）
+
+[![Deploy on Zeabur](https://zeabur.com/button.svg)](https://zeabur.com/templates)
+
+点击按钮，按提示配置 `DEEPSEEK_API_KEY`，即可完成部署。
+
+详见：[部署指南](docs/DEPLOYMENT.md)
+
+### Railway 一键部署（备选）
+
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template)
+
+---
+
+**注意**：
+- 首次启动需下载 Embedding 模型（约 5-10 分钟）
+- 演示版本数据不持久化，重启后会丢失
+
+---
+
 ### 三、使用方式
 
 #### 方式 A：Web 界面（推荐）⭐

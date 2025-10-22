@@ -1,0 +1,27 @@
+{
+  "name": "systematology-rag",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "env": {
+    "DEEPSEEK_API_KEY": {
+      "description": "DeepSeek API 密钥",
+      "required": true
+    },
+    "EMBEDDING_MODEL": {
+      "default": "BAAI/bge-base-zh-v1.5"
+    },
+    "HF_ENDPOINT": {
+      "default": "https://hf-mirror.com"
+    },
+    "APP_PORT": {
+      "default": "8501"
+    }
+  },
+  "ports": [
+    {
+      "port": 8501,
+      "protocol": "http"
+    }
+  ]
+}
