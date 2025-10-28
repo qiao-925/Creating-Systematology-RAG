@@ -1233,5 +1233,5 @@ print(f"平均相似度: {trace_info['avg_score']:.3f}")
 
 - [架构设计](ARCHITECTURE.md) - 系统架构和设计思路
 - [技术决策](DECISIONS.md) - 技术选型的原因
-- [开发日志](CHANGELOG.md) - 项目进展记录
+- [项目追踪](TRACKER.md) - 任务管理与进度追踪
 

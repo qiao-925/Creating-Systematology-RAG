@@ -658,7 +658,7 @@ def load_documents_from_github(owner, repo, branch=None) -> List[LlamaDocument]:
 
 5. **编写测试**（单元测试 + 集成测试）。
 
-6. **更新文档**（DECISIONS.md、CHANGELOG.md 等）。
+6. **更新文档**（DECISIONS.md、TRACKER.md 等）。
 
 ### 2. 切换向量数据库
 
@@ -847,7 +847,7 @@ else:
 
 - [API参考](API.md) - 完整的API接口文档
 - [技术决策](DECISIONS.md) - 技术选型的原因和考量
-- [开发日志](CHANGELOG.md) - 项目进展记录
+- [项目追踪](TRACKER.md) - 任务管理与进度追踪
 
 祝开发愉快！🚀
 

@@ -234,7 +234,7 @@ Creating-Systematology-RAG/
 │   └── DECISIONS.md       # 技术决策记录
 ├── app.py                 # Streamlit 应用
 ├── main.py                # CLI 工具
-├── CHANGELOG.md           # 开发日志
+├── TRACKER.md             # 项目追踪
 ├── TODO.md                # 待办事项
 └── README.md              # 本文件
 ```
@@ -434,7 +434,7 @@ WIKIPEDIA_PRELOAD_CONCEPTS=系统科学,钱学森,系统工程,控制论,信息�
 - [技术决策](docs/DECISIONS.md) - 技术选型的原因和考量
 
 ### 项目管理
-- [开发日志](docs/CHANGELOG.md) - 项目进展记录
+- [项目追踪](docs/TRACKER.md) - 任务管理与进度追踪
 - [项目结构](docs/PROJECT_STRUCTURE.md) - 目录和文件组织说明
 
 ### 测试文档

@@ -1,4 +1,4 @@
-# 项目结构说明
+嗯# 项目结构说明
 
 > 详细的目录和文件组织说明
 
@@ -29,7 +29,6 @@ Creating-Systematology-RAG/
 │   ├── PROJECT_STRUCTURE.md       # 📁 项目结构说明（本文件）
 │   │
 │   ├── DECISIONS.md               # 💡 技术决策记录（ADR）
-│   ├── CHANGELOG.md               # 📋 开发日志（变更记录）
 │   └── TODO.md                    # ✅ 待办事项（未来计划）
 │
 ├── src/                           # 💻 源代码（核心业务逻辑）
@@ -108,7 +107,6 @@ Creating-Systematology-RAG/
 
 **管理文档**：
 - `DECISIONS.md` - 技术决策记录
-- `CHANGELOG.md` - 开发日志
 - `TODO.md` - 待办事项
 - `PROJECT_STRUCTURE.md` - 本文件
 
@@ -289,7 +287,7 @@ logger.py
 | **API接口** | `docs/API.md` |
 | **文档导航** | `docs/README.md` |
 | **技术选型原因** | `docs/DECISIONS.md` |
-| **项目进展** | `docs/CHANGELOG.md` |
+| **项目追踪** | `docs/TRACKER.md` |
 | **未来计划** | `docs/TODO.md` |
 
 ---
