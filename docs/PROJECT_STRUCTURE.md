@@ -22,14 +22,10 @@ Creating-Systematology-RAG/
 │
 ├── docs/                          # 📚 文档中心
 │   ├── README.md                  # 📖 文档中心首页（整合导航）
-│   │
-│   ├── QUICKSTART.md              # 🚀 快速开始指南（5分钟上手）
 │   ├── ARCHITECTURE.md            # 🏗️ 架构设计文档（系统架构、设计思路）
 │   ├── API.md                     # 📚 API参考文档（接口文档）
 │   ├── PROJECT_STRUCTURE.md       # 📁 项目结构说明（本文件）
-│   │
-│   ├── DECISIONS.md               # 💡 技术决策记录（ADR）
-│   └── TODO.md                    # ✅ 待办事项（未来计划）
+│   └── TRACKER.md                 # 📊 项目追踪（任务管理与进度）
 │
 ├── src/                           # 💻 源代码（核心业务逻辑）
 │   ├── __init__.py                # 📦 包初始化文件
@@ -119,7 +115,8 @@ Creating-Systematology-RAG/
 | `config.py` | 配置管理 | 基础模块，无依赖 |
 | `logger.py` | 日志系统 | 依赖 config |
 | `ui_components.py` | UI共用组件（Streamlit复用函数） | 依赖 config, indexer, query_engine, chat_manager |
-| `data_loader.py` | 数据加载（Markdown、网页、GitHub） | 依赖 config, logger |
+| `data_loader.py` | 数据加载（Markdown、网页、GitHub） | 依赖 config, logger, git_repository_manager |
+| `git_repository_manager.py` | GitHub仓库管理（克隆、更新） | 依赖 config, logger |
 | `indexer.py` | 索引构建 | 依赖 config, data_loader, logger |
 | `query_engine.py` | 查询引擎（含调试支持） | 依赖 config, indexer, logger |
 | `chat_manager.py` | 对话管理（含调试支持） | 依赖 config, indexer, logger |

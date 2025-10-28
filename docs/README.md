@@ -21,9 +21,7 @@
 
 | 文档 | 说明 |
 |------|------|
-| [技术决策](DECISIONS.md) | 技术选型的原因和考量 |
 | [项目追踪](TRACKER.md) | 任务管理与进度追踪 |
-| [待办事项](TODO.md) | 未来计划 |
 | [项目结构](PROJECT_STRUCTURE.md) | 目录和文件组织说明 |
 
 ---
@@ -32,7 +30,6 @@
 
 ### 我想...
 
-- **快速使用** → [快速开始](QUICKSTART.md)
 - **理解架构** → [架构设计](ARCHITECTURE.md) ⭐ **强烈推荐**
   - 整体架构图
   - 模块设计思路
@@ -42,13 +39,10 @@
 - **查询接口** → [API参考](API.md)
   - 所有模块的完整接口文档
   - 参数说明和使用示例
-- **了解技术决策** → [技术决策](DECISIONS.md)
-  - 为什么选择这些技术
-  - 每个决策的原因和权衡
 - **了解项目结构** → [项目结构](PROJECT_STRUCTURE.md)
   - 完整的目录结构
   - 文件组织说明
-- **查看进展** → [项目追踪](TRACKER.md) / [待办事项](TODO.md)
+- **查看进展** → [项目追踪](TRACKER.md)
 
 ---
 
@@ -73,8 +67,7 @@
 
 ### 📊 项目经理/产品经理
 1. [项目主页](../README.md) - 功能概览
-2. [技术决策](DECISIONS.md) - 技术选型原因
-3. [待办事项](TODO.md) - 未来规划
+2. [项目追踪](TRACKER.md) - 任务管理与进度追踪
 
 ---
 
@@ -125,7 +118,7 @@
 - DeepSeek集成 → [架构设计 - 查询引擎](ARCHITECTURE.md#4-查询引擎模块srcquery_enginepy)
 
 **E**
-- Embedding模型 → [技术决策 - ADR-004](DECISIONS.md#adr-004-使用本地embedding模型)
+- Embedding模型 → [架构设计 - 索引构建](ARCHITECTURE.md#3-索引构建模块srcindexerpy)
 - 扩展功能 → [架构设计 - 扩展指南](ARCHITECTURE.md#扩展指南)
 
 **L**
@@ -142,7 +135,7 @@
 - 查询引擎 → [API - QueryEngine](API.md#queryengine-类)
 
 **V**
-- 向量数据库 → [技术决策 - ADR-003](DECISIONS.md#adr-003-选择chroma作为向量数据库)
+- 向量数据库 → [架构设计 - 索引构建](ARCHITECTURE.md#3-索引构建模块srcindexerpy)
 
 **W**
 - 网页抓取 → [API - WebLoader](API.md#webloader-类)
@@ -153,11 +146,10 @@
 
 | 问题 | 文档位置 |
 |------|---------|
-| 如何安装和启动？ | [快速开始](QUICKSTART.md) |
+| 如何安装和启动？ | [项目主页](../README.md#🚀-快速开始-quick-start) |
 | 如何添加新的数据源？ | [架构设计 - 扩展指南](ARCHITECTURE.md#1-添加新的数据源) |
 | 如何切换LLM模型？ | [架构设计 - 切换LLM](ARCHITECTURE.md#3-切换-llm) |
-| API密钥如何配置？ | [快速开始 - 配置API密钥](QUICKSTART.md#第二步配置-api-密钥) |
-| 为什么选择这些技术？ | [技术决策](DECISIONS.md) |
+| API密钥如何配置？ | [项目主页 - 配置API密钥](../README.md#2-配置-api-密钥) |
 | 各个模块的接口是什么？ | [API参考](API.md) |
 
 ---
@@ -165,18 +157,17 @@
 ## 📖 推荐阅读路径
 
 ### 路径1：快速使用（10分钟）
-1. [项目主页](../README.md) - 了解项目（2分钟）
-2. [快速开始](QUICKSTART.md) - 开始使用（8分钟）
+1. [项目主页](../README.md) - 了解项目（10分钟）
 
 ### 路径2：深入理解（30分钟）
-1. [项目主页](../README.md) - 项目概览（2分钟）
+1. [项目主页](../README.md) - 项目概览（5分钟）
 2. [架构设计](ARCHITECTURE.md) - 理解架构（20分钟）⭐
-3. [技术决策](DECISIONS.md) - 技术选型（8分钟）
+3. [项目追踪](TRACKER.md) - 了解进展（5分钟）
 
 ### 路径3：开发准备（40分钟）
-1. [项目主页](../README.md) - 项目概览（2分钟）
+1. [项目主页](../README.md) - 项目概览（5分钟）
 2. [架构设计](ARCHITECTURE.md) - 理解架构（20分钟）⭐
-3. [API参考](API.md) - 接口文档（18分钟）
+3. [API参考](API.md) - 接口文档（15分钟）
 
 ---
 
