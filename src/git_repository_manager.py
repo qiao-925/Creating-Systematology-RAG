@@ -5,6 +5,7 @@ Git 仓库本地管理器
 
 import subprocess
 import shutil
+import os
 from pathlib import Path
 from typing import Optional, Tuple
 from src.logger import setup_logger
@@ -155,12 +156,16 @@ class GitRepositoryManager:
         try:
             logger.debug(f"执行 git clone 到 {repo_path}")
             
+            # 继承当前进程的环境变量，确保 DNS、代理等配置可用
+            env = os.environ.copy()
+            env['GIT_TERMINAL_PROMPT'] = '0'  # 禁用交互式提示
+            
             result = subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,
                 timeout=300,  # 5分钟超时
-                env={'GIT_TERMINAL_PROMPT': '0'}  # 禁用交互式提示
+                env=env
             )
             
             if result.returncode != 0:
@@ -205,13 +210,17 @@ class GitRepositoryManager:
             
             # 2. 拉取最新更改
             pull_cmd = ['git', 'pull', 'origin', branch]
+            # 继承当前进程的环境变量，确保 DNS、代理等配置可用
+            env = os.environ.copy()
+            env['GIT_TERMINAL_PROMPT'] = '0'  # 禁用交互式提示
+            
             result = subprocess.run(
                 pull_cmd,
                 cwd=repo_path,
                 capture_output=True,
                 text=True,
                 timeout=300,  # 5分钟超时
-                env={'GIT_TERMINAL_PROMPT': '0'}
+                env=env
             )
             
             if result.returncode != 0:

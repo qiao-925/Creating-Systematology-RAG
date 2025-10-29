@@ -102,13 +102,34 @@ def load_embedding_model(model_name: Optional[str] = None, force_reload: bool = 
             "cache_folder": cache_folder,
         }
         
-        # Qwen3-Embedding 需要禁用 device_map 以避免 meta tensor 错误
+        # 检查是否有可用的 GPU
+        try:
+            import torch
+            has_gpu = torch.cuda.is_available()
+            if has_gpu:
+                device = f"cuda:{torch.cuda.current_device()}"
+                logger.info(f"✅ 检测到 GPU: {torch.cuda.get_device_name()}")
+                logger.info(f"🔧 使用设备: {device}")
+            else:
+                device = "cpu"
+                logger.warning("⚠️  未检测到 GPU，将使用 CPU")
+        except ImportError:
+            device = "cpu"
+            logger.warning("⚠️  PyTorch 未安装或不可用，将使用 CPU")
+        
+        # Qwen3-Embedding 需要特殊处理
         if is_qwen_model:
-            # 对于 Qwen 模型，禁用自动设备映射，使用默认 CPU/GPU 映射
+            # 对于 Qwen 模型，禁用自动设备映射，手动指定设备
             model_kwargs["model_kwargs"] = {
                 "device_map": None,  # 不使用自动设备映射
             }
-            logger.debug(f"🔧 Qwen 模型特殊配置: 禁用 device_map")
+            # 手动指定设备
+            model_kwargs["device"] = device
+            logger.debug(f"🔧 Qwen 模型特殊配置: 禁用 device_map, 手动指定 device={device}")
+        else:
+            # 其他模型直接指定设备
+            model_kwargs["device"] = device
+            logger.debug(f"🔧 使用设备: {device}")
         
         _global_embed_model = HuggingFaceEmbedding(
             model_name=model_name,
@@ -137,12 +158,29 @@ def load_embedding_model(model_name: Optional[str] = None, force_reload: bool = 
                     "cache_folder": cache_folder,
                 }
                 
-                # Qwen3-Embedding 需要禁用 device_map
+                # 检测 GPU
+                try:
+                    import torch
+                    has_gpu = torch.cuda.is_available()
+                    if has_gpu:
+                        device = f"cuda:{torch.cuda.current_device()}"
+                        logger.info(f"✅ 检测到 GPU: {torch.cuda.get_device_name()}")
+                    else:
+                        device = "cpu"
+                        logger.warning("⚠️  未检测到 GPU")
+                except ImportError:
+                    device = "cpu"
+                    logger.warning("⚠️  PyTorch 不可用")
+                
+                # Qwen3-Embedding 需要特殊处理
                 if is_qwen_model:
                     model_kwargs["model_kwargs"] = {
-                        "device_map": None,  # 不使用自动设备映射
+                        "device_map": None,
                     }
-                    logger.debug(f"🔧 Qwen 模型特殊配置: 禁用 device_map")
+                    model_kwargs["device"] = device
+                    logger.debug(f"🔧 Qwen 模型: device={device}")
+                else:
+                    model_kwargs["device"] = device
                 
                 _global_embed_model = HuggingFaceEmbedding(
                     model_name=model_name,
