@@ -119,17 +119,12 @@ def load_embedding_model(model_name: Optional[str] = None, force_reload: bool = 
         
         # Qwen3-Embedding 需要特殊处理
         if is_qwen_model:
-            # 对于 Qwen 模型，禁用自动设备映射，手动指定设备
+            # 对于 Qwen 模型，在 model_kwargs 中指定设备
             model_kwargs["model_kwargs"] = {
                 "device_map": None,  # 不使用自动设备映射
+                "dtype": "float16" if device.startswith("cuda") else "float32",  # GPU 使用 float16 加速
             }
-            # 手动指定设备
-            model_kwargs["device"] = device
-            logger.debug(f"🔧 Qwen 模型特殊配置: 禁用 device_map, 手动指定 device={device}")
-        else:
-            # 其他模型直接指定设备
-            model_kwargs["device"] = device
-            logger.debug(f"🔧 使用设备: {device}")
+            logger.debug(f"🔧 Qwen 模型特殊配置: 禁用 device_map, 设备={device}")
         
         _global_embed_model = HuggingFaceEmbedding(
             model_name=model_name,
@@ -137,6 +132,16 @@ def load_embedding_model(model_name: Optional[str] = None, force_reload: bool = 
             max_length=config.EMBED_MAX_LENGTH,  # 设置最大长度
             **model_kwargs
         )
+        
+        # 手动将模型移到 GPU（如果不支持通过参数指定）
+        try:
+            import torch
+            if device.startswith("cuda") and torch.cuda.is_available():
+                if hasattr(_global_embed_model, 'model') and hasattr(_global_embed_model.model, 'to'):
+                    _global_embed_model.model = _global_embed_model.model.to(device)
+                    logger.info(f"✅ 模型已移动到 GPU: {device}")
+        except Exception as e:
+            logger.warning(f"⚠️  无法将模型移动到 GPU: {e}")
         logger.info(f"✅ Embedding 模型加载完成: {model_name}")
         logger.info(f"📁 缓存目录: {cache_folder}")
         logger.info(f"⚡ 批处理配置: batch_size={config.EMBED_BATCH_SIZE}, max_length={config.EMBED_MAX_LENGTH}")
@@ -176,11 +181,9 @@ def load_embedding_model(model_name: Optional[str] = None, force_reload: bool = 
                 if is_qwen_model:
                     model_kwargs["model_kwargs"] = {
                         "device_map": None,
+                        "dtype": "float16" if device.startswith("cuda") else "float32",
                     }
-                    model_kwargs["device"] = device
                     logger.debug(f"🔧 Qwen 模型: device={device}")
-                else:
-                    model_kwargs["device"] = device
                 
                 _global_embed_model = HuggingFaceEmbedding(
                     model_name=model_name,
@@ -188,6 +191,17 @@ def load_embedding_model(model_name: Optional[str] = None, force_reload: bool = 
                     max_length=config.EMBED_MAX_LENGTH,
                     **model_kwargs
                 )
+                
+                # 手动将模型移到 GPU
+                try:
+                    import torch
+                    if device.startswith("cuda") and torch.cuda.is_available():
+                        if hasattr(_global_embed_model, 'model') and hasattr(_global_embed_model.model, 'to'):
+                            _global_embed_model.model = _global_embed_model.model.to(device)
+                            logger.info(f"✅ 模型已移动到 GPU: {device}")
+                except Exception as e:
+                    logger.warning(f"⚠️  无法将模型移动到 GPU: {e}")
+                
                 logger.info(f"✅ Embedding 模型下载并加载完成: {model_name}")
                 logger.info(f"⚡ 批处理配置: batch_size={config.EMBED_BATCH_SIZE}, max_length={config.EMBED_MAX_LENGTH}")
             except Exception as retry_error:
