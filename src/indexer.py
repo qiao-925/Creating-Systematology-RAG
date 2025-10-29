@@ -137,7 +137,11 @@ def load_embedding_model(model_name: Optional[str] = None, force_reload: bool = 
         try:
             import torch
             if device.startswith("cuda") and torch.cuda.is_available():
-                if hasattr(_global_embed_model, 'model') and hasattr(_global_embed_model.model, 'to'):
+                # HuggingFaceEmbedding 使用 _model 属性
+                if hasattr(_global_embed_model, '_model') and hasattr(_global_embed_model._model, 'to'):
+                    _global_embed_model._model = _global_embed_model._model.to(device)
+                    logger.info(f"✅ 模型已移动到 GPU: {device}")
+                elif hasattr(_global_embed_model, 'model') and hasattr(_global_embed_model.model, 'to'):
                     _global_embed_model.model = _global_embed_model.model.to(device)
                     logger.info(f"✅ 模型已移动到 GPU: {device}")
         except Exception as e:
@@ -196,7 +200,11 @@ def load_embedding_model(model_name: Optional[str] = None, force_reload: bool = 
                 try:
                     import torch
                     if device.startswith("cuda") and torch.cuda.is_available():
-                        if hasattr(_global_embed_model, 'model') and hasattr(_global_embed_model.model, 'to'):
+                        # HuggingFaceEmbedding 使用 _model 属性
+                        if hasattr(_global_embed_model, '_model') and hasattr(_global_embed_model._model, 'to'):
+                            _global_embed_model._model = _global_embed_model._model.to(device)
+                            logger.info(f"✅ 模型已移动到 GPU: {device}")
+                        elif hasattr(_global_embed_model, 'model') and hasattr(_global_embed_model.model, 'to'):
                             _global_embed_model.model = _global_embed_model.model.to(device)
                             logger.info(f"✅ 模型已移动到 GPU: {device}")
                 except Exception as e:

@@ -41,9 +41,15 @@ try:
     
     # 手动将模型移到 GPU
     if device.startswith("cuda") and torch.cuda.is_available():
-        if hasattr(model, 'model') and hasattr(model.model, 'to'):
+        # HuggingFaceEmbedding 使用 _model 属性
+        if hasattr(model, '_model') and hasattr(model._model, 'to'):
+            model._model = model._model.to(device)
+            print(f"[OK] Model moved to GPU: {device}")
+        elif hasattr(model, 'model') and hasattr(model.model, 'to'):
             model.model = model.model.to(device)
             print(f"[OK] Model moved to GPU: {device}")
+        else:
+            print(f"[WARNING] Cannot move model to GPU: no model attribute found")
     
     # 测试生成 embedding
     print("\n测试生成 embedding...")
@@ -56,10 +62,40 @@ try:
     print(f"[OK] Embedding type: {type(embedding)}, length: {len(embedding) if isinstance(embedding, list) else 'N/A'}")
     
     # 检查模型设备
-    if hasattr(model, 'model'):
-        for name, param in model.model.named_parameters():
-            print(f"[OK] Parameter '{name}' device: {param.device}")
-            break
+    print("\n检查模型设备...")
+    
+    # 检查 _model 属性
+    if hasattr(model, '_model'):
+        internal_model = model._model
+        print(f"_model type: {type(internal_model)}")
+        
+        if hasattr(internal_model, 'named_parameters'):
+            params_on_cuda = 0
+            params_on_cpu = 0
+            param_count = 0
+            for name, param in internal_model.named_parameters():
+                param_count += 1
+                device_str = str(param.device)
+                if 'cuda' in device_str:
+                    params_on_cuda += 1
+                else:
+                    params_on_cpu += 1
+                if param_count <= 5:
+                    print(f"  {name}: {device_str}")
+            
+            print(f"\n参数统计: {params_on_cuda} 个在 GPU, {params_on_cpu} 个在 CPU")
+            
+            if params_on_cuda > 0:
+                print("[OK] 模型正在使用 GPU!")
+            elif params_on_cpu > 0:
+                print("[WARNING] 模型未使用 GPU - 所有参数在 CPU")
+            else:
+                print("[WARNING] 无法检查模型参数")
+        else:
+            print("[WARNING] _model 没有 named_parameters 方法")
+    else:
+        print("[WARNING] _model 属性不存在")
+        print(f"Available attributes: {[attr for attr in dir(model) if not attr.startswith('__')]}")
     
     print(f"\n[OK] Test completed! Speed: {elapsed:.3f}s per embedding")
     
