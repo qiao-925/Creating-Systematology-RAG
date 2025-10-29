@@ -25,7 +25,7 @@ class Config:
         
         # 模型配置
         self.LLM_MODEL = os.getenv("LLM_MODEL", "deepseek-chat")
-        self.EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "BAAI/bge-base-zh-v1.5")
+        self.EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "Qwen/Qwen3-Embedding-0.6B")
         
         # HuggingFace镜像配置
         self.HF_ENDPOINT = os.getenv("HF_ENDPOINT", "https://hf-mirror.com")
@@ -52,6 +52,10 @@ class Config:
         self.CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "50"))
         self.SIMILARITY_TOP_K = int(os.getenv("SIMILARITY_TOP_K", "3"))
         self.SIMILARITY_THRESHOLD = float(os.getenv("SIMILARITY_THRESHOLD", "0.5"))  # 相似度阈值，低于此值会启用推理模式
+        
+        # Embedding性能优化配置
+        self.EMBED_BATCH_SIZE = int(os.getenv("EMBED_BATCH_SIZE", "10"))  # 批处理大小，默认10（可根据GPU内存调整）
+        self.EMBED_MAX_LENGTH = int(os.getenv("EMBED_MAX_LENGTH", "512"))  # 最大文本长度，超过会被截断
         
         # 应用配置
         self.APP_TITLE = os.getenv("APP_TITLE", "系统科学知识库RAG")
@@ -135,6 +139,8 @@ class Config:
     CHUNK_SIZE={self.CHUNK_SIZE},
     CHUNK_OVERLAP={self.CHUNK_OVERLAP},
     SIMILARITY_TOP_K={self.SIMILARITY_TOP_K},
+    EMBED_BATCH_SIZE={self.EMBED_BATCH_SIZE},
+    EMBED_MAX_LENGTH={self.EMBED_MAX_LENGTH},
     GITHUB_DEFAULT_BRANCH={self.GITHUB_DEFAULT_BRANCH},
     ENABLE_WIKIPEDIA={self.ENABLE_WIKIPEDIA},
     WIKIPEDIA_THRESHOLD={self.WIKIPEDIA_THRESHOLD},

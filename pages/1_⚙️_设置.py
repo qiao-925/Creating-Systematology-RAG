@@ -48,14 +48,14 @@ st.markdown("""
 
 /* 全局字体和配色 */
 :root {
-    --color-bg-primary: #F5F5F0;
-    --color-bg-sidebar: #EEEEE9;
+    --color-bg-primary: #FFFFFF;
+    --color-bg-sidebar: #FFFFFF;
     --color-bg-card: #FFFFFF;
-    --color-bg-hover: #F9F9F6;
+    --color-bg-hover: #F5F5F5;
     --color-text-primary: #2C2C2C;
     --color-text-secondary: #6B6B6B;
-    --color-accent: #D97706;
-    --color-accent-hover: #B45309;
+    --color-accent: #2563EB;
+    --color-accent-hover: #1D4ED8;
     --color-border: #E5E5E0;
     --color-border-light: #F0F0EB;
 }

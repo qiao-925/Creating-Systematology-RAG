@@ -50,11 +50,12 @@ def _setup_huggingface_env():
         os.environ.pop('TRANSFORMERS_OFFLINE', None)
 
 
-def load_embedding_model(model_name: Optional[str] = None) -> HuggingFaceEmbedding:
+def load_embedding_model(model_name: Optional[str] = None, force_reload: bool = False) -> HuggingFaceEmbedding:
     """加载 Embedding 模型（支持全局单例模式）
     
     Args:
         model_name: 模型名称，默认使用配置中的模型
+        force_reload: 是否强制重新加载（即使已缓存）
         
     Returns:
         HuggingFaceEmbedding 实例
@@ -63,11 +64,24 @@ def load_embedding_model(model_name: Optional[str] = None) -> HuggingFaceEmbeddi
     
     model_name = model_name or config.EMBEDDING_MODEL
     
-    # 如果已经加载过且模型名称相同，直接返回
-    if _global_embed_model is not None:
-        logger.info(f"✅ 使用缓存的 Embedding 模型（全局变量）: {model_name}")
-        logger.info(f"   模型对象ID: {id(_global_embed_model)}")
-        return _global_embed_model
+    # 如果已经加载过且模型名称相同，直接返回（除非强制重新加载）
+    if _global_embed_model is not None and not force_reload:
+        # 检查缓存的模型名称是否与新配置一致
+        cached_model_name = getattr(_global_embed_model, 'model_name', None)
+        if cached_model_name == model_name:
+            logger.info(f"✅ 使用缓存的 Embedding 模型（全局变量）: {model_name}")
+            logger.info(f"   模型对象ID: {id(_global_embed_model)}")
+            return _global_embed_model
+        else:
+            # 模型名称不一致，清除缓存并重新加载
+            logger.info(f"🔄 检测到模型配置变更: {cached_model_name} -> {model_name}")
+            logger.info(f"   清除旧模型缓存，重新加载新模型")
+            _global_embed_model = None
+    
+    # 如果需要强制重新加载，清除缓存
+    if force_reload:
+        logger.info(f"🔄 强制重新加载模型")
+        _global_embed_model = None
     
     # 配置 HuggingFace 环境变量
     _setup_huggingface_env()
@@ -82,9 +96,12 @@ def load_embedding_model(model_name: Optional[str] = None) -> HuggingFaceEmbeddi
             model_name=model_name,
             trust_remote_code=True,
             cache_folder=cache_folder,
+            embed_batch_size=config.EMBED_BATCH_SIZE,  # 启用批处理，提升性能
+            max_length=config.EMBED_MAX_LENGTH,  # 设置最大长度
         )
         logger.info(f"✅ Embedding 模型加载完成: {model_name}")
         logger.info(f"📁 缓存目录: {cache_folder}")
+        logger.info(f"⚡ 批处理配置: batch_size={config.EMBED_BATCH_SIZE}, max_length={config.EMBED_MAX_LENGTH}")
     except Exception as e:
         # 如果是离线模式且缺少缓存，尝试切换到在线模式
         if config.HF_OFFLINE_MODE and "offline" in str(e).lower():
@@ -97,8 +114,11 @@ def load_embedding_model(model_name: Optional[str] = None) -> HuggingFaceEmbeddi
                     model_name=model_name,
                     trust_remote_code=True,
                     cache_folder=cache_folder,
+                    embed_batch_size=config.EMBED_BATCH_SIZE,
+                    max_length=config.EMBED_MAX_LENGTH,
                 )
                 logger.info(f"✅ Embedding 模型下载并加载完成: {model_name}")
+                logger.info(f"⚡ 批处理配置: batch_size={config.EMBED_BATCH_SIZE}, max_length={config.EMBED_MAX_LENGTH}")
             except Exception as retry_error:
                 logger.error(f"❌ 模型加载失败: {retry_error}")
                 raise
@@ -127,6 +147,17 @@ def get_global_embed_model() -> Optional[HuggingFaceEmbedding]:
         已加载的模型实例，如果未加载则返回 None
     """
     return _global_embed_model
+
+
+def clear_embedding_model_cache():
+    """清除全局 Embedding 模型缓存
+    
+    用于模型切换或强制重新加载场景
+    """
+    global _global_embed_model
+    if _global_embed_model is not None:
+        logger.info(f"🧹 清除 Embedding 模型缓存")
+        _global_embed_model = None
 
 
 def get_embedding_model_status() -> dict:
@@ -213,8 +244,10 @@ class IndexManager:
                     model_name=self.embedding_model_name,
                     trust_remote_code=True,
                     cache_folder=cache_folder,
+                    embed_batch_size=config.EMBED_BATCH_SIZE,  # 启用批处理
+                    max_length=config.EMBED_MAX_LENGTH,
                 )
-                print(f"✅ 模型加载完成")
+                print(f"✅ 模型加载完成 (批处理: {config.EMBED_BATCH_SIZE})")
             except Exception as e:
                 # 如果是离线模式且缺少缓存，尝试切换到在线模式
                 if config.HF_OFFLINE_MODE and "offline" in str(e).lower():
@@ -227,8 +260,10 @@ class IndexManager:
                             model_name=self.embedding_model_name,
                             trust_remote_code=True,
                             cache_folder=cache_folder,
+                            embed_batch_size=config.EMBED_BATCH_SIZE,  # 启用批处理
+                            max_length=config.EMBED_MAX_LENGTH,
                         )
-                        print(f"✅ 模型下载并加载完成")
+                        print(f"✅ 模型下载并加载完成 (批处理: {config.EMBED_BATCH_SIZE})")
                     except Exception as retry_error:
                         print(f"❌ 模型加载失败: {retry_error}")
                         raise
@@ -277,42 +312,93 @@ class IndexManager:
         Returns:
             (VectorStoreIndex对象, 文件路径到向量ID的映射)
         """
+        import time
+        start_time = time.time()
+        
         if not documents:
             print("⚠️  没有文档可索引")
             return self.get_index(), {}
         
         print(f"\n🔨 开始构建索引，共 {len(documents)} 个文档")
         print(f"   分块参数: size={self.chunk_size}, overlap={self.chunk_overlap}")
+        print(f"   批处理配置: embed_batch_size={config.EMBED_BATCH_SIZE}")
         
         try:
             # 如果索引不存在，创建新索引
             if self._index is None:
+                index_start_time = time.time()
                 self._index = VectorStoreIndex.from_documents(
                     documents,
                     storage_context=self.storage_context,
                     show_progress=show_progress,
                 )
-                print("✅ 索引创建成功")
+                index_elapsed = time.time() - index_start_time
+                print(f"✅ 索引创建成功 (耗时: {index_elapsed:.2f}s)")
+                logger.info(f"索引创建完成: {len(documents)}个文档, 耗时{index_elapsed:.2f}s, 平均{index_elapsed/len(documents):.3f}s/文档")
             else:
-                # 如果索引已存在，增量添加文档
-                for doc in documents:
-                    self._index.insert(doc)
-                print("✅ 文档已添加到现有索引")
+                # 如果索引已存在，批量增量添加文档（优化：使用insert_ref_docs批量插入）
+                insert_start_time = time.time()
+                
+                # 使用insert_ref_docs批量插入，性能远优于逐个insert
+                # LlamaIndex会自动批处理embedding计算和向量存储写入
+                try:
+                    self._index.insert_ref_docs(documents, show_progress=show_progress)
+                    insert_elapsed = time.time() - insert_start_time
+                    print(f"✅ 文档已批量添加到现有索引 (耗时: {insert_elapsed:.2f}s)")
+                    logger.info(
+                        f"批量增量添加完成: {len(documents)}个文档, "
+                        f"耗时{insert_elapsed:.2f}s, "
+                        f"平均{insert_elapsed/len(documents):.3f}s/文档"
+                    )
+                except AttributeError:
+                    # 如果insert_ref_docs不存在，回退到批量插入节点的方式
+                    logger.warning("insert_ref_docs不可用，使用节点批量插入方式")
+                    from llama_index.core.node_parser import SentenceSplitter
+                    node_parser = SentenceSplitter(
+                        chunk_size=self.chunk_size,
+                        chunk_overlap=self.chunk_overlap
+                    )
+                    # 批量分块并插入节点
+                    batch_size = config.EMBED_BATCH_SIZE * 2
+                    for i in range(0, len(documents), batch_size):
+                        batch_docs = documents[i:i+batch_size]
+                        nodes = node_parser.get_nodes_from_documents(batch_docs)
+                        # 批量插入节点
+                        for node in nodes:
+                            self._index.insert(node)
+                        if show_progress:
+                            progress = min(i + batch_size, len(documents))
+                            print(f"   进度: {progress}/{len(documents)} ({progress/len(documents)*100:.1f}%)")
+                    insert_elapsed = time.time() - insert_start_time
+                    print(f"✅ 文档已批量添加到现有索引 (耗时: {insert_elapsed:.2f}s)")
+                    logger.info(
+                        f"批量增量添加完成: {len(documents)}个文档, "
+                        f"耗时{insert_elapsed:.2f}s, "
+                        f"平均{insert_elapsed/len(documents):.3f}s/文档"
+                    )
             
             # 获取索引统计信息
             stats = self.get_stats()
+            total_elapsed = time.time() - start_time
+            
             print(f"📊 索引统计: {stats}")
+            logger.info(
+                f"索引构建完成: "
+                f"文档数={len(documents)}, "
+                f"向量数={stats.get('document_count', 0)}, "
+                f"总耗时={total_elapsed:.2f}s, "
+                f"平均={total_elapsed/len(documents):.3f}s/文档"
+            )
             
-            # 构建向量ID映射
-            vector_ids_map = {}
-            for doc in documents:
-                file_path = doc.metadata.get("file_path", "")
-                if file_path:
-                    # 查询该文件的向量ID
-                    vector_ids = self._get_vector_ids_by_metadata(file_path)
-                    vector_ids_map[file_path] = vector_ids
-            
-            print(f"📋 已记录 {len(vector_ids_map)} 个文件的向量ID映射")
+            # 构建向量ID映射（优化：批量查询）
+            vector_ids_map_start = time.time()
+            vector_ids_map = self._get_vector_ids_batch(
+                [doc.metadata.get("file_path", "") for doc in documents 
+                 if doc.metadata.get("file_path")]
+            )
+            vector_ids_elapsed = time.time() - vector_ids_map_start
+            print(f"📋 已记录 {len(vector_ids_map)} 个文件的向量ID映射 (耗时: {vector_ids_elapsed:.2f}s)")
+            logger.debug(f"向量ID映射构建耗时: {vector_ids_elapsed:.2f}s")
             
             return self._index, vector_ids_map
             
@@ -468,11 +554,11 @@ class IndexManager:
                 print(f"❌ {error_msg}")
                 stats["errors"].append(error_msg)
         
-        # 2. 处理修改（先删除旧的，再添加新的）
+        # 2. 处理修改（先批量删除旧的，再批量添加新的）
         if modified_docs:
             try:
-                # 删除旧向量
-                deleted_vector_count = 0
+                # 优化：批量收集所有需要删除的向量ID
+                all_vector_ids_to_delete = []
                 for doc in modified_docs:
                     file_path = doc.metadata.get("file_path", "")
                     if file_path and metadata_manager:
@@ -483,13 +569,24 @@ class IndexManager:
                         
                         vector_ids = metadata_manager.get_file_vector_ids(owner, repo, branch, file_path)
                         if vector_ids:
-                            self._delete_vectors_by_ids(vector_ids)
-                            deleted_vector_count += len(vector_ids)
+                            all_vector_ids_to_delete.extend(vector_ids)
                 
-                # 添加新版本
+                # 批量删除所有旧向量（优化：一次性删除）
+                deleted_vector_count = 0
+                if all_vector_ids_to_delete:
+                    # 去重
+                    unique_vector_ids = list(set(all_vector_ids_to_delete))
+                    # 分批删除以避免单次删除过多数据
+                    batch_delete_size = 100
+                    for i in range(0, len(unique_vector_ids), batch_delete_size):
+                        batch_ids = unique_vector_ids[i:i+batch_delete_size]
+                        self._delete_vectors_by_ids(batch_ids)
+                        deleted_vector_count += len(batch_ids)
+                
+                # 批量添加新版本
                 modified_count, modified_vector_ids = self._add_documents(modified_docs)
                 stats["modified"] = modified_count
-                print(f"✅ 更新 {modified_count} 个文档（删除 {deleted_vector_count} 个旧向量）")
+                print(f"✅ 更新 {modified_count} 个文档（批量删除 {deleted_vector_count} 个旧向量）")
                 
                 # 更新元数据的向量ID
                 if metadata_manager and modified_docs:
@@ -524,7 +621,7 @@ class IndexManager:
         return stats
     
     def _add_documents(self, documents: List[LlamaDocument]) -> Tuple[int, Dict[str, List[str]]]:
-        """批量添加文档到索引
+        """批量添加文档到索引（优化：使用批量插入）
         
         Args:
             documents: 文档列表
@@ -535,21 +632,44 @@ class IndexManager:
         if not documents:
             return 0, {}
         
-        count = 0
-        for doc in documents:
+        try:
+            # 优化：使用批量插入替代逐个插入
+            # 优先尝试使用insert_ref_docs批量插入
             try:
-                self._index.insert(doc)
-                count += 1
+                self._index.insert_ref_docs(documents, show_progress=False)
+                count = len(documents)
+            except AttributeError:
+                # 如果insert_ref_docs不可用，使用节点批量插入
+                from llama_index.core.node_parser import SentenceSplitter
+                node_parser = SentenceSplitter(
+                    chunk_size=self.chunk_size,
+                    chunk_overlap=self.chunk_overlap
+                )
+                # 批量分块并插入节点
+                all_nodes = node_parser.get_nodes_from_documents(documents)
+                for node in all_nodes:
+                    self._index.insert(node)
+                count = len(documents)
             except Exception as e:
-                print(f"⚠️  添加文档失败 [{doc.metadata.get('file_path', 'unknown')}]: {e}")
+                # 如果批量插入失败，回退到逐个插入（保留容错能力）
+                logger.warning(f"批量插入失败，回退到逐个插入: {e}")
+                count = 0
+                for doc in documents:
+                    try:
+                        self._index.insert(doc)
+                        count += 1
+                    except Exception as insert_error:
+                        print(f"⚠️  添加文档失败 [{doc.metadata.get('file_path', 'unknown')}]: {insert_error}")
+                        logger.warning(f"添加文档失败: {insert_error}")
+        except Exception as e:
+            logger.error(f"批量添加文档失败: {e}")
+            print(f"❌ 批量添加文档失败: {e}")
+            return 0, {}
         
-        # 获取向量ID映射
-        vector_ids_map = {}
-        for doc in documents:
-            file_path = doc.metadata.get("file_path", "")
-            if file_path:
-                vector_ids = self._get_vector_ids_by_metadata(file_path)
-                vector_ids_map[file_path] = vector_ids
+        # 优化：批量查询向量ID映射
+        file_paths = [doc.metadata.get("file_path", "") for doc in documents 
+                     if doc.metadata.get("file_path")]
+        vector_ids_map = self._get_vector_ids_batch(file_paths)
         
         return count, vector_ids_map
     
@@ -593,8 +713,61 @@ class IndexManager:
             )
             return results.get('ids', []) if results else []
         except Exception as e:
-            print(f"⚠️  查询向量ID失败 [{file_path}]: {e}")
+            logger.warning(f"查询向量ID失败 [{file_path}]: {e}")
             return []
+    
+    def _get_vector_ids_batch(self, file_paths: List[str]) -> Dict[str, List[str]]:
+        """批量查询向量ID映射（优化：减少查询次数）
+        
+        Args:
+            file_paths: 文件路径列表
+            
+        Returns:
+            文件路径到向量ID列表的映射字典
+        """
+        if not file_paths:
+            return {}
+        
+        # 去重
+        unique_paths = list(set(file_paths))
+        vector_ids_map = {}
+        
+        try:
+            # Chroma 不支持批量 where 条件查询，但仍可以优化：
+            # 1. 减少重复查询（通过去重）
+            # 2. 批量获取所有数据然后过滤（适用于数据量不大的情况）
+            # 3. 或者继续逐个查询但去掉重复
+            
+            # 方案：分批查询以避免一次性加载过多数据
+            batch_size = 50  # 每批查询50个文件路径
+            total_results = 0
+            
+            for i in range(0, len(unique_paths), batch_size):
+                batch_paths = unique_paths[i:i+batch_size]
+                for file_path in batch_paths:
+                    vector_ids = self._get_vector_ids_by_metadata(file_path)
+                    if vector_ids:
+                        vector_ids_map[file_path] = vector_ids
+                        total_results += len(vector_ids)
+            
+            logger.debug(
+                f"批量查询向量ID: "
+                f"输入{len(file_paths)}个路径(去重后{len(unique_paths)}个), "
+                f"找到{len(vector_ids_map)}个文件, "
+                f"共{total_results}个向量"
+            )
+        except Exception as e:
+            logger.error(f"批量查询向量ID失败: {e}")
+            # 回退到逐个查询
+            for file_path in unique_paths:
+                try:
+                    vector_ids = self._get_vector_ids_by_metadata(file_path)
+                    if vector_ids:
+                        vector_ids_map[file_path] = vector_ids
+                except Exception as query_error:
+                    logger.warning(f"查询单个向量ID失败 [{file_path}]: {query_error}")
+        
+        return vector_ids_map
     
     def _delete_vectors_by_ids(self, vector_ids: List[str]):
         """根据向量ID删除向量

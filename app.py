@@ -128,22 +128,23 @@ def sidebar():
             if index_manager:
                 with st.spinner(f"正在处理 {len(uploaded_files)} 个文件..."):
                     try:
-                        documents = []
-                        for file in uploaded_files:
-                            content = file.read().decode('utf-8')
-                            doc = LlamaDocument(
-                                text=content,
-                                metadata={
-                                    'file_name': file.name,
-                                    'source_type': 'upload',
-                                }
-                            )
-                            documents.append(doc)
+                        # 使用新架构：LocalFileSource + DocumentParser
+                        from src.data_source import LocalFileSource
+                        from src.data_loader import load_documents_from_source
                         
-                        _, _ = index_manager.build_index(documents)
-                        st.session_state.index_built = True
-                        st.success(f"✅ 成功导入 {len(documents)} 个文档")
-                        st.rerun()
+                        source = LocalFileSource(source=list(uploaded_files))
+                        documents = load_documents_from_source(source, clean=True, show_progress=False)
+                        
+                        # 清理临时文件（如果创建了）
+                        source.cleanup()
+                        
+                        if documents:
+                            _, _ = index_manager.build_index(documents)
+                            st.session_state.index_built = True
+                            st.success(f"✅ 成功导入 {len(documents)} 个文档")
+                            st.rerun()
+                        else:
+                            st.error("❌ 未能解析任何文档，请检查文件格式")
                     except Exception as e:
                         st.error(f"❌ 导入失败: {e}")
         
@@ -194,14 +195,14 @@ def main():
     
     /* 全局字体和配色 */
     :root {
-        --color-bg-primary: #F5F5F0;
-        --color-bg-sidebar: #EEEEE9;
+        --color-bg-primary: #FFFFFF;
+        --color-bg-sidebar: #FFFFFF;
         --color-bg-card: #FFFFFF;
-        --color-bg-hover: #F9F9F6;
+        --color-bg-hover: #F5F5F5;
         --color-text-primary: #2C2C2C;
         --color-text-secondary: #6B6B6B;
-        --color-accent: #D97706;
-        --color-accent-hover: #B45309;
+        --color-accent: #2563EB;
+        --color-accent-hover: #1D4ED8;
         --color-border: #E5E5E0;
         --color-border-light: #F0F0EB;
     }
