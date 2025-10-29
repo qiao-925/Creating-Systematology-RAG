@@ -92,12 +92,29 @@ def load_embedding_model(model_name: Optional[str] = None, force_reload: bool = 
     try:
         # 显式指定缓存目录以确保使用本地缓存
         cache_folder = str(Path.home() / ".cache" / "huggingface")
+        
+        # 检查是否是 Qwen3-Embedding 模型，需要特殊处理
+        is_qwen_model = "qwen" in model_name.lower() and "embedding" in model_name.lower()
+        
+        # 构建模型参数
+        model_kwargs = {
+            "trust_remote_code": True,
+            "cache_folder": cache_folder,
+        }
+        
+        # Qwen3-Embedding 需要禁用 device_map 以避免 meta tensor 错误
+        if is_qwen_model:
+            # 对于 Qwen 模型，禁用自动设备映射，使用默认 CPU/GPU 映射
+            model_kwargs["model_kwargs"] = {
+                "device_map": None,  # 不使用自动设备映射
+            }
+            logger.debug(f"🔧 Qwen 模型特殊配置: 禁用 device_map")
+        
         _global_embed_model = HuggingFaceEmbedding(
             model_name=model_name,
-            trust_remote_code=True,
-            cache_folder=cache_folder,
             embed_batch_size=config.EMBED_BATCH_SIZE,  # 启用批处理，提升性能
             max_length=config.EMBED_MAX_LENGTH,  # 设置最大长度
+            **model_kwargs
         )
         logger.info(f"✅ Embedding 模型加载完成: {model_name}")
         logger.info(f"📁 缓存目录: {cache_folder}")
@@ -110,12 +127,28 @@ def load_embedding_model(model_name: Optional[str] = None, force_reload: bool = 
             
             try:
                 cache_folder = str(Path.home() / ".cache" / "huggingface")
+                
+                # 检查是否是 Qwen3-Embedding 模型
+                is_qwen_model = "qwen" in model_name.lower() and "embedding" in model_name.lower()
+                
+                # 构建模型参数
+                model_kwargs = {
+                    "trust_remote_code": True,
+                    "cache_folder": cache_folder,
+                }
+                
+                # Qwen3-Embedding 需要禁用 device_map
+                if is_qwen_model:
+                    model_kwargs["model_kwargs"] = {
+                        "device_map": None,  # 不使用自动设备映射
+                    }
+                    logger.debug(f"🔧 Qwen 模型特殊配置: 禁用 device_map")
+                
                 _global_embed_model = HuggingFaceEmbedding(
                     model_name=model_name,
-                    trust_remote_code=True,
-                    cache_folder=cache_folder,
                     embed_batch_size=config.EMBED_BATCH_SIZE,
                     max_length=config.EMBED_MAX_LENGTH,
+                    **model_kwargs
                 )
                 logger.info(f"✅ Embedding 模型下载并加载完成: {model_name}")
                 logger.info(f"⚡ 批处理配置: batch_size={config.EMBED_BATCH_SIZE}, max_length={config.EMBED_MAX_LENGTH}")
@@ -240,12 +273,28 @@ class IndexManager:
             
             try:
                 cache_folder = str(Path.home() / ".cache" / "huggingface")
+                
+                # 检查是否是 Qwen3-Embedding 模型
+                is_qwen_model = "qwen" in self.embedding_model_name.lower() and "embedding" in self.embedding_model_name.lower()
+                
+                # 构建模型参数
+                model_kwargs = {
+                    "trust_remote_code": True,
+                    "cache_folder": cache_folder,
+                }
+                
+                # Qwen3-Embedding 需要禁用 device_map
+                if is_qwen_model:
+                    model_kwargs["model_kwargs"] = {
+                        "device_map": None,  # 不使用自动设备映射
+                    }
+                    print(f"🔧 Qwen 模型特殊配置: 禁用 device_map")
+                
                 self.embed_model = HuggingFaceEmbedding(
                     model_name=self.embedding_model_name,
-                    trust_remote_code=True,
-                    cache_folder=cache_folder,
                     embed_batch_size=config.EMBED_BATCH_SIZE,  # 启用批处理
                     max_length=config.EMBED_MAX_LENGTH,
+                    **model_kwargs
                 )
                 print(f"✅ 模型加载完成 (批处理: {config.EMBED_BATCH_SIZE})")
             except Exception as e:
@@ -256,12 +305,27 @@ class IndexManager:
                     
                     try:
                         cache_folder = str(Path.home() / ".cache" / "huggingface")
+                        
+                        # 检查是否是 Qwen3-Embedding 模型
+                        is_qwen_model = "qwen" in self.embedding_model_name.lower() and "embedding" in self.embedding_model_name.lower()
+                        
+                        # 构建模型参数
+                        model_kwargs = {
+                            "trust_remote_code": True,
+                            "cache_folder": cache_folder,
+                        }
+                        
+                        # Qwen3-Embedding 需要禁用 device_map
+                        if is_qwen_model:
+                            model_kwargs["model_kwargs"] = {
+                                "device_map": None,  # 不使用自动设备映射
+                            }
+                        
                         self.embed_model = HuggingFaceEmbedding(
                             model_name=self.embedding_model_name,
-                            trust_remote_code=True,
-                            cache_folder=cache_folder,
                             embed_batch_size=config.EMBED_BATCH_SIZE,  # 启用批处理
                             max_length=config.EMBED_MAX_LENGTH,
+                            **model_kwargs
                         )
                         print(f"✅ 模型下载并加载完成 (批处理: {config.EMBED_BATCH_SIZE})")
                     except Exception as retry_error:
