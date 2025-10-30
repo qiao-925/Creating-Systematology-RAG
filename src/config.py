@@ -193,6 +193,24 @@ class Config:
         self.EMBED_BATCH_SIZE = int(os.getenv("EMBED_BATCH_SIZE", "10"))  # 批处理大小，默认10（可根据GPU内存调整）
         self.EMBED_MAX_LENGTH = int(os.getenv("EMBED_MAX_LENGTH", "512"))  # 最大文本长度，超过会被截断
         
+        # 批处理与分组（索引构建）配置
+        # 是否启用批模式（按目录/子模块分批执行）
+        self.INDEX_BATCH_MODE = os.getenv("INDEX_BATCH_MODE", "false").lower() == "true"
+        # 分组方式：目前仅支持 directory（按相对路径的层级目录分组）
+        self.INDEX_GROUP_BY = os.getenv("INDEX_GROUP_BY", "directory")
+        # 参与分组的目录深度：1 表示第一层目录；2 表示两层
+        self.GROUP_DEPTH = int(os.getenv("GROUP_DEPTH", "1"))
+        # 目标每批文档数（用于二次切分/合并的参考上限）
+        self.DOCS_PER_BATCH = int(os.getenv("DOCS_PER_BATCH", "20"))
+        # 可选：每批目标节点数上限（0 表示不限制）
+        self.NODES_PER_BATCH = int(os.getenv("NODES_PER_BATCH", "0"))
+        # 可选：每批目标token数上限（0 表示不限制，为粗估）
+        self.TOKENS_PER_BATCH = int(os.getenv("TOKENS_PER_BATCH", "0"))
+        # 插入策略优先级：nodes | docs | legacy
+        self.INDEX_STRATEGY = os.getenv("INDEX_STRATEGY", "nodes").lower()
+        # 测试/管控：限制最大批次数（0 表示不限制）
+        self.INDEX_MAX_BATCHES = int(os.getenv("INDEX_MAX_BATCHES", "0"))
+        
         # 应用配置
         self.APP_TITLE = os.getenv("APP_TITLE", "系统科学知识库RAG")
         self.APP_PORT = int(os.getenv("APP_PORT", "8501"))
@@ -278,6 +296,14 @@ class Config:
     SIMILARITY_TOP_K={self.SIMILARITY_TOP_K},
     EMBED_BATCH_SIZE={self.EMBED_BATCH_SIZE},
     EMBED_MAX_LENGTH={self.EMBED_MAX_LENGTH},
+    INDEX_BATCH_MODE={self.INDEX_BATCH_MODE},
+    INDEX_GROUP_BY={self.INDEX_GROUP_BY},
+    GROUP_DEPTH={self.GROUP_DEPTH},
+    DOCS_PER_BATCH={self.DOCS_PER_BATCH},
+    NODES_PER_BATCH={self.NODES_PER_BATCH},
+    TOKENS_PER_BATCH={self.TOKENS_PER_BATCH},
+    INDEX_STRATEGY={self.INDEX_STRATEGY},
+    INDEX_MAX_BATCHES={self.INDEX_MAX_BATCHES},
     GITHUB_DEFAULT_BRANCH={self.GITHUB_DEFAULT_BRANCH},
     ENABLE_WIKIPEDIA={self.ENABLE_WIKIPEDIA},
     WIKIPEDIA_THRESHOLD={self.WIKIPEDIA_THRESHOLD},

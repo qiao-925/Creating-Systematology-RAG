@@ -14,6 +14,15 @@ import logging
 # 添加src到路径
 sys.path.insert(0, str(Path(__file__).parent))
 
+# 优先设置 UTF-8 编码（确保 emoji 正确显示）
+try:
+    from src.encoding import setup_utf8_encoding
+    setup_utf8_encoding()
+except ImportError:
+    # 如果 encoding 模块尚未加载，手动设置基础编码
+    import os
+    os.environ["PYTHONIOENCODING"] = "utf-8"
+
 from src.config import config
 from src.ui_components import (
     init_session_state,

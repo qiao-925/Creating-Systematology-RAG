@@ -13,13 +13,17 @@
       },
       "step_parse": {
         "status": "completed",
-        "timestamp": "2025-10-30T11:14:25.751957",
+        "timestamp": "2025-10-30T14:58:25.788634",
         "file_count": 1616,
         "parsed_data_path": "D:\\git repo\\Creating-Systematology-RAG\\data\\processed\\qiao-925_Creating-Systematology_main_d3a953e1\\documents.pkl",
         "hash": "56df5954452082dbf65bd9a884e85088"
       },
       "step_vectorize": {
-        "status": "pending"
+        "status": "completed",
+        "timestamp": "2025-10-30T16:40:59.774325",
+        "vector_count": 15608,
+        "collection_name": "user_55502f40",
+        "hash": "efc218a3061cd0d8a26cb1fa62729c86"
       }
     },
     "octocat_Hello-World_master_7f6e1f6b": {
@@ -31,6 +35,21 @@
         "commit_sha": "7fd1a60b01f91b314f59955a4e4d4e80d8edf11d",
         "repo_path": "D:\\git repo\\Creating-Systematology-RAG\\data\\github_repos\\octocat\\Hello-World_master",
         "hash": "9ddb15b59f805044c00a479cd1541e71"
+      },
+      "step_parse": {
+        "status": "pending"
+      },
+      "step_vectorize": {
+        "status": "pending"
+      }
+    },
+    "qiao-925_Creating-Systematology_master_584d222c": {
+      "task_key": "qiao-925/Creating-Systematology@master",
+      "created_at": "2025-10-30T14:50:19.474973",
+      "step_clone": {
+        "status": "failed",
+        "timestamp": "2025-10-30T14:52:45.940881",
+        "error": "git clone 失败: Cloning into 'D:\\git repo\\Creating-Systematology-RAG\\data\\github_repos\\qiao-925\\Creating-Systematology_master'...\nfatal: Remote branch master not found in upstream origin\n"
       },
       "step_parse": {
         "status": "pending"

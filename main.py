@@ -8,6 +8,15 @@ import sys
 import argparse
 from pathlib import Path
 from typing import List
+import os
+
+# 优先设置 UTF-8 编码（确保 emoji 正确显示）
+try:
+    from src.encoding import setup_utf8_encoding
+    setup_utf8_encoding()
+except ImportError:
+    # 如果 encoding 模块尚未加载，手动设置基础编码
+    os.environ["PYTHONIOENCODING"] = "utf-8"
 
 from src.config import config
 from src.indexer import IndexManager, create_index_from_directory, create_index_from_urls

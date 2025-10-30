@@ -203,12 +203,29 @@ class DocumentParser:
                                         logger.warning(f"无法确定相对路径，跳过同名文件匹配: {file_name} (有 {len(candidates)} 个候选)")
                         
                         if matching_path:
-                            # 合并外部元数据
-                            if metadata_map and matching_path in metadata_map:
-                                doc.metadata.update(metadata_map[matching_path])
-                                logger.debug(f"已合并元数据: {matching_path.name}")
+                            # 合并外部元数据（尝试多种路径匹配方式）
+                            if metadata_map:
+                                # 首先尝试原始路径
+                                if matching_path in metadata_map:
+                                    doc.metadata.update(metadata_map[matching_path])
+                                    logger.debug(f"已合并元数据: {matching_path.name}")
+                                # 如果失败，尝试解析后的路径
+                                else:
+                                    matching_path_resolved = matching_path.resolve()
+                                    if matching_path_resolved in metadata_map:
+                                        doc.metadata.update(metadata_map[matching_path_resolved])
+                                        logger.debug(f"已合并元数据（使用解析路径）: {matching_path.name}")
+                                    # 如果还失败，尝试在 metadata_map 中查找匹配的路径
+                                    else:
+                                        # 尝试通过标准化路径匹配
+                                        for map_path, map_metadata in metadata_map.items():
+                                            if map_path.resolve() == matching_path_resolved:
+                                                doc.metadata.update(map_metadata)
+                                                logger.debug(f"已合并元数据（标准化路径匹配）: {matching_path.name}")
+                                                break
                             
-                            # 确保 source_type 存在
+                            # 确保 source_type 存在（优先级：metadata_map > 文档原有 > 默认值unknown）
+                            # 只有在合并元数据后仍缺失时才设置默认值
                             if 'source_type' not in doc.metadata:
                                 doc.metadata['source_type'] = 'unknown'
                             
@@ -313,8 +330,26 @@ class DocumentParser:
                     doc_path = doc_path.resolve()
                 
                 if doc_path == file_path_resolved or doc_path.name == file_path.name:
-                    if metadata_map and file_path in metadata_map:
-                        doc.metadata.update(metadata_map[file_path])
+                    # 尝试合并元数据（优先使用原始路径，如果失败则尝试解析后的路径）
+                    if metadata_map:
+                        # 首先尝试原始路径
+                        if file_path in metadata_map:
+                            doc.metadata.update(metadata_map[file_path])
+                        # 如果失败，尝试解析后的路径
+                        elif file_path_resolved in metadata_map:
+                            doc.metadata.update(metadata_map[file_path_resolved])
+                        # 如果还失败，尝试在 metadata_map 中查找匹配的路径
+                        else:
+                            # 尝试通过标准化路径匹配
+                            for map_path, map_metadata in metadata_map.items():
+                                if map_path.resolve() == file_path_resolved:
+                                    doc.metadata.update(map_metadata)
+                                    break
+                    
+                    # 确保 source_type 存在（优先级：metadata_map > 文档原有 > 默认值unknown）
+                    if 'source_type' not in doc.metadata:
+                        doc.metadata['source_type'] = 'unknown'
+                    
                     matching_docs.append(doc)
                     logger.debug(f"文件匹配成功: {file_path.name}")
                     break

@@ -143,11 +143,16 @@ class GitRepositoryManager:
         try:
             if not repo_path.exists():
                 # 首次克隆
-                logger.info(f"克隆仓库: {owner}/{repo}@{branch} -> {repo_path}")
+                logger.info(f"📥 开始克隆仓库: {owner}/{repo}@{branch}")
+                logger.info(f"   目标路径: {repo_path}")
+                logger.info(f"   克隆URL: {clone_url}")
+                logger.info(f"   分支: {branch}")
                 self._clone_repository(clone_url, repo_path, branch)
             else:
                 # 增量更新
-                logger.info(f"更新仓库: {owner}/{repo}@{branch}")
+                logger.info(f"🔄 开始更新仓库: {owner}/{repo}@{branch}")
+                logger.info(f"   仓库路径: {repo_path}")
+                logger.info(f"   分支: {branch}")
                 self._update_repository(repo_path, branch)
             
             # 获取当前 commit SHA
@@ -225,7 +230,8 @@ class GitRepositoryManager:
             if result.returncode != 0:
                 raise RuntimeError(f"git clone 失败: {result.stderr}")
             
-            logger.info(f"克隆成功: {repo_path}")
+            logger.info(f"✅ 克隆成功: {repo_path}")
+            logger.info(f"   仓库已克隆到本地，准备解析文件")
             
         except subprocess.TimeoutExpired:
             # 超时清理

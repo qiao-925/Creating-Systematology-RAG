@@ -204,7 +204,13 @@ def load_documents_from_source(
         # 步骤2: 构建文件路径列表和元数据映射
         logger.debug("构建文件路径列表和元数据映射")
         file_paths = [sf.path for sf in source_files]
-        metadata_map = {sf.path: sf.metadata for sf in source_files}
+        # 构建元数据映射，确保包含 source_type（它是 SourceFile 的属性，不是 metadata 的一部分）
+        metadata_map = {}
+        for sf in source_files:
+            metadata_map[sf.path] = {
+                **sf.metadata,
+                'source_type': sf.source_type  # 确保 source_type 包含在元数据中
+            }
         logger.debug(f"元数据映射包含 {len(metadata_map)} 个条目")
         
         # 步骤3: 使用解析器解析文件

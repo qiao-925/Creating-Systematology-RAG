@@ -42,15 +42,21 @@ def setup_logger(name: str, log_dir: Optional[Path] = None) -> logging.Logger:
     # 控制台处理器（显示所有级别）
     # 注意：Windows 下需要特殊处理编码
     import sys
+    
+    # 确保 stdout 使用 UTF-8 编码（如果 encoding 模块已加载）
+    try:
+        from src.encoding import ensure_utf8_stdout
+        ensure_utf8_stdout()
+    except ImportError:
+        # encoding 模块可能尚未加载，尝试基础设置
+        try:
+            if hasattr(sys.stdout, 'reconfigure'):
+                sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+        except Exception:
+            pass
+    
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(logging.DEBUG)
-    
-    # 尝试设置控制台编码为 UTF-8
-    try:
-        if hasattr(sys.stdout, 'reconfigure'):
-            sys.stdout.reconfigure(encoding='utf-8')
-    except Exception:
-        pass  # 如果失败，忽略（某些环境不支持）
     
     # 格式化器
     formatter = logging.Formatter(

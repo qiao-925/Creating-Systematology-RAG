@@ -4,10 +4,12 @@
 """
 
 import os
+import time
 from pathlib import Path
 from typing import List, Optional, Tuple, Dict
 
 import chromadb
+from tqdm import tqdm
 from llama_index.core import (
     VectorStoreIndex,
     StorageContext,
@@ -503,6 +505,115 @@ class IndexManager:
         self._index: Optional[VectorStoreIndex] = None
         
         print("✅ 索引管理器初始化完成")
+
+    # ==================== 批处理：按目录/子模块分组 ====================
+    def _group_documents_by_directory(
+        self,
+        documents: List[LlamaDocument],
+        depth: int,
+        docs_per_batch: int
+    ) -> List[List[LlamaDocument]]:
+        """按相对路径目录层级分组并切分为批次
+        
+        分组规则：
+        - 以文档 metadata['file_path'] 为依据，按 depth 层目录分组
+        - 无法解析路径或在根目录的文件归为 '_root'
+        - 每个组内按 docs_per_batch 进行二次切分
+        
+        Returns:
+            批次列表（每批为文档列表）
+        """
+        from collections import defaultdict
+        from pathlib import PurePosixPath
+
+        if not documents:
+            return []
+
+        # 归一化分隔符，避免 Windows 路径影响
+        def normalize_rel_path(p: str) -> str:
+            if not p:
+                return ""
+            # 将反斜杠替换为斜杠，便于层级切分
+            return p.replace('\\', '/').lstrip('/')
+
+        # 计算分组键
+        def group_key_for_path(rel_path: str) -> str:
+            if not rel_path:
+                return "_root"
+            parts = [seg for seg in normalize_rel_path(rel_path).split('/') if seg]
+            if not parts:
+                return "_root"
+            use_depth = max(1, depth)
+            return '/'.join(parts[:use_depth])
+
+        groups: defaultdict[str, List[LlamaDocument]] = defaultdict(list)
+        for doc in documents:
+            rel_path = doc.metadata.get('file_path', '') or ''
+            key = group_key_for_path(rel_path)
+            groups[key].append(doc)
+
+        # 二次切分：将每个组按 docs_per_batch 切分为多个批次
+        batches: List[List[LlamaDocument]] = []
+        per_batch = max(1, int(docs_per_batch) if docs_per_batch else 20)
+        for key, docs in groups.items():
+            # 保持稳定性：按文件名排序，避免不确定顺序
+            docs_sorted = sorted(
+                docs,
+                key=lambda d: (d.metadata.get('file_path', ''), d.metadata.get('file_name', ''))
+            )
+            for i in range(0, len(docs_sorted), per_batch):
+                batch_docs = docs_sorted[i:i+per_batch]
+                batches.append(batch_docs)
+
+        # 稳定排序：按组名、再按首文档路径
+        def batch_sort_key(batch: List[LlamaDocument]) -> tuple:
+            if not batch:
+                return ("", "")
+            first_path = batch[0].metadata.get('file_path', '') or ''
+            key = group_key_for_path(first_path)
+            return (key, first_path)
+
+        batches.sort(key=batch_sort_key)
+        return batches
+
+    # ==================== 批处理：批级断点续传与重试 ====================
+    def _batch_ckpt_path(self) -> Path:
+        """返回批级checkpoint文件路径（每个集合一个文件）"""
+        ckpt_dir = self.persist_dir / "batch_checkpoints"
+        ckpt_dir.mkdir(parents=True, exist_ok=True)
+        return ckpt_dir / f"{self.collection_name}.json"
+
+    def _load_batch_ckpt(self) -> dict:
+        import json
+        ckpt_file = self._batch_ckpt_path()
+        if not ckpt_file.exists():
+            return {"completed": {}}
+        try:
+            with open(ckpt_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                if not isinstance(data, dict) or 'completed' not in data:
+                    return {"completed": {}}
+                return data
+        except Exception:
+            return {"completed": {}}
+
+    def _save_batch_ckpt(self, data: dict) -> None:
+        import json
+        ckpt_file = self._batch_ckpt_path()
+        try:
+            with open(ckpt_file, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            logger.warning(f"写入批次checkpoint失败: {e}")
+
+    @staticmethod
+    def _compute_batch_id(group_key: str, file_paths: List[str]) -> str:
+        import hashlib, json
+        payload = json.dumps({
+            "group": group_key,
+            "files": sorted(file_paths),
+        }, ensure_ascii=False)
+        return hashlib.md5(payload.encode('utf-8')).hexdigest()
     
     def build_index(
         self,
@@ -522,7 +633,6 @@ class IndexManager:
         Returns:
             (VectorStoreIndex对象, 文件路径到向量ID的映射)
         """
-        import time
         import hashlib
         import json
         start_time = time.time()
@@ -550,7 +660,6 @@ class IndexManager:
             
             # 如果提供了缓存管理器，更新缓存状态
             if cache_manager and task_id:
-                from src.config import config
                 if config.ENABLE_CACHE:
                     docs_hash = self._compute_documents_hash(documents)
                     step_name = cache_manager.STEP_VECTORIZE
@@ -589,8 +698,142 @@ class IndexManager:
             logger.info(f"💡 建议调整EMBED_BATCH_SIZE为5-10以获得最佳CPU性能")
         
         try:
-            # 如果索引不存在，创建新索引
-            if self._index is None:
+            # 批模式：按目录/子模块分批执行（由配置开关控制）
+            if config.INDEX_BATCH_MODE:
+                total_docs = len(documents)
+                group_depth = max(1, config.GROUP_DEPTH)
+                docs_per_batch = max(1, config.DOCS_PER_BATCH)
+
+                print("\n🧭 批处理模式已启用")
+                print(f"   分组方式: directory (depth={group_depth})")
+                print(f"   目标每批文档数: {docs_per_batch}")
+                print(f"   总文档数: {total_docs}")
+
+                batches = self._group_documents_by_directory(
+                    documents=documents,
+                    depth=group_depth,
+                    docs_per_batch=docs_per_batch,
+                )
+                # 测试/限速：仅处理前 N 批
+                if config.INDEX_MAX_BATCHES and config.INDEX_MAX_BATCHES > 0:
+                    print(f"   测试模式: 仅处理前 {config.INDEX_MAX_BATCHES} 批")
+                    batches = batches[:config.INDEX_MAX_BATCHES]
+                total_batches = len(batches)
+                print(f"   生成批次数: {total_batches}")
+
+                # 确保索引对象存在
+                index = self.get_index()
+
+                from llama_index.core.node_parser import SentenceSplitter
+                node_parser = SentenceSplitter(
+                    chunk_size=self.chunk_size,
+                    chunk_overlap=self.chunk_overlap
+                )
+
+                grand_start = time.time()
+                grand_docs = 0
+                grand_nodes = 0
+                grand_tokens_est = 0
+
+                # 加载批级checkpoint
+                ckpt = self._load_batch_ckpt()
+                completed = ckpt.get("completed", {})
+
+                for b_idx, batch_docs in enumerate(batches, start=1):
+                    if not batch_docs:
+                        continue
+                    # 计算批次键（目录组）
+                    first_path = batch_docs[0].metadata.get('file_path', '') or ''
+                    key = (first_path.replace('\\', '/').lstrip('/') or '_root').split('/')
+                    group_key = '/'.join(key[:group_depth]) if key else '_root'
+
+                    batch_doc_count = len(batch_docs)
+                    # 粗估 tokens（基于字符数/4）
+                    tokens_est = sum(max(1, len(d.text) // 4) for d in batch_docs)
+
+                    file_list = [d.metadata.get('file_path', '') or '' for d in batch_docs]
+                    batch_id = self._compute_batch_id(group_key, file_list)
+                    if completed.get(batch_id):
+                        print(f"\n📦 批次 {b_idx}/{total_batches} | 组: {group_key} 已完成，跳过 (checkpoint)")
+                        grand_docs += batch_doc_count
+                        # 节点/令牌未知，采用0累加，仅作为跳过提示
+                        continue
+
+                    print(f"\n📦 批次 {b_idx}/{total_batches} | 组: {group_key}")
+                    print(f"   文档: {batch_doc_count} | 估算tokens: {tokens_est}")
+                    if show_progress:
+                        print("   阶段: 分块中...")
+
+                    # 分块：按文档循环，便于展示 doc 级进度
+                    nodes = []
+                    if show_progress:
+                        for d in tqdm(batch_docs, desc="分块", disable=not show_progress, unit="doc"):
+                            nodes.extend(node_parser.get_nodes_from_documents([d]))
+                    else:
+                        nodes = node_parser.get_nodes_from_documents(batch_docs)
+
+                    node_count = len(nodes)
+                    print(f"   节点: {node_count}")
+
+                    # 插入：优先使用 insert_nodes（批量），否则按批次内逐个 insert
+                    if show_progress:
+                        print("   阶段: 向量化+写入中...")
+                    insert_start = time.time()
+                    try:
+                        if hasattr(self._index, 'insert_nodes'):
+                            self._index.insert_nodes(nodes)
+                        else:
+                            for node in nodes:
+                                self._index.insert(node)
+                    except Exception as e:
+                        # 简单重试（最多2次）：先逐个insert回退
+                        logger.warning(f"批次插入异常，回退逐个插入重试: {e}")
+                        retry_ok = False
+                        for attempt in range(1, 3):
+                            try:
+                                for node in nodes:
+                                    self._index.insert(node)
+                                retry_ok = True
+                                break
+                            except Exception as e2:
+                                logger.warning(f"逐个插入重试失败({attempt}/2): {e2}")
+                                continue
+                        if not retry_ok:
+                            logger.error("批次写入失败，跳过该批次并继续")
+                            continue
+
+                    insert_elapsed = time.time() - insert_start
+                    docs_per_s = batch_doc_count / insert_elapsed if insert_elapsed > 0 else 0
+                    nodes_per_s = node_count / insert_elapsed if insert_elapsed > 0 else 0
+                    tokens_per_s = tokens_est / insert_elapsed if insert_elapsed > 0 else 0
+                    print(f"   ⏱️ 批耗时: {insert_elapsed:.2f}s | 速率: {nodes_per_s:.1f} nodes/s, {docs_per_s:.1f} docs/s, {tokens_per_s:.1f} tok/s | it/s={nodes_per_s:.1f}")
+
+                    grand_docs += batch_doc_count
+                    grand_nodes += node_count
+                    grand_tokens_est += tokens_est
+
+                    # 标记批次完成（checkpoint）
+                    completed[batch_id] = {
+                        "group": group_key,
+                        "files": file_list,
+                        "docs": batch_doc_count,
+                        "nodes": node_count,
+                        "tokens_est": tokens_est,
+                        "elapsed": insert_elapsed,
+                    }
+                    ckpt["completed"] = completed
+                    self._save_batch_ckpt(ckpt)
+
+                grand_elapsed = time.time() - grand_start
+                grand_docs_s = grand_docs / grand_elapsed if grand_elapsed > 0 else 0
+                grand_nodes_s = grand_nodes / grand_elapsed if grand_elapsed > 0 else 0
+                grand_tokens_s = grand_tokens_est / grand_elapsed if grand_elapsed > 0 else 0
+                print("\n✅ 批处理完成")
+                print(f"   总批次: {total_batches} | 总文档: {grand_docs} | 总节点: {grand_nodes} | 总tokens(估算): {grand_tokens_est}")
+                print(f"   总耗时: {grand_elapsed:.2f}s | 平均速率: {grand_nodes_s:.1f} nodes/s, {grand_docs_s:.1f} docs/s, {grand_tokens_s:.1f} tok/s")
+
+            # 非批模式：保持现有路径
+            elif self._index is None:
                 index_start_time = time.time()
                 self._index = VectorStoreIndex.from_documents(
                     documents,
@@ -623,23 +866,82 @@ class IndexManager:
                         chunk_size=self.chunk_size,
                         chunk_overlap=self.chunk_overlap
                     )
-                    # 批量分块并插入节点
-                    batch_size = config.EMBED_BATCH_SIZE * 2
-                    for i in range(0, len(documents), batch_size):
-                        batch_docs = documents[i:i+batch_size]
-                        nodes = node_parser.get_nodes_from_documents(batch_docs)
-                        # 批量插入节点
-                        for node in nodes:
-                            self._index.insert(node)
-                        if show_progress:
-                            progress = min(i + batch_size, len(documents))
-                            print(f"   进度: {progress}/{len(documents)} ({progress/len(documents)*100:.1f}%)")
+                    
+                    # 先批量分块所有文档，获取总节点数
+                    all_nodes = []
+                    if show_progress:
+                        print("   正在分块文档...")
+                    for doc in tqdm(documents, desc="分块", disable=not show_progress, unit="doc"):
+                        nodes = node_parser.get_nodes_from_documents([doc])
+                        all_nodes.extend(nodes)
+                    
+                    total_nodes = len(all_nodes)
+                    logger.info(f"文档分块完成: {len(documents)}个文档 -> {total_nodes}个节点")
+                    
+                    # 批量插入节点（使用insert_nodes批量插入，性能远优于逐个insert）
+                    batch_size = config.EMBED_BATCH_SIZE  # 使用embed批处理大小
+                    inserted_count = 0
+                    
+                    if show_progress:
+                        # 使用tqdm显示真实进度条，包含速率信息
+                        pbar = tqdm(
+                            total=total_nodes,
+                            desc="向量化并插入",
+                            unit="node",
+                            unit_scale=True,
+                            ncols=100,
+                            bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]'
+                        )
+                    
+                    batch_start_time = time.time()
+                    # 尝试使用批量插入方法（如果可用）
+                    try:
+                        # 检查是否有 insert_nodes 方法
+                        if hasattr(self._index, 'insert_nodes'):
+                            # 使用批量插入（性能最优）
+                            for i in range(0, len(all_nodes), batch_size):
+                                batch_nodes = all_nodes[i:i+batch_size]
+                                self._index.insert_nodes(batch_nodes)
+                                inserted_count += len(batch_nodes)
+                                
+                                if show_progress:
+                                    pbar.update(len(batch_nodes))
+                                    # 每处理一定数量节点后更新速率
+                                    if inserted_count % (batch_size * 10) == 0:
+                                        elapsed = time.time() - batch_start_time
+                                        rate = inserted_count / elapsed if elapsed > 0 else 0
+                                        pbar.set_postfix({'速率': f'{rate:.1f} nodes/s'})
+                        else:
+                            # 回退到逐个插入（但至少是批处理embedding）
+                            raise AttributeError("insert_nodes not available")
+                    except (AttributeError, TypeError):
+                        # 如果批量插入不可用，使用逐个插入（但仍批处理embedding）
+                        logger.debug("insert_nodes不可用，使用逐个insert（LlamaIndex会自动批处理embedding）")
+                        for i in range(0, len(all_nodes), batch_size):
+                            batch_nodes = all_nodes[i:i+batch_size]
+                            # 逐个插入节点（LlamaIndex内部会批处理embedding计算）
+                            for node in batch_nodes:
+                                self._index.insert(node)
+                            inserted_count += len(batch_nodes)
+                            
+                            if show_progress:
+                                pbar.update(len(batch_nodes))
+                                # 每处理一定数量节点后更新速率
+                                if inserted_count % (batch_size * 10) == 0:
+                                    elapsed = time.time() - batch_start_time
+                                    rate = inserted_count / elapsed if elapsed > 0 else 0
+                                    pbar.set_postfix({'速率': f'{rate:.1f} nodes/s'})
+                    
+                    if show_progress:
+                        pbar.close()
+                    
                     insert_elapsed = time.time() - insert_start_time
-                    print(f"✅ 文档已批量添加到现有索引 (耗时: {insert_elapsed:.2f}s)")
+                    avg_rate = total_nodes / insert_elapsed if insert_elapsed > 0 else 0
+                    print(f"✅ 文档已批量添加到现有索引 (耗时: {insert_elapsed:.2f}s, 平均速率: {avg_rate:.1f} nodes/s)")
                     logger.info(
-                        f"批量增量添加完成: {len(documents)}个文档, "
+                        f"批量增量添加完成: {len(documents)}个文档, {total_nodes}个节点, "
                         f"耗时{insert_elapsed:.2f}s, "
-                        f"平均{insert_elapsed/len(documents):.3f}s/文档"
+                        f"平均速率={avg_rate:.1f} nodes/s"
                     )
             
             # 获取索引统计信息
@@ -668,7 +970,6 @@ class IndexManager:
             
             # 如果提供了缓存管理器，更新缓存状态
             if cache_manager and task_id:
-                from src.config import config
                 if config.ENABLE_CACHE:
                     try:
                         docs_hash = self._compute_documents_hash(documents)
