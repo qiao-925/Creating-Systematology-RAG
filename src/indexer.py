@@ -18,7 +18,7 @@ from llama_index.core.node_parser import SentenceSplitter
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.vector_stores.chroma import ChromaVectorStore
 
-from src.config import config
+from src.config import config, get_gpu_device, is_gpu_available, get_device_status
 from src.logger import setup_logger
 
 logger = setup_logger('indexer')
@@ -93,38 +93,28 @@ def load_embedding_model(model_name: Optional[str] = None, force_reload: bool = 
         # 显式指定缓存目录以确保使用本地缓存
         cache_folder = str(Path.home() / ".cache" / "huggingface")
         
-        # 检查是否是 Qwen3-Embedding 模型，需要特殊处理
-        is_qwen_model = "qwen" in model_name.lower() and "embedding" in model_name.lower()
+        # 获取GPU设备（使用启动时检测的结果）
+        device = get_gpu_device()
+        import torch
+        
+        # 输出详细的设备信息
+        if device.startswith("cuda") and is_gpu_available():
+            device_name = torch.cuda.get_device_name()
+            cuda_version = torch.version.cuda
+            logger.info(f"✅ Embedding模型使用GPU加速:")
+            logger.info(f"   设备: {device}")
+            logger.info(f"   GPU名称: {device_name}")
+            logger.info(f"   CUDA版本: {cuda_version}")
+        else:
+            logger.warning("⚠️  Embedding模型使用CPU模式")
+            logger.info("💡 性能提示: CPU模式较慢，索引构建可能需要30分钟+（GPU模式下约5分钟）")
+            logger.info("💡 建议: 如有GPU，请安装CUDA版本的PyTorch以获得最佳性能")
         
         # 构建模型参数
         model_kwargs = {
             "trust_remote_code": True,
             "cache_folder": cache_folder,
         }
-        
-        # 检查是否有可用的 GPU
-        try:
-            import torch
-            has_gpu = torch.cuda.is_available()
-            if has_gpu:
-                device = f"cuda:{torch.cuda.current_device()}"
-                logger.info(f"✅ 检测到 GPU: {torch.cuda.get_device_name()}")
-                logger.info(f"🔧 使用设备: {device}")
-            else:
-                device = "cpu"
-                logger.warning("⚠️  未检测到 GPU，将使用 CPU")
-        except ImportError:
-            device = "cpu"
-            logger.warning("⚠️  PyTorch 未安装或不可用，将使用 CPU")
-        
-        # Qwen3-Embedding 需要特殊处理
-        if is_qwen_model:
-            # 对于 Qwen 模型，在 model_kwargs 中指定设备
-            model_kwargs["model_kwargs"] = {
-                "device_map": None,  # 不使用自动设备映射
-                "dtype": "float16" if device.startswith("cuda") else "float32",  # GPU 使用 float16 加速
-            }
-            logger.debug(f"🔧 Qwen 模型特殊配置: 禁用 device_map, 设备={device}")
         
         _global_embed_model = HuggingFaceEmbedding(
             model_name=model_name,
@@ -135,8 +125,7 @@ def load_embedding_model(model_name: Optional[str] = None, force_reload: bool = 
         
         # 手动将模型移到 GPU（如果不支持通过参数指定）
         try:
-            import torch
-            if device.startswith("cuda") and torch.cuda.is_available():
+            if device.startswith("cuda") and is_gpu_available():
                 # HuggingFaceEmbedding 使用 _model 属性
                 if hasattr(_global_embed_model, '_model') and hasattr(_global_embed_model._model, 'to'):
                     _global_embed_model._model = _global_embed_model._model.to(device)
@@ -144,11 +133,19 @@ def load_embedding_model(model_name: Optional[str] = None, force_reload: bool = 
                 elif hasattr(_global_embed_model, 'model') and hasattr(_global_embed_model.model, 'to'):
                     _global_embed_model.model = _global_embed_model.model.to(device)
                     logger.info(f"✅ 模型已移动到 GPU: {device}")
+            else:
+                logger.info(f"📌 模型保持在 CPU 上")
         except Exception as e:
             logger.warning(f"⚠️  无法将模型移动到 GPU: {e}")
+            logger.info(f"📌 模型将使用 CPU")
+        
         logger.info(f"✅ Embedding 模型加载完成: {model_name}")
         logger.info(f"📁 缓存目录: {cache_folder}")
-        logger.info(f"⚡ 批处理配置: batch_size={config.EMBED_BATCH_SIZE}, max_length={config.EMBED_MAX_LENGTH}")
+        if device.startswith("cuda"):
+            logger.info(f"⚡ GPU加速模式 - 批处理大小: {config.EMBED_BATCH_SIZE} (推荐10-50)")
+        else:
+            logger.info(f"🐌 CPU模式 - 批处理大小: {config.EMBED_BATCH_SIZE} (建议调整为5-10)")
+        logger.info(f"📏 最大长度: {config.EMBED_MAX_LENGTH}")
     except Exception as e:
         # 如果是离线模式且缺少缓存，尝试切换到在线模式
         if config.HF_OFFLINE_MODE and "offline" in str(e).lower():
@@ -158,36 +155,23 @@ def load_embedding_model(model_name: Optional[str] = None, force_reload: bool = 
             try:
                 cache_folder = str(Path.home() / ".cache" / "huggingface")
                 
-                # 检查是否是 Qwen3-Embedding 模型
-                is_qwen_model = "qwen" in model_name.lower() and "embedding" in model_name.lower()
+                # 获取GPU设备（使用启动时检测的结果）
+                device = get_gpu_device()
+                import torch
+                
+                # 输出详细的设备信息
+                if device.startswith("cuda") and is_gpu_available():
+                    device_name = torch.cuda.get_device_name()
+                    logger.info(f"✅ Embedding模型使用GPU加速: {device_name} ({device})")
+                else:
+                    logger.warning("⚠️  Embedding模型使用CPU模式")
+                    logger.info("💡 性能提示: CPU模式较慢，索引构建可能需要30分钟+（GPU模式下约5分钟）")
                 
                 # 构建模型参数
                 model_kwargs = {
                     "trust_remote_code": True,
                     "cache_folder": cache_folder,
                 }
-                
-                # 检测 GPU
-                try:
-                    import torch
-                    has_gpu = torch.cuda.is_available()
-                    if has_gpu:
-                        device = f"cuda:{torch.cuda.current_device()}"
-                        logger.info(f"✅ 检测到 GPU: {torch.cuda.get_device_name()}")
-                    else:
-                        device = "cpu"
-                        logger.warning("⚠️  未检测到 GPU")
-                except ImportError:
-                    device = "cpu"
-                    logger.warning("⚠️  PyTorch 不可用")
-                
-                # Qwen3-Embedding 需要特殊处理
-                if is_qwen_model:
-                    model_kwargs["model_kwargs"] = {
-                        "device_map": None,
-                        "dtype": "float16" if device.startswith("cuda") else "float32",
-                    }
-                    logger.debug(f"🔧 Qwen 模型: device={device}")
                 
                 _global_embed_model = HuggingFaceEmbedding(
                     model_name=model_name,
@@ -198,8 +182,7 @@ def load_embedding_model(model_name: Optional[str] = None, force_reload: bool = 
                 
                 # 手动将模型移到 GPU
                 try:
-                    import torch
-                    if device.startswith("cuda") and torch.cuda.is_available():
+                    if device.startswith("cuda") and is_gpu_available():
                         # HuggingFaceEmbedding 使用 _model 属性
                         if hasattr(_global_embed_model, '_model') and hasattr(_global_embed_model._model, 'to'):
                             _global_embed_model._model = _global_embed_model._model.to(device)
@@ -207,11 +190,18 @@ def load_embedding_model(model_name: Optional[str] = None, force_reload: bool = 
                         elif hasattr(_global_embed_model, 'model') and hasattr(_global_embed_model.model, 'to'):
                             _global_embed_model.model = _global_embed_model.model.to(device)
                             logger.info(f"✅ 模型已移动到 GPU: {device}")
+                    else:
+                        logger.info(f"📌 模型保持在 CPU 上")
                 except Exception as e:
                     logger.warning(f"⚠️  无法将模型移动到 GPU: {e}")
+                    logger.info(f"📌 模型将使用 CPU")
                 
                 logger.info(f"✅ Embedding 模型下载并加载完成: {model_name}")
-                logger.info(f"⚡ 批处理配置: batch_size={config.EMBED_BATCH_SIZE}, max_length={config.EMBED_MAX_LENGTH}")
+                if device.startswith("cuda"):
+                    logger.info(f"⚡ GPU加速模式 - 批处理大小: {config.EMBED_BATCH_SIZE} (推荐10-50)")
+                else:
+                    logger.info(f"🐌 CPU模式 - 批处理大小: {config.EMBED_BATCH_SIZE} (建议调整为5-10)")
+                logger.info(f"📏 最大长度: {config.EMBED_MAX_LENGTH}")
             except Exception as retry_error:
                 logger.error(f"❌ 模型加载失败: {retry_error}")
                 raise
@@ -326,48 +316,73 @@ class IndexManager:
             print(f"✅ 使用预加载的Embedding模型: {self.embedding_model_name}")
             self.embed_model = embed_model_instance
         else:
-            # 配置 HuggingFace 环境变量
-            _setup_huggingface_env()
+            # 检查全局缓存中的模型是否匹配当前配置
+            global _global_embed_model
+            cached_model_name = None
+            if _global_embed_model is not None:
+                cached_model_name = getattr(_global_embed_model, 'model_name', None)
             
-            print(f"📦 正在加载Embedding模型: {self.embedding_model_name}")
+            # 如果模型名称不匹配，清理缓存
+            if cached_model_name and cached_model_name != self.embedding_model_name:
+                logger.info(f"🔄 检测到模型配置变更: {cached_model_name} -> {self.embedding_model_name}")
+                logger.info(f"   清理旧模型缓存并重新加载")
+                clear_embedding_model_cache()
             
-            try:
-                cache_folder = str(Path.home() / ".cache" / "huggingface")
+            # 尝试使用全局缓存的模型（如果匹配）
+            if _global_embed_model is not None:
+                try:
+                    # 验证缓存的模型是否真的匹配（通过实际计算维度）
+                    test_embedding = _global_embed_model.get_query_embedding("test")
+                    cached_dim = len(test_embedding)
+                    logger.info(f"✅ 使用全局缓存的Embedding模型: {self.embedding_model_name} (维度: {cached_dim})")
+                    self.embed_model = _global_embed_model
+                except Exception as e:
+                    logger.warning(f"⚠️  验证缓存模型失败，重新加载: {e}")
+                    clear_embedding_model_cache()
+                    # 继续下面的加载流程
+                    self.embed_model = None
+            else:
+                self.embed_model = None
+            
+            # 如果缓存不可用，加载新模型
+            if self.embed_model is None:
+                # 配置 HuggingFace 环境变量
+                _setup_huggingface_env()
                 
-                # 检查是否是 Qwen3-Embedding 模型
-                is_qwen_model = "qwen" in self.embedding_model_name.lower() and "embedding" in self.embedding_model_name.lower()
+                print(f"📦 正在加载Embedding模型: {self.embedding_model_name}")
                 
-                # 构建模型参数
-                model_kwargs = {
-                    "trust_remote_code": True,
-                    "cache_folder": cache_folder,
-                }
-                
-                # Qwen3-Embedding 需要禁用 device_map
-                if is_qwen_model:
-                    model_kwargs["model_kwargs"] = {
-                        "device_map": None,  # 不使用自动设备映射
-                    }
-                    print(f"🔧 Qwen 模型特殊配置: 禁用 device_map")
-                
-                self.embed_model = HuggingFaceEmbedding(
-                    model_name=self.embedding_model_name,
-                    embed_batch_size=config.EMBED_BATCH_SIZE,  # 启用批处理
-                    max_length=config.EMBED_MAX_LENGTH,
-                    **model_kwargs
-                )
-                print(f"✅ 模型加载完成 (批处理: {config.EMBED_BATCH_SIZE})")
-            except Exception as e:
-                # 如果是离线模式且缺少缓存，尝试切换到在线模式
-                if config.HF_OFFLINE_MODE and "offline" in str(e).lower():
-                    print(f"⚠️  离线模式下本地无缓存，自动切换到在线模式尝试下载...")
-                    os.environ.pop('HF_HUB_OFFLINE', None)
-                    
+                # 使用load_embedding_model函数以确保缓存管理正确
+                try:
+                    self.embed_model = load_embedding_model(
+                        model_name=self.embedding_model_name,
+                        force_reload=False  # 如果缓存匹配，直接使用
+                    )
+                    logger.info(f"✅ 通过load_embedding_model加载模型: {self.embedding_model_name}")
+                    # 如果成功加载，跳过直接加载的代码块
+                except Exception as e:
+                    logger.warning(f"⚠️  load_embedding_model失败，使用直接加载方式: {e}")
+                    # 回退到直接加载方式
                     try:
                         cache_folder = str(Path.home() / ".cache" / "huggingface")
                         
-                        # 检查是否是 Qwen3-Embedding 模型
-                        is_qwen_model = "qwen" in self.embedding_model_name.lower() and "embedding" in self.embedding_model_name.lower()
+                        # 获取GPU设备（使用启动时检测的结果）
+                        device = get_gpu_device()
+                        import torch
+                        
+                        # 输出详细的设备信息
+                        if device.startswith("cuda") and is_gpu_available():
+                            device_name = torch.cuda.get_device_name()
+                            cuda_version = torch.version.cuda
+                            print(f"✅ Embedding模型使用GPU加速:")
+                            print(f"   设备: {device}")
+                            print(f"   GPU名称: {device_name}")
+                            print(f"   CUDA版本: {cuda_version}")
+                            logger.info(f"✅ Embedding模型使用GPU: {device_name} ({device})")
+                        else:
+                            print("⚠️  Embedding模型使用CPU模式")
+                            print("💡 性能提示: CPU模式较慢，索引构建可能需要30分钟+（GPU模式下约5分钟）")
+                            logger.warning("⚠️  Embedding模型使用CPU模式")
+                            logger.info("💡 建议: 如有GPU，请安装CUDA版本的PyTorch以获得最佳性能")
                         
                         # 构建模型参数
                         model_kwargs = {
@@ -375,25 +390,94 @@ class IndexManager:
                             "cache_folder": cache_folder,
                         }
                         
-                        # Qwen3-Embedding 需要禁用 device_map
-                        if is_qwen_model:
-                            model_kwargs["model_kwargs"] = {
-                                "device_map": None,  # 不使用自动设备映射
-                            }
-                        
                         self.embed_model = HuggingFaceEmbedding(
                             model_name=self.embedding_model_name,
                             embed_batch_size=config.EMBED_BATCH_SIZE,  # 启用批处理
                             max_length=config.EMBED_MAX_LENGTH,
                             **model_kwargs
                         )
-                        print(f"✅ 模型下载并加载完成 (批处理: {config.EMBED_BATCH_SIZE})")
-                    except Exception as retry_error:
-                        print(f"❌ 模型加载失败: {retry_error}")
-                        raise
-                else:
-                    print(f"❌ 模型加载失败: {e}")
-                    raise
+                        
+                        # 手动将模型移到 GPU（如果不支持通过参数指定）
+                        try:
+                            if device.startswith("cuda") and is_gpu_available():
+                                # HuggingFaceEmbedding 使用 _model 属性
+                                if hasattr(self.embed_model, '_model') and hasattr(self.embed_model._model, 'to'):
+                                    self.embed_model._model = self.embed_model._model.to(device)
+                                    logger.info(f"✅ 模型已移动到 GPU: {device}")
+                                elif hasattr(self.embed_model, 'model') and hasattr(self.embed_model.model, 'to'):
+                                    self.embed_model.model = self.embed_model.model.to(device)
+                                    logger.info(f"✅ 模型已移动到 GPU: {device}")
+                            else:
+                                logger.info(f"📌 模型保持在 CPU 上")
+                        except Exception as e:
+                            logger.warning(f"⚠️  无法将模型移动到 GPU: {e}")
+                            logger.info(f"📌 模型将使用 CPU")
+                        
+                        if device.startswith("cuda"):
+                            print(f"✅ 模型加载完成 (GPU加速, 批处理: {config.EMBED_BATCH_SIZE})")
+                        else:
+                            print(f"✅ 模型加载完成 (CPU模式, 批处理: {config.EMBED_BATCH_SIZE}, 建议调整为5-10)")
+                    except Exception as load_error:
+                        # 如果是离线模式且缺少缓存，尝试切换到在线模式
+                        if config.HF_OFFLINE_MODE and "offline" in str(load_error).lower():
+                            print(f"⚠️  离线模式下本地无缓存，自动切换到在线模式尝试下载...")
+                            os.environ.pop('HF_HUB_OFFLINE', None)
+                            
+                            try:
+                                cache_folder = str(Path.home() / ".cache" / "huggingface")
+                                
+                                # 获取GPU设备（使用启动时检测的结果）
+                                device = get_gpu_device()
+                                import torch
+                                
+                                # 输出详细的设备信息
+                                if device.startswith("cuda") and is_gpu_available():
+                                    device_name = torch.cuda.get_device_name()
+                                    print(f"✅ Embedding模型使用GPU加速: {device_name} ({device})")
+                                    logger.info(f"✅ Embedding模型使用GPU: {device_name} ({device})")
+                                else:
+                                    print("⚠️  Embedding模型使用CPU模式")
+                                    print("💡 性能提示: CPU模式较慢，索引构建可能需要30分钟+（GPU模式下约5分钟）")
+                                    logger.warning("⚠️  Embedding模型使用CPU模式")
+                                
+                                # 构建模型参数
+                                model_kwargs = {
+                                    "trust_remote_code": True,
+                                    "cache_folder": cache_folder,
+                                }
+                                
+                                self.embed_model = HuggingFaceEmbedding(
+                                    model_name=self.embedding_model_name,
+                                    embed_batch_size=config.EMBED_BATCH_SIZE,  # 启用批处理
+                                    max_length=config.EMBED_MAX_LENGTH,
+                                    **model_kwargs
+                                )
+                                
+                                # 手动将模型移到 GPU
+                                try:
+                                    if device.startswith("cuda") and is_gpu_available():
+                                        if hasattr(self.embed_model, '_model') and hasattr(self.embed_model._model, 'to'):
+                                            self.embed_model._model = self.embed_model._model.to(device)
+                                            logger.info(f"✅ 模型已移动到 GPU: {device}")
+                                        elif hasattr(self.embed_model, 'model') and hasattr(self.embed_model.model, 'to'):
+                                            self.embed_model.model = self.embed_model.model.to(device)
+                                            logger.info(f"✅ 模型已移动到 GPU: {device}")
+                                    else:
+                                        logger.info(f"📌 模型保持在 CPU 上")
+                                except Exception as e:
+                                    logger.warning(f"⚠️  无法将模型移动到 GPU: {e}")
+                                    logger.info(f"📌 模型将使用 CPU")
+                                
+                                if device.startswith("cuda"):
+                                    print(f"✅ 模型下载并加载完成 (GPU加速, 批处理: {config.EMBED_BATCH_SIZE})")
+                                else:
+                                    print(f"✅ 模型下载并加载完成 (CPU模式, 批处理: {config.EMBED_BATCH_SIZE}, 建议调整为5-10)")
+                            except Exception as retry_error:
+                                print(f"❌ 模型加载失败: {retry_error}")
+                                raise
+                        else:
+                            print(f"❌ 模型加载失败: {load_error}")
+                            raise
         
         # 配置全局Settings
         Settings.embed_model = self.embed_model
@@ -404,10 +488,8 @@ class IndexManager:
         print(f"🗄️  初始化Chroma向量数据库: {self.persist_dir}")
         self.chroma_client = chromadb.PersistentClient(path=str(self.persist_dir))
         
-        # 获取或创建集合
-        self.chroma_collection = self.chroma_client.get_or_create_collection(
-            name=self.collection_name
-        )
+        # 检测并修复embedding维度不匹配问题
+        self._ensure_collection_dimension_match()
         
         # 创建向量存储
         self.vector_store = ChromaVectorStore(chroma_collection=self.chroma_collection)
@@ -425,27 +507,86 @@ class IndexManager:
     def build_index(
         self,
         documents: List[LlamaDocument],
-        show_progress: bool = True
+        show_progress: bool = True,
+        cache_manager=None,
+        task_id: Optional[str] = None
     ) -> Tuple[VectorStoreIndex, Dict[str, List[str]]]:
         """构建或更新索引
         
         Args:
             documents: 文档列表
             show_progress: 是否显示进度
+            cache_manager: 缓存管理器实例（可选）
+            task_id: 任务ID（可选，用于缓存）
             
         Returns:
             (VectorStoreIndex对象, 文件路径到向量ID的映射)
         """
         import time
+        import hashlib
+        import json
         start_time = time.time()
         
         if not documents:
             print("⚠️  没有文档可索引")
             return self.get_index(), {}
         
+        # 文档级断点续传：检查每个文档是否已向量化，只处理未完成的文档
+        # 这个功能默认启用，无论是否使用缓存管理器都能提高性能
+        documents_to_process, already_vectorized = self._filter_vectorized_documents(documents)
+        
+        if already_vectorized > 0:
+            logger.info(f"✅ 检测到 {already_vectorized} 个文档已向量化，跳过处理")
+            print(f"📊 断点续传: {already_vectorized}/{len(documents)} 个文档已向量化，剩余 {len(documents_to_process)} 个待处理")
+        
+        # 如果没有需要处理的文档，直接返回
+        if not documents_to_process:
+            logger.info(f"✅ 所有文档已向量化，跳过向量化步骤")
+            index = self.get_index()
+            vector_ids_map = self._get_vector_ids_batch(
+                [doc.metadata.get("file_path", "") for doc in documents 
+                 if doc.metadata.get("file_path")]
+            )
+            
+            # 如果提供了缓存管理器，更新缓存状态
+            if cache_manager and task_id:
+                from src.config import config
+                if config.ENABLE_CACHE:
+                    docs_hash = self._compute_documents_hash(documents)
+                    step_name = cache_manager.STEP_VECTORIZE
+                    cache_manager.mark_step_completed(
+                        task_id=task_id,
+                        step_name=step_name,
+                        input_hash=docs_hash,
+                        vector_count=self.chroma_collection.count() if hasattr(self, 'chroma_collection') else 0,
+                        collection_name=self.collection_name
+                    )
+            
+            return index, vector_ids_map
+        
+        # 更新待处理的文档列表
+        documents = documents_to_process
+        
+        # 获取当前设备信息
+        device = get_gpu_device()
+        
         print(f"\n🔨 开始构建索引，共 {len(documents)} 个文档")
         print(f"   分块参数: size={self.chunk_size}, overlap={self.chunk_overlap}")
-        print(f"   批处理配置: embed_batch_size={config.EMBED_BATCH_SIZE}")
+        
+        # 输出设备信息
+        if device.startswith("cuda"):
+            import torch
+            device_name = torch.cuda.get_device_name()
+            print(f"📊 索引构建设备: {device} ⚡ GPU加速模式")
+            print(f"   GPU: {device_name}")
+            print(f"   批处理大小: {config.EMBED_BATCH_SIZE} (GPU推荐10-50)")
+            logger.info(f"📊 索引构建使用GPU: {device_name} ({device})")
+        else:
+            print(f"📊 索引构建设备: {device} 🐌 CPU模式")
+            print(f"   批处理大小: {config.EMBED_BATCH_SIZE} (CPU建议5-10)")
+            print(f"💡 性能提示: CPU模式较慢，预计耗时30分钟+（GPU模式下约5分钟）")
+            logger.warning(f"📊 索引构建使用CPU（性能较慢）")
+            logger.info(f"💡 建议调整EMBED_BATCH_SIZE为5-10以获得最佳CPU性能")
         
         try:
             # 如果索引不存在，创建新索引
@@ -506,8 +647,9 @@ class IndexManager:
             total_elapsed = time.time() - start_time
             
             print(f"📊 索引统计: {stats}")
+            device_info = f"{device} ({'GPU加速' if device.startswith('cuda') else 'CPU模式'})"
             logger.info(
-                f"索引构建完成: "
+                f"索引构建完成 (设备: {device_info}): "
                 f"文档数={len(documents)}, "
                 f"向量数={stats.get('document_count', 0)}, "
                 f"总耗时={total_elapsed:.2f}s, "
@@ -524,10 +666,39 @@ class IndexManager:
             print(f"📋 已记录 {len(vector_ids_map)} 个文件的向量ID映射 (耗时: {vector_ids_elapsed:.2f}s)")
             logger.debug(f"向量ID映射构建耗时: {vector_ids_elapsed:.2f}s")
             
+            # 如果提供了缓存管理器，更新缓存状态
+            if cache_manager and task_id:
+                from src.config import config
+                if config.ENABLE_CACHE:
+                    try:
+                        docs_hash = self._compute_documents_hash(documents)
+                        vector_count = stats.get('document_count', 0)
+                        cache_manager.mark_step_completed(
+                            task_id=task_id,
+                            step_name=cache_manager.STEP_VECTORIZE,
+                            input_hash=docs_hash,
+                            vector_count=vector_count,
+                            collection_name=self.collection_name
+                        )
+                    except Exception as e:
+                        logger.warning(f"更新向量化缓存状态失败: {e}")
+            
             return self._index, vector_ids_map
             
         except Exception as e:
             print(f"❌ 索引构建失败: {e}")
+            
+            # 如果提供了缓存管理器，标记步骤失败
+            if cache_manager and task_id:
+                try:
+                    cache_manager.mark_step_failed(
+                        task_id=task_id,
+                        step_name=cache_manager.STEP_VECTORIZE,
+                        error_message=str(e)
+                    )
+                except Exception:
+                    pass
+            
             raise
     
     def get_index(self) -> VectorStoreIndex:
@@ -553,6 +724,149 @@ class IndexManager:
                 )
         
         return self._index
+    
+    def _ensure_collection_dimension_match(self):
+        """确保collection的embedding维度与当前模型匹配
+        
+        如果collection已存在但维度不匹配，会自动删除并重新创建
+        """
+        try:
+            # 首先确保能获取当前embedding模型的维度（必须成功）
+            model_dim = None
+            dim_detection_methods = []
+            
+            # 方法1: 尝试从模型属性获取
+            if hasattr(self.embed_model, 'embed_dim'):
+                model_dim = self.embed_model.embed_dim
+                dim_detection_methods.append("embed_dim属性")
+            elif hasattr(self.embed_model, '_model') and hasattr(self.embed_model._model, 'config'):
+                # 尝试从transformers模型config获取
+                try:
+                    model_dim = getattr(self.embed_model._model.config, 'hidden_size', None)
+                    if model_dim:
+                        dim_detection_methods.append("模型config.hidden_size")
+                except Exception as e:
+                    logger.debug(f"从模型config获取维度失败: {e}")
+            
+            # 方法2: 通过实际计算一个测试向量获取维度（最可靠的方法）
+            if model_dim is None:
+                try:
+                    test_embedding = self.embed_model.get_query_embedding("test")
+                    model_dim = len(test_embedding)
+                    dim_detection_methods.append("实际计算测试向量")
+                except Exception as e:
+                    logger.warning(f"通过测试向量获取维度失败: {e}")
+            
+            # 如果仍然无法获取模型维度，这是严重错误
+            if model_dim is None:
+                error_msg = "无法检测embedding模型维度，这可能导致维度不匹配错误"
+                logger.error(error_msg)
+                print(f"❌ {error_msg}")
+                print(f"   尝试的方法: {dim_detection_methods}")
+                raise ValueError(error_msg)
+            
+            logger.info(f"✅ 成功检测到embedding模型维度: {model_dim} (方法: {', '.join(dim_detection_methods)})")
+            print(f"📏 当前embedding模型维度: {model_dim}")
+            
+            # 尝试获取现有collection
+            try:
+                existing_collection = self.chroma_client.get_collection(name=self.collection_name)
+                
+                # 获取collection的维度（从metadata或查询实际数据）
+                collection_dim = None
+                collection_count = existing_collection.count()
+                
+                try:
+                    # 尝试从collection的metadata获取
+                    if existing_collection.metadata and 'embedding_dimension' in existing_collection.metadata:
+                        collection_dim = existing_collection.metadata['embedding_dimension']
+                        logger.info(f"从collection metadata获取维度: {collection_dim}")
+                    elif collection_count > 0:
+                        # 如果collection有数据，尝试查询一个向量获取维度
+                        sample = existing_collection.peek(limit=1)
+                        if sample and 'embeddings' in sample and sample['embeddings']:
+                            collection_dim = len(sample['embeddings'][0])
+                            logger.info(f"从collection实际数据获取维度: {collection_dim}")
+                except Exception as e:
+                    logger.warning(f"获取collection维度失败: {e}")
+                
+                # 如果collection为空，直接使用（无需检查维度）
+                if collection_count == 0:
+                    self.chroma_collection = existing_collection
+                    print(f"✅ Collection为空，可以使用: {self.collection_name}")
+                    logger.info(f"Collection为空，直接使用: {self.collection_name}")
+                # 如果collection有数据但无法获取维度，采用保守策略：删除并重建
+                elif collection_dim is None:
+                    print(f"⚠️  Collection有数据但无法检测维度，采用保守策略删除并重建")
+                    print(f"   当前模型维度: {model_dim}")
+                    print(f"🔄 自动删除旧collection并重新创建...")
+                    
+                    self.chroma_client.delete_collection(name=self.collection_name)
+                    logger.warning(f"因无法检测维度，已删除collection: {self.collection_name} (模型维度: {model_dim})")
+                    
+                    # 重新创建collection
+                    self.chroma_collection = self.chroma_client.get_or_create_collection(
+                        name=self.collection_name
+                    )
+                    print(f"✅ 已重新创建collection: {self.collection_name}")
+                # 如果维度不匹配，删除并重建
+                elif model_dim != collection_dim:
+                    print(f"⚠️  检测到embedding维度不匹配:")
+                    print(f"   Collection维度: {collection_dim}")
+                    print(f"   当前模型维度: {model_dim}")
+                    print(f"🔄 自动删除旧collection并重新创建...")
+                    
+                    self.chroma_client.delete_collection(name=self.collection_name)
+                    logger.info(f"已删除维度不匹配的collection: {self.collection_name} (维度: {collection_dim} -> {model_dim})")
+                    
+                    # 重新创建collection
+                    self.chroma_collection = self.chroma_client.get_or_create_collection(
+                        name=self.collection_name
+                    )
+                    print(f"✅ 已重新创建collection: {self.collection_name} (维度: {model_dim})")
+                else:
+                    # 维度匹配，使用现有collection
+                    self.chroma_collection = existing_collection
+                    print(f"✅ Collection维度检查通过: {model_dim}维")
+                    logger.info(f"Collection维度匹配: {model_dim}维")
+                    
+            except Exception as e:
+                # Collection不存在，创建新的
+                if "does not exist" in str(e) or "not found" in str(e).lower():
+                    self.chroma_collection = self.chroma_client.get_or_create_collection(
+                        name=self.collection_name
+                    )
+                    print(f"✅ 创建新collection: {self.collection_name} (维度: {model_dim})")
+                    logger.info(f"创建新collection: {self.collection_name} (维度: {model_dim})")
+                else:
+                    # 其他错误，重新抛出
+                    logger.error(f"获取collection时出错: {e}")
+                    raise
+                    
+        except Exception as e:
+            # 如果检测过程出错，尝试删除旧collection并重建（保守策略）
+            logger.error(f"维度检测过程出错: {e}")
+            logger.info("采用保守策略：删除旧collection并重建")
+            
+            try:
+                # 尝试删除旧collection（如果存在）
+                try:
+                    self.chroma_client.delete_collection(name=self.collection_name)
+                    logger.info(f"已删除可能不兼容的collection: {self.collection_name}")
+                    print(f"🔄 已删除可能不兼容的collection: {self.collection_name}")
+                except:
+                    # 如果删除失败（collection不存在），继续创建新collection
+                    pass
+                
+                # 创建新collection
+                self.chroma_collection = self.chroma_client.get_or_create_collection(
+                    name=self.collection_name
+                )
+                print(f"✅ 已重新创建collection: {self.collection_name}")
+                logger.info(f"已重新创建collection: {self.collection_name}")
+            except Exception as fallback_error:
+                logger.error(f"回退创建collection也失败: {fallback_error}")
+                raise
     
     def clear_index(self):
         """清空索引"""
@@ -933,6 +1247,135 @@ class IndexManager:
             print(f"⚠️  查询节点ID失败: {e}")
             return []
     
+    @staticmethod
+    def _compute_documents_hash(documents: List[LlamaDocument]) -> str:
+        """计算文档列表的哈希值
+        
+        Args:
+            documents: 文档列表
+            
+        Returns:
+            MD5哈希值
+        """
+        import hashlib
+        import json
+        
+        # 基于文档文本内容和元数据计算哈希
+        docs_data = []
+        for doc in documents:
+            docs_data.append({
+                "text": doc.text[:1000],  # 只使用前1000字符以提高性能
+                "file_path": doc.metadata.get("file_path", ""),
+                "file_name": doc.metadata.get("file_name", "")
+            })
+        
+        docs_str = json.dumps(docs_data, sort_keys=True, ensure_ascii=False)
+        return hashlib.md5(docs_str.encode('utf-8')).hexdigest()
+    
+    def _check_vectors_exist(self, documents: List[LlamaDocument]) -> bool:
+        """检查文档对应的向量是否已存在于 Chroma 中
+        
+        Args:
+            documents: 文档列表
+            
+        Returns:
+            如果所有文档的向量都存在返回True，否则返回False
+        """
+        try:
+            # 检查 collection 是否存在且有数据
+            if not hasattr(self, 'chroma_collection'):
+                return False
+            
+            collection_count = self.chroma_collection.count()
+            if collection_count == 0:
+                return False
+            
+            # 检查每个文档是否都有对应的向量
+            # 简化版本：如果 collection 有数据且文档数量合理，认为已存在
+            # 更严格的检查可以通过查询每个文件的向量ID实现
+            file_paths = [doc.metadata.get("file_path", "") for doc in documents if doc.metadata.get("file_path")]
+            if not file_paths:
+                return False
+            
+            # 检查至少一部分文件的向量是否存在
+            sample_paths = file_paths[:min(5, len(file_paths))]  # 检查前5个文件
+            existing_count = 0
+            for file_path in sample_paths:
+                vector_ids = self._get_vector_ids_by_metadata(file_path)
+                if vector_ids:
+                    existing_count += 1
+            
+            # 如果所有样本文件都有向量，认为缓存有效
+            return existing_count == len(sample_paths)
+            
+        except Exception as e:
+            logger.warning(f"检查向量存在性失败: {e}")
+            return False
+    
+    def _filter_vectorized_documents(
+        self, 
+        documents: List[LlamaDocument]
+    ) -> Tuple[List[LlamaDocument], int]:
+        """过滤已向量化的文档，实现文档级断点续传
+        
+        Args:
+            documents: 文档列表
+            
+        Returns:
+            (待处理的文档列表, 已向量化的文档数量)
+        """
+        if not documents:
+            return [], 0
+        
+        # 确保索引已初始化
+        if self._index is None:
+            self.get_index()
+        
+        # 检查 collection 是否存在
+        if not hasattr(self, 'chroma_collection'):
+            return documents, 0
+        
+        try:
+            collection_count = self.chroma_collection.count()
+            if collection_count == 0:
+                # 如果 collection 为空，所有文档都需要处理
+                return documents, 0
+            
+            # 检查每个文档是否已向量化
+            documents_to_process = []
+            already_vectorized_count = 0
+            
+            for doc in documents:
+                file_path = doc.metadata.get("file_path", "")
+                if not file_path:
+                    # 如果没有 file_path，无法检查，需要处理
+                    documents_to_process.append(doc)
+                    continue
+                
+                # 查询该文件是否已有向量
+                vector_ids = self._get_vector_ids_by_metadata(file_path)
+                if vector_ids:
+                    # 该文档已向量化，跳过
+                    already_vectorized_count += 1
+                    logger.debug(f"文档已向量化，跳过: {file_path}")
+                else:
+                    # 该文档未向量化，需要处理
+                    documents_to_process.append(doc)
+            
+            if already_vectorized_count > 0:
+                logger.info(
+                    f"文档级断点续传: "
+                    f"总文档数={len(documents)}, "
+                    f"已向量化={already_vectorized_count}, "
+                    f"待处理={len(documents_to_process)}"
+                )
+            
+            return documents_to_process, already_vectorized_count
+            
+        except Exception as e:
+            logger.warning(f"过滤已向量化文档失败: {e}，将处理所有文档")
+            return documents, 0
+    
     def preload_wikipedia_concepts(
         self,
         concept_keywords: List[str],
@@ -996,6 +1439,86 @@ class IndexManager:
             print(f"❌ 预加载维基百科失败: {e}")
             logger.error(f"预加载维基百科失败: {e}")
             return 0
+    
+    def close(self):
+        """关闭索引管理器，释放资源
+        
+        显式关闭 Chroma 客户端连接，停止后台线程
+        应该在应用关闭时调用此方法
+        """
+        try:
+            logger.info("🔧 开始关闭索引管理器...")
+            
+            # 1. 清理 Chroma 客户端
+            if hasattr(self, 'chroma_client') and self.chroma_client is not None:
+                try:
+                    # 尝试多种方式关闭客户端
+                    client = self.chroma_client
+                    
+                    # 方法1: 尝试调用 close() 方法
+                    if hasattr(client, 'close'):
+                        client.close()
+                        logger.info("✅ Chroma客户端已通过 close() 方法关闭")
+                    # 方法2: 尝试调用 reset() 方法（某些版本支持）
+                    elif hasattr(client, 'reset'):
+                        client.reset()
+                        logger.info("✅ Chroma客户端已通过 reset() 方法重置")
+                    # 方法3: 尝试访问内部属性并关闭
+                    elif hasattr(client, '_client'):
+                        # 某些版本的 Chroma 可能有内部客户端
+                        inner_client = getattr(client, '_client', None)
+                        if inner_client and hasattr(inner_client, 'close'):
+                            inner_client.close()
+                            logger.info("✅ Chroma内部客户端已关闭")
+                    
+                    # 清理引用
+                    self.chroma_client = None
+                    logger.info("✅ Chroma客户端引用已清理")
+                    
+                except Exception as e:
+                    logger.warning(f"⚠️  关闭 Chroma 客户端时出错: {e}")
+                    # 即使出错，也要清理引用
+                    self.chroma_client = None
+            
+            # 2. 清理其他引用
+            if hasattr(self, 'chroma_collection'):
+                self.chroma_collection = None
+            if hasattr(self, 'vector_store'):
+                self.vector_store = None
+            if hasattr(self, 'storage_context'):
+                self.storage_context = None
+            if hasattr(self, '_index'):
+                self._index = None
+            
+            # 3. 强制垃圾回收（可选，帮助清理线程）
+            try:
+                import gc
+                gc.collect()
+                logger.debug("✅ 已执行垃圾回收")
+            except Exception as e:
+                logger.debug(f"垃圾回收时出错: {e}")
+            
+            logger.info("✅ 索引管理器资源已释放")
+            
+        except Exception as e:
+            logger.warning(f"⚠️  关闭索引管理器时出错: {e}")
+            # 即使出错，也要尽可能清理引用
+            try:
+                self.chroma_client = None
+                self.chroma_collection = None
+                self.vector_store = None
+                self.storage_context = None
+                self._index = None
+            except:
+                pass
+    
+    def __del__(self):
+        """析构函数，确保资源被释放"""
+        try:
+            self.close()
+        except Exception:
+            # 析构函数中的异常应该被忽略
+            pass
 
 
 def create_index_from_directory(

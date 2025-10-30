@@ -152,7 +152,9 @@ class DocumentProcessor:
 def load_documents_from_source(
     source: DataSource,
     clean: bool = True,
-    show_progress: bool = True
+    show_progress: bool = True,
+    cache_manager=None,
+    task_id: Optional[str] = None
 ) -> List[LlamaDocument]:
     """从数据源加载文档（统一入口函数）
     
@@ -162,6 +164,8 @@ def load_documents_from_source(
         source: 数据源对象（GitHubSource, LocalFileSource, WebSource等）
         clean: 是否清理文本
         show_progress: 是否显示进度
+        cache_manager: 缓存管理器实例（可选）
+        task_id: 任务ID（可选，用于缓存）
         
     Returns:
         文档列表
@@ -180,7 +184,11 @@ def load_documents_from_source(
             safe_print(f"📂 正在获取文件路径...")
         
         source_start_time = time.time()
-        source_files = source.get_file_paths()
+        # 如果是 GitHubSource，传递缓存管理器
+        if isinstance(source, GitHubSource):
+            source_files = source.get_file_paths(cache_manager=cache_manager, task_id=task_id)
+        else:
+            source_files = source.get_file_paths()
         source_elapsed = time.time() - source_start_time
         
         if not source_files:
@@ -205,7 +213,13 @@ def load_documents_from_source(
         
         parser_start_time = time.time()
         parser = DocumentParser()
-        documents = parser.parse_files(file_paths, metadata_map, clean=clean)
+        documents = parser.parse_files(
+            file_paths, 
+            metadata_map, 
+            clean=clean,
+            cache_manager=cache_manager,
+            task_id=task_id
+        )
         parser_elapsed = time.time() - parser_start_time
         
         if not documents:
@@ -601,6 +615,27 @@ def load_documents_from_github(owner: str,
     # 使用新架构（如果可用）
     if NEW_ARCHITECTURE_AVAILABLE:
         try:
+            # 初始化缓存管理器（如果启用缓存）
+            cache_manager = None
+            task_id = None
+            from src.config import config
+            if config.ENABLE_CACHE:
+                try:
+                    from src.cache_manager import CacheManager
+                    cache_manager = CacheManager(config.CACHE_STATE_PATH)
+                    task_id = cache_manager.get_task_id(
+                        owner=owner,
+                        repo=repo,
+                        branch=branch or "main",
+                        filter_directories=filter_directories,
+                        filter_file_extensions=filter_file_extensions
+                    )
+                    task_key = cache_manager.get_task_key(owner, repo, branch or "main")
+                    cache_manager.init_task(task_id, task_key)
+                    logger.info(f"初始化缓存任务: {task_id} ({task_key})")
+                except Exception as e:
+                    logger.warning(f"初始化缓存管理器失败，继续不使用缓存: {e}")
+            
             source = GitHubSource(
                 owner=owner,
                 repo=repo,
@@ -609,7 +644,13 @@ def load_documents_from_github(owner: str,
                 filter_file_extensions=filter_file_extensions,
                 show_progress=show_progress
             )
-            documents = load_documents_from_source(source, clean=clean, show_progress=show_progress)
+            documents = load_documents_from_source(
+                source, 
+                clean=clean, 
+                show_progress=show_progress,
+                cache_manager=cache_manager,
+                task_id=task_id
+            )
             return documents
         except Exception as e:
             logger.warning(f"新架构加载失败，回退到旧实现: {e}")
@@ -759,21 +800,43 @@ def sync_github_repository(
         filter_file_extensions: 只加载指定扩展名（可选）
         
     Returns:
-        (所有文档列表, FileChange对象, commit_sha)
+        (所有文档列表, FileChange对象, commit_sha, cache_manager, task_id)
     """
     from src.metadata_manager import FileChange
+    
+    # 初始化缓存管理器（如果启用缓存）
+    cache_manager = None
+    task_id = None
+    if config.ENABLE_CACHE:
+        try:
+            from src.cache_manager import CacheManager
+            cache_manager = CacheManager(config.CACHE_STATE_PATH)
+            task_id = cache_manager.get_task_id(
+                owner=owner,
+                repo=repo,
+                branch=branch,
+                filter_directories=filter_directories,
+                filter_file_extensions=filter_file_extensions
+            )
+            task_key = cache_manager.get_task_key(owner, repo, branch)
+            cache_manager.init_task(task_id, task_key)
+            logger.info(f"初始化缓存任务: {task_id} ({task_key})")
+        except Exception as e:
+            logger.warning(f"初始化缓存管理器失败，继续不使用缓存: {e}")
     
     # 步骤 1: 克隆/更新仓库，获取最新 commit SHA
     if GitRepositoryManager is None:
         logger.error("GitRepositoryManager 未安装")
-        return [], FileChange(), None
+        return [], FileChange(), None, cache_manager, task_id
     
     try:
         git_manager = GitRepositoryManager(config.GITHUB_REPOS_PATH)
         repo_path, commit_sha = git_manager.clone_or_update(
             owner=owner,
             repo=repo,
-            branch=branch
+            branch=branch,
+            cache_manager=cache_manager,
+            task_id=task_id
         )
         
         if show_progress:
@@ -783,7 +846,7 @@ def sync_github_repository(
         logger.error(f"Git 操作失败: {e}")
         if show_progress:
             safe_print(f"❌ Git 操作失败: {e}")
-        return [], FileChange(), None
+        return [], FileChange(), None, cache_manager, task_id
     
     # 步骤 2: 快速检测 - 检查 commit SHA 是否变化
     old_metadata = metadata_manager.get_repository_metadata(owner, repo, branch)
@@ -795,7 +858,7 @@ def sync_github_repository(
             if show_progress:
                 safe_print(f"✅ 仓库无新提交，跳过加载")
             logger.info(f"仓库 {owner}/{repo}@{branch} 无新提交 (Commit: {commit_sha[:8]})")
-            return [], FileChange(), commit_sha
+            return [], FileChange(), commit_sha, cache_manager, task_id
     
     # 步骤 3: 有新提交，加载文档
     if show_progress:
@@ -813,7 +876,7 @@ def sync_github_repository(
     
     if not documents:
         logger.warning(f"未能加载任何文档从 {owner}/{repo}")
-        return [], FileChange(), commit_sha
+        return [], FileChange(), commit_sha, cache_manager, task_id
     
     # 步骤 4: 精细检测 - 文件级变更
     if show_progress:
@@ -827,7 +890,7 @@ def sync_github_repository(
         else:
             safe_print(f"✅ 没有检测到文件变更")
     
-    return documents, changes, commit_sha
+    return documents, changes, commit_sha, cache_manager, task_id
 
 
 def _handle_github_error(error: Exception, owner: str, repo: str, show_progress: bool = True) -> str:

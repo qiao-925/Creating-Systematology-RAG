@@ -7,6 +7,9 @@ import streamlit as st
 from pathlib import Path
 from typing import Optional
 import sys
+import atexit
+import signal
+import logging
 
 # 添加src到路径
 sys.path.insert(0, str(Path(__file__).parent))
@@ -23,6 +26,71 @@ from src.ui_components import (
 )
 from src.query_engine import format_sources
 from llama_index.core import Document as LlamaDocument
+from src.logger import setup_logger
+
+logger = setup_logger('app')
+
+
+def cleanup_resources():
+    """清理应用资源，关闭 Chroma 客户端和后台线程
+    
+    这个函数会在应用退出时被调用，确保 Chroma 的后台线程被正确终止
+    """
+    try:
+        import logging
+        log = logging.getLogger('app')
+        log.info("🔧 开始清理应用资源...")
+        
+        # 清理 IndexManager（关闭 Chroma 客户端）
+        # 注意：在 Streamlit 中，session_state 可能不可用，所以需要 try-except
+        try:
+            if hasattr(st, 'session_state') and 'index_manager' in st.session_state:
+                index_manager = st.session_state.get('index_manager')
+                if index_manager:
+                    try:
+                        index_manager.close()
+                        log.info("✅ 索引管理器已清理")
+                    except Exception as e:
+                        log.warning(f"⚠️  清理索引管理器时出错: {e}")
+        except Exception as e:
+            # Streamlit session_state 可能在某些情况下不可用
+            log.debug(f"无法访问 session_state: {e}")
+        
+        # 尝试清理全局资源
+        try:
+            # 清理全局的 Embedding 模型（如果需要）
+            from src.indexer import clear_embedding_model_cache
+            clear_embedding_model_cache()
+            log.debug("✅ 全局模型缓存已清理")
+        except Exception as e:
+            log.debug(f"清理全局模型缓存时出错: {e}")
+        
+        log.info("✅ 应用资源清理完成")
+    except Exception as e:
+        # 使用 print 作为最后的备选方案
+        print(f"❌ 清理资源时发生错误: {e}")
+
+
+def signal_handler(signum, frame):
+    """信号处理器，用于处理 Ctrl+C 等中断信号"""
+    try:
+        logger.info(f"📡 收到信号 {signum}，开始清理资源...")
+    except:
+        print(f"📡 收到信号 {signum}，开始清理资源...")
+    cleanup_resources()
+    sys.exit(0)
+
+
+# 注册退出钩子（在所有情况下都会执行）
+atexit.register(cleanup_resources)
+
+# 注册信号处理器（Windows 和 Unix 都支持）
+try:
+    signal.signal(signal.SIGINT, signal_handler)  # Ctrl+C
+    signal.signal(signal.SIGTERM, signal_handler)  # 终止信号
+except (ValueError, OSError) as e:
+    # Windows 上可能不支持某些信号，忽略错误
+    logger.debug(f"无法注册信号处理器: {e}")
 
 
 # 页面配置

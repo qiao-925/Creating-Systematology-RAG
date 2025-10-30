@@ -4,6 +4,8 @@
 """
 
 import time
+import pickle
+import json
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Set
 from llama_index.core import SimpleDirectoryReader
@@ -27,7 +29,9 @@ class DocumentParser:
         self,
         file_paths: List[Path],
         metadata_map: Optional[Dict[Path, Dict[str, Any]]] = None,
-        clean: bool = True
+        clean: bool = True,
+        cache_manager=None,
+        task_id: Optional[str] = None
     ) -> List[LlamaDocument]:
         """解析文件列表，返回文档列表
         
@@ -35,6 +39,8 @@ class DocumentParser:
             file_paths: 文件路径列表
             metadata_map: 文件路径到元数据的映射（可选）
             clean: 是否清理文本（暂不使用，保留接口）
+            cache_manager: 缓存管理器实例（可选）
+            task_id: 任务ID（可选，用于缓存）
             
         Returns:
             文档列表
@@ -44,6 +50,21 @@ class DocumentParser:
         if not file_paths:
             logger.warning("文件路径列表为空")
             return []
+        
+        # 如果提供了缓存管理器且启用了缓存，检查缓存
+        if cache_manager and task_id:
+            from src.config import config
+            if config.ENABLE_CACHE:
+                # 计算输入哈希（基于文件路径列表）
+                input_hash = self._compute_files_hash(file_paths)
+                step_name = cache_manager.STEP_PARSE
+                
+                if cache_manager.check_step_cache(task_id, step_name, input_hash):
+                    # 尝试加载缓存的文档
+                    cached_docs = self._load_cached_documents(cache_manager, task_id)
+                    if cached_docs:
+                        logger.info(f"✅ 使用缓存: 加载了 {len(cached_docs)} 个已解析的文档")
+                        return cached_docs
         
         logger.info(f"开始解析 {len(file_paths)} 个文件")
         
@@ -222,10 +243,31 @@ class DocumentParser:
             avg_time = elapsed / len(valid_paths) if valid_paths else 0
             logger.info(f"解析完成: 成功解析 {len(documents)}/{len(valid_paths)} 个文档 (总耗时: {elapsed:.2f}s, 平均: {avg_time:.3f}s/文件)")
             
+            # 如果提供了缓存管理器，保存解析结果
+            if cache_manager and task_id:
+                from src.config import config
+                if config.ENABLE_CACHE:
+                    try:
+                        self._save_cached_documents(cache_manager, task_id, documents, file_paths)
+                    except Exception as e:
+                        logger.warning(f"保存解析缓存失败: {e}")
+            
             return documents
             
         except Exception as e:
             logger.error(f"解析文件列表失败: {e}", exc_info=True)
+            
+            # 如果提供了缓存管理器，标记步骤失败
+            if cache_manager and task_id:
+                try:
+                    cache_manager.mark_step_failed(
+                        task_id=task_id,
+                        step_name=cache_manager.STEP_PARSE,
+                        error_message=str(e)
+                    )
+                except Exception:
+                    pass
+            
             return []
     
     def _parse_single_file(
@@ -285,4 +327,96 @@ class DocumentParser:
         except Exception as e:
             logger.warning(f"解析文件失败 {file_path}: {e}", exc_info=True)
             return []
+    
+    @staticmethod
+    def _compute_files_hash(file_paths: List[Path]) -> str:
+        """计算文件路径列表的哈希值
+        
+        Args:
+            file_paths: 文件路径列表
+            
+        Returns:
+            MD5哈希值
+        """
+        import hashlib
+        # 使用排序后的路径字符串计算哈希
+        paths_str = json.dumps([str(p.resolve()) for p in sorted(file_paths)], sort_keys=True)
+        return hashlib.md5(paths_str.encode('utf-8')).hexdigest()
+    
+    def _save_cached_documents(
+        self,
+        cache_manager,
+        task_id: str,
+        documents: List[LlamaDocument],
+        file_paths: List[Path]
+    ):
+        """保存解析结果到缓存
+        
+        Args:
+            cache_manager: 缓存管理器实例
+            task_id: 任务ID
+            documents: 解析后的文档列表
+            file_paths: 原始文件路径列表
+        """
+        from src.config import config
+        
+        # 确定缓存目录
+        cache_dir = config.PROCESSED_DATA_PATH / task_id
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        
+        # 保存文档（使用pickle序列化）
+        cache_file = cache_dir / "documents.pkl"
+        with open(cache_file, 'wb') as f:
+            pickle.dump(documents, f)
+        
+        logger.debug(f"已保存解析结果到缓存: {cache_file}")
+        
+        # 更新缓存状态
+        input_hash = self._compute_files_hash(file_paths)
+        cache_manager.mark_step_completed(
+            task_id=task_id,
+            step_name=cache_manager.STEP_PARSE,
+            input_hash=input_hash,
+            file_count=len(documents),
+            parsed_data_path=str(cache_file)
+        )
+    
+    def _load_cached_documents(
+        self,
+        cache_manager,
+        task_id: str
+    ) -> Optional[List[LlamaDocument]]:
+        """从缓存加载解析结果
+        
+        Args:
+            cache_manager: 缓存管理器实例
+            task_id: 任务ID
+            
+        Returns:
+            文档列表，如果加载失败返回None
+        """
+        try:
+            step_data = cache_manager.get_step_data(task_id, cache_manager.STEP_PARSE)
+            if not step_data:
+                return None
+            
+            cache_file_path = step_data.get("parsed_data_path")
+            if not cache_file_path:
+                return None
+            
+            cache_file = Path(cache_file_path)
+            if not cache_file.exists():
+                logger.warning(f"缓存文件不存在: {cache_file}")
+                return None
+            
+            # 加载文档
+            with open(cache_file, 'rb') as f:
+                documents = pickle.load(f)
+            
+            logger.debug(f"从缓存加载了 {len(documents)} 个文档: {cache_file}")
+            return documents
+            
+        except Exception as e:
+            logger.warning(f"加载缓存文档失败: {e}")
+            return None
 

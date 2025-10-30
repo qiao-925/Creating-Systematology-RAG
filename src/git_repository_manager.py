@@ -87,17 +87,22 @@ class GitRepositoryManager:
         self,
         owner: str,
         repo: str,
-        branch: str
+        branch: str,
+        cache_manager=None,
+        task_id: Optional[str] = None
     ) -> Tuple[Path, str]:
         """克隆或更新仓库（仅支持公开仓库）
         
         如果本地不存在，执行 git clone
         如果已存在，执行 git pull
+        如果缓存有效且仓库存在，可能跳过操作
         
         Args:
             owner: 仓库所有者
             repo: 仓库名称
             branch: 分支名称
+            cache_manager: 缓存管理器实例（可选）
+            task_id: 任务ID（可选，用于缓存）
             
         Returns:
             (本地仓库路径, 当前 commit SHA)
@@ -107,6 +112,33 @@ class GitRepositoryManager:
         """
         repo_path = self.get_repo_path(owner, repo, branch)
         clone_url = self._build_clone_url(owner, repo)
+        
+        # 如果提供了缓存管理器且启用了缓存，检查缓存
+        if cache_manager and task_id:
+            from src.config import config
+            if config.ENABLE_CACHE:
+                # 检查克隆步骤缓存
+                step_name = cache_manager.STEP_CLONE
+                input_hash = cache_manager.compute_hash(f"{owner}/{repo}@{branch}")
+                
+                if cache_manager.check_step_cache(task_id, step_name, input_hash):
+                    # 缓存有效，检查仓库是否存在
+                    if repo_path.exists():
+                        # 获取当前 commit SHA
+                        try:
+                            commit_sha = self.get_current_commit_sha(repo_path)
+                            cached_commit = cache_manager.get_step_data(task_id, step_name).get("commit_sha")
+                            
+                            # 验证 commit SHA 是否匹配
+                            if cached_commit and commit_sha == cached_commit:
+                                logger.info(f"✅ 使用缓存: 仓库已存在且 commit 匹配 ({commit_sha[:8]})")
+                                return repo_path, commit_sha
+                            else:
+                                logger.info(f"⚠️  缓存中的 commit SHA 不匹配，继续更新仓库")
+                        except Exception as e:
+                            logger.warning(f"获取 commit SHA 失败，继续正常流程: {e}")
+                    else:
+                        logger.info(f"⚠️  缓存有效但仓库不存在，继续克隆")
         
         try:
             if not repo_path.exists():
@@ -122,11 +154,33 @@ class GitRepositoryManager:
             commit_sha = self.get_current_commit_sha(repo_path)
             logger.info(f"仓库当前 commit: {commit_sha[:8]}")
             
+            # 如果提供了缓存管理器，更新缓存状态
+            if cache_manager and task_id:
+                from src.config import config
+                if config.ENABLE_CACHE:
+                    input_hash = cache_manager.compute_hash(f"{owner}/{repo}@{branch}")
+                    cache_manager.mark_step_completed(
+                        task_id=task_id,
+                        step_name=cache_manager.STEP_CLONE,
+                        input_hash=input_hash,
+                        commit_sha=commit_sha,
+                        repo_path=str(repo_path)
+                    )
+            
             return repo_path, commit_sha
             
         except Exception as e:
             error_msg = f"Git 操作失败 ({owner}/{repo}@{branch}): {e}"
             logger.error(error_msg)
+            
+            # 如果提供了缓存管理器，标记步骤失败
+            if cache_manager and task_id:
+                cache_manager.mark_step_failed(
+                    task_id=task_id,
+                    step_name=cache_manager.STEP_CLONE,
+                    error_message=str(e)
+                )
+            
             raise RuntimeError(error_msg) from e
     
     def _clone_repository(self, clone_url: str, repo_path: Path, branch: str):

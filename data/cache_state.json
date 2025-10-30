@@ -1,0 +1,43 @@
+{
+  "version": "1.0",
+  "tasks": {
+    "qiao-925_Creating-Systematology_main_d3a953e1": {
+      "task_key": "qiao-925/Creating-Systematology@main",
+      "created_at": "2025-10-30T11:12:02.152302",
+      "step_clone": {
+        "status": "completed",
+        "timestamp": "2025-10-30T11:12:03.739996",
+        "commit_sha": "6ec586f2674c1b49d00c19230ee73f02a1b31abd",
+        "repo_path": "D:\\git repo\\Creating-Systematology-RAG\\data\\github_repos\\qiao-925\\Creating-Systematology_main",
+        "hash": "a7454390061d1ff168786f2dbca11fc0"
+      },
+      "step_parse": {
+        "status": "completed",
+        "timestamp": "2025-10-30T11:14:25.751957",
+        "file_count": 1616,
+        "parsed_data_path": "D:\\git repo\\Creating-Systematology-RAG\\data\\processed\\qiao-925_Creating-Systematology_main_d3a953e1\\documents.pkl",
+        "hash": "56df5954452082dbf65bd9a884e85088"
+      },
+      "step_vectorize": {
+        "status": "pending"
+      }
+    },
+    "octocat_Hello-World_master_7f6e1f6b": {
+      "task_key": "octocat/Hello-World@master",
+      "created_at": "2025-10-30T11:35:49.993211",
+      "step_clone": {
+        "status": "completed",
+        "timestamp": "2025-10-30T11:35:56.635730",
+        "commit_sha": "7fd1a60b01f91b314f59955a4e4d4e80d8edf11d",
+        "repo_path": "D:\\git repo\\Creating-Systematology-RAG\\data\\github_repos\\octocat\\Hello-World_master",
+        "hash": "9ddb15b59f805044c00a479cd1541e71"
+      },
+      "step_parse": {
+        "status": "pending"
+      },
+      "step_vectorize": {
+        "status": "pending"
+      }
+    }
+  }
+}

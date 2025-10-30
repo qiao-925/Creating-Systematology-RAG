@@ -416,7 +416,7 @@ with tab1:
                         if index_manager:
                             with st.spinner(f"正在索引 {github_owner}/{github_repo}..."):
                                 try:
-                                    documents, changes, commit_sha = sync_github_repository(
+                                    documents, changes, commit_sha, cache_manager, task_id = sync_github_repository(
                                         owner=github_owner,
                                         repo=github_repo,
                                         branch=github_branch,
@@ -425,7 +425,12 @@ with tab1:
                                     )
                                     
                                     if documents:
-                                        index, vector_ids_map = index_manager.build_index(documents, show_progress=True)
+                                        index, vector_ids_map = index_manager.build_index(
+                                            documents, 
+                                            show_progress=True,
+                                            cache_manager=cache_manager,
+                                            task_id=task_id
+                                        )
                                         st.session_state.metadata_manager.update_repository_metadata(
                                             owner=github_owner,
                                             repo=github_repo,
@@ -458,7 +463,7 @@ with tab1:
                             owner, repo_name = repo_part.split('/')
                             
                             try:
-                                documents, changes, commit_sha = sync_github_repository(
+                                documents, changes, commit_sha, cache_manager, task_id = sync_github_repository(
                                     owner=owner,
                                     repo=repo_name,
                                     branch=branch,
@@ -470,6 +475,14 @@ with tab1:
                                     added_docs, modified_docs, deleted_paths = st.session_state.metadata_manager.get_documents_by_change(
                                         documents, changes
                                     )
+                                    # 对于增量更新，也传递缓存管理器（如果需要索引新文档）
+                                    if added_docs or modified_docs:
+                                        index_manager.build_index(
+                                            added_docs + modified_docs,
+                                            show_progress=False,
+                                            cache_manager=cache_manager,
+                                            task_id=task_id
+                                        )
                                     index_manager.incremental_update(
                                         added_docs=added_docs,
                                         modified_docs=modified_docs,

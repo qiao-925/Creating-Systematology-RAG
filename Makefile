@@ -9,80 +9,94 @@
 
 all: ready
 	@echo ""
-	@echo "✅ 项目准备完成！"
-	@echo "💡 提示: 运行 'make start' 可以自动启动应用"
+	@echo "✅ Project setup completed!"
+	@echo "💡 Tip: Run make start to automatically start the application"
 	@echo ""
 
 # ==================== 帮助信息 ====================
 
 help:
 	@echo "=================================="
-	@echo "系统科学知识库RAG - Makefile"
+	@echo "Systematology RAG - Makefile"
 	@echo "=================================="
 	@echo ""
-	@echo "💡 快速开始："
-	@echo "  make                  - 默认：完整工作流（安装+测试）"
-	@echo "  make start            - 完整流程并启动应用"
+	@echo "💡 Quick Start:"
+	@echo "  make                  - Default: Full workflow (install + test)"
+	@echo "  make start            - Full process and start application"
 	@echo ""
-	@echo "📦 安装命令："
-	@echo "  make install          - 安装项目依赖"
-	@echo "  make install-test     - 安装测试依赖"
+	@echo "📦 Install Commands:"
+	@echo "  make install          - Install project dependencies"
+	@echo "  make install-test     - Install test dependencies"
+	@echo "  ⚠️  GPU version PyTorch requires manual installation (see README.md)"
 	@echo ""
-	@echo "🧪 测试命令："
-	@echo "  make test             - 运行所有测试"
-	@echo "  make test-unit        - 运行单元测试"
-	@echo "  make test-integration - 运行集成测试"
-	@echo "  make test-performance - 运行性能测试"
-	@echo "  make test-cov         - 测试 + 覆盖率报告"
-	@echo "  make test-fast        - 快速测试（跳过慢速测试）"
+	@echo "🧪 Test Commands:"
+	@echo "  make test             - Run all tests"
+	@echo "  make test-unit        - Run unit tests"
+	@echo "  make test-integration - Run integration tests"
+	@echo "  make test-github-e2e  - Run GitHub E2E tests (requires network)"
+	@echo "  make test-performance - Run performance tests"
+	@echo "  make test-cov         - Tests + coverage report"
+	@echo "  make test-fast        - Fast tests (skip slow tests)"
 	@echo ""
-	@echo "🚀 运行命令："
-	@echo "  make run              - 启动Streamlit应用"
-	@echo "  make dev              - 开发模式（安装+快速测试）"
+	@echo "🚀 Run Commands:"
+	@echo "  make run              - Start Streamlit application"
+	@echo "  make dev              - Development mode (install + fast test)"
 	@echo ""
-	@echo "🔄 完整工作流："
-	@echo "  make ready            - 准备就绪（安装+完整测试）"
-	@echo "  make start            - 一键启动（ready + run）"
-	@echo "  make all              - 同 make ready"
+	@echo "🔄 Full Workflow:"
+	@echo "  make ready            - Ready (install + full test)"
+	@echo "  make start            - One-click start (ready + run)"
+	@echo "  make all              - Same as make ready"
 	@echo ""
-	@echo "🧹 清理命令："
-	@echo "  make clean            - 清理生成的文件"
+	@echo "🧹 Clean Commands:"
+	@echo "  make clean            - Clean generated files"
 
 install:
-	@echo "📦 安装依赖..."
+	@echo "📦 Installing dependencies..."
 	uv sync
+	@echo ""
+	@echo "💡 Tip: For GPU acceleration, please refer to README.md for manual installation of CUDA version PyTorch"
 
 install-test:
-	@echo "📦 安装测试依赖..."
+	@echo "📦 Installing test dependencies..."
 	uv sync --extra test
 
+install-gpu:
+	@echo "⚠️  Deprecated: Please refer to README.md for manual installation of GPU version PyTorch"
+	@echo "   Install command: uv pip install --force-reinstall --index-url https://download.pytorch.org/whl/cu121 torch torchvision torchaudio"
+
 test: install-test
-	@echo "🧪 运行所有测试..."
-	uv run pytest tests/ -v
+	@echo "🧪 Running all tests..."
+	uv run --no-sync pytest tests/ -v
 
 test-unit: install-test
-	@echo "🧪 运行单元测试..."
-	uv run pytest tests/unit -v
+	@echo "🧪 Running unit tests..."
+	uv run --no-sync pytest tests/unit -v
 
 test-integration: install-test
-	@echo "🧪 运行集成测试..."
-	uv run pytest tests/integration -v
+	@echo "🧪 Running integration tests..."
+	uv run --no-sync pytest tests/integration -v
+
+test-github-e2e: install-test
+	@echo "🔗 Running GitHub E2E tests..."
+	@echo "⚠️  Note: Requires network connection and Git tool"
+	@echo ""
+	uv run --no-sync pytest tests/integration/test_github_e2e.py -v
 
 test-performance: install-test
-	@echo "⚡ 运行性能测试..."
-	uv run pytest tests/performance -v
+	@echo "⚡ Running performance tests..."
+	uv run --no-sync pytest tests/performance -v
 
 test-cov: install-test
-	@echo "📊 运行测试并生成覆盖率报告..."
-	uv run pytest tests/ --cov=src --cov-report=term-missing
-	@echo "✓ 覆盖率报告已显示在终端"
+	@echo "📊 Running tests and generating coverage report..."
+	uv run --no-sync pytest tests/ --cov=src --cov-report=term-missing
+	@echo "✓ Coverage report displayed in terminal"
 
 test-fast: install-test
-	@echo "⚡ 运行快速测试..."
-	uv run pytest tests/ -v -m "not slow"
+	@echo "⚡ Running fast tests..."
+	uv run --no-sync pytest tests/ -v -m "not slow"
 
 clean:
-	@echo "🧹 清理生成的文件..."
+	@echo "🧹 Cleaning generated files..."
 	rm -rf __pycache__
 	rm -rf src/__pycache__
 	rm -rf tests/__pycache__
@@ -92,36 +106,38 @@ clean:
 	rm -rf .coverage
 	rm -rf vector_store/*
 	rm -rf sessions/*
-	@echo "✓ 清理完成"
+	@echo "✓ Cleanup completed"
 
-run: install
-	@echo "🚀 启动Streamlit应用..."
-	uv run streamlit run app.py
+run:
+	@echo "🚀 Starting Streamlit application..."
+	@echo "⚠️  Note: If running for the first time, please execute make install to install dependencies"
+	uv run --no-sync streamlit run app.py
 
 dev: install install-test test-fast
-	@echo "🎉 开发环境准备完成！"
-	@echo "使用 'make run' 启动应用"
+	@echo "🎉 Development environment ready!"
+	@echo "Use make run to start the application"
 
-# ==================== 完整工作流 ====================
+# ==================== Full Workflow ====================
 
 ready: install install-test test-cov
 	@echo ""
 	@echo "✅ =================================="
-	@echo "✅ 项目准备就绪！"
+	@echo "✅ Project ready!"
 	@echo "✅ =================================="
 	@echo ""
-	@echo "📊 已完成："
-	@echo "  ✓ 安装所有依赖"
-	@echo "  ✓ 运行完整测试套件"
-	@echo "  ✓ 生成覆盖率报告"
+	@echo "📊 Completed:"
+	@echo "  ✓ Installed all dependencies"
+	@echo "  ✓ Ran full test suite"
+	@echo "  ✓ Generated coverage report"
 	@echo ""
-	@echo "🚀 下一步："
-	@echo "  运行 'make run' 或 'make start' 启动应用"
+	@echo "🚀 Next step:"
+	@echo "  Run make run or make start to start the application"
 	@echo ""
 
 start: ready
 	@echo ""
-	@echo "🚀 正在启动应用..."
+	@echo "🚀 Starting application..."
 	@echo ""
+	@echo "⚠️  Note: Ensure CUDA version PyTorch is installed (if using GPU)"
 	@$(MAKE) run
 

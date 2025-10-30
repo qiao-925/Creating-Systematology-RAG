@@ -13,7 +13,7 @@ from llama_index.core.schema import Document as LlamaDocument
 from llama_index.core.callbacks import CallbackManager, LlamaDebugHandler
 from llama_index.llms.deepseek import DeepSeek
 
-from src.config import config
+from src.config import config, get_gpu_device, is_gpu_available
 from src.indexer import IndexManager
 from src.logger import setup_logger
 
@@ -105,7 +105,12 @@ class QueryEngine:
         trace_info = None
         
         try:
+            # 获取当前设备信息
+            device = get_gpu_device()
+            device_mode = "GPU加速" if device.startswith("cuda") else "CPU模式"
+            
             print(f"\n💬 查询: {question}")
+            logger.debug(f"查询设备: {device} ({device_mode})")
             
             if collect_trace:
                 trace_info = {

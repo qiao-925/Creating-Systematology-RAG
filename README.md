@@ -62,12 +62,40 @@ cp env.template .env
 make              # 安装依赖 + 运行测试（推荐首次运行）
 make run          # 启动 Web 应用
 
+# Windows PowerShell用户如果遇到乱码：
+.\Makefile.ps1 run   # 使用PowerShell包装脚本（已修复UTF-8编码）
+
 # 其他常用命令
 make start        # = make + make run（一键启动）
 make help         # 查看所有命令
 make test         # 运行所有测试
 make clean        # 清理生成文件
 ```
+
+**GPU加速设置（可选但推荐）**：
+
+项目支持**GPU优先、CPU兜底**模式。由于 `uv` 在 Windows 平台上默认锁定 CPU 版本的 PyTorch，**需要手动安装 CUDA 版本**以获得 GPU 加速：
+
+```bash
+# 1. 安装基础依赖（首次运行会自动执行）
+make install
+
+# 2. 手动安装 CUDA 版本的 PyTorch（覆盖 CPU 版本）
+uv pip install --force-reinstall --index-url https://download.pytorch.org/whl/cu121 torch torchvision torchaudio
+
+# 3. 验证安装
+uv run --no-sync python -c "import torch; print(f'版本: {torch.__version__}'); print(f'CUDA可用: {torch.cuda.is_available()}')"
+```
+
+**性能对比**：
+- 🚀 **GPU模式**：索引构建约5分钟
+- 🐌 **CPU模式**：索引构建约30分钟+
+
+> 💡 **注意**：
+> - 项目可以在纯CPU环境运行，但性能较慢
+> - 在 Windows 平台上需要手动安装 GPU 版本以获得最佳性能
+> - **安装 CUDA 版本后，避免再次运行 `make install`、`make ready`、`make start` 等会触发 `uv sync` 的命令**（会覆盖 CUDA 版本）
+> - 日常使用只需 `make run` 启动应用，已自动配置 `--no-sync` 选项
 
 > 💡 **Windows 用户**：需先安装 Make 工具 → `choco install make -y`  
 > 详细安装过程 → [Windows Make 工具安装指南](agent-task-log/2025-10-09-3_Windows-Make工具安装与Makefile配置_快速摘要.md)

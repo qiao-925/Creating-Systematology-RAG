@@ -31,3 +31,7 @@ if _hf_offline:
     os.environ['HF_HUB_OFFLINE'] = '1'
     os.environ['TRANSFORMERS_OFFLINE'] = '1'
 
+# 项目启动时检测GPU设备（延迟到首次导入config时检测）
+# 注意：实际检测会在首次导入 src.config 模块时执行
+# 这样可以确保所有依赖都已加载完成
+

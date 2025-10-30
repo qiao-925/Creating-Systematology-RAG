@@ -2,12 +2,69 @@
 
 > 从零开始，循序渐进掌握项目测试体系
 
+## 🚀 快速开始
+
+### 运行GitHub端到端测试
+
+**最简单的方式（推荐）：**
+```bash
+make test-github-e2e
+```
+
+**或者直接使用pytest：**
+```bash
+pytest tests/integration/test_github_e2e.py -v
+```
+
+**使用自定义仓库：**
+
+有3种配置方式（详见下方"配置自定义测试仓库"部分）：
+
+**方式1：环境变量（临时）**
+```bash
+# Windows PowerShell
+$env:TEST_GITHUB_OWNER="your_owner"
+$env:TEST_GITHUB_REPO="your_repo"
+$env:TEST_GITHUB_BRANCH="main"
+
+# Linux/Mac
+export TEST_GITHUB_OWNER=your_owner
+export TEST_GITHUB_REPO=your_repo
+export TEST_GITHUB_BRANCH=main
+```
+
+**方式2：.env文件（推荐，持久配置）**
+在项目根目录的 `.env` 文件中添加：
+```bash
+TEST_GITHUB_OWNER=your_owner
+TEST_GITHUB_REPO=your_repo
+TEST_GITHUB_BRANCH=main
+```
+
+**方式3：直接修改测试文件**
+编辑 `tests/integration/test_github_e2e.py` 中的默认值
+
+运行测试：
+```bash
+pytest tests/integration/test_github_e2e.py -v
+```
+
+**跳过GitHub E2E测试（无网络时）：**
+```bash
+pytest tests/integration -m "not github_e2e" -v
+```
+
+> 💡 **提示**：GitHub端到端测试需要网络连接和Git工具。如果网络不可用，测试会自动跳过。
+
+---
+
 ## 📖 目录
 
 - [第一步：环境准备](#第一步环境准备)
 - [第二步：快速验证](#第二步快速验证)
 - [第三步：深入测试](#第三步深入测试)
 - [第四步：高级用法](#第四步高级用法)
+- [GitHub端到端集成测试](#🆕-github端到端集成测试)
 - [测试体系说明](#测试体系说明)
 - [常见问题](#常见问题)
 
@@ -50,6 +107,11 @@ pytest --version
 
 ```bash
 pytest tests/unit/test_config.py -v
+```
+
+**或者使用 Makefile：**
+```bash
+make test-unit
 ```
 
 **预期输出**：
@@ -121,8 +183,15 @@ pytest tests/integration/test_data_pipeline.py -v
 # 查询流程
 pytest tests/integration/test_query_pipeline.py -v
 
+# GitHub端到端测试（需要网络和Git）
+pytest tests/integration/test_github_e2e.py -v
+# 或使用 Makefile
+make test-github-e2e
+
 # 所有集成测试
 pytest tests/integration -v
+# 或使用 Makefile
+make test-integration
 ```
 
 ### 3.3 查看测试覆盖率
@@ -240,10 +309,11 @@ tests/
 │   ├── test_indexer.py         # 索引构建测试（15个）
 │   ├── test_query_engine.py    # 查询引擎测试（8个）
 │   └── test_chat_manager.py    # 对话管理测试（15个）
-├── integration/             # 集成测试（~15个）
+├── integration/             # 集成测试（~25个）
 │   ├── test_data_pipeline.py      # 数据处理流程（8个）
 │   ├── test_query_pipeline.py     # 查询流程（7个）
-│   └── test_phoenix_integration.py # Phoenix集成测试（5个）
+│   ├── test_phoenix_integration.py # Phoenix集成测试（5个）
+│   └── test_github_e2e.py         # 🆕 GitHub端到端测试（10个）
 ├── performance/             # 性能测试（~13个）
 │   └── test_performance.py     # 性能基准测试
 ├── tools/                   # 🆕 诊断和配置工具
@@ -266,7 +336,7 @@ tests/
 | 索引构建 | 15 | 90%+ | 向量化、存储、检索 |
 | 查询引擎 | 8 | 85%+ | 查询、引用溯源 |
 | 对话管理 | 15 | 85%+ | 会话、历史管理 |
-| 集成流程 | 15 | 关键路径 | 端到端流程 |
+| 集成流程 | 25 | 关键路径 | 端到端流程（含GitHub E2E） |
 | 性能基准 | 13 | 基准测试 | 速度、扩展性 |
 
 **总计**: 88+ 个测试用例，总体覆盖率 ~92%
@@ -336,7 +406,23 @@ pytest tests/performance/test_performance.py::test_indexing_speed -v
 pytest tests/unit/test_indexer.py -v
 ```
 
-### 场景4：准备发布前
+### 场景4：测试GitHub集成功能
+
+```bash
+# 1. 运行GitHub端到端测试（需要网络和Git）
+pytest tests/integration/test_github_e2e.py -v
+
+# 2. 只运行导入流程测试
+pytest tests/integration/test_github_e2e.py::TestGitHubImportFlow -v
+
+# 3. 只运行查询流程测试
+pytest tests/integration/test_github_e2e.py::TestGitHubQueryFlow -v
+
+# 4. 使用自定义测试仓库
+TEST_GITHUB_OWNER=your_owner TEST_GITHUB_REPO=your_repo pytest tests/integration/test_github_e2e.py -v
+```
+
+### 场景5：准备发布前
 
 ```bash
 # 完整测试流程
@@ -525,7 +611,9 @@ pytest tests/performance     # 性能测试
 # 按标记
 pytest -m unit              # 单元测试标记
 pytest -m integration       # 集成测试标记
+pytest -m github_e2e        # GitHub端到端测试
 pytest -m "not slow"        # 跳过慢速测试
+pytest -m "not github_e2e"  # 跳过GitHub E2E测试（无网络时）
 
 # 输出控制
 pytest -v                   # 详细输出
@@ -543,6 +631,111 @@ pytest --cov=src                              # 基础覆盖率
 pytest --cov=src --cov-report=term-missing    # 显示未覆盖行
 pytest --cov=src --cov-report=html            # HTML报告
 ```
+
+---
+
+## 🆕 GitHub端到端集成测试
+
+### 测试说明
+
+GitHub端到端测试（`test_github_e2e.py`）验证从GitHub仓库克隆、文档加载、元数据管理、索引构建到查询检索的完整流程。
+
+### 测试覆盖
+
+- **导入流程测试** (`TestGitHubImportFlow`)
+  - 仓库克隆和文档加载
+  - 元数据管理
+  - 索引构建
+  - 完整导入流程
+
+- **查询流程测试** (`TestGitHubQueryFlow`)
+  - 索引检索功能
+  - Mock LLM查询
+  - 真实API查询（可选）
+
+- **增量更新测试** (`TestGitHubIncremental`)
+  - 变更检测
+  - 增量同步
+
+### 环境要求
+
+- Git命令行工具可用
+- 网络连接（访问GitHub）
+- DEEPSEEK_API_KEY（真实API查询测试，可选）
+
+### 配置自定义测试仓库
+
+有三种方式配置测试仓库（优先级从高到低）：
+
+#### 方式1：环境变量（临时，当前会话有效）
+
+**Windows PowerShell:**
+```powershell
+$env:TEST_GITHUB_OWNER="your_owner"
+$env:TEST_GITHUB_REPO="your_repo"
+$env:TEST_GITHUB_BRANCH="main"
+```
+
+**Linux/Mac:**
+```bash
+export TEST_GITHUB_OWNER=your_owner
+export TEST_GITHUB_REPO=your_repo
+export TEST_GITHUB_BRANCH=main
+```
+
+#### 方式2：.env文件（持久配置，推荐）
+
+在项目根目录创建或编辑 `.env` 文件：
+
+```bash
+# GitHub端到端测试仓库配置
+TEST_GITHUB_OWNER=your_owner
+TEST_GITHUB_REPO=your_repo
+TEST_GITHUB_BRANCH=main
+```
+
+> 💡 **提示**：`.env` 文件通常已在 `.gitignore` 中，不会被提交到Git仓库。
+
+#### 方式3：直接修改测试文件（永久配置）
+
+编辑 `tests/integration/test_github_e2e.py` 文件，修改默认值：
+
+```python
+TEST_GITHUB_REPO = {
+    "owner": "your_owner",  # 修改这里
+    "repo": "your_repo",    # 修改这里
+    "branch": "main"        # 修改这里
+}
+```
+
+### 使用方法
+
+```bash
+# 运行所有GitHub E2E测试
+pytest tests/integration/test_github_e2e.py -v
+# 或使用 Makefile
+make test-github-e2e
+
+# 运行特定测试类
+pytest tests/integration/test_github_e2e.py::TestGitHubImportFlow -v
+
+# 跳过GitHub E2E测试（无网络时）
+pytest tests/integration -m "not github_e2e" -v
+```
+
+### 测试标记
+
+- `@pytest.mark.integration` - 集成测试标记
+- `@pytest.mark.github_e2e` - GitHub端到端测试标记
+- `@pytest.mark.slow` - 慢速测试（需要网络）
+- `@pytest.mark.requires_real_api` - 需要真实API密钥
+
+### 注意事项
+
+1. **网络依赖**：GitHub E2E测试需要网络连接，如果网络不可用会自动跳过
+2. **Git工具**：需要安装Git命令行工具
+3. **测试仓库**：默认使用 `octocat/Hello-World`，可通过环境变量自定义
+4. **执行时间**：完整测试可能需要几分钟（取决于网络速度和仓库大小）
 
 ---
 

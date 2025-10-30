@@ -5,11 +5,143 @@
 
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple
 from dotenv import load_dotenv
 
 # 加载环境变量
 load_dotenv()
+
+# 全局GPU设备信息（项目启动时检测）
+_GPU_DEVICE: Optional[str] = None
+_GPU_AVAILABLE: bool = False
+_GPU_DEVICE_NAME: Optional[str] = None
+
+
+def detect_gpu_device() -> Tuple[bool, str, Optional[str]]:
+    """检测GPU设备配置（全局函数，项目启动时调用）
+    
+    策略：GPU优先，CPU兜底
+    
+    Returns:
+        (has_gpu, device, device_name)
+        - has_gpu: 是否有可用的GPU
+        - device: 设备字符串 ("cuda:0" 或 "cpu")
+        - device_name: GPU设备名称（如果有）
+    """
+    global _GPU_AVAILABLE, _GPU_DEVICE, _GPU_DEVICE_NAME
+    
+    # 如果已经检测过，直接返回缓存结果
+    if _GPU_DEVICE is not None:
+        return _GPU_AVAILABLE, _GPU_DEVICE, _GPU_DEVICE_NAME
+    
+    print("🔍 开始检测GPU设备（GPU优先，CPU兜底）...")
+    
+    try:
+        import torch
+        print(f"📦 PyTorch版本: {torch.__version__}")
+        
+        # 检查CUDA是否可用
+        _GPU_AVAILABLE = torch.cuda.is_available()
+        print(f"🔍 torch.cuda.is_available() = {_GPU_AVAILABLE}")
+        
+        if _GPU_AVAILABLE:
+            try:
+                device_count = torch.cuda.device_count()
+                current_device = torch.cuda.current_device()
+                _GPU_DEVICE = f"cuda:{current_device}"
+                _GPU_DEVICE_NAME = torch.cuda.get_device_name(current_device)
+                
+                print(f"✅ 检测到 GPU（优先使用）:")
+                print(f"   设备数量: {device_count}")
+                print(f"   当前设备: {current_device}")
+                print(f"   设备名称: {_GPU_DEVICE_NAME}")
+                print(f"   CUDA版本: {torch.version.cuda}")
+                print(f"🔧 使用设备: {_GPU_DEVICE} ⚡ GPU加速模式")
+            except Exception as e:
+                print(f"⚠️  获取GPU详细信息失败: {e}")
+                _GPU_AVAILABLE = False
+                _GPU_DEVICE = "cpu"
+                _GPU_DEVICE_NAME = None
+                print("⚠️  降级到 CPU 模式")
+        else:
+            _GPU_DEVICE = "cpu"
+            _GPU_DEVICE_NAME = None
+            print("⚠️  未检测到 GPU，使用 CPU 兜底模式")
+            
+            # 提供更多诊断信息和性能提示
+            if hasattr(torch.version, 'cuda') and torch.version.cuda:
+                print(f"   PyTorch已编译CUDA支持，但运行时不可用")
+                print(f"   可能原因：CUDA驱动版本不匹配或GPU被占用")
+            else:
+                print(f"   PyTorch未编译CUDA支持（CPU版本）")
+            
+            print(f"💡 性能提示: CPU模式较慢，索引构建可能需要30分钟+（GPU模式下约5分钟）")
+                
+    except ImportError as e:
+        _GPU_AVAILABLE = False
+        _GPU_DEVICE = "cpu"
+        _GPU_DEVICE_NAME = None
+        print(f"⚠️  PyTorch 未安装或导入失败: {e}")
+        print("⚠️  使用 CPU 兜底模式")
+        print(f"💡 性能提示: CPU模式较慢，建议安装CUDA版本的PyTorch")
+    except Exception as e:
+        _GPU_AVAILABLE = False
+        _GPU_DEVICE = "cpu"
+        _GPU_DEVICE_NAME = None
+        print(f"⚠️  GPU检测失败: {e}")
+        import traceback
+        print(f"   错误详情:")
+        traceback.print_exc()
+        print("⚠️  使用 CPU 兜底模式")
+    
+    return _GPU_AVAILABLE, _GPU_DEVICE, _GPU_DEVICE_NAME
+
+
+def get_device_status() -> dict:
+    """获取当前设备状态摘要
+    
+    Returns:
+        包含设备状态的字典：
+        {
+            "device": str,           # 设备字符串
+            "has_gpu": bool,         # 是否有GPU
+            "device_name": str,      # GPU设备名称（如果有）
+            "is_gpu": bool,          # 当前是否使用GPU
+        }
+    """
+    device = get_gpu_device()
+    has_gpu, _, device_name = detect_gpu_device()
+    
+    return {
+        "device": device,
+        "has_gpu": has_gpu,
+        "device_name": device_name,
+        "is_gpu": device.startswith("cuda"),
+    }
+
+
+def get_gpu_device() -> str:
+    """获取GPU设备字符串（GPU优先，CPU兜底）
+    
+    Returns:
+        设备字符串 ("cuda:0" 或 "cpu")
+    """
+    if _GPU_DEVICE is None:
+        # 如果还没检测，先检测一次
+        detect_gpu_device()
+    return _GPU_DEVICE or "cpu"
+
+
+def is_gpu_available() -> bool:
+    """检查GPU是否可用（必须在detect_gpu_device()之后调用）
+    
+    Returns:
+        是否有GPU可用
+    """
+    if _GPU_DEVICE is None:
+        # 如果还没检测，先检测一次
+        detect_gpu_device()
+    return _GPU_AVAILABLE
 
 
 class Config:
@@ -46,6 +178,10 @@ class Config:
         # GitHub 配置
         self.GITHUB_REPOS_PATH = self._get_path("GITHUB_REPOS_PATH", "data/github_repos")
         self.GITHUB_METADATA_PATH = self._get_path("GITHUB_METADATA_PATH", "data/github_metadata.json")
+        
+        # 缓存配置
+        self.ENABLE_CACHE = os.getenv("ENABLE_CACHE", "true").lower() == "true"
+        self.CACHE_STATE_PATH = self._get_path("CACHE_STATE_PATH", "data/cache_state.json")
         
         # 索引配置
         self.CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "512"))
@@ -98,6 +234,7 @@ class Config:
             self.SESSIONS_PATH,
             self.ACTIVITY_LOG_PATH,
             self.GITHUB_REPOS_PATH,
+            self.CACHE_STATE_PATH.parent,  # 确保缓存状态文件目录存在
         ]
         
         for directory in directories:
@@ -144,12 +281,28 @@ class Config:
     GITHUB_DEFAULT_BRANCH={self.GITHUB_DEFAULT_BRANCH},
     ENABLE_WIKIPEDIA={self.ENABLE_WIKIPEDIA},
     WIKIPEDIA_THRESHOLD={self.WIKIPEDIA_THRESHOLD},
-    WIKIPEDIA_MAX_RESULTS={self.WIKIPEDIA_MAX_RESULTS}
+    WIKIPEDIA_MAX_RESULTS={self.WIKIPEDIA_MAX_RESULTS},
+    ENABLE_CACHE={self.ENABLE_CACHE},
+    CACHE_STATE_PATH={self.CACHE_STATE_PATH}
 )"""
 
 
 # 全局配置实例
 config = Config()
+
+# 项目启动时自动检测GPU（在config模块加载后）
+# 这样确保所有必要的模块都已导入
+try:
+    print("=" * 60)
+    print("🚀 项目启动 - GPU设备检测")
+    print("=" * 60)
+    detect_gpu_device()
+    print("=" * 60)
+except Exception as e:
+    # GPU检测失败不影响项目启动，仅记录
+    import traceback
+    print(f"⚠️  项目启动时GPU检测失败: {e}")
+    traceback.print_exc()
 
 
 if __name__ == "__main__":

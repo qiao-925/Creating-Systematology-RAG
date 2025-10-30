@@ -20,6 +20,7 @@
 
 | 日期 | 任务 | 状态 | 时长 | 核心问题 |
 |------|------|------|------|---------|
+| 2025-10-30 | [GPU加速配置与UV环境冲突解决](#2025-10-30-gpu) | ✅ | 2h | uv run 自动同步覆盖CUDA版本 |
 | 2025-10-09 | [测试修复与DeepSeek集成](#2025-10-09) | ✅ | 1.5h | llama_index 模型验证 |
 
 ---
@@ -50,6 +51,32 @@ cp agent-tasks/TEMPLATE.md agent-tasks/2025-10-09-2_任务描述_详细过程.md
 
 ## 📋 任务详情
 
+### 2025-10-30 - GPU加速配置与UV环境冲突解决 {#2025-10-30-gpu}
+
+#### 成果
+- ✅ GPU 加速成功配置（RTX 4060 Ti）
+- ✅ PyTorch CUDA 版本稳定运行
+- ✅ 性能提升约 6 倍（5分钟 vs 30分钟+）
+- ✅ 彻底解决 `uv run` 自动同步问题
+
+#### 核心突破
+发现 **`uv run` 命令默认会自动同步虚拟环境**，导致手动安装的 CUDA 版本被覆盖：
+- `uv run` 在执行前会根据 `uv.lock` 重新安装依赖
+- `make run` → `install` → `uv sync` → 覆盖 CUDA 版本
+- 解决方案：所有 `uv run` 命令添加 `--no-sync` 选项
+
+#### 文档
+- 📄 [快速摘要](./2025-10-30-1_GPU加速配置与UV环境冲突解决_快速摘要.md) - 核心问题和解决方案
+- 📄 [详细过程](./2025-10-30-1_GPU加速配置与UV环境冲突解决_详细过程.md) - 完整调试过程和经验总结
+
+#### 关键经验
+1. **深入理解工具行为**：`uv run` 的自动同步行为不易发现
+2. **依赖链分析**：Makefile 的依赖关系可能导致意外副作用
+3. **逐步验证**：每步都单独验证，不要假设
+4. **时间戳检查**：检查文件修改时间，确认安装后被覆盖
+
+---
+
 ### 2025-10-09 - 测试修复与 DeepSeek 集成
 
 #### 成果
@@ -77,16 +104,22 @@ cp agent-tasks/TEMPLATE.md agent-tasks/2025-10-09-2_任务描述_详细过程.md
 ### 按问题类型
 ```bash
 # 测试相关
-grep -l "测试" agent-tasks/*.md
+grep -l "测试" agent-task-log/*.md
 
-# 第三方库集成
-grep -l "集成" agent-tasks/*.md
+# 集成相关
+grep -l "集成" agent-task-log/*.md
+
+# 环境配置问题
+grep -l "GPU\|CUDA\|环境" agent-task-log/*.md
 ```
 
 ### 按解决方案
 ```bash
 # Monkey Patch
-grep -l "patch" agent-tasks/*.md
+grep -l "patch" agent-task-log/*.md
+
+# UV 环境问题
+grep -l "uv run\|--no-sync" agent-task-log/*.md
 ```
 
 ---

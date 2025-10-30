@@ -61,8 +61,12 @@ class GitHubSource(DataSource):
             'url': f"https://github.com/{self.owner}/{self.repo}/blob/{self.branch}"
         }
     
-    def get_file_paths(self) -> List[SourceFile]:
+    def get_file_paths(self, cache_manager=None, task_id: Optional[str] = None) -> List[SourceFile]:
         """获取 GitHub 仓库中的文件路径列表
+        
+        Args:
+            cache_manager: 缓存管理器实例（可选）
+            task_id: 任务ID（可选，用于缓存）
         
         Returns:
             文件路径列表
@@ -85,7 +89,9 @@ class GitHubSource(DataSource):
                 self.repo_path, self.commit_sha = git_manager.clone_or_update(
                     owner=self.owner,
                     repo=self.repo,
-                    branch=self.branch
+                    branch=self.branch,
+                    cache_manager=cache_manager,
+                    task_id=task_id
                 )
                 git_elapsed = time.time() - git_start_time
                 logger.info(f"仓库同步完成: {self.repo_path} (Commit: {self.commit_sha[:8]}, 耗时: {git_elapsed:.2f}s)")
