@@ -165,7 +165,7 @@ class Config:
         
         # 向量数据库配置
         self.VECTOR_STORE_PATH = self._get_path("VECTOR_STORE_PATH", "vector_store")
-        self.CHROMA_COLLECTION_NAME = os.getenv("CHROMA_COLLECTION_NAME", "systematology_docs")
+        self.CHROMA_COLLECTION_NAME = os.getenv("CHROMA_COLLECTION_NAME", "default")
         
         # 文档路径配置
         self.RAW_DATA_PATH = self._get_path("RAW_DATA_PATH", "data/raw")
@@ -212,7 +212,7 @@ class Config:
         self.INDEX_MAX_BATCHES = int(os.getenv("INDEX_MAX_BATCHES", "0"))
         
         # 应用配置
-        self.APP_TITLE = os.getenv("APP_TITLE", "系统科学知识库RAG")
+        self.APP_TITLE = os.getenv("APP_TITLE", "主页")
         self.APP_PORT = int(os.getenv("APP_PORT", "8501"))
         
         # GitHub数据源配置（仅支持公开仓库）

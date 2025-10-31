@@ -2,7 +2,7 @@
 
 > 任务管理与进度追踪看板
 
-**最后更新**：2025-10-30（补充Agentic RAG详细内容）
+**最后更新**：2025-10-31（补充文档引用可达与双机部署构想）
 
 ---
 
@@ -54,6 +54,13 @@
 - [ ] 模型预打包到镜像（加快启动速度）
 - [ ] 监控和日志优化（添加错误追踪）
 - [ ] 成本优化（降低资源消耗）
+- [ ] 轻量机 + 远程显卡机 部署方案（构想） 🆕
+  - [ ] 设计轻量机（Web/UI）+ GPU 推理机（模型/向量/重排/OCR）拓扑
+  - [ ] 定义通信协议与鉴权（HTTP/gRPC、Token/签名、内网优先）
+  - [ ] 模型服务 API 化（含 Inverted 等需 API 的服务）
+  - [ ] 部署与网络：Zeabur/Railway 前端 + 自托管 GPU 服务
+  - [ ] 监控与日志打通（统一 Trace/指标）
+  - [ ] 成本测算与扩缩容策略
 
 **相关文档**：
 - 📄 [用户管理](../src/user_manager.py) - 密码哈希逻辑
@@ -84,6 +91,13 @@
   - [ ] 测试不同输出格式对回答条理性的提升效果
   - [ ] 对比格式化前后用户体验差异
 
+- [ ] **文档引用可达与可访问链接** ⭐⭐ 🆕
+  - [ ] 为每条引用生成可访问链接（本地/远程统一）
+  - [ ] 支持 GitHub、Web、本地 PDF/MD 的来源跳转
+  - [ ] UI 展示“来源”与跳转按钮（新窗口打开）
+  - [ ] 统一 URL 生成与权限校验策略
+  - [ ] 统计点击可达率与跳转正确性
+
 **相关文档**：
 - 📄 [查询引擎](../src/query_engine.py) - 核心检索逻辑
 - 📄 [对话管理](../src/chat_manager.py) - 多轮对话优化
@@ -92,6 +106,7 @@
 - 📄 [LangChain OutputParser](https://python.langchain.com/docs/modules/model_io/output_parsers/) - 输出解析器文档
 - 📄 [LlamaIndex 响应合成](https://docs.llamaindex.ai/en/stable/module_guides/deploying/query_engine/response_synthesizers/) - 响应合成机制
 - 📄 [LlamaIndex 结构化输出](https://docs.llamaindex.ai/en/stable/module_guides/deploying/structured_outputs/) - 结构化输出解析
+- 📄 [主应用](../app.py) - 来源链接展示与跳转
 
 **备注**：
 系统科学领域作为垂直应用，不需要过度的通用化处理，反而应该针对该领域的特点进行专门优化。
@@ -586,5 +601,5 @@ Embedding 模型直接影响检索精度，选择适合垂直领域（系统科�
 
 ---
 
-**最后更新**: 2025-10-30（补充Agentic RAG详细内容）
+**最后更新**: 2025-10-31（补充文档引用可达与双机部署构想）
 

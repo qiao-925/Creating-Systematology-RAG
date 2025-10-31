@@ -123,6 +123,30 @@ class QueryEngine:
             # ===== 1. 执行检索 =====
             retrieval_start = time.time()
             
+            # 获取 Collection 统计信息
+            stats = self.index_manager.get_stats()
+            collection_total_docs = stats.get('document_count', 0)
+            collection_name = stats.get('collection_name', 'unknown')
+            
+            # 检查是否有错误信息
+            if 'error' in stats:
+                error_info = stats.get('error', '未知错误')
+                logger.warning(f"⚠️  获取Collection统计信息时出现问题: {error_info}")
+                print(f"⚠️  获取Collection统计信息时出现问题: {error_info}")
+                print(f"   这可能是因为collection未正确初始化或访问失败")
+            
+            logger.info(f"📊 Collection 信息: {collection_name}, 总文档数: {collection_total_docs}")
+            print(f"📊 Collection: {collection_name}, 总文档数: {collection_total_docs}")
+            
+            # 如果文档数为0，输出警告
+            if collection_total_docs == 0:
+                logger.warning(f"⚠️  Collection '{collection_name}' 的文档数为0，可能是空collection或初始化问题")
+                print(f"⚠️  注意: Collection '{collection_name}' 的文档数为0")
+                print(f"   如果这不符合预期，请检查:")
+                print(f"   1. 索引是否已正确构建")
+                print(f"   2. Collection名称是否正确")
+                print(f"   3. 向量存储路径是否正确")
+            
             # 执行查询
             response: Response = self.query_engine.query(question)
             
@@ -134,41 +158,210 @@ class QueryEngine:
             # 提取引用来源
             sources = []
             if hasattr(response, 'source_nodes') and response.source_nodes:
+                logger.info(f"🔍 检索到 {len(response.source_nodes)} 个文档片段")
+                print(f"🔍 检索到 {len(response.source_nodes)} 个文档片段:")
+                
                 for i, node in enumerate(response.source_nodes, 1):
+                    # 提取元数据中的文档信息
+                    try:
+                        metadata = node.node.metadata if hasattr(node, 'node') and hasattr(node.node, 'metadata') else {}
+                        if not isinstance(metadata, dict):
+                            metadata = {}
+                    except Exception:
+                        metadata = {}
+                    
+                    # 尝试多种方式获取文件路径
+                    file_path = (
+                        metadata.get('file_path') or 
+                        metadata.get('file_name') or 
+                        metadata.get('source') or 
+                        metadata.get('url') or 
+                        '未知来源'
+                    )
+                    file_name = file_path.split('/')[-1] if '/' in file_path else file_path.split('\\')[-1]
+                    page_label = metadata.get('page_label', metadata.get('page', ''))
+                    doc_id = metadata.get('doc_id', metadata.get('document_id', metadata.get('id', '')))
+                    
+                    score = node.score if hasattr(node, 'score') else None
+                    node_text = node.node.text if hasattr(node, 'node') and hasattr(node.node, 'text') else ''
+                    text_preview = node_text[:200] + '...' if len(node_text) > 200 else node_text
+                    
                     source = {
                         'index': i,
-                        'text': node.node.text,
-                        'score': node.score if hasattr(node, 'score') else None,
-                        'metadata': node.node.metadata,
+                        'text': node_text,
+                        'score': score,
+                        'metadata': metadata,
                     }
                     sources.append(source)
+                    
+                    # 详细日志输出
+                    score_str = f"{score:.4f}" if score is not None else "N/A"
+                    logger.info(
+                        f"  [{i}] 文档片段 #{i}:\n"
+                        f"    - 文件名: {file_name}\n"
+                        f"    - 文件路径: {file_path}\n"
+                        f"    - 相似度分数: {score_str}\n"
+                        f"    - 文档ID: {doc_id}\n"
+                        f"    - 页码: {page_label}\n"
+                        f"    - 内容预览: {text_preview}\n"
+                        f"    - 完整元数据: {metadata}"
+                    )
+                    print(f"  [{i}] {file_name} (分数: {score_str})")
+                    if score is not None:
+                        print(f"      路径: {file_path}")
+                        print(f"      内容: {text_preview}")
+                
+                # 汇总信息
+                logger.info(
+                    f"📋 检索结果汇总:\n"
+                    f"  - Collection: {collection_name}\n"
+                    f"  - Collection 总文档数: {collection_total_docs}\n"
+                    f"  - 检索到的片段数: {len(sources)}\n"
+                    f"  - 有分数的片段数: {len([s for s in sources if s.get('score') is not None])}\n"
+                    f"  - 无分数的片段数: {len([s for s in sources if s.get('score') is None])}"
+                )
             
             # ===== 过滤低质量结果并评估检索质量 =====
-            high_quality_sources = [s for s in sources if s.get('score', 0) >= self.similarity_threshold]
-            max_score = max([s.get('score', 0) for s in sources]) if sources else 0
+            numeric_scores = [s.get('score') for s in sources if s.get('score') is not None]
+            max_score = max(numeric_scores) if numeric_scores else None
+            high_quality_sources = [
+                s for s in sources
+                if (s.get('score') is not None) and (s.get('score') >= self.similarity_threshold)
+            ]
             
-            if len(high_quality_sources) < len(sources):
-                logger.info(f"过滤了 {len(sources) - len(high_quality_sources)} 个低质量结果（阈值: {self.similarity_threshold}）")
+            # 仅当存在数值分数时，才基于阈值进行质量判断
+            if max_score is not None:
+                if len(high_quality_sources) < len(sources):
+                    logger.info(
+                        f"过滤了 {len(sources) - len(high_quality_sources)} 个低质量结果（阈值: {self.similarity_threshold}）"
+                    )
+                if max_score < self.similarity_threshold:
+                    print(
+                        f"⚠️  检索质量较低（最高相似度: {max_score:.2f}），答案可能更多依赖模型推理"
+                    )
+                    logger.warning(
+                        f"检索质量较低，最高相似度: {max_score:.2f}，阈值: {self.similarity_threshold}"
+                    )
+                elif len(high_quality_sources) >= 2:
+                    print(
+                        f"✅ 检索质量良好（高质量结果: {len(high_quality_sources)}个，最高相似度: {max_score:.2f}）"
+                    )
+            else:
+                # 分数缺失（例如 CitationQueryEngine 未返回 score），打印提示但不判定为低相关
+                logger.info(
+                    "检索评分缺失：所有来源的score为None（chunks=%s），跳过低相关判定，仅依据其他条件兜底",
+                    len(sources),
+                )
             
-            if max_score < self.similarity_threshold:
-                print(f"⚠️  检索质量较低（最高相似度: {max_score:.2f}），答案可能更多依赖模型推理")
-                logger.warning(f"检索质量较低，最高相似度: {max_score:.2f}，阈值: {self.similarity_threshold}")
-            elif len(high_quality_sources) >= 2:
-                print(f"✅ 检索质量良好（高质量结果: {len(high_quality_sources)}个，最高相似度: {max_score:.2f}）")
+            # ===== 兜底策略（方案A）：输出守护 + 纯LLM定义类回答 =====
+            # 计算更多统计信息，便于日志观测
+            scores_list = [s['score'] for s in sources if s.get('score') is not None]
+            avg_score = sum(scores_list) / len(scores_list) if scores_list else 0.0
+            min_score = min(scores_list) if scores_list else 0.0
+            max_score_logged = (max(scores_list) if scores_list else None)
+            scores_none_count = len(sources) - len(scores_list)
+            
+            logger.debug(
+                "检索统计: top_k=%s, chunks=%s, numeric=%s, none=%s, min=%s, avg=%s, max=%s, threshold=%.3f",
+                self.similarity_top_k,
+                len(sources),
+                len(scores_list),
+                scores_none_count,
+                (f"{min_score:.3f}" if scores_list else "-"),
+                (f"{avg_score:.3f}" if scores_list else "-"),
+                (f"{max_score_logged:.3f}" if scores_list else "-"),
+                self.similarity_threshold,
+            )
+            
+            # 判定是否需要兜底
+            fallback_reason = None
+            if not sources:
+                fallback_reason = "no_sources"
+            elif (max_score_logged is not None) and (max_score_logged < self.similarity_threshold):
+                fallback_reason = f"low_similarity({max_score_logged:.2f}<{self.similarity_threshold})"
+            elif not answer or not answer.strip():
+                fallback_reason = "empty_answer"
+            
+            if fallback_reason:
+                print(f"🛟  触发兜底生成（原因: {fallback_reason}）")
+                logger.info(
+                    "触发兜底生成: reason=%s, chunks=%s, min=%.3f, avg=%.3f, max=%.3f, threshold=%.3f",
+                    fallback_reason,
+                    len(sources),
+                    min_score,
+                    avg_score,
+                    max_score_logged if max_score_logged is not None else 0.0,
+                    self.similarity_threshold,
+                )
+                
+                # 纯LLM定义类回答提示词（中文输出，适配学习用途，明确说明为通用推理）
+                fallback_prompt = (
+                    "你是一位系统科学领域的资深专家。当前未检索到足够高相关的知识库内容，"
+                    "请基于通用学术知识与常见教材，回答用户问题，给出清晰、结构化、可自洽的解释。\n\n"
+                    "要求：\n"
+                    "1) 先给出简明定义/核心思想，再给出关键要点条目；\n"
+                    "2) 保持严谨、中立，不捏造具体引用；\n"
+                    "3) 必须用中文回答；\n"
+                    "4) 末尾增加一行提示：‘注：未检索到足够高相关资料，本回答基于通用知识推理，可能不含引用。’\n\n"
+                    f"用户问题：{question}\n"
+                    "回答："
+                )
+                try:
+                    llm_start = time.time()
+                    llm_resp = self.llm.complete(fallback_prompt)
+                    llm_time = time.time() - llm_start
+                    new_answer = (llm_resp.text or "").strip()
+                    if new_answer:
+                        answer = new_answer
+                    else:
+                        # 双重兜底：给出最小可用占位文本
+                        answer = (
+                            "抱歉，未检索到与该问题高度相关的资料。基于一般知识：\n"
+                            "- 该问题属于通识类主题，建议进一步细化范围；\n"
+                            "- 如需权威来源，可提供更具体的关键词以便检索。\n\n"
+                            "注：未检索到足够高相关资料，本回答基于通用知识推理，可能不含引用。"
+                        )
+                    logger.info("兜底生成完成: length=%s, llm_time=%.2fs", len(answer), llm_time)
+                except Exception as fe:
+                    logger.error("兜底生成失败: %s", fe)
+                    # 仍保证非空输出
+                    answer = (
+                        "抱歉，当前无法生成高质量答案。\n"
+                        "- 建议调整提问方式或补充上下文；\n"
+                        "- 稍后可重试以获取更稳定结果。\n\n"
+                        "注：未检索到足够高相关资料，本回答基于通用知识推理，可能不含引用。"
+                    )
             
             # ===== 2. 收集追踪信息 =====
             if collect_trace and trace_info:
+                # 使用前面已计算的统计数据（若还未计算，做安全回退）
+                _scores = [s['score'] for s in sources if s.get('score') is not None]
+                _avg = sum(_scores) / len(_scores) if _scores else 0.0
+                _min = min(_scores) if _scores else 0.0
+                _max = max(_scores) if _scores else 0.0
+                _hq = len([s for s in sources if (s.get('score') is not None) and (s.get('score') >= self.similarity_threshold)])
+                _none_count = len(sources) - len(_scores)
+                
                 trace_info["retrieval"] = {
                     "time_cost": round(retrieval_time, 2),
                     "top_k": self.similarity_top_k,
                     "chunks_retrieved": len(sources),
                     "chunks": sources,
-                    "avg_score": round(sum(s['score'] for s in sources if s['score']) / len(sources), 3) if sources else 0,
+                    "avg_score": round(_avg, 3),
+                    "min_score": round(_min, 3),
+                    "max_score": round(_max, 3),
+                    "threshold": self.similarity_threshold,
+                    "high_quality_count": _hq,
+                    "numeric_scores_count": len(_scores),
+                    "scores_none_count": _none_count,
                 }
                 
+                # 标注是否触发兜底
                 trace_info["llm_generation"] = {
                     "model": self.model,
                     "response_length": len(answer),
+                    "fallback_used": bool('fallback_reason' in locals() and fallback_reason),
+                    "fallback_reason": fallback_reason if 'fallback_reason' in locals() else None,
                 }
                 
                 trace_info["total_time"] = round(time.time() - trace_info["start_time"], 2)
@@ -334,10 +527,8 @@ def format_sources(sources: List[dict]) -> str:
         if source['score'] is not None:
             formatted += f" (相似度: {source['score']:.2f})"
         
-        formatted += f"\n   {source['text'][:200]}..."
-        
-        if len(source['text']) > 200:
-            formatted += f"\n   （共{len(source['text'])}字）"
+        # 完整显示文本内容，不截断
+        formatted += f"\n   {source['text']}"
     
     return formatted
 

@@ -104,23 +104,29 @@ def init_session_state():
         # 从元数据中加载已存在的仓库列表
         st.session_state.github_repos = st.session_state.metadata_manager.list_repositories()
     
-    # 调试模式配置
+    # 调试模式与可观测性（默认开启）
     if 'debug_mode_enabled' not in st.session_state:
-        st.session_state.debug_mode_enabled = False
+        st.session_state.debug_mode_enabled = True
     
     if 'phoenix_enabled' not in st.session_state:
-        st.session_state.phoenix_enabled = False
+        st.session_state.phoenix_enabled = True
     
     if 'collect_trace' not in st.session_state:
-        st.session_state.collect_trace = False
+        st.session_state.collect_trace = True
+    
+    # 启动遮罩：首屏加载完成前为 False，完成后置 True
+    if 'boot_ready' not in st.session_state:
+        st.session_state.boot_ready = False
 
 
 def load_index():
     """加载或创建索引"""
     try:
         if st.session_state.index_manager is None:
-            # 使用用户专属的 collection
-            collection_name = st.session_state.collection_name or config.CHROMA_COLLECTION_NAME
+            # 使用用户专属的 collection（登录后必须有 collection_name）
+            if not st.session_state.collection_name:
+                raise ValueError("未登录或 collection_name 未设置，请先登录")
+            collection_name = st.session_state.collection_name
             
             # 获取预加载的模型实例
             embed_model = get_global_embed_model()
@@ -212,9 +218,8 @@ def display_hybrid_sources(local_sources, wikipedia_sources):
                 if metadata_parts:
                     st.caption(" | ".join(metadata_parts))
                 
-                # 显示内容预览
-                text_preview = source['text'][:300] if len(source['text']) > 300 else source['text']
-                st.text(text_preview + ("..." if len(source['text']) > 300 else ""))
+                # 显示完整内容，不截断
+                st.text(source['text'])
                 
                 if i < len(local_sources):
                     st.divider()
@@ -233,9 +238,8 @@ def display_hybrid_sources(local_sources, wikipedia_sources):
                     metadata_parts.append(f"相似度: {source['score']:.2f}")
                 st.caption(" | ".join(metadata_parts))
                 
-                # 显示内容预览
-                text_preview = source['text'][:300] if len(source['text']) > 300 else source['text']
-                st.text(text_preview + ("..." if len(source['text']) > 300 else ""))
+                # 显示完整内容，不截断
+                st.text(source['text'])
                 
                 if i < len(wikipedia_sources):
                     st.divider()
@@ -359,9 +363,15 @@ def display_session_history(user_email: str, current_session_id: Optional[str] =
                 # 判断是否为当前会话
                 is_current = session['session_id'] == current_session_id
                 
-                # 创建会话按钮
+                # 创建会话按钮（去掉左侧图标；单行省略；右侧小图标）
                 session_title = session['title'] or "新对话"
-                button_label = f"{'🔵 ' if is_current else '💬 '}{session_title}"
+                max_len = 28
+                if len(session_title) > max_len:
+                    session_title_display = session_title[:max_len - 1] + "…"
+                else:
+                    session_title_display = session_title
+                # 右侧使用小箭头符号，视觉更轻
+                button_label = f"{session_title_display}  ›"
                 
                 # 使用容器来实现悬停效果和点击
                 if st.button(
@@ -376,11 +386,7 @@ def display_session_history(user_email: str, current_session_id: Optional[str] =
                         st.session_state.load_session_path = session['file_path']
                         st.rerun()
                 
-                # 显示会话信息
-                if is_current:
-                    st.caption(f"✅ 当前会话 · {session['message_count']} 条消息")
-                else:
-                    st.caption(f"{session['message_count']} 条消息")
+                # 移除消息数量等冗余信息，保持列表简洁
             
             st.divider()
 

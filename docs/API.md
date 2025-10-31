@@ -34,7 +34,7 @@ from src.config import config  # 使用全局实例
 | `LLM_MODEL` | str | 模型名称 | `deepseek-chat` |
 | `EMBEDDING_MODEL` | str | Embedding模型 | `BAAI/bge-base-zh-v1.5` |
 | `VECTOR_STORE_PATH` | Path | 向量数据库路径 | `./vector_store` |
-| `CHROMA_COLLECTION_NAME` | str | 集合名称 | `systematology_docs` |
+| `CHROMA_COLLECTION_NAME` | str | 默认集合名称（未登录时使用，登录后使用用户专属集合） | `default` |
 | `RAW_DATA_PATH` | Path | 原始数据路径 | `./data/raw` |
 | `PROCESSED_DATA_PATH` | Path | 处理后数据路径 | `./data/processed` |
 | `CHUNK_SIZE` | int | 文本分块大小 | 512 |

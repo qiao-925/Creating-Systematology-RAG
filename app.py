@@ -7,6 +7,7 @@ import streamlit as st
 from pathlib import Path
 from typing import Optional
 import sys
+import time
 import atexit
 import signal
 import logging
@@ -32,6 +33,12 @@ from src.ui_components import (
     load_hybrid_query_engine,
     display_hybrid_sources,
     display_model_status
+)
+from src.phoenix_utils import (
+    is_phoenix_running,
+    start_phoenix_ui,
+    stop_phoenix_ui,
+    get_phoenix_url,
 )
 from src.query_engine import format_sources
 from llama_index.core import Document as LlamaDocument
@@ -104,7 +111,7 @@ except (ValueError, OSError) as e:
 
 # 页面配置
 st.set_page_config(
-    page_title=config.APP_TITLE,
+    page_title="主页",
     page_icon="📚",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -155,18 +162,28 @@ def sidebar():
         st.title("📚 " + config.APP_TITLE)
         st.caption("基于LlamaIndex和DeepSeek的系统科学知识问答系统")
         
-        # ========== 模型状态区域 ==========
-        if st.session_state.get('embed_model_loaded') and st.session_state.get('embed_model'):
-            st.caption(f"✅ Embedding 模型已缓存（对象ID: {id(st.session_state.embed_model)}）")
+        # ========== 新对话（顶部） ==========
+        if st.button("💬 开启新对话", type="primary", use_container_width=True, key="new_chat_top"):
+            if st.session_state.chat_manager:
+                st.session_state.chat_manager.start_session()
+                st.session_state.messages = []
+                st.success("✅ 新会话已开始")
+                st.rerun()
+
+        # ========== 历史会话（紧随新对话按钮） ==========
+        current_session_id = None
+        if st.session_state.chat_manager and st.session_state.chat_manager.current_session:
+            current_session_id = st.session_state.chat_manager.current_session.session_id
+        from src.ui_components import display_session_history
+        display_session_history(st.session_state.user_email, current_session_id)
         
-        st.markdown("---")
         
         # ========== 用户信息区域 ==========
         col1, col2 = st.columns([3, 1])
         with col1:
             st.caption(f"👤 {st.session_state.user_email}")
         with col2:
-            if st.button("退出", key="logout_btn_sidebar", help="退出登录"):
+            if st.button("🚪", key="logout_btn_sidebar", help="退出登录"):
                 st.session_state.logged_in = False
                 st.session_state.user_email = None
                 st.session_state.collection_name = None
@@ -175,90 +192,13 @@ def sidebar():
                 st.session_state.messages = []
                 st.session_state.index_built = False
                 st.rerun()
-        st.markdown("---")
         
-        st.subheader("🚀 快速操作")
         
-        # 显示索引状态
-        st.subheader("📊 索引状态")
-        if st.session_state.index_manager:
-            stats = st.session_state.index_manager.get_stats()
-            if stats:
-                st.metric("文档数量", stats.get('document_count', 0))
-                st.caption(f"模型: {stats.get('embedding_model', 'N/A')}")
-        else:
-            st.info("索引尚未初始化")
+        # 保留其他功能区
         
-        st.divider()
+        # 本地文档导入已移至 设置页 > 数据源管理 > 数据导入
         
-        # ========== 本地文档上传 ==========
-        st.subheader("📁 本地文档")
-        uploaded_files = st.file_uploader(
-            "选择文件",
-            type=['md', 'markdown', 'txt', 'rst', 'pdf', 'docx', 'json', 'csv', 'py', 'js', 'ts', 'java', 'cpp', 'c', 'h'],
-            accept_multiple_files=True,
-            help="支持多种格式：Markdown、文本、PDF、Word、代码等"
-        )
-        
-        if uploaded_files and st.button("📥 导入", type="primary", use_container_width=True):
-            index_manager = load_index()
-            if index_manager:
-                with st.spinner(f"正在处理 {len(uploaded_files)} 个文件..."):
-                    try:
-                        # 使用新架构：LocalFileSource + DocumentParser
-                        from src.data_source import LocalFileSource
-                        from src.data_loader import load_documents_from_source
-                        
-                        source = LocalFileSource(source=list(uploaded_files))
-                        documents = load_documents_from_source(source, clean=True, show_progress=False)
-                        
-                        # 清理临时文件（如果创建了）
-                        source.cleanup()
-                        
-                        if documents:
-                            _, _ = index_manager.build_index(documents)
-                            st.session_state.index_built = True
-                            st.success(f"✅ 成功导入 {len(documents)} 个文档")
-                            st.rerun()
-                        else:
-                            st.error("❌ 未能解析任何文档，请检查文件格式")
-                    except Exception as e:
-                        st.error(f"❌ 导入失败: {e}")
-        
-        st.divider()
-        
-        # ========== 会话管理 ==========
-        st.subheader("💬 会话管理")
-        if st.button("🆕 新会话", use_container_width=True):
-            if st.session_state.chat_manager:
-                st.session_state.chat_manager.start_session()
-                st.session_state.messages = []
-                st.success("✅ 新会话已开始")
-                st.rerun()
-        
-        st.caption("💡 会话自动保存，无需手动操作")
-        
-        st.divider()
-        
-        # ========== 历史会话 ==========
-        st.subheader("📜 历史会话")
-        
-        # 获取当前会话ID
-        current_session_id = None
-        if st.session_state.chat_manager and st.session_state.chat_manager.current_session:
-            current_session_id = st.session_state.chat_manager.current_session.session_id
-        
-        # 显示历史会话列表（按时间分组）
-        from src.ui_components import display_session_history
-        display_session_history(st.session_state.user_email, current_session_id)
-        
-        st.divider()
-        
-        # ========== 进入设置页 ==========
-        st.subheader("⚙️ 更多功能")
-        st.caption("更多数据源、配置和调试工具")
-        if st.button("🔧 打开设置页面", type="secondary", use_container_width=True):
-            st.switch_page("pages/1_⚙️_设置.py")
+        # 会话管理旧入口与更多功能入口已移除
 
 
 def main():
@@ -360,11 +300,11 @@ def main():
         color: var(--color-text-primary);
     }
     
-    /* 消息容器 - 简洁无阴影，使用温暖米色 */
+    /* 消息容器 - 紧凑间距 */
     .stChatMessage {
-        padding: 1.5rem 1.75rem;
+        padding: 1.0rem 1.25rem;
         border-radius: 12px;
-        margin-bottom: 1.5rem;
+        margin-bottom: 0.9rem;
         border: none;
         box-shadow: none;
         background-color: var(--color-bg-card);
@@ -422,6 +362,32 @@ def main():
         border-color: var(--color-border);
     }
     
+    /* 侧边栏历史记录按钮：单行显示 + 超出省略 */
+    [data-testid="stSidebar"] .stButton button {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* 侧边栏历史记录按钮：去边框框线，紧凑间距 */
+    [data-testid="stSidebar"] .stButton button[kind="secondary"] {
+        border: none;
+        box-shadow: none;
+        background: transparent;
+        padding: 0.35rem 0.4rem;
+        margin: 0.1rem 0;
+    }
+
+    [data-testid="stSidebar"] .stButton button[kind="secondary"]:hover {
+        background-color: var(--color-bg-hover);
+        border: none;
+    }
+
+    /* 保持顶部主要按钮的可点击性和视觉权重 */
+    [data-testid="stSidebar"] .stButton button[kind="primary"] {
+        padding: 0.55rem 0.75rem;
+    }
+    
     /* 输入框 - 简洁边框，使用温暖米色背景 */
     .stTextInput input, 
     .stTextArea textarea,
@@ -433,6 +399,8 @@ def main():
         font-size: 16px;
         font-family: inherit;
         color: var(--color-text-primary);
+        min-height: 48px;
+        resize: none;
     }
     
     .stTextInput input:focus, 
@@ -443,15 +411,34 @@ def main():
         outline: none;
     }
     
-    /* 聊天输入框居中 */
+    /* 聊天输入框居中 + 提升观感 */
     .stChatInput {
-        max-width: 800px !important;
+        max-width: 900px !important;
         margin: 0 auto !important;
     }
     
     [data-testid="stChatInput"] {
-        max-width: 800px !important;
+        max-width: 900px !important;
         margin: 0 auto !important;
+        background: var(--color-bg-card);
+        border: 1px solid var(--color-border);
+        border-radius: 12px;
+        padding: 0.5rem 0.75rem;
+        box-shadow: 0 6px 24px rgba(0,0,0,0.06);
+        backdrop-filter: saturate(180%) blur(4px);
+    }
+    
+    /* 发送按钮样式 */
+    [data-testid="stChatInput"] button {
+        background-color: var(--color-accent) !important;
+        color: #fff !important;
+        border: none !important;
+        border-radius: 10px !important;
+        padding: 0.5rem 0.9rem !important;
+    }
+    
+    [data-testid="stChatInput"] button:hover {
+        background-color: var(--color-accent-hover) !important;
     }
     
     /* 展开器 - 极简设计，使用温暖米色 */
@@ -598,11 +585,30 @@ def main():
     </style>
     """, unsafe_allow_html=True)
     
-    # 预加载 Embedding 模型（全局，应用启动时就加载）
-    preload_embedding_model()
-    
-    # 初始化会话状态
+    # 初始化会话状态（需早于重型初始化，用于控制遮罩）
     init_session_state()
+    
+    # ========== 启动初始化 ==========
+    if not st.session_state.boot_ready:
+        # 启动阶段：执行重型初始化
+        try:
+            preload_embedding_model()
+        except Exception:
+            # 错误已在函数内部显示
+            pass
+        try:
+            if not is_phoenix_running():
+                session = start_phoenix_ui(port=6006)
+                if session is None:
+                    st.error("❌ Phoenix 启动失败：请确认已安装 arize-phoenix 与 openinference-instrumentation-llama-index，并检查端口 6006 是否被占用。")
+        except Exception as e:
+            st.error(f"❌ Phoenix 启动异常：{e}")
+        # 启动画面完成 -> 标记并刷新
+        st.session_state.boot_ready = True
+        st.rerun()
+        return
+    
+    # 启动阶段已处理 Phoenix 与模型加载；此处无需再拉起
     
     # 用户认证界面
     if not st.session_state.logged_in:
@@ -704,11 +710,10 @@ def main():
         del st.session_state.load_session_path
         st.rerun()
     
-    # ========== 主内容区域居中布局（800px最大宽度） ==========
-    # 创建三列布局，中间列为主要内容区域
-    left_spacer, main_content, right_spacer = st.columns([1, 6, 1])
+    # ========== 主内容区域左右分栏：左-对话，右-日志/调试（60/40） ==========
+    main_left, main_right = st.columns([3, 2])
     
-    with main_content:
+    with main_left:
         # 显示对话历史
         for message in st.session_state.messages:
             with st.chat_message(message["role"]):
@@ -730,7 +735,7 @@ def main():
                                     st.markdown(f"**[{source['index']}] {source['metadata'].get('title', source['metadata'].get('file_name', 'Unknown'))}**")
                                     if source['score']:
                                         st.caption(f"相似度: {source['score']:.2f}")
-                                    st.text(source['text'][:300] + "..." if len(source['text']) > 300 else source['text'])
+                                    st.text(source['text'])
                                     st.divider()
         
         # 默认问题快捷按钮（仅在无对话历史时显示）
@@ -819,7 +824,7 @@ def main():
                                         st.markdown(f"**[{source['index']}] {source['metadata'].get('title', source['metadata'].get('file_name', 'Unknown'))}**")
                                         if source['score']:
                                             st.caption(f"相似度: {source['score']:.2f}")
-                                        st.text(source['text'][:300] + "..." if len(source['text']) > 300 else source['text'])
+                                        st.text(source['text'])
                                         st.divider()
                             
                             # 保存到消息历史
@@ -836,83 +841,85 @@ def main():
                         st.error(f"❌ 查询失败: {e}")
                         st.error(traceback.format_exc())
     
-    # 用户输入（chat_input 无法放入 columns，但通过 CSS 居中）
-    if prompt := st.chat_input("请输入您的问题..."):
-        # 创建居中布局来显示新消息
-        _, center_col, _ = st.columns([1, 6, 1])
+    # 右侧：开发者调试（Phoenix）
+    with main_right:
+        st.markdown("#### 🐛 调试 / 日志")
+        if is_phoenix_running():
+            st.success("Phoenix 已运行")
+            url = get_phoenix_url()
+            st.markdown(f"**访问：** [{url}]({url})")
+        else:
+            if st.button("🚀 启动Phoenix", type="primary", use_container_width=True):
+                start_phoenix_ui()
+                st.experimental_rerun()
+        st.divider()
+
+    # 用户输入（底部全宽，视觉居中）
+    prompt = st.chat_input("请输入您的问题...")
+    if prompt:
+        # 显示用户消息
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
         
-        with center_col:
-            # 显示用户消息
-            st.session_state.messages.append({"role": "user", "content": prompt})
-            with st.chat_message("user"):
-                st.markdown(prompt)
-            
-            # 生成回答
-            with st.chat_message("assistant"):
-                with st.spinner("🤔 思考中..."):
-                    try:
-                        # 判断使用哪种查询模式
-                        if st.session_state.enable_wikipedia:
-                            # 混合查询模式（维基百科增强）
-                            hybrid_engine = load_hybrid_query_engine()
-                            if hybrid_engine:
-                                answer, local_sources, wikipedia_sources = hybrid_engine.query(prompt)
-                                st.markdown(answer)
-                                
-                                # 分区显示来源
-                                display_hybrid_sources(local_sources, wikipedia_sources)
-                                
-                                # 保存到消息历史（UI显示用）
-                                st.session_state.messages.append({
-                                    "role": "assistant",
-                                    "content": answer,
-                                    "sources": local_sources,
-                                    "wikipedia_sources": wikipedia_sources
-                                })
-                                
-                                # 同时保存到ChatManager会话（持久化）
-                                if chat_manager:
-                                    # 合并所有来源用于保存
-                                    all_sources = local_sources + [
-                                        {**s, 'source_type': 'wikipedia'} 
-                                        for s in wikipedia_sources
-                                    ]
-                                    # 如果没有当前会话，先创建一个
-                                    if not chat_manager.current_session:
-                                        chat_manager.start_session()
-                                    # 保存对话
-                                    chat_manager.current_session.add_turn(prompt, answer, all_sources)
-                                    # 自动保存
-                                    if chat_manager.auto_save:
-                                        chat_manager.save_current_session()
-                            else:
-                                st.error("混合查询引擎初始化失败")
-                        else:
-                            # 普通对话模式
-                            answer, sources = chat_manager.chat(prompt)
+        # 生成回答
+        with st.chat_message("assistant"):
+            with st.spinner("🤔 思考中..."):
+                try:
+                    if st.session_state.enable_wikipedia:
+                        hybrid_engine = load_hybrid_query_engine()
+                        if hybrid_engine:
+                            answer, local_sources, wikipedia_sources = hybrid_engine.query(prompt)
                             st.markdown(answer)
                             
-                            # 显示引用来源
-                            if sources:
-                                with st.expander("📚 查看引用来源", expanded=True):
-                                    for source in sources:
-                                        st.markdown(f"**[{source['index']}] {source['metadata'].get('title', source['metadata'].get('file_name', 'Unknown'))}**")
-                                        if source['score']:
-                                            st.caption(f"相似度: {source['score']:.2f}")
-                                        st.text(source['text'][:300] + "..." if len(source['text']) > 300 else source['text'])
-                                        st.divider()
+                            # 分区显示来源
+                            display_hybrid_sources(local_sources, wikipedia_sources)
                             
-                            # 保存到消息历史
+                            # 保存到消息历史（UI显示用）
                             st.session_state.messages.append({
                                 "role": "assistant",
                                 "content": answer,
-                                "sources": sources
+                                "sources": local_sources,
+                                "wikipedia_sources": wikipedia_sources
                             })
+                            
+                            # 同时保存到ChatManager会话（持久化）
+                            if chat_manager:
+                                all_sources = local_sources + [
+                                    {**s, 'source_type': 'wikipedia'} 
+                                    for s in wikipedia_sources
+                                ]
+                                if not chat_manager.current_session:
+                                    chat_manager.start_session()
+                                chat_manager.current_session.add_turn(prompt, answer, all_sources)
+                                if chat_manager.auto_save:
+                                    chat_manager.save_current_session()
+                        else:
+                            st.error("混合查询引擎初始化失败")
+                    else:
+                        answer, sources = chat_manager.chat(prompt)
+                        st.markdown(answer)
                         
-                    except Exception as e:
-                        import traceback
-                        st.error(f"❌ 查询失败: {e}")
-                        st.error(traceback.format_exc())
+                        # 显示引用来源
+                        if sources:
+                            with st.expander("📚 查看引用来源", expanded=True):
+                                for source in sources:
+                                    st.markdown(f"**[{source['index']}] {source['metadata'].get('title', source['metadata'].get('file_name', 'Unknown'))}**")
+                                    if source['score']:
+                                        st.caption(f"相似度: {source['score']:.2f}")
+                                    st.text(source['text'])
+                                    st.divider()
+                        
+                        # 保存到消息历史
+                        st.session_state.messages.append({
+                            "role": "assistant",
+                            "content": answer,
+                            "sources": sources
+                        })
+                except Exception as e:
+                    import traceback
+                    st.error(f"❌ 查询失败: {e}")
+                    st.error(traceback.format_exc())
 
 
 if __name__ == "__main__":

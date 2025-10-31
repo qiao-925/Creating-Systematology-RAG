@@ -233,7 +233,7 @@ logger.py
   - Phoenix可视化平台
   - LlamaDebugHandler调试
   - 查询追踪信息
-- Tab4: ⚙️ 系统设置
+- Tab4: ⚙️ 系统状态
   - 索引管理
   - 模型状态
   - 系统信息

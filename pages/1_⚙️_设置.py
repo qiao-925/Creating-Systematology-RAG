@@ -1,6 +1,6 @@
 """
 设置页面
-提供详细的配置选项：数据源管理、查询配置、开发者工具、系统设置
+提供详细的配置选项：数据源管理、查询配置、开发者工具、系统状态
 """
 
 import streamlit as st
@@ -349,19 +349,8 @@ if not st.session_state.logged_in:
     st.stop()
 
 # 页面标题
-st.title("⚙️ 系统设置")
+st.title("⚙️ 系统状态")
 st.caption(f"当前用户: {st.session_state.user_email}")
-
-# 开启新对话按钮 - 居中显示
-col1, col2, col3 = st.columns([2, 3, 2])
-with col2:
-    if st.button("💬 开启新对话", type="primary", use_container_width=True):
-        if st.session_state.chat_manager:
-            st.session_state.chat_manager.start_session()
-            st.session_state.messages = []
-            st.success("✅ 新会话已开始")
-            # 跳转回主页
-            st.switch_page("app.py")
 
 st.divider()
 
@@ -374,7 +363,7 @@ tab1, tab2, tab3, tab4 = st.tabs([
     "📦 数据源管理",
     "🔧 查询配置",
     "🐛 开发者工具",
-    "⚙️ 系统设置"
+    "⚙️ 系统状态"
 ])
 
 # ==================== Tab1: 数据源管理 ====================
@@ -449,75 +438,8 @@ with tab1:
                                     st.error(f"❌ 添加失败: {str(e)[:100]}")
     
     with col2:
-        # 同步所有仓库按钮
-        if st.session_state.github_repos:
-            if st.button("🔄 同步", use_container_width=True, help="同步所有仓库"):
-                index_manager = load_index()
-                if index_manager:
-                    with st.spinner("同步中..."):
-                        synced = 0
-                        for repo_info in st.session_state.github_repos:
-                            parts = repo_info['key'].split('@')
-                            repo_part = parts[0]
-                            branch = parts[1] if len(parts) > 1 else 'main'
-                            owner, repo_name = repo_part.split('/')
-                            
-                            try:
-                                documents, changes, commit_sha, cache_manager, task_id = sync_github_repository(
-                                    owner=owner,
-                                    repo=repo_name,
-                                    branch=branch,
-                                    metadata_manager=st.session_state.metadata_manager,
-                                    show_progress=False
-                                )
-                                
-                                if changes.has_changes():
-                                    added_docs, modified_docs, deleted_paths = st.session_state.metadata_manager.get_documents_by_change(
-                                        documents, changes
-                                    )
-                                    # 对于增量更新，也传递缓存管理器（如果需要索引新文档）
-                                    if added_docs or modified_docs:
-                                        index_manager.build_index(
-                                            added_docs + modified_docs,
-                                            show_progress=False,
-                                            cache_manager=cache_manager,
-                                            task_id=task_id
-                                        )
-                                    index_manager.incremental_update(
-                                        added_docs=added_docs,
-                                        modified_docs=modified_docs,
-                                        deleted_file_paths=deleted_paths,
-                                        metadata_manager=st.session_state.metadata_manager
-                                    )
-                                    
-                                    # 获取所有文档的向量ID（增量更新后）
-                                    vector_ids_map = {}
-                                    for doc in documents:
-                                        file_path = doc.metadata.get("file_path", "")
-                                        if file_path:
-                                            vector_ids = st.session_state.metadata_manager.get_file_vector_ids(
-                                                owner, repo_name, branch, file_path
-                                            )
-                                            vector_ids_map[file_path] = vector_ids
-                                    
-                                    st.session_state.metadata_manager.update_repository_metadata(
-                                        owner=owner,
-                                        repo=repo_name,
-                                        branch=branch,
-                                        documents=documents,
-                                        vector_ids_map=vector_ids_map,
-                                        commit_sha=commit_sha
-                                    )
-                                    synced += 1
-                            except Exception as e:
-                                st.error(f"❌ {owner}/{repo_name}: {str(e)[:80]}")
-                        
-                        st.session_state.github_repos = st.session_state.metadata_manager.list_repositories()
-                        if synced > 0:
-                            st.success(f"✅ 同步了 {synced} 个仓库")
-                        else:
-                            st.success("✅ 所有仓库都是最新的")
-                        st.rerun()
+        # 预留列（移除全局同步按钮）
+        pass
     
     st.divider()
     
@@ -528,7 +450,7 @@ with tab1:
         
         for repo in st.session_state.github_repos:
             with st.expander(f"📦 {repo['key']}", expanded=False):
-                col1, col2 = st.columns([3, 1])
+                col1, col2, col3 = st.columns([3, 1, 1])
                 
                 with col1:
                     st.text(f"文件数量: {repo['file_count']}")
@@ -536,7 +458,71 @@ with tab1:
                     if 'commit_sha' in repo:
                         st.text(f"Commit: {repo['commit_sha'][:8]}")
                 
+                # 同步此仓库
                 with col2:
+                    if st.button("🔄 同步", key=f"sync_{repo['key']}"):
+                        index_manager = load_index()
+                        if index_manager:
+                            with st.spinner(f"正在同步 {repo['key']}..."):
+                                try:
+                                    parts = repo['key'].split('@')
+                                    repo_part = parts[0]
+                                    branch = parts[1] if len(parts) > 1 else 'main'
+                                    owner, repo_name = repo_part.split('/')
+                                    
+                                    documents, changes, commit_sha, cache_manager, task_id = sync_github_repository(
+                                        owner=owner,
+                                        repo=repo_name,
+                                        branch=branch,
+                                        metadata_manager=st.session_state.metadata_manager,
+                                        show_progress=True
+                                    )
+                                    
+                                    if changes.has_changes():
+                                        added_docs, modified_docs, deleted_paths = st.session_state.metadata_manager.get_documents_by_change(
+                                            documents, changes
+                                        )
+                                        if added_docs or modified_docs:
+                                            index_manager.build_index(
+                                                added_docs + modified_docs,
+                                                show_progress=True,
+                                                cache_manager=cache_manager,
+                                                task_id=task_id
+                                            )
+                                        index_manager.incremental_update(
+                                            added_docs=added_docs,
+                                            modified_docs=modified_docs,
+                                            deleted_file_paths=deleted_paths,
+                                            metadata_manager=st.session_state.metadata_manager
+                                        )
+                                        
+                                        vector_ids_map = {}
+                                        for doc in documents:
+                                            file_path = doc.metadata.get("file_path", "")
+                                            if file_path:
+                                                vector_ids = st.session_state.metadata_manager.get_file_vector_ids(
+                                                    owner, repo_name, branch, file_path
+                                                )
+                                                vector_ids_map[file_path] = vector_ids
+                                        
+                                        st.session_state.metadata_manager.update_repository_metadata(
+                                            owner=owner,
+                                            repo=repo_name,
+                                            branch=branch,
+                                            documents=documents,
+                                            vector_ids_map=vector_ids_map,
+                                            commit_sha=commit_sha
+                                        )
+                                        st.session_state.github_repos = st.session_state.metadata_manager.list_repositories()
+                                        st.success("✅ 仓库已同步")
+                                    else:
+                                        st.success("✅ 已是最新")
+                                    st.rerun()
+                                except Exception as e:
+                                    st.error(f"❌ 同步失败: {str(e)[:80]}")
+
+                # 删除此仓库
+                with col3:
                     if st.button("🗑️ 删除", key=f"del_{repo['key']}"):
                         parts = repo['key'].split('@')
                         repo_part = parts[0]
@@ -551,7 +537,40 @@ with tab1:
     
     st.divider()
     
-    # ========== 2. 网页URL导入 ==========
+    # ========== 2. 数据导入（本地文档） ==========
+    st.subheader("📥 数据导入（本地文档）")
+    st.caption("将本地文件直接导入索引，支持多种格式")
+    uploaded_files = st.file_uploader(
+        "选择文件",
+        type=['md', 'markdown', 'txt', 'rst', 'pdf', 'docx', 'json', 'csv', 'py', 'js', 'ts', 'java', 'cpp', 'c', 'h'],
+        accept_multiple_files=True,
+        help="支持多种格式：Markdown、文本、PDF、Word、代码等"
+    )
+    if uploaded_files and st.button("📥 导入", type="primary", use_container_width=True):
+        index_manager = load_index()
+        if index_manager:
+            with st.spinner(f"正在处理 {len(uploaded_files)} 个文件..."):
+                try:
+                    from src.data_source import LocalFileSource
+                    from src.data_loader import load_documents_from_source
+                    
+                    source = LocalFileSource(source=list(uploaded_files))
+                    documents = load_documents_from_source(source, clean=True, show_progress=False)
+                    source.cleanup()
+                    
+                    if documents:
+                        _, _ = index_manager.build_index(documents)
+                        st.session_state.index_built = True
+                        st.success(f"✅ 成功导入 {len(documents)} 个文档")
+                        st.rerun()
+                    else:
+                        st.error("❌ 未能解析任何文档，请检查文件格式")
+                except Exception as e:
+                    st.error(f"❌ 导入失败: {e}")
+    
+    st.divider()
+    
+    # ========== 3. 网页URL导入 ==========
     st.subheader("🌐 从网页加载")
     url_input = st.text_area(
         "输入URL（每行一个）",
@@ -576,29 +595,6 @@ with tab1:
                             st.warning("⚠️ 没有成功加载任何网页")
                     except Exception as e:
                         st.error(f"❌ 加载失败: {e}")
-    
-    st.divider()
-    
-    # ========== 3. 本地目录加载 ==========
-    st.subheader("📂 从目录加载")
-    st.caption("加载data/raw目录中的所有文档（开发/测试用）")
-    
-    if st.button("📖 加载data/raw目录", type="primary"):
-        index_manager = load_index()
-        if index_manager:
-            with st.spinner("正在加载目录中的文档..."):
-                try:
-                    from src.data_loader import load_documents_from_directory
-                    documents = load_documents_from_directory(config.RAW_DATA_PATH)
-                    if documents:
-                        _, _ = index_manager.build_index(documents)
-                        st.session_state.index_built = True
-                        st.success(f"✅ 成功加载 {len(documents)} 个文档")
-                        st.rerun()
-                    else:
-                        st.warning("⚠️ 目录中没有找到文档")
-                except Exception as e:
-                    st.error(f"❌ 加载失败: {e}")
     
     st.divider()
     
@@ -774,9 +770,9 @@ with tab3:
         st.info("ℹ️ 追踪信息将在每次查询后显示")
 
 
-# ==================== Tab4: 系统设置 ====================
+# ==================== Tab4: 系统状态 ====================
 with tab4:
-    st.header("⚙️ 系统设置")
+    st.header("⚙️ 系统状态")
     st.caption("系统级配置和管理操作")
     
     # ========== 索引管理 ==========
