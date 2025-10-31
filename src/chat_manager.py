@@ -16,6 +16,9 @@ from llama_index.llms.deepseek import DeepSeek
 
 from src.config import config
 from src.indexer import IndexManager
+from src.logger import setup_logger
+
+logger = setup_logger('chat_manager')
 
 
 @dataclass
@@ -145,7 +148,7 @@ class ChatSession:
         with open(file_path, 'w', encoding='utf-8') as f:
             json.dump(self.to_dict(), f, ensure_ascii=False, indent=2)
         
-        print(f"💾 会话已保存: {file_path}")
+        logger.info(f"会话已保存: {file_path}")
     
     @classmethod
     def load(cls, file_path: Path):
@@ -211,11 +214,11 @@ class ChatManager:
         if self.enable_debug:
             from llama_index.core import Settings
             from llama_index.core.callbacks import CallbackManager, LlamaDebugHandler
-            print("🔍 对话管理器：启用调试模式")
+            logger.info("对话管理器：启用调试模式")
             llama_debug = LlamaDebugHandler(print_trace_on_end=True)
             Settings.callback_manager = CallbackManager([llama_debug])
         
-        print(f"🤖 初始化DeepSeek LLM (对话模式): {self.model}")
+        logger.info(f"初始化DeepSeek LLM (对话模式): {self.model}")
         # 使用官方 DeepSeek 集成
         self.llm = DeepSeek(
             api_key=self.api_key,
@@ -232,7 +235,7 @@ class ChatManager:
         if self.index_manager:
             # 有索引：使用RAG增强的对话引擎
             self.index = self.index_manager.get_index()
-            print("💬 创建RAG增强对话引擎")
+            logger.info("创建RAG增强对话引擎")
             self.chat_engine = CondensePlusContextChatEngine.from_defaults(
                 retriever=self.index.as_retriever(similarity_top_k=self.similarity_top_k),
                 llm=self.llm,
@@ -252,7 +255,7 @@ class ChatManager:
         else:
             # 无索引：使用纯LLM对话引擎
             from llama_index.core.chat_engine import SimpleChatEngine
-            print("💬 创建纯LLM对话引擎（无知识库）")
+            logger.info("创建纯LLM对话引擎（无知识库）")
             self.chat_engine = SimpleChatEngine.from_defaults(
                 llm=self.llm,
                 memory=self.memory,
@@ -265,7 +268,7 @@ class ChatManager:
         # 当前会话
         self.current_session: Optional[ChatSession] = None
         
-        print("✅ 对话管理器初始化完成")
+        logger.info("对话管理器初始化完成")
     
     def start_session(self, session_id: Optional[str] = None) -> ChatSession:
         """开始新会话
@@ -278,7 +281,7 @@ class ChatManager:
         """
         self.current_session = ChatSession(session_id=session_id)
         self.memory.reset()  # 重置记忆
-        print(f"🆕 新会话开始: {self.current_session.session_id}")
+        logger.info(f"新会话开始: {self.current_session.session_id}")
         return self.current_session
     
     def load_session(self, file_path: Path):
@@ -295,8 +298,7 @@ class ChatManager:
             self.memory.put(ChatMessage(role=MessageRole.USER, content=turn.question))
             self.memory.put(ChatMessage(role=MessageRole.ASSISTANT, content=turn.answer))
         
-        print(f"📂 会话已加载: {self.current_session.session_id}")
-        print(f"   包含 {len(self.current_session.history)} 轮对话")
+        logger.info(f"会话已加载: {self.current_session.session_id}, 包含 {len(self.current_session.history)} 轮对话")
     
     def chat(self, message: str) -> tuple[str, List[dict]]:
         """进行对话
@@ -311,7 +313,7 @@ class ChatManager:
             self.start_session()
         
         try:
-            print(f"\n💬 用户: {message}")
+            logger.info(f"用户消息: {message}")
             
             # 执行对话
             response = self.chat_engine.chat(message)
@@ -337,18 +339,18 @@ class ChatManager:
                 high_quality_sources = [s for s in sources if s.get('score', 0) >= self.similarity_threshold]
                 
                 if max_score < self.similarity_threshold:
-                    print(f"⚠️  检索质量较低（最高相似度: {max_score:.2f}），答案可能更多依赖模型推理")
+                    logger.warning(f"检索质量较低（最高相似度: {max_score:.2f}），答案可能更多依赖模型推理")
                 elif len(high_quality_sources) >= 2:
-                    print(f"✅ 检索质量良好（高质量结果: {len(high_quality_sources)}个，最高相似度: {max_score:.2f}）")
+                    logger.info(f"检索质量良好（高质量结果: {len(high_quality_sources)}个，最高相似度: {max_score:.2f}）")
             elif not self.index_manager:
-                print("💡 纯LLM模式（无知识库检索）")
+                logger.debug("纯LLM模式（无知识库检索）")
             
             # 添加到会话历史
             self.current_session.add_turn(message, answer, sources)
             
-            print(f"🤖 AI: {answer[:100]}...")
+            logger.info(f"AI回答（前100字符）: {answer[:100]}...")
             if sources:
-                print(f"📚 引用来源: {len(sources)} 个")
+                logger.info(f"引用来源: {len(sources)} 个")
             
             # 自动保存会话
             if self.auto_save:
@@ -357,7 +359,7 @@ class ChatManager:
             return answer, sources
             
         except Exception as e:
-            print(f"❌ 对话失败: {e}")
+            logger.error(f"对话失败: {e}", exc_info=True)
             raise
     
     async def stream_chat(self, message: str):
@@ -378,7 +380,7 @@ class ChatManager:
             self.start_session()
         
         try:
-            print(f"\n💬 用户: {message}")
+            logger.info(f"用户消息（流式）: {message}")
             
             # 执行流式对话
             response_stream = self.chat_engine.stream_chat(message)
@@ -408,8 +410,9 @@ class ChatManager:
             # 添加到会话历史
             self.current_session.add_turn(message, full_answer, sources)
             
-            print(f"🤖 AI: {full_answer[:100]}...")
-            print(f"📚 引用来源: {len(sources)} 个")
+            logger.info(f"AI回答（流式，前100字符）: {full_answer[:100]}...")
+            if sources:
+                logger.info(f"引用来源: {len(sources)} 个")
             
             # 自动保存会话
             if self.auto_save:
@@ -420,7 +423,7 @@ class ChatManager:
             yield {'type': 'done', 'data': full_answer}
             
         except Exception as e:
-            print(f"❌ 流式对话失败: {e}")
+            logger.error(f"流式对话失败: {e}", exc_info=True)
             raise
     
     def get_current_session(self) -> Optional[ChatSession]:
@@ -434,21 +437,19 @@ class ChatManager:
             save_dir: 保存目录，默认为配置的会话目录
         """
         if self.current_session is None:
-            print("⚠️  没有活动会话需要保存")
+            logger.warning("没有活动会话需要保存")
             return
         
         if save_dir is None:
             # 如果有用户邮箱，保存到用户专属目录
             if self.user_email:
                 save_dir = config.SESSIONS_PATH / self.user_email
-                print(f"📁 [DEBUG] 保存到用户目录: {save_dir}")
+                logger.debug(f"保存到用户目录: {save_dir}")
             else:
                 save_dir = config.SESSIONS_PATH
-                print(f"📁 [DEBUG] 保存到默认目录: {save_dir}")
+                logger.debug(f"保存到默认目录: {save_dir}")
         
-        print(f"💾 [DEBUG] 开始保存会话: {self.current_session.session_id}")
-        print(f"💾 [DEBUG] 用户邮箱: {self.user_email}")
-        print(f"💾 [DEBUG] 会话历史条数: {len(self.current_session.history)}")
+        logger.debug(f"开始保存会话: {self.current_session.session_id}, 用户: {self.user_email}, 历史条数: {len(self.current_session.history)}")
         
         self.current_session.save(save_dir)
     
@@ -457,7 +458,7 @@ class ChatManager:
         if self.current_session:
             self.current_session.clear_history()
         self.memory.reset()
-        print("🔄 会话已重置")
+        logger.info("会话已重置")
 
 
 def get_user_sessions_metadata(user_email: str) -> List[Dict[str, Any]]:
@@ -477,17 +478,17 @@ def get_user_sessions_metadata(user_email: str) -> List[Dict[str, Any]]:
     """
     sessions_dir = config.SESSIONS_PATH / user_email
     
-    print(f"📁 [DEBUG] 查找会话目录: {sessions_dir}")
+    logger.debug(f"查找会话目录: {sessions_dir}")
     
     if not sessions_dir.exists():
-        print(f"⚠️  [DEBUG] 会话目录不存在: {sessions_dir}")
+        logger.debug(f"会话目录不存在: {sessions_dir}")
         return []
     
     sessions_metadata = []
     
-    print(f"📂 [DEBUG] 开始扫描会话文件...")
+    logger.debug("开始扫描会话文件...")
     for session_file in sessions_dir.glob("*.json"):
-        print(f"📄 [DEBUG] 找到会话文件: {session_file}")
+        logger.debug(f"找到会话文件: {session_file}")
         try:
             # 读取会话文件
             with open(session_file, 'r', encoding='utf-8') as f:
@@ -511,7 +512,7 @@ def get_user_sessions_metadata(user_email: str) -> List[Dict[str, Any]]:
             sessions_metadata.append(metadata)
             
         except Exception as e:
-            print(f"⚠️ 加载会话文件失败: {session_file}, 错误: {e}")
+            logger.warning(f"加载会话文件失败: {session_file}, 错误: {e}")
             continue
     
     # 按更新时间倒序排序（最新的在前）
@@ -532,7 +533,7 @@ def load_session_from_file(file_path: str) -> Optional[ChatSession]:
     try:
         return ChatSession.load(Path(file_path))
     except Exception as e:
-        print(f"❌ 加载会话失败: {file_path}, 错误: {e}")
+        logger.error(f"加载会话失败: {file_path}, 错误: {e}", exc_info=True)
         return None
 
 

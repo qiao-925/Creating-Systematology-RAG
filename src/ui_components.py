@@ -11,6 +11,9 @@ from src.config import config
 from src.indexer import IndexManager, get_embedding_model_status, get_global_embed_model, load_embedding_model
 from src.chat_manager import ChatManager
 from src.query_engine import HybridQueryEngine
+from src.logger import setup_logger
+
+logger = setup_logger('ui_components')
 
 
 def preload_embedding_model():
@@ -195,6 +198,332 @@ def load_hybrid_query_engine():
         return None
 
 
+def format_answer_with_citation_links(answer: str, sources: list, message_id: str = None) -> str:
+    """将答案中的引用标签[1][2][3]转换为可点击的超链接（锚定到右侧引用来源）
+    
+    Args:
+        answer: 包含引用标签的答案文本
+        sources: 引用来源列表
+        message_id: 消息唯一ID（用于生成锚点）
+        
+    Returns:
+        处理后的HTML字符串（包含可点击的引用链接）
+    """
+    import re
+    import uuid
+    
+    if not message_id:
+        message_id = f"msg_{uuid.uuid4().hex[:8]}"
+    
+    # 提取所有引用标签 [1], [2], [3] 等
+    citation_pattern = r'\[(\d+)\]'
+    
+    def replace_citation(match):
+        citation_num = int(match.group(1))
+        citation_id = f"citation_{message_id}_{citation_num}"
+        
+        # 检查该引用是否存在
+        if citation_num <= len(sources):
+            # 创建可点击的链接，锚定到右侧引用来源面板
+            return f'<a href="#{citation_id}" onclick="event.preventDefault(); scrollToCitation(\'{citation_id}\'); return false;" style="color: #2563EB; text-decoration: none; font-weight: 500; cursor: pointer;" title="点击查看引用来源 {citation_num}">[{citation_num}]</a>'
+        else:
+            # 引用不存在，保持原样
+            return match.group(0)
+    
+    # 替换所有引用标签
+    formatted_answer = re.sub(citation_pattern, replace_citation, answer)
+    
+    # 添加JavaScript代码用于滚动到右侧引用来源
+    js_code = f"""
+    <script>
+    function scrollToCitation(citationId) {{
+        // 滚动到右侧引用来源面板中对应的引用位置
+        const element = document.getElementById(citationId);
+        if (element) {{
+            // 滚动到引用位置（右侧面板）
+            element.scrollIntoView({{ behavior: 'smooth', block: 'center' }});
+            // 高亮效果
+            element.style.backgroundColor = '#FFF9C4';
+            element.style.border = '2px solid #2563EB';
+            setTimeout(() => {{
+                element.style.backgroundColor = '';
+                element.style.border = '';
+            }}, 2000);
+        }} else {{
+            // 如果找不到元素，等待一下再试（可能DOM还没渲染完成）
+            setTimeout(() => {{
+                const targetElement = document.getElementById(citationId);
+                if (targetElement) {{
+                    targetElement.scrollIntoView({{ behavior: 'smooth', block: 'center' }});
+                    targetElement.style.backgroundColor = '#FFF9C4';
+                    targetElement.style.border = '2px solid #2563EB';
+                    setTimeout(() => {{
+                        targetElement.style.backgroundColor = '';
+                        targetElement.style.border = '';
+                    }}, 2000);
+                }}
+            }}, 100);
+        }}
+    }}
+    </script>
+    """
+    
+    return formatted_answer + js_code
+
+
+def display_sources_with_anchors(sources: list, message_id: str = None, expanded: bool = True):
+    """显示引用来源，每个来源都有唯一的锚点ID
+    
+    Args:
+        sources: 引用来源列表
+        message_id: 消息唯一ID（用于生成锚点）
+        expanded: 是否默认展开
+    """
+    import uuid
+    import urllib.parse
+    
+    if not message_id:
+        message_id = f"msg_{uuid.uuid4().hex[:8]}"
+    
+    if sources:
+        with st.expander("📚 查看引用来源", expanded=expanded):
+            for source in sources:
+                citation_num = source.get('index', 0)
+                citation_id = f"citation_{message_id}_{citation_num}"
+                
+                # 获取文件路径和标题（改进：尝试多种metadata字段）
+                metadata = source.get('metadata', {})
+                
+                # 尝试多种方式获取文件路径
+                file_path = (
+                    metadata.get('file_path') or 
+                    metadata.get('file_name') or 
+                    metadata.get('source') or 
+                    metadata.get('url') or
+                    metadata.get('filename') or
+                    ''
+                )
+                
+                # 提取标题（优先使用title，否则使用文件名）
+                title = (
+                    metadata.get('title') or 
+                    metadata.get('file_name') or 
+                    metadata.get('filename') or
+                    'Unknown'
+                )
+                
+                # 如果title是路径，提取文件名作为显示标题
+                if '/' in title or '\\' in title:
+                    title = Path(title).name if title else 'Unknown'
+                
+                # 生成文件查看链接（只要file_path不为空就尝试生成）
+                file_url = None
+                if file_path:
+                    file_url = get_file_viewer_url(file_path)
+                
+                # 构建标题HTML（如果文件路径存在，添加更明显的链接样式）
+                if file_url:
+                    # Streamlit pages路径：不编码页面名称，让浏览器自动处理；只编码查询参数
+                    page_name = "2_📄_文件查看"  # Streamlit pages 目录下的文件名（不含.py）
+                    encoded_path = urllib.parse.quote(str(file_path), safe='')
+                    # 构建URL：页面路径不编码，查询参数编码
+                    full_url = f"/{page_name}?path={encoded_path}"
+                    title_html = (
+                        f'<div id="{citation_id}" style="padding-top: 0.5rem; padding-bottom: 0.5rem;">'
+                        f'<strong>'
+                        f'<a href="{full_url}" '
+                        f'style="'
+                        f'color: var(--color-accent); '
+                        f'text-decoration: underline; '
+                        f'text-decoration-color: var(--color-accent); '
+                        f'text-underline-offset: 3px; '
+                        f'font-weight: 600; '
+                        f'cursor: pointer; '
+                        f'transition: all 0.2s ease;'
+                        f'" '
+                        f'onmouseover="this.style.color=\'var(--color-accent-hover)\'; this.style.textDecorationColor=\'var(--color-accent-hover)\';" '
+                        f'onmouseout="this.style.color=\'var(--color-accent)\'; this.style.textDecorationColor=\'var(--color-accent)\';" '
+                        f'title="点击查看完整文件">'
+                        f'[{citation_num}] {title} 🔗'
+                        f'</a>'
+                        f'</strong>'
+                        f'</div>'
+                    )
+                else:
+                    title_html = (
+                        f'<div id="{citation_id}" style="padding-top: 0.5rem; padding-bottom: 0.5rem;">'
+                        f'<strong>[{citation_num}] {title}</strong>'
+                        f'</div>'
+                    )
+                
+                st.markdown(title_html, unsafe_allow_html=True)
+                
+                if source['score']:
+                    st.caption(f"相似度: {source['score']:.2f}")
+                
+                st.text(source['text'])
+                st.divider()
+
+
+def get_file_viewer_url(file_path: str) -> str:
+    """生成文件查看页面的URL
+    
+    Args:
+        file_path: 文件路径
+        
+    Returns:
+        文件查看页面的URL（包含路径参数）
+    """
+    import urllib.parse
+    
+    if not file_path:
+        return None
+    
+    # URL编码文件路径参数
+    encoded_path = urllib.parse.quote(str(file_path), safe='')
+    
+    # Streamlit pages 目录下的文件路径格式
+    # 文件名：2_📄_文件查看.py -> URL路径：/2_📄_文件查看
+    # Streamlit 会自动处理 emoji 字符，浏览器也会自动编码
+    # 但我们也可以手动编码以确保兼容性
+    page_name = "2_📄_文件查看"
+    # 对页面名称进行URL编码（包括emoji）
+    encoded_page = urllib.parse.quote(page_name, safe='')
+    
+    return f"/{encoded_page}?path={encoded_path}"
+
+
+def display_sources_right_panel(sources: list, message_id: str = None, container=None):
+    """在右侧面板显示引用来源（固定位置，每个来源都有唯一的锚点ID）
+    
+    Args:
+        sources: 引用来源列表
+        message_id: 消息唯一ID（用于生成锚点）
+        container: Streamlit容器对象（如column），如果为None则使用当前上下文
+    """
+    import uuid
+    import urllib.parse
+    
+    if not message_id:
+        message_id = f"msg_{uuid.uuid4().hex[:8]}"
+    
+    if not sources:
+        if container:
+            with container:
+                st.info("💡 暂无引用来源")
+        else:
+            st.info("💡 暂无引用来源")
+        return
+    
+    # 使用传入的container或当前上下文
+    context = container if container else st
+    
+    with context:
+        # 使用st.container确保内容在右侧固定位置
+        for source in sources:
+            citation_num = source.get('index', 0)
+            citation_id = f"citation_{message_id}_{citation_num}"
+            
+            # 获取文件路径和标题（改进：尝试多种metadata字段）
+            metadata = source.get('metadata', {})
+            
+            # 尝试多种方式获取文件路径
+            file_path = (
+                metadata.get('file_path') or 
+                metadata.get('file_name') or 
+                metadata.get('source') or 
+                metadata.get('url') or
+                metadata.get('filename') or
+                ''
+            )
+            
+            # 提取标题（优先使用title，否则使用文件名）
+            title = (
+                metadata.get('title') or 
+                metadata.get('file_name') or 
+                metadata.get('filename') or
+                'Unknown'
+            )
+            
+            # 如果title是路径，提取文件名作为显示标题
+            if '/' in title or '\\' in title:
+                title = Path(title).name if title else 'Unknown'
+            
+            # 生成文件查看链接（只要file_path不为空就尝试生成）
+            file_url = None
+            if file_path:
+                file_url = get_file_viewer_url(file_path)
+            
+            # 构建标题HTML（如果文件路径存在，添加更明显的链接样式）
+            if file_url:
+                # Streamlit pages路径：不编码页面名称，让浏览器自动处理；只编码查询参数
+                page_name = "2_📄_文件查看"  # Streamlit pages 目录下的文件名（不含.py）
+                encoded_path = urllib.parse.quote(str(file_path), safe='')
+                # 构建URL：页面路径不编码，查询参数编码
+                full_url = f"/{page_name}?path={encoded_path}"
+                title_html = (
+                    f'<a href="{full_url}" '
+                    f'style="'
+                    f'color: var(--color-accent); '
+                    f'text-decoration: underline; '
+                    f'text-decoration-color: var(--color-accent); '
+                    f'text-underline-offset: 3px; '
+                    f'font-weight: 600; '
+                    f'font-size: 1rem; '
+                    f'cursor: pointer; '
+                    f'transition: all 0.2s ease;'
+                    f'" '
+                    f'onmouseover="this.style.color=\'var(--color-accent-hover)\'; this.style.textDecorationColor=\'var(--color-accent-hover)\';" '
+                    f'onmouseout="this.style.color=\'var(--color-accent)\'; this.style.textDecorationColor=\'var(--color-accent)\';" '
+                    f'title="点击查看完整文件">'
+                    f'[{citation_num}] {title} 🔗'
+                    f'</a>'
+                )
+            else:
+                # 无链接时，仍显示标题但不加链接样式
+                title_html = f'<span style="font-weight: 600; font-size: 1rem; color: var(--color-accent);">[{citation_num}] {title}</span>'
+            
+            # 使用卡片样式显示
+            st.markdown(
+                f'<div id="{citation_id}" style="'
+                f'padding: 1rem; '
+                f'margin-bottom: 1rem; '
+                f'border: 1px solid var(--color-border); '
+                f'border-radius: 8px; '
+                f'background-color: var(--color-bg-card); '
+                f'transition: all 0.3s ease;'
+                f'">'
+                f'<div style="margin-bottom: 0.5rem;">'
+                f'{title_html}'
+                f'</div>',
+                unsafe_allow_html=True
+            )
+            
+            # 显示元数据
+            metadata_parts = []
+            if source['score'] is not None:
+                metadata_parts.append(f"相似度: {source['score']:.2f}")
+            if 'file_name' in source['metadata']:
+                metadata_parts.append(f"📁 {source['metadata']['file_name']}")
+            
+            if metadata_parts:
+                st.caption(" | ".join(metadata_parts))
+            
+            # 显示文本内容（限制长度，可展开）
+            text = source['text']
+            if len(text) > 300:
+                with st.expander("查看完整内容", expanded=False):
+                    st.text(text)
+                st.text(text[:300] + "...")
+            else:
+                st.text(text)
+            
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            if source != sources[-1]:
+                st.divider()
+
+
 def display_hybrid_sources(local_sources, wikipedia_sources):
     """分区展示混合查询的来源
     
@@ -202,12 +531,70 @@ def display_hybrid_sources(local_sources, wikipedia_sources):
         local_sources: 本地知识库来源列表
         wikipedia_sources: 维基百科来源列表
     """
+    import urllib.parse
+    
     # 本地知识库来源
     if local_sources:
         with st.expander(f"📚 本地知识库来源 ({len(local_sources)})", expanded=True):
             for i, source in enumerate(local_sources, 1):
-                title = source['metadata'].get('title', source['metadata'].get('file_name', 'Unknown'))
-                st.markdown(f"**[{i}] {title}**")
+                metadata = source.get('metadata', {})
+                
+                # 尝试多种方式获取文件路径
+                file_path = (
+                    metadata.get('file_path') or 
+                    metadata.get('file_name') or 
+                    metadata.get('source') or 
+                    metadata.get('url') or
+                    metadata.get('filename') or
+                    ''
+                )
+                
+                # 提取标题（优先使用title，否则使用文件名）
+                title = (
+                    metadata.get('title') or 
+                    metadata.get('file_name') or 
+                    metadata.get('filename') or
+                    'Unknown'
+                )
+                
+                # 如果title是路径，提取文件名作为显示标题
+                if '/' in title or '\\' in title:
+                    title = Path(title).name if title else 'Unknown'
+                
+                # 生成文件查看链接
+                file_url = None
+                if file_path:
+                    file_url = get_file_viewer_url(file_path)
+                
+                # 构建标题HTML（如果文件路径存在，添加链接）
+                if file_url:
+                    # Streamlit pages路径：不编码页面名称，让浏览器自动处理；只编码查询参数
+                    page_name = "2_📄_文件查看"  # Streamlit pages 目录下的文件名（不含.py）
+                    encoded_path = urllib.parse.quote(str(file_path), safe='')
+                    # 构建URL：页面路径不编码，查询参数编码
+                    full_url = f"/{page_name}?path={encoded_path}"
+                    title_html = (
+                        f'<strong>'
+                        f'<a href="{full_url}" '
+                        f'style="'
+                        f'color: var(--color-accent); '
+                        f'text-decoration: underline; '
+                        f'text-decoration-color: var(--color-accent); '
+                        f'text-underline-offset: 3px; '
+                        f'font-weight: 600; '
+                        f'cursor: pointer; '
+                        f'transition: all 0.2s ease;'
+                        f'" '
+                        f'onmouseover="this.style.color=\'var(--color-accent-hover)\'; this.style.textDecorationColor=\'var(--color-accent-hover)\';" '
+                        f'onmouseout="this.style.color=\'var(--color-accent)\'; this.style.textDecorationColor=\'var(--color-accent)\';" '
+                        f'title="点击查看完整文件">'
+                        f'[{i}] {title} 🔗'
+                        f'</a>'
+                        f'</strong>'
+                    )
+                    st.markdown(title_html, unsafe_allow_html=True)
+                else:
+                    st.markdown(f"**[{i}] {title}**")
                 
                 # 显示元数据
                 metadata_parts = []
@@ -324,7 +711,7 @@ def group_sessions_by_time(sessions_metadata):
             elif updated_at >= thirty_days_ago:
                 groups['📅 30天内'].append(session)
         except Exception as e:
-            print(f"解析时间失败: {e}")
+            logger.warning(f"解析时间失败: {e}")
             continue
     
     return groups
@@ -340,12 +727,12 @@ def display_session_history(user_email: str, current_session_id: Optional[str] =
     from src.chat_manager import get_user_sessions_metadata
     
     # 调试信息
-    print(f"📜 [DEBUG] 正在查找用户会话: {user_email}")
+    logger.debug(f"正在查找用户会话: {user_email}")
     
     # 获取所有会话元数据
     sessions_metadata = get_user_sessions_metadata(user_email)
     
-    print(f"📜 [DEBUG] 找到 {len(sessions_metadata)} 个会话")
+    logger.debug(f"找到 {len(sessions_metadata)} 个会话")
     
     if not sessions_metadata:
         st.caption("暂无历史会话")
