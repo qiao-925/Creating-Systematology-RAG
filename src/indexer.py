@@ -490,6 +490,9 @@ class IndexManager:
         print(f"🗄️  初始化Chroma向量数据库: {self.persist_dir}")
         self.chroma_client = chromadb.PersistentClient(path=str(self.persist_dir))
         
+        # 打印数据库信息
+        self._print_database_info()
+        
         # 检测并修复embedding维度不匹配问题
         self._ensure_collection_dimension_match()
         
@@ -1026,6 +1029,157 @@ class IndexManager:
         
         return self._index
     
+    def _print_database_info(self):
+        """打印数据库和collection的详细信息"""
+        try:
+            # 1. 列出所有collections
+            try:
+                all_collections = self.chroma_client.list_collections()
+                print(f"\n📋 数据库中的Collections列表:")
+                if all_collections:
+                    for idx, coll in enumerate(all_collections, 1):
+                        try:
+                            coll_count = coll.count() if hasattr(coll, 'count') else 0
+                            coll_name = coll.name if hasattr(coll, 'name') else str(coll)
+                            print(f"   {idx}. {coll_name} - {coll_count} 个向量")
+                            logger.info(f"Collection: {coll_name}, 向量数: {coll_count}")
+                        except Exception as e:
+                            coll_name = coll.name if hasattr(coll, 'name') else str(coll)
+                            print(f"   {idx}. {coll_name} - 无法获取统计信息: {e}")
+                else:
+                    print("   (无collections)")
+                    logger.info("数据库中暂无collections")
+            except Exception as e:
+                logger.warning(f"获取collections列表失败: {e}")
+                print(f"   ⚠️  无法列出collections: {e}")
+            
+            # 2. 检查当前collection是否存在
+            print(f"\n🔍 检查目标Collection: {self.collection_name}")
+            try:
+                existing_collection = self.chroma_client.get_collection(name=self.collection_name)
+                collection_count = existing_collection.count()
+                
+                print(f"   ✅ Collection存在")
+                print(f"   📊 向量总数: {collection_count}")
+                logger.info(f"Collection '{self.collection_name}' 存在，向量数: {collection_count}")
+                
+                # 3. 获取collection的详细信息
+                sample_data = None  # 初始化变量
+                if collection_count > 0:
+                    # 获取样本数据（最多10条）
+                    sample_limit = min(10, collection_count)
+                    try:
+                        sample_data = existing_collection.peek(limit=sample_limit)
+                        
+                        # 统计metadata中的信息
+                        file_paths = set()
+                        repositories = set()
+                        file_types = {}
+                        
+                        if sample_data and 'metadatas' in sample_data:
+                            for metadata in sample_data['metadatas']:
+                                if metadata:
+                                    # 收集文件路径
+                                    if 'file_path' in metadata:
+                                        file_paths.add(metadata['file_path'])
+                                    
+                                    # 收集仓库信息
+                                    if 'repository' in metadata:
+                                        repositories.add(metadata['repository'])
+                                    
+                                    # 统计文件类型
+                                    if 'file_name' in metadata:
+                                        file_name = metadata['file_name']
+                                        file_ext = Path(file_name).suffix.lower() if file_name else ''
+                                        file_types[file_ext] = file_types.get(file_ext, 0) + 1
+                        
+                        # 打印统计信息
+                        print(f"\n   📈 Collection统计信息:")
+                        print(f"      • 向量数量: {collection_count}")
+                        
+                        if file_paths:
+                            print(f"      • 唯一文件路径数: {len(file_paths)}")
+                            if len(file_paths) <= 20:
+                                print(f"      • 文件路径列表:")
+                                for fp in sorted(list(file_paths))[:20]:
+                                    print(f"        - {fp}")
+                            else:
+                                print(f"      • 文件路径列表（前20个）:")
+                                for fp in sorted(list(file_paths))[:20]:
+                                    print(f"        - {fp}")
+                                print(f"        ... 还有 {len(file_paths) - 20} 个文件")
+                        
+                        if repositories:
+                            print(f"      • 仓库列表:")
+                            for repo in sorted(list(repositories)):
+                                print(f"        - {repo}")
+                        
+                        if file_types:
+                            print(f"      • 文件类型分布:")
+                            for ext, count in sorted(file_types.items(), key=lambda x: x[1], reverse=True):
+                                ext_display = ext if ext else "(无扩展名)"
+                                print(f"        {ext_display}: {count} 个")
+                        
+                        # 打印样本metadata（前5条）
+                        if sample_data and 'metadatas' in sample_data and sample_data['metadatas']:
+                            print(f"\n   📄 样本数据（前5条）:")
+                            for idx, metadata in enumerate(sample_data['metadatas'][:5], 1):
+                                if metadata:
+                                    print(f"      {idx}. Metadata:")
+                                    for key, value in metadata.items():
+                                        # 截断过长的值
+                                        value_str = str(value)
+                                        if len(value_str) > 100:
+                                            value_str = value_str[:100] + "..."
+                                        print(f"         {key}: {value_str}")
+                                    
+                                    # 如果有对应的文档ID
+                                    if 'ids' in sample_data and idx <= len(sample_data['ids']):
+                                        doc_id = sample_data['ids'][idx - 1]
+                                        print(f"         id: {doc_id}")
+                        
+                        logger.info(
+                            f"Collection详情: 向量数={collection_count}, "
+                            f"文件数={len(file_paths)}, "
+                            f"仓库数={len(repositories)}, "
+                            f"文件类型={len(file_types)}"
+                        )
+                        
+                    except Exception as e:
+                        logger.warning(f"获取collection样本数据失败: {e}")
+                        print(f"   ⚠️  无法获取样本数据: {e}")
+                    
+                    # 获取维度信息
+                    try:
+                        if existing_collection.metadata and 'embedding_dimension' in existing_collection.metadata:
+                            dim = existing_collection.metadata['embedding_dimension']
+                            print(f"   📏 Embedding维度: {dim}")
+                            logger.info(f"Collection维度: {dim}")
+                        elif sample_data and 'embeddings' in sample_data and sample_data['embeddings']:
+                            dim = len(sample_data['embeddings'][0])
+                            print(f"   📏 Embedding维度: {dim} (从样本数据检测)")
+                            logger.info(f"Collection维度: {dim} (从样本数据检测)")
+                    except Exception as e:
+                        logger.debug(f"获取维度信息失败: {e}")
+                else:
+                    print(f"   ℹ️  Collection为空")
+                    logger.info(f"Collection '{self.collection_name}' 为空")
+                
+            except Exception as e:
+                # Collection不存在
+                if "does not exist" in str(e) or "not found" in str(e).lower():
+                    print(f"   ℹ️  Collection不存在，将创建新collection")
+                    logger.info(f"Collection '{self.collection_name}' 不存在，将创建")
+                else:
+                    print(f"   ⚠️  检查collection时出错: {e}")
+                    logger.warning(f"检查collection失败: {e}")
+            
+            print()  # 空行分隔
+            
+        except Exception as e:
+            logger.error(f"打印数据库信息失败: {e}")
+            print(f"⚠️  打印数据库信息失败: {e}")
+    
     def _ensure_collection_dimension_match(self):
         """确保collection的embedding维度与当前模型匹配
         
@@ -1200,7 +1354,22 @@ class IndexManager:
             包含统计信息的字典
         """
         try:
+            # 检查chroma_collection是否已初始化
+            if not hasattr(self, 'chroma_collection') or self.chroma_collection is None:
+                logger.warning("⚠️  chroma_collection未初始化，无法获取统计信息")
+                print(f"⚠️  chroma_collection未初始化，无法获取统计信息")
+                return {
+                    "collection_name": self.collection_name,
+                    "document_count": 0,
+                    "embedding_model": self.embedding_model_name,
+                    "chunk_size": self.chunk_size,
+                    "chunk_overlap": self.chunk_overlap,
+                    "error": "chroma_collection未初始化"
+                }
+            
             count = self.chroma_collection.count()
+            logger.debug(f"Collection '{self.collection_name}' 向量数量: {count}")
+            
             return {
                 "collection_name": self.collection_name,
                 "document_count": count,
@@ -1208,9 +1377,30 @@ class IndexManager:
                 "chunk_size": self.chunk_size,
                 "chunk_overlap": self.chunk_overlap,
             }
+        except AttributeError as e:
+            error_msg = f"chroma_collection属性访问失败: {e}"
+            logger.error(error_msg)
+            print(f"❌ {error_msg}")
+            return {
+                "collection_name": self.collection_name,
+                "document_count": 0,
+                "embedding_model": self.embedding_model_name,
+                "chunk_size": self.chunk_size,
+                "chunk_overlap": self.chunk_overlap,
+                "error": str(e)
+            }
         except Exception as e:
-            print(f"❌ 获取统计信息失败: {e}")
-            return {}
+            error_msg = f"获取统计信息失败: {e}"
+            logger.error(error_msg, exc_info=True)
+            print(f"❌ {error_msg}")
+            return {
+                "collection_name": self.collection_name,
+                "document_count": 0,
+                "embedding_model": self.embedding_model_name,
+                "chunk_size": self.chunk_size,
+                "chunk_overlap": self.chunk_overlap,
+                "error": str(e)
+            }
     
     def search(self, query: str, top_k: int = 5) -> List[dict]:
         """搜索相似文档（用于测试）
