@@ -22,6 +22,7 @@ from llama_index.vector_stores.chroma import ChromaVectorStore
 
 from src.config import config, get_gpu_device, is_gpu_available, get_device_status
 from src.logger import setup_logger
+from src.vector_version_utils import get_vector_store_path
 
 logger = setup_logger('indexer')
 
@@ -305,13 +306,22 @@ class IndexManager:
         """
         # 使用配置或默认值
         self.collection_name = collection_name or config.CHROMA_COLLECTION_NAME
-        self.persist_dir = persist_dir or config.VECTOR_STORE_PATH
         self.embedding_model_name = embedding_model or config.EMBEDDING_MODEL
         self.chunk_size = chunk_size or config.CHUNK_SIZE
         self.chunk_overlap = chunk_overlap or config.CHUNK_OVERLAP
         
-        # 确保持久化目录存在
-        self.persist_dir.mkdir(parents=True, exist_ok=True)
+        # 版本化向量库路径管理
+        # 如果提供了 persist_dir，直接使用；否则使用版本化路径
+        if persist_dir:
+            self.persist_dir = persist_dir
+            self.persist_dir.mkdir(parents=True, exist_ok=True)
+        else:
+            # 使用版本化路径（自动检测最新版本或创建新版本）
+            # 注意：实际的版本创建在 build_index 中
+            self.persist_dir = get_vector_store_path(
+                base_dir=str(config.VECTOR_STORE_PATH),
+                create_new_version=False  # 初始化时不创建新版本
+            )
         
         # 初始化embedding模型（优先使用预加载的实例）
         if embed_model_instance is not None:
