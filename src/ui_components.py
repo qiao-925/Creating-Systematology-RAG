@@ -12,6 +12,7 @@ from src.indexer import IndexManager, get_embedding_model_status, get_global_emb
 from src.chat_manager import ChatManager
 from src.query_engine import HybridQueryEngine
 from src.logger import setup_logger
+from src.github_link import generate_github_url, get_display_title
 
 logger = setup_logger('ui_components')
 
@@ -140,7 +141,6 @@ def load_index():
                     collection_name=collection_name,
                     embed_model_instance=embed_model
                 )
-                st.success("✅ 索引管理器已初始化")
         
         return st.session_state.index_manager
     except Exception as e:
@@ -163,7 +163,6 @@ def load_chat_manager():
                     user_email=st.session_state.user_email
                 )
                 # 不在这里创建会话，等第一次提问时再创建
-                st.success(f"✅ 对话管理器已初始化 ({mode_desc})")
         
         return st.session_state.chat_manager
     except ValueError as e:
@@ -190,7 +189,6 @@ def load_hybrid_query_engine():
                     wikipedia_threshold=st.session_state.wikipedia_threshold,
                     wikipedia_max_results=config.WIKIPEDIA_MAX_RESULTS,
                 )
-                st.success("✅ 混合查询引擎已初始化")
         
         return st.session_state.hybrid_query_engine
     except Exception as e:
@@ -272,7 +270,7 @@ def format_answer_with_citation_links(answer: str, sources: list, message_id: st
 
 
 def display_sources_with_anchors(sources: list, message_id: str = None, expanded: bool = True):
-    """显示引用来源，每个来源都有唯一的锚点ID
+    """显示引用来源（仅 GitHub 在线查看）
     
     Args:
         sources: 引用来源列表
@@ -280,7 +278,6 @@ def display_sources_with_anchors(sources: list, message_id: str = None, expanded
         expanded: 是否默认展开
     """
     import uuid
-    import urllib.parse
     
     if not message_id:
         message_id = f"msg_{uuid.uuid4().hex[:8]}"
@@ -290,78 +287,48 @@ def display_sources_with_anchors(sources: list, message_id: str = None, expanded
             for source in sources:
                 citation_num = source.get('index', 0)
                 citation_id = f"citation_{message_id}_{citation_num}"
-                
-                # 获取文件路径和标题（改进：尝试多种metadata字段）
                 metadata = source.get('metadata', {})
                 
-                # 尝试多种方式获取文件路径
-                file_path = (
-                    metadata.get('file_path') or 
-                    metadata.get('file_name') or 
-                    metadata.get('source') or 
-                    metadata.get('url') or
-                    metadata.get('filename') or
-                    ''
-                )
+                # 获取显示标题
+                title = get_display_title(metadata)
                 
-                # 提取标题（优先使用title，否则使用文件名）
-                title = (
-                    metadata.get('title') or 
-                    metadata.get('file_name') or 
-                    metadata.get('filename') or
-                    'Unknown'
-                )
+                # 生成 GitHub 链接
+                github_url = generate_github_url(metadata)
                 
-                # 如果title是路径，提取文件名作为显示标题
-                if '/' in title or '\\' in title:
-                    title = Path(title).name if title else 'Unknown'
-                
-                # 生成文件查看链接（只要file_path不为空就尝试生成）
-                file_url = None
-                if file_path:
-                    file_url = get_file_viewer_url(file_path)
-                
-                # 构建标题HTML（如果文件路径存在，添加更明显的链接样式）
-                if file_url:
-                    # Streamlit pages路径：不编码页面名称，让浏览器自动处理；只编码查询参数
-                    page_name = "2_📄_文件查看"  # Streamlit pages 目录下的文件名（不含.py）
-                    encoded_path = urllib.parse.quote(str(file_path), safe='')
-                    # 构建URL：页面路径不编码，查询参数编码
-                    full_url = f"/{page_name}?path={encoded_path}"
-                    title_html = (
-                        f'<div id="{citation_id}" style="padding-top: 0.5rem; padding-bottom: 0.5rem;">'
-                        f'<strong>'
-                        f'<a href="{full_url}" '
-                        f'style="'
-                        f'color: var(--color-accent); '
-                        f'text-decoration: underline; '
-                        f'text-decoration-color: var(--color-accent); '
-                        f'text-underline-offset: 3px; '
-                        f'font-weight: 600; '
-                        f'cursor: pointer; '
-                        f'transition: all 0.2s ease;'
-                        f'" '
-                        f'onmouseover="this.style.color=\'var(--color-accent-hover)\'; this.style.textDecorationColor=\'var(--color-accent-hover)\';" '
-                        f'onmouseout="this.style.color=\'var(--color-accent)\'; this.style.textDecorationColor=\'var(--color-accent)\';" '
-                        f'title="点击查看完整文件">'
-                        f'[{citation_num}] {title} 🔗'
-                        f'</a>'
-                        f'</strong>'
-                        f'</div>'
-                    )
+                if github_url:
+                    # 有 GitHub 链接：可点击，新窗口打开
+                    title_html = f'''
+                    <div id="{citation_id}" style="padding-top: 0.5rem; padding-bottom: 0.5rem;">
+                        <strong>
+                            <a href="{github_url}" 
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               style="color: var(--color-accent); 
+                                      text-decoration: underline; 
+                                      font-weight: 600;"
+                               title="GitHub 在线查看">
+                                🐙 [{citation_num}] {title} →
+                            </a>
+                        </strong>
+                    </div>
+                    '''
                 else:
-                    title_html = (
-                        f'<div id="{citation_id}" style="padding-top: 0.5rem; padding-bottom: 0.5rem;">'
-                        f'<strong>[{citation_num}] {title}</strong>'
-                        f'</div>'
-                    )
+                    # 无 GitHub 链接：纯文本显示
+                    title_html = f'''
+                    <div id="{citation_id}" style="padding-top: 0.5rem; padding-bottom: 0.5rem;">
+                        <strong>📄 [{citation_num}] {title}</strong>
+                        <span style="color: #999; font-size: 0.9em;"> (无在线链接)</span>
+                    </div>
+                    '''
                 
                 st.markdown(title_html, unsafe_allow_html=True)
                 
-                if source['score']:
+                # 显示相似度分数
+                if source.get('score') is not None:
                     st.caption(f"相似度: {source['score']:.2f}")
                 
-                st.text(source['text'])
+                # 显示引用文本
+                st.text(source.get('text', ''))
                 st.divider()
 
 
@@ -394,15 +361,14 @@ def get_file_viewer_url(file_path: str) -> str:
 
 
 def display_sources_right_panel(sources: list, message_id: str = None, container=None):
-    """在右侧面板显示引用来源（固定位置，每个来源都有唯一的锚点ID）
+    """在右侧面板显示引用来源（仅 GitHub 在线查看）
     
     Args:
         sources: 引用来源列表
-        message_id: 消息唯一ID（用于生成锚点）
-        container: Streamlit容器对象（如column），如果为None则使用当前上下文
+        message_id: 消息唯一ID
+        container: Streamlit 容器对象
     """
     import uuid
-    import urllib.parse
     
     if not message_id:
         message_id = f"msg_{uuid.uuid4().hex[:8]}"
@@ -415,102 +381,66 @@ def display_sources_right_panel(sources: list, message_id: str = None, container
             st.info("💡 暂无引用来源")
         return
     
-    # 使用传入的container或当前上下文
     context = container if container else st
     
     with context:
-        # 使用st.container确保内容在右侧固定位置
         for source in sources:
             citation_num = source.get('index', 0)
             citation_id = f"citation_{message_id}_{citation_num}"
-            
-            # 获取文件路径和标题（改进：尝试多种metadata字段）
             metadata = source.get('metadata', {})
             
-            # 尝试多种方式获取文件路径
-            file_path = (
-                metadata.get('file_path') or 
-                metadata.get('file_name') or 
-                metadata.get('source') or 
-                metadata.get('url') or
-                metadata.get('filename') or
-                ''
-            )
+            # 获取标题和链接
+            title = get_display_title(metadata)
+            github_url = generate_github_url(metadata)
             
-            # 提取标题（优先使用title，否则使用文件名）
-            title = (
-                metadata.get('title') or 
-                metadata.get('file_name') or 
-                metadata.get('filename') or
-                'Unknown'
-            )
-            
-            # 如果title是路径，提取文件名作为显示标题
-            if '/' in title or '\\' in title:
-                title = Path(title).name if title else 'Unknown'
-            
-            # 生成文件查看链接（只要file_path不为空就尝试生成）
-            file_url = None
-            if file_path:
-                file_url = get_file_viewer_url(file_path)
-            
-            # 构建标题HTML（如果文件路径存在，添加更明显的链接样式）
-            if file_url:
-                # Streamlit pages路径：不编码页面名称，让浏览器自动处理；只编码查询参数
-                page_name = "2_📄_文件查看"  # Streamlit pages 目录下的文件名（不含.py）
-                encoded_path = urllib.parse.quote(str(file_path), safe='')
-                # 构建URL：页面路径不编码，查询参数编码
-                full_url = f"/{page_name}?path={encoded_path}"
-                title_html = (
-                    f'<a href="{full_url}" '
-                    f'style="'
-                    f'color: var(--color-accent); '
-                    f'text-decoration: underline; '
-                    f'text-decoration-color: var(--color-accent); '
-                    f'text-underline-offset: 3px; '
-                    f'font-weight: 600; '
-                    f'font-size: 1rem; '
-                    f'cursor: pointer; '
-                    f'transition: all 0.2s ease;'
-                    f'" '
-                    f'onmouseover="this.style.color=\'var(--color-accent-hover)\'; this.style.textDecorationColor=\'var(--color-accent-hover)\';" '
-                    f'onmouseout="this.style.color=\'var(--color-accent)\'; this.style.textDecorationColor=\'var(--color-accent)\';" '
-                    f'title="点击查看完整文件">'
-                    f'[{citation_num}] {title} 🔗'
-                    f'</a>'
-                )
+            # 构建卡片 HTML
+            if github_url:
+                # 有链接：可点击
+                title_html = f'''
+                <a href="{github_url}" 
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   style="color: var(--color-accent); 
+                          text-decoration: underline; 
+                          font-weight: 600; 
+                          font-size: 1rem;"
+                   title="GitHub 在线查看">
+                    🐙 [{citation_num}] {title} →
+                </a>
+                '''
             else:
-                # 无链接时，仍显示标题但不加链接样式
-                title_html = f'<span style="font-weight: 600; font-size: 1rem; color: var(--color-accent);">[{citation_num}] {title}</span>'
+                # 无链接：纯文本
+                title_html = f'''
+                <span style="font-weight: 600; font-size: 1rem; color: var(--color-accent);">
+                    📄 [{citation_num}] {title}
+                    <span style="color: #999; font-size: 0.9em;">(无在线链接)</span>
+                </span>
+                '''
             
-            # 使用卡片样式显示
+            # 渲染卡片
             st.markdown(
                 f'<div id="{citation_id}" style="'
                 f'padding: 1rem; '
                 f'margin-bottom: 1rem; '
                 f'border: 1px solid var(--color-border); '
                 f'border-radius: 8px; '
-                f'background-color: var(--color-bg-card); '
-                f'transition: all 0.3s ease;'
-                f'">'
-                f'<div style="margin-bottom: 0.5rem;">'
-                f'{title_html}'
-                f'</div>',
+                f'background-color: var(--color-bg-card);">'
+                f'<div style="margin-bottom: 0.5rem;">{title_html}</div>',
                 unsafe_allow_html=True
             )
             
             # 显示元数据
             metadata_parts = []
-            if source['score'] is not None:
+            if source.get('score') is not None:
                 metadata_parts.append(f"相似度: {source['score']:.2f}")
-            if 'file_name' in source['metadata']:
-                metadata_parts.append(f"📁 {source['metadata']['file_name']}")
+            if metadata.get('repository'):
+                metadata_parts.append(f"📦 {metadata['repository']}")
             
             if metadata_parts:
                 st.caption(" | ".join(metadata_parts))
             
-            # 显示文本内容（限制长度，可展开）
-            text = source['text']
+            # 显示文本内容
+            text = source.get('text', '')
             if len(text) > 300:
                 with st.expander("查看完整内容", expanded=False):
                     st.text(text)
@@ -525,108 +455,64 @@ def display_sources_right_panel(sources: list, message_id: str = None, container
 
 
 def display_hybrid_sources(local_sources, wikipedia_sources):
-    """分区展示混合查询的来源
+    """分区展示混合查询的来源（仅 GitHub 在线查看）
     
     Args:
         local_sources: 本地知识库来源列表
         wikipedia_sources: 维基百科来源列表
     """
-    import urllib.parse
-    
     # 本地知识库来源
     if local_sources:
         with st.expander(f"📚 本地知识库来源 ({len(local_sources)})", expanded=True):
             for i, source in enumerate(local_sources, 1):
                 metadata = source.get('metadata', {})
+                title = get_display_title(metadata)
+                github_url = generate_github_url(metadata)
                 
-                # 尝试多种方式获取文件路径
-                file_path = (
-                    metadata.get('file_path') or 
-                    metadata.get('file_name') or 
-                    metadata.get('source') or 
-                    metadata.get('url') or
-                    metadata.get('filename') or
-                    ''
-                )
-                
-                # 提取标题（优先使用title，否则使用文件名）
-                title = (
-                    metadata.get('title') or 
-                    metadata.get('file_name') or 
-                    metadata.get('filename') or
-                    'Unknown'
-                )
-                
-                # 如果title是路径，提取文件名作为显示标题
-                if '/' in title or '\\' in title:
-                    title = Path(title).name if title else 'Unknown'
-                
-                # 生成文件查看链接
-                file_url = None
-                if file_path:
-                    file_url = get_file_viewer_url(file_path)
-                
-                # 构建标题HTML（如果文件路径存在，添加链接）
-                if file_url:
-                    # Streamlit pages路径：不编码页面名称，让浏览器自动处理；只编码查询参数
-                    page_name = "2_📄_文件查看"  # Streamlit pages 目录下的文件名（不含.py）
-                    encoded_path = urllib.parse.quote(str(file_path), safe='')
-                    # 构建URL：页面路径不编码，查询参数编码
-                    full_url = f"/{page_name}?path={encoded_path}"
-                    title_html = (
-                        f'<strong>'
-                        f'<a href="{full_url}" '
-                        f'style="'
-                        f'color: var(--color-accent); '
-                        f'text-decoration: underline; '
-                        f'text-decoration-color: var(--color-accent); '
-                        f'text-underline-offset: 3px; '
-                        f'font-weight: 600; '
-                        f'cursor: pointer; '
-                        f'transition: all 0.2s ease;'
-                        f'" '
-                        f'onmouseover="this.style.color=\'var(--color-accent-hover)\'; this.style.textDecorationColor=\'var(--color-accent-hover)\';" '
-                        f'onmouseout="this.style.color=\'var(--color-accent)\'; this.style.textDecorationColor=\'var(--color-accent)\';" '
-                        f'title="点击查看完整文件">'
-                        f'[{i}] {title} 🔗'
-                        f'</a>'
-                        f'</strong>'
-                    )
+                if github_url:
+                    title_html = f'''
+                    <strong>
+                        <a href="{github_url}" 
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           title="GitHub 在线查看">
+                            🐙 [{i}] {title} →
+                        </a>
+                    </strong>
+                    '''
                     st.markdown(title_html, unsafe_allow_html=True)
                 else:
-                    st.markdown(f"**[{i}] {title}**")
+                    st.markdown(f"**📄 [{i}] {title}** (无在线链接)")
                 
                 # 显示元数据
                 metadata_parts = []
-                if 'file_name' in source['metadata']:
-                    metadata_parts.append(f"📁 {source['metadata']['file_name']}")
+                if metadata.get('repository'):
+                    metadata_parts.append(f"📦 {metadata['repository']}")
                 if source.get('score') is not None:
                     metadata_parts.append(f"相似度: {source['score']:.2f}")
                 if metadata_parts:
                     st.caption(" | ".join(metadata_parts))
                 
-                # 显示完整内容，不截断
-                st.text(source['text'])
+                # 显示完整内容
+                st.text(source.get('text', ''))
                 
                 if i < len(local_sources):
                     st.divider()
     
-    # 维基百科来源
+    # 维基百科来源（保持原有逻辑）
     if wikipedia_sources:
         with st.expander(f"🌐 维基百科补充 ({len(wikipedia_sources)})", expanded=False):
             for i, source in enumerate(wikipedia_sources, 1):
                 title = source['metadata'].get('title', 'Unknown')
                 st.markdown(f"**[W{i}] {title}**")
                 
-                # 显示维基百科链接和相似度
                 wiki_url = source['metadata'].get('wikipedia_url', '#')
                 metadata_parts = [f"🔗 [{wiki_url}]({wiki_url})"]
                 if source.get('score') is not None:
                     metadata_parts.append(f"相似度: {source['score']:.2f}")
                 st.caption(" | ".join(metadata_parts))
                 
-                # 显示完整内容，不截断
-                st.text(source['text'])
+                st.text(source.get('text', ''))
                 
                 if i < len(wikipedia_sources):
                     st.divider()

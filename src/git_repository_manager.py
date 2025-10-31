@@ -6,6 +6,7 @@ Git 仓库本地管理器
 import subprocess
 import shutil
 import os
+import time
 from pathlib import Path
 from typing import Optional, Tuple
 from src.logger import setup_logger
@@ -188,13 +189,14 @@ class GitRepositoryManager:
             
             raise RuntimeError(error_msg) from e
     
-    def _clone_repository(self, clone_url: str, repo_path: Path, branch: str):
+    def _clone_repository(self, clone_url: str, repo_path: Path, branch: str, max_retries: int = 3):
         """克隆仓库
         
         Args:
             clone_url: 克隆 URL
             repo_path: 本地存储路径
             branch: 分支名称
+            max_retries: 最大重试次数（默认3次）
             
         Raises:
             RuntimeError: 克隆失败时
@@ -212,88 +214,221 @@ class GitRepositoryManager:
             str(repo_path)
         ]
         
-        try:
-            logger.debug(f"执行 git clone 到 {repo_path}")
-            
-            # 继承当前进程的环境变量，确保 DNS、代理等配置可用
-            env = os.environ.copy()
-            env['GIT_TERMINAL_PROMPT'] = '0'  # 禁用交互式提示
-            
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=300,  # 5分钟超时
-                env=env
-            )
-            
-            if result.returncode != 0:
-                raise RuntimeError(f"git clone 失败: {result.stderr}")
-            
-            logger.info(f"✅ 克隆成功: {repo_path}")
-            logger.info(f"   仓库已克隆到本地，准备解析文件")
-            
-        except subprocess.TimeoutExpired:
-            # 超时清理
-            if repo_path.exists():
-                shutil.rmtree(repo_path, ignore_errors=True)
-            raise RuntimeError("git clone 超时（5分钟）")
-        except Exception as e:
-            # 其他错误清理
-            if repo_path.exists():
-                shutil.rmtree(repo_path, ignore_errors=True)
-            raise
+        # 继承当前进程的环境变量，确保 DNS、代理等配置可用
+        env = os.environ.copy()
+        env['GIT_TERMINAL_PROMPT'] = '0'  # 禁用交互式提示
+        # 添加 Git 配置以改善网络连接稳定性
+        env['GIT_HTTP_LOW_SPEED_LIMIT'] = '1000'  # 1KB/s 最低速度
+        env['GIT_HTTP_LOW_SPEED_TIME'] = '30'  # 30秒
+        env['GIT_HTTP_TIMEOUT'] = '300'  # 5分钟超时
+        
+        last_error = None
+        
+        for attempt in range(1, max_retries + 1):
+            try:
+                # 如果不是第一次尝试，先清理可能存在的部分克隆
+                if attempt > 1 and repo_path.exists():
+                    logger.info(f"清理之前的克隆尝试 (第 {attempt} 次重试)")
+                    shutil.rmtree(repo_path, ignore_errors=True)
+                    time.sleep(2)  # 等待文件系统释放
+                
+                logger.debug(f"执行 git clone 到 {repo_path} (尝试 {attempt}/{max_retries})")
+                
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=300,  # 5分钟超时
+                    env=env
+                )
+                
+                if result.returncode == 0:
+                    logger.info(f"✅ 克隆成功: {repo_path}")
+                    logger.info(f"   仓库已克隆到本地，准备解析文件")
+                    return
+                
+                # 检查是否是网络相关错误（需要重试）
+                error_msg = result.stderr.lower()
+                is_network_error = any(keyword in error_msg for keyword in [
+                    'tls', 'ssl', 'connection', 'timeout', 'timed out', 
+                    'handshake', 'gnutls', 'unable to access'
+                ])
+                
+                if is_network_error and attempt < max_retries:
+                    last_error = RuntimeError(f"git clone 失败 (网络错误): {result.stderr}")
+                    wait_time = 2 ** attempt  # 指数退避：2秒、4秒、8秒
+                    logger.warning(f"网络错误，{wait_time} 秒后重试 (尝试 {attempt}/{max_retries})")
+                    logger.debug(f"错误详情: {result.stderr[:200]}")
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    # 非网络错误或已达到最大重试次数
+                    raise RuntimeError(f"git clone 失败: {result.stderr}")
+                    
+            except subprocess.TimeoutExpired:
+                last_error = RuntimeError("git clone 超时（5分钟）")
+                if attempt < max_retries:
+                    logger.warning(f"克隆超时，{2 ** attempt} 秒后重试 (尝试 {attempt}/{max_retries})")
+                    time.sleep(2 ** attempt)
+                    continue
+                # 超时清理
+                if repo_path.exists():
+                    shutil.rmtree(repo_path, ignore_errors=True)
+                raise last_error
+            except RuntimeError as e:
+                # 如果是网络错误且还有重试机会，已经在上面处理了
+                # 这里处理其他运行时错误
+                last_error = e
+                if attempt < max_retries:
+                    error_msg = str(e).lower()
+                    is_network_error = any(keyword in error_msg for keyword in [
+                        'tls', 'ssl', 'connection', 'timeout', 'handshake', 
+                        'gnutls', 'unable to access'
+                    ])
+                    if is_network_error:
+                        wait_time = 2 ** attempt
+                        logger.warning(f"网络错误，{wait_time} 秒后重试 (尝试 {attempt}/{max_retries})")
+                        time.sleep(wait_time)
+                        continue
+                raise
+            except Exception as e:
+                last_error = e
+                if attempt < max_retries:
+                    error_msg = str(e).lower()
+                    is_network_error = any(keyword in error_msg for keyword in [
+                        'tls', 'ssl', 'connection', 'timeout', 'handshake', 
+                        'gnutls', 'unable to access'
+                    ])
+                    if is_network_error:
+                        wait_time = 2 ** attempt
+                        logger.warning(f"网络错误，{wait_time} 秒后重试 (尝试 {attempt}/{max_retries})")
+                        time.sleep(wait_time)
+                        continue
+                # 其他错误清理
+                if repo_path.exists():
+                    shutil.rmtree(repo_path, ignore_errors=True)
+                raise
+        
+        # 如果所有重试都失败了
+        if repo_path.exists():
+            shutil.rmtree(repo_path, ignore_errors=True)
+        raise last_error or RuntimeError(f"git clone 失败: 已达到最大重试次数 ({max_retries})")
     
-    def _update_repository(self, repo_path: Path, branch: str):
+    def _update_repository(self, repo_path: Path, branch: str, max_retries: int = 3):
         """更新仓库（git pull）
         
         Args:
             repo_path: 本地仓库路径
             branch: 分支名称
+            max_retries: 最大重试次数（默认3次）
             
         Raises:
             RuntimeError: 更新失败时
         """
-        try:
-            # 1. 切换到指定分支
-            checkout_cmd = ['git', 'checkout', branch]
-            result = subprocess.run(
-                checkout_cmd,
-                cwd=repo_path,
-                capture_output=True,
-                text=True,
-                timeout=30
-            )
-            
-            if result.returncode != 0:
-                logger.warning(f"切换分支失败: {result.stderr}")
-            
-            # 2. 拉取最新更改
-            pull_cmd = ['git', 'pull', 'origin', branch]
-            # 继承当前进程的环境变量，确保 DNS、代理等配置可用
-            env = os.environ.copy()
-            env['GIT_TERMINAL_PROMPT'] = '0'  # 禁用交互式提示
-            
-            result = subprocess.run(
-                pull_cmd,
-                cwd=repo_path,
-                capture_output=True,
-                text=True,
-                timeout=300,  # 5分钟超时
-                env=env
-            )
-            
-            if result.returncode != 0:
-                raise RuntimeError(f"git pull 失败: {result.stderr}")
-            
-            stdout = result.stdout.strip()
-            if "Already up to date" in stdout or "已经是最新的" in stdout:
-                logger.info("仓库已是最新版本")
-            else:
-                logger.info(f"仓库已更新: {stdout[:100]}")
+        # 1. 切换到指定分支（不需要重试，失败只记录警告）
+        checkout_cmd = ['git', 'checkout', branch]
+        result = subprocess.run(
+            checkout_cmd,
+            cwd=repo_path,
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        
+        if result.returncode != 0:
+            logger.warning(f"切换分支失败: {result.stderr}")
+        
+        # 2. 拉取最新更改（需要重试机制）
+        pull_cmd = ['git', 'pull', 'origin', branch]
+        # 继承当前进程的环境变量，确保 DNS、代理等配置可用
+        env = os.environ.copy()
+        env['GIT_TERMINAL_PROMPT'] = '0'  # 禁用交互式提示
+        # 添加 Git 配置以改善网络连接稳定性
+        env['GIT_HTTP_LOW_SPEED_LIMIT'] = '1000'  # 1KB/s 最低速度
+        env['GIT_HTTP_LOW_SPEED_TIME'] = '30'  # 30秒
+        env['GIT_HTTP_TIMEOUT'] = '300'  # 5分钟超时
+        
+        last_error = None
+        
+        for attempt in range(1, max_retries + 1):
+            try:
+                logger.debug(f"执行 git pull (尝试 {attempt}/{max_retries})")
                 
-        except subprocess.TimeoutExpired:
-            raise RuntimeError("git pull 超时（5分钟）")
+                result = subprocess.run(
+                    pull_cmd,
+                    cwd=repo_path,
+                    capture_output=True,
+                    text=True,
+                    timeout=300,  # 5分钟超时
+                    env=env
+                )
+                
+                if result.returncode == 0:
+                    stdout = result.stdout.strip()
+                    if "Already up to date" in stdout or "已经是最新的" in stdout:
+                        logger.info("仓库已是最新版本")
+                    else:
+                        logger.info(f"仓库已更新: {stdout[:100]}")
+                    return
+                
+                # 检查是否是网络相关错误（需要重试）
+                error_msg = result.stderr.lower()
+                is_network_error = any(keyword in error_msg for keyword in [
+                    'tls', 'ssl', 'connection', 'timeout', 'timed out', 
+                    'handshake', 'gnutls', 'unable to access'
+                ])
+                
+                if is_network_error and attempt < max_retries:
+                    last_error = RuntimeError(f"git pull 失败 (网络错误): {result.stderr}")
+                    wait_time = 2 ** attempt  # 指数退避：2秒、4秒、8秒
+                    logger.warning(f"网络错误，{wait_time} 秒后重试 (尝试 {attempt}/{max_retries})")
+                    logger.debug(f"错误详情: {result.stderr[:200]}")
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    # 非网络错误或已达到最大重试次数
+                    raise RuntimeError(f"git pull 失败: {result.stderr}")
+                    
+            except subprocess.TimeoutExpired:
+                last_error = RuntimeError("git pull 超时（5分钟）")
+                if attempt < max_retries:
+                    logger.warning(f"拉取超时，{2 ** attempt} 秒后重试 (尝试 {attempt}/{max_retries})")
+                    time.sleep(2 ** attempt)
+                    continue
+                raise last_error
+            except RuntimeError as e:
+                # 如果是网络错误且还有重试机会，已经在上面处理了
+                # 这里处理其他运行时错误
+                last_error = e
+                if attempt < max_retries:
+                    error_msg = str(e).lower()
+                    is_network_error = any(keyword in error_msg for keyword in [
+                        'tls', 'ssl', 'connection', 'timeout', 'handshake', 
+                        'gnutls', 'unable to access'
+                    ])
+                    if is_network_error:
+                        wait_time = 2 ** attempt
+                        logger.warning(f"网络错误，{wait_time} 秒后重试 (尝试 {attempt}/{max_retries})")
+                        time.sleep(wait_time)
+                        continue
+                raise
+            except Exception as e:
+                last_error = e
+                if attempt < max_retries:
+                    error_msg = str(e).lower()
+                    is_network_error = any(keyword in error_msg for keyword in [
+                        'tls', 'ssl', 'connection', 'timeout', 'handshake', 
+                        'gnutls', 'unable to access'
+                    ])
+                    if is_network_error:
+                        wait_time = 2 ** attempt
+                        logger.warning(f"网络错误，{wait_time} 秒后重试 (尝试 {attempt}/{max_retries})")
+                        time.sleep(wait_time)
+                        continue
+                raise
+        
+        # 如果所有重试都失败了
+        raise last_error or RuntimeError(f"git pull 失败: 已达到最大重试次数 ({max_retries})")
     
     def get_current_commit_sha(self, repo_path: Path) -> str:
         """获取当前 commit SHA

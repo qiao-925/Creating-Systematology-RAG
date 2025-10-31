@@ -57,6 +57,27 @@
       "step_vectorize": {
         "status": "pending"
       }
+    },
+    "qiao-925_Creating-Systematology-Test_main_13c0b480": {
+      "task_key": "qiao-925/Creating-Systematology-Test@main",
+      "created_at": "2025-10-31T15:18:40.875940",
+      "step_clone": {
+        "status": "completed",
+        "timestamp": "2025-10-31T15:22:51.925457",
+        "commit_sha": "7a960fccadb6e37539440a49e2fc8e1807ac2da7",
+        "repo_path": "/home/qiao/Desktop/Git Repo/Creating-Systematology-RAG/data/github_repos/qiao-925/Creating-Systematology-Test_main",
+        "hash": "36b24746e04c5dc01f9abd795e4b5d1f"
+      },
+      "step_parse": {
+        "status": "pending"
+      },
+      "step_vectorize": {
+        "status": "completed",
+        "timestamp": "2025-10-31T16:14:16.877964",
+        "vector_count": 198,
+        "collection_name": "user_55502f40",
+        "hash": "4ecc434c5ed8fe12f464f7ed0ffee5c2"
+      }
     }
   }
 }

@@ -1207,10 +1207,23 @@ class IndexManager:
             if model_dim is None:
                 try:
                     test_embedding = self.embed_model.get_query_embedding("test")
-                    model_dim = len(test_embedding)
+                    # 确保转换为Python标量整数，避免numpy数组类型问题
+                    if hasattr(test_embedding, 'shape') and len(test_embedding.shape) > 0:
+                        # numpy数组，使用shape的第一个维度
+                        model_dim = int(test_embedding.shape[0])
+                    elif hasattr(test_embedding, '__len__'):
+                        # 列表或其他有长度的对象
+                        model_dim = int(len(test_embedding))
+                    else:
+                        # 标量值
+                        model_dim = int(test_embedding)
                     dim_detection_methods.append("实际计算测试向量")
                 except Exception as e:
                     logger.warning(f"通过测试向量获取维度失败: {e}")
+            
+            # 确保model_dim是Python标量整数
+            if model_dim is not None:
+                model_dim = int(model_dim)
             
             # 如果仍然无法获取模型维度，这是严重错误
             if model_dim is None:
@@ -1235,13 +1248,38 @@ class IndexManager:
                     # 尝试从collection的metadata获取
                     if existing_collection.metadata and 'embedding_dimension' in existing_collection.metadata:
                         collection_dim = existing_collection.metadata['embedding_dimension']
+                        # 确保转换为Python标量整数
+                        collection_dim = int(collection_dim) if collection_dim is not None else None
                         logger.info(f"从collection metadata获取维度: {collection_dim}")
                     elif collection_count > 0:
                         # 如果collection有数据，尝试查询一个向量获取维度
                         sample = existing_collection.peek(limit=1)
                         if sample and 'embeddings' in sample and sample['embeddings']:
-                            collection_dim = len(sample['embeddings'][0])
-                            logger.info(f"从collection实际数据获取维度: {collection_dim}")
+                            embeddings_data = sample['embeddings']
+                            # 处理不同的数据结构：可能是列表或numpy数组
+                            if isinstance(embeddings_data, list) and len(embeddings_data) > 0:
+                                first_embedding = embeddings_data[0]
+                            else:
+                                # 如果是numpy数组或其他类型，尝试直接使用
+                                first_embedding = embeddings_data[0] if hasattr(embeddings_data, '__getitem__') else embeddings_data
+                            
+                            # 获取维度：优先使用shape，如果失败则尝试len
+                            try:
+                                if hasattr(first_embedding, 'shape') and len(first_embedding.shape) > 0:
+                                    # numpy数组，使用shape的第一个维度
+                                    collection_dim = int(first_embedding.shape[0])
+                                elif hasattr(first_embedding, '__len__'):
+                                    # 列表或其他有长度的对象
+                                    collection_dim = int(len(first_embedding))
+                                else:
+                                    # 标量值
+                                    collection_dim = int(first_embedding)
+                            except (TypeError, ValueError) as dim_error:
+                                logger.warning(f"无法从embedding数据获取维度: {dim_error}, 数据类型: {type(first_embedding)}")
+                                collection_dim = None
+                            
+                            if collection_dim is not None:
+                                logger.info(f"从collection实际数据获取维度: {collection_dim}")
                 except Exception as e:
                     logger.warning(f"获取collection维度失败: {e}")
                 
@@ -1264,8 +1302,10 @@ class IndexManager:
                         name=self.collection_name
                     )
                     print(f"✅ 已重新创建collection: {self.collection_name}")
-                # 如果维度不匹配，删除并重建
-                elif model_dim != collection_dim:
+                    print(f"⚠️  **重要**: Collection已重新创建，原有数据已被清除")
+                    print(f"   💡 请重新导入数据以恢复索引功能")
+                # 如果维度不匹配，删除并重建（确保都是整数后再比较，避免numpy数组比较问题）
+                elif int(model_dim) != int(collection_dim):
                     print(f"⚠️  检测到embedding维度不匹配:")
                     print(f"   Collection维度: {collection_dim}")
                     print(f"   当前模型维度: {model_dim}")
@@ -1279,6 +1319,8 @@ class IndexManager:
                         name=self.collection_name
                     )
                     print(f"✅ 已重新创建collection: {self.collection_name} (维度: {model_dim})")
+                    print(f"⚠️  **重要**: Collection已重新创建，原有数据已被清除")
+                    print(f"   💡 请重新导入数据以恢复索引功能")
                 else:
                     # 维度匹配，使用现有collection
                     self.chroma_collection = existing_collection
