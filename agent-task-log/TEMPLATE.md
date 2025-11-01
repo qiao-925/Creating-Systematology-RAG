@@ -1,10 +1,23 @@
-# [任务名称] - [快速摘要/详细过程]
+# [任务名称] - [快速摘要/详细过程] 【plan/execute】【pending/in_progress/completed/cancelled】
+
+**【Task Type】**: plan / execute  
+**【Task Status】**: pending / in_progress / completed / cancelled
 
 **日期**: YYYY-MM-DD  
 **任务编号**: #N (当天的第几个任务)  
 **执行时长**: X 小时  
 **Agent**: Claude Sonnet 4.5 / GPT-4 / ...  
 **最终状态**: ✅成功 / ⚠️部分完成 / ❌失败
+
+**Task Type 说明**:
+- `plan`: 设计类文档，如架构设计、方案设计、调研分析等
+- `execute`: 执行类文档，如功能实现、Bug修复、代码重构等
+
+**Task Status 说明**:
+- `pending`: 待开始（任务已创建，尚未开始执行）
+- `in_progress`: 进行中（任务正在执行中）
+- `completed`: 已完成（任务已完成，包括成功和部分完成）
+- `cancelled`: 已取消（任务被取消，不再执行）
 
 ---
 
@@ -23,6 +36,26 @@
 - N: 当天第几个任务（1, 2, 3...）
 - 任务描述: 简短说明（5-10个字）
 - 类型: 快速摘要 / 详细过程
+```
+
+## 📝 文档标题格式规范
+
+**重要**：文档标题必须包含 Task Type 和 Task Status 标签
+
+```
+格式: # [任务名称] - [类型] 【Task Type】【Task Status】
+
+示例:
+- # 模块化顶层设计 - 实施方案 【plan】【completed】
+- # 设置页改名 - 快速摘要 【execute】【completed】
+- # RAG实现范式调研 - 快速摘要 【plan】【in_progress】
+- # Bug修复 - 详细过程 【execute】【pending】
+
+说明:
+- 标题末尾必须包含两个【】标签
+- 第一个【】: Task Type（plan 或 execute）
+- 第二个【】: Task Status（pending、in_progress、completed、cancelled）
+- 文档内容中也需包含这两个标签的详细说明
 ```
 
 ---

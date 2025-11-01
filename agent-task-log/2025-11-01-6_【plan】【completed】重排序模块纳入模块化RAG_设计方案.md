@@ -1,0 +1,812 @@
+# 重排序模块纳入模块化 RAG - 设计方案
+
+> **任务来源**: TRACKER.md 任务9 - 重排序策略优化与检索评估  
+> **创建时间**: 2025-11-01  
+> **文档类型**: 设计方案
+
+---
+
+## 📋 现状分析
+
+### 当前实现（基础版）
+
+**文件**: `src/modular_query_engine.py`
+
+**当前状态**：
+```python
+# 当前实现（硬编码）
+postprocessors.append(
+    SentenceTransformerRerank(
+        model=rerank_model,
+        top_n=self.rerank_top_n,
+    )
+)
+```
+
+**问题**：
+- ❌ 只支持 `SentenceTransformerRerank` 一种重排序器
+- ❌ 硬编码在 `ModularQueryEngine` 中
+- ❌ 无法灵活切换不同重排序策略
+- ❌ 缺少重排序器的抽象层
+- ❌ 无法方便地对比不同重排序器效果
+
+---
+
+## 🎯 设计目标
+
+### 1. 可插拔设计
+
+**目标**：重排序器应该像 Embedding 一样可插拔
+```python
+# 期望使用方式
+reranker = create_reranker(reranker_type="sentence-transformer")
+query_engine = ModularQueryEngine(
+    index_manager,
+    reranker=reranker,  # 可插拔的重排序器
+)
+```
+
+### 2. 支持多种重排序策略
+
+**LlamaIndex 支持的重排序器**：
+- `SentenceTransformerRerank` - 句子嵌入重排序 ✅ 当前使用
+- `CohereRerank` - Cohere API 重排序
+- `FlagEmbeddingReranker` - BGE 重排序模型
+- `LLMRerank` - 使用 LLM 进行重排序
+- 自定义重排序器
+
+### 3. 统一接口
+
+**与现有架构一致**：
+```
+BaseEmbedding（已有）
+BaseReranker（新增）✨
+    ├─ SentenceTransformerReranker
+    ├─ CohereReranker
+    ├─ BGEReranker
+    └─ LLMReranker
+```
+
+### 4. 配置驱动
+
+**配置项**：
+```python
+RERANKER_TYPE = "sentence-transformer" | "cohere" | "bge" | "llm" | "none"
+RERANKER_MODEL = "BAAI/bge-reranker-base"
+RERANKER_TOP_N = 3
+```
+
+---
+
+## 🏗️ 架构设计
+
+### 整体架构
+
+```
+┌─────────────────────────────────────────────────────┐
+│         模块化 RAG 架构（含重排序模块）              │
+├─────────────────────────────────────────────────────┤
+│                                                      │
+│  [1] Embedding 层 ✅                                 │
+│      └─ BaseEmbedding → LocalEmbedding / API        │
+│           ↓                                          │
+│  [2] Retriever 层 ✅                                 │
+│      └─ Vector / BM25 / Hybrid                      │
+│           ↓                                          │
+│  [3] Postprocessor 层（扩展）✨                      │
+│      ├─ SimilarityPostprocessor ✅                  │
+│      └─ Reranker（新增模块化设计）✨                 │
+│          ├─ BaseReranker（抽象）                    │
+│          ├─ SentenceTransformerReranker             │
+│          ├─ CohereReranker                          │
+│          ├─ BGEReranker                             │
+│          └─ LLMReranker                             │
+│           ↓                                          │
+│  [4] ModularQueryEngine ✅                           │
+│      └─ 接受可插拔的 reranker                        │
+│                                                      │
+└─────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🔧 详细设计
+
+### 1. 抽象基类
+
+**新文件**: `src/rerankers/base.py`
+
+```python
+from abc import ABC, abstractmethod
+from typing import List, Optional
+from llama_index.core.schema import NodeWithScore, QueryBundle
+
+class BaseReranker(ABC):
+    """重排序器基类
+    
+    所有重排序器实现都应继承此类，实现统一接口
+    """
+    
+    @abstractmethod
+    def rerank(
+        self,
+        nodes: List[NodeWithScore],
+        query: QueryBundle,
+    ) -> List[NodeWithScore]:
+        """对检索到的节点进行重排序
+        
+        Args:
+            nodes: 检索到的节点列表（带分数）
+            query: 查询信息
+            
+        Returns:
+            重排序后的节点列表
+        """
+        pass
+    
+    @abstractmethod
+    def get_reranker_name(self) -> str:
+        """获取重排序器名称"""
+        pass
+    
+    @abstractmethod
+    def get_top_n(self) -> int:
+        """获取返回的Top-N数量"""
+        pass
+    
+    def get_llama_index_postprocessor(self):
+        """获取LlamaIndex兼容的Postprocessor（可选）
+        
+        如果重排序器直接基于LlamaIndex的Postprocessor，
+        可以实现此方法返回底层实例，便于集成
+        """
+        return None
+    
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(name={self.get_reranker_name()}, top_n={self.get_top_n()})"
+```
+
+---
+
+### 2. SentenceTransformer 适配器
+
+**新文件**: `src/rerankers/sentence_transformer_reranker.py`
+
+```python
+from typing import List, Optional
+from llama_index.core.schema import NodeWithScore, QueryBundle
+from llama_index.core.postprocessor import SentenceTransformerRerank
+
+from src.rerankers.base import BaseReranker
+from src.config import config
+from src.logger import setup_logger
+
+logger = setup_logger('sentence_transformer_reranker')
+
+
+class SentenceTransformerReranker(BaseReranker):
+    """SentenceTransformer重排序器适配器
+    
+    基于句子嵌入的重排序，使用交叉编码器（Cross-Encoder）
+    推荐模型：
+    - BAAI/bge-reranker-base
+    - BAAI/bge-reranker-large
+    - cross-encoder/ms-marco-MiniLM-L-12-v2
+    """
+    
+    def __init__(
+        self,
+        model: Optional[str] = None,
+        top_n: Optional[int] = None,
+        device: Optional[str] = None,
+    ):
+        """初始化SentenceTransformer重排序器
+        
+        Args:
+            model: 模型名称（默认使用配置）
+            top_n: 返回Top-N数量（默认使用配置）
+            device: 设备（cuda/cpu，默认自动检测）
+        """
+        self.model_name = model or config.RERANKER_MODEL or config.EMBEDDING_MODEL
+        self.top_n = top_n or config.RERANK_TOP_N
+        self.device = device
+        
+        logger.info(f"📦 初始化SentenceTransformer重排序器")
+        logger.info(f"   模型: {self.model_name}")
+        logger.info(f"   Top-N: {self.top_n}")
+        
+        # 创建LlamaIndex的SentenceTransformerRerank实例
+        self._reranker = SentenceTransformerRerank(
+            model=self.model_name,
+            top_n=self.top_n,
+        )
+        
+        logger.info(f"✅ 重排序器加载完成")
+    
+    def rerank(
+        self,
+        nodes: List[NodeWithScore],
+        query: QueryBundle,
+    ) -> List[NodeWithScore]:
+        """重排序节点"""
+        logger.debug(f"重排序: {len(nodes)} 个节点")
+        return self._reranker.postprocess_nodes(nodes, query)
+    
+    def get_reranker_name(self) -> str:
+        return self.model_name
+    
+    def get_top_n(self) -> int:
+        return self.top_n
+    
+    def get_llama_index_postprocessor(self):
+        """返回LlamaIndex兼容的Postprocessor"""
+        return self._reranker
+```
+
+---
+
+### 3. BGE Reranker 适配器
+
+**新文件**: `src/rerankers/bge_reranker.py`
+
+```python
+from typing import List, Optional
+from llama_index.core.schema import NodeWithScore, QueryBundle
+from llama_index.postprocessor.flag_embedding_reranker import FlagEmbeddingReranker
+
+from src.rerankers.base import BaseReranker
+from src.config import config
+from src.logger import setup_logger
+
+logger = setup_logger('bge_reranker')
+
+
+class BGEReranker(BaseReranker):
+    """BGE重排序器适配器
+    
+    BGE（BAAI General Embedding）重排序器
+    推荐模型：
+    - BAAI/bge-reranker-base
+    - BAAI/bge-reranker-large
+    - BAAI/bge-reranker-v2-m3
+    """
+    
+    def __init__(
+        self,
+        model: Optional[str] = None,
+        top_n: Optional[int] = None,
+        use_fp16: bool = True,
+    ):
+        """初始化BGE重排序器
+        
+        Args:
+            model: 模型名称（默认BAAI/bge-reranker-base）
+            top_n: 返回Top-N数量
+            use_fp16: 是否使用FP16精度（加速推理）
+        """
+        self.model_name = model or "BAAI/bge-reranker-base"
+        self.top_n = top_n or config.RERANK_TOP_N
+        self.use_fp16 = use_fp16
+        
+        logger.info(f"📦 初始化BGE重排序器")
+        logger.info(f"   模型: {self.model_name}")
+        logger.info(f"   Top-N: {self.top_n}")
+        logger.info(f"   FP16: {self.use_fp16}")
+        
+        # 创建FlagEmbeddingReranker实例
+        self._reranker = FlagEmbeddingReranker(
+            model=self.model_name,
+            top_n=self.top_n,
+            use_fp16=self.use_fp16,
+        )
+        
+        logger.info(f"✅ BGE重排序器加载完成")
+    
+    def rerank(
+        self,
+        nodes: List[NodeWithScore],
+        query: QueryBundle,
+    ) -> List[NodeWithScore]:
+        """重排序节点"""
+        return self._reranker.postprocess_nodes(nodes, query)
+    
+    def get_reranker_name(self) -> str:
+        return self.model_name
+    
+    def get_top_n(self) -> int:
+        return self.top_n
+    
+    def get_llama_index_postprocessor(self):
+        return self._reranker
+```
+
+---
+
+### 4. Cohere Reranker 适配器（预留）
+
+**新文件**: `src/rerankers/cohere_reranker.py`
+
+```python
+from typing import List, Optional
+from llama_index.core.schema import NodeWithScore, QueryBundle
+from llama_index.postprocessor.cohere_rerank import CohereRerank
+
+from src.rerankers.base import BaseReranker
+from src.config import config
+from src.logger import setup_logger
+
+logger = setup_logger('cohere_reranker')
+
+
+class CohereReranker(BaseReranker):
+    """Cohere重排序器适配器（预留）
+    
+    使用Cohere API进行重排序
+    模型：rerank-english-v2.0, rerank-multilingual-v2.0
+    """
+    
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        model: str = "rerank-english-v2.0",
+        top_n: Optional[int] = None,
+    ):
+        """初始化Cohere重排序器
+        
+        Args:
+            api_key: Cohere API密钥
+            model: 模型名称
+            top_n: 返回Top-N数量
+        """
+        self.api_key = api_key or getattr(config, 'COHERE_API_KEY', None)
+        self.model_name = model
+        self.top_n = top_n or config.RERANK_TOP_N
+        
+        if not self.api_key:
+            raise ValueError("Cohere API密钥未配置")
+        
+        logger.info(f"📡 初始化Cohere重排序器")
+        logger.info(f"   模型: {self.model_name}")
+        logger.info(f"   Top-N: {self.top_n}")
+        
+        # 创建CohereRerank实例
+        self._reranker = CohereRerank(
+            api_key=self.api_key,
+            model=self.model_name,
+            top_n=self.top_n,
+        )
+        
+        logger.info(f"✅ Cohere重排序器初始化完成")
+    
+    def rerank(
+        self,
+        nodes: List[NodeWithScore],
+        query: QueryBundle,
+    ) -> List[NodeWithScore]:
+        """重排序节点"""
+        return self._reranker.postprocess_nodes(nodes, query)
+    
+    def get_reranker_name(self) -> str:
+        return self.model_name
+    
+    def get_top_n(self) -> int:
+        return self.top_n
+    
+    def get_llama_index_postprocessor(self):
+        return self._reranker
+```
+
+---
+
+### 5. LLM Reranker 适配器（预留）
+
+**新文件**: `src/rerankers/llm_reranker.py`
+
+```python
+from typing import List, Optional
+from llama_index.core.schema import NodeWithScore, QueryBundle
+from llama_index.core.postprocessor import LLMRerank
+
+from src.rerankers.base import BaseReranker
+from src.config import config
+from src.logger import setup_logger
+
+logger = setup_logger('llm_reranker')
+
+
+class LLMReranker(BaseReranker):
+    """LLM重排序器适配器（预留）
+    
+    使用大语言模型进行重排序
+    可以使用任何LLM（如DeepSeek、GPT等）
+    """
+    
+    def __init__(
+        self,
+        llm=None,
+        top_n: Optional[int] = None,
+        choice_batch_size: int = 10,
+    ):
+        """初始化LLM重排序器
+        
+        Args:
+            llm: LLM实例（如DeepSeek）
+            top_n: 返回Top-N数量
+            choice_batch_size: 批处理大小
+        """
+        self.llm = llm
+        self.top_n = top_n or config.RERANK_TOP_N
+        self.choice_batch_size = choice_batch_size
+        
+        logger.info(f"🤖 初始化LLM重排序器")
+        logger.info(f"   LLM: {llm}")
+        logger.info(f"   Top-N: {self.top_n}")
+        
+        # 创建LLMRerank实例
+        self._reranker = LLMRerank(
+            llm=llm,
+            top_n=self.top_n,
+            choice_batch_size=self.choice_batch_size,
+        )
+        
+        logger.info(f"✅ LLM重排序器初始化完成")
+    
+    def rerank(
+        self,
+        nodes: List[NodeWithScore],
+        query: QueryBundle,
+    ) -> List[NodeWithScore]:
+        """重排序节点"""
+        return self._reranker.postprocess_nodes(nodes, query)
+    
+    def get_reranker_name(self) -> str:
+        return f"LLM ({type(self.llm).__name__})"
+    
+    def get_top_n(self) -> int:
+        return self.top_n
+    
+    def get_llama_index_postprocessor(self):
+        return self._reranker
+```
+
+---
+
+### 6. 工厂函数
+
+**新文件**: `src/rerankers/factory.py`
+
+```python
+from typing import Optional
+from src.rerankers.base import BaseReranker
+from src.rerankers.sentence_transformer_reranker import SentenceTransformerReranker
+from src.rerankers.bge_reranker import BGEReranker
+from src.rerankers.cohere_reranker import CohereReranker
+from src.rerankers.llm_reranker import LLMReranker
+from src.config import config
+from src.logger import setup_logger
+
+logger = setup_logger('reranker_factory')
+
+# 全局Reranker实例缓存
+_global_reranker_instance: Optional[BaseReranker] = None
+
+
+def create_reranker(
+    reranker_type: Optional[str] = None,
+    model: Optional[str] = None,
+    top_n: Optional[int] = None,
+    force_reload: bool = False,
+    **kwargs
+) -> Optional[BaseReranker]:
+    """创建Reranker实例（工厂函数）
+    
+    Args:
+        reranker_type: 重排序器类型（"sentence-transformer"|"bge"|"cohere"|"llm"|"none"）
+        model: 模型名称
+        top_n: Top-N数量
+        force_reload: 是否强制重新创建
+        **kwargs: 其他参数
+        
+    Returns:
+        BaseReranker实例，如果reranker_type="none"则返回None
+    """
+    global _global_reranker_instance
+    
+    # 使用配置中的默认值
+    reranker_type = reranker_type or getattr(config, 'RERANKER_TYPE', 'none')
+    
+    # 如果类型是"none"，返回None（不使用重排序）
+    if reranker_type == "none":
+        logger.info("⚪ 重排序已禁用（type=none）")
+        return None
+    
+    # 如果已有缓存且不强制重载，返回缓存
+    if _global_reranker_instance is not None and not force_reload:
+        logger.info(f"✅ 使用缓存的Reranker实例: {_global_reranker_instance}")
+        return _global_reranker_instance
+    
+    # 创建新实例
+    logger.info(f"📦 创建新的Reranker实例")
+    logger.info(f"   类型: {reranker_type}")
+    logger.info(f"   模型: {model or '(使用配置)'}")
+    
+    if reranker_type == "sentence-transformer":
+        _global_reranker_instance = SentenceTransformerReranker(
+            model=model,
+            top_n=top_n,
+            **kwargs
+        )
+    elif reranker_type == "bge":
+        _global_reranker_instance = BGEReranker(
+            model=model,
+            top_n=top_n,
+            **kwargs
+        )
+    elif reranker_type == "cohere":
+        _global_reranker_instance = CohereReranker(
+            model=model or "rerank-english-v2.0",
+            top_n=top_n,
+            **kwargs
+        )
+    elif reranker_type == "llm":
+        _global_reranker_instance = LLMReranker(
+            top_n=top_n,
+            **kwargs
+        )
+    else:
+        raise ValueError(
+            f"不支持的Reranker类型: {reranker_type}. "
+            f"支持的类型: sentence-transformer, bge, cohere, llm, none"
+        )
+    
+    logger.info(f"✅ Reranker实例创建完成: {_global_reranker_instance}")
+    
+    return _global_reranker_instance
+
+
+def get_reranker_instance() -> Optional[BaseReranker]:
+    """获取当前缓存的Reranker实例"""
+    return _global_reranker_instance
+
+
+def clear_reranker_cache():
+    """清除Reranker缓存"""
+    global _global_reranker_instance
+    
+    if _global_reranker_instance is not None:
+        logger.info("🧹 清除Reranker缓存")
+        _global_reranker_instance = None
+
+
+def reload_reranker(**kwargs) -> Optional[BaseReranker]:
+    """重新加载Reranker"""
+    logger.info("🔄 重新加载Reranker")
+    clear_reranker_cache()
+    return create_reranker(force_reload=True, **kwargs)
+```
+
+---
+
+### 7. 配置更新
+
+**文件**: `src/config.py`
+
+```python
+# ===== 重排序配置（扩展）=====
+
+# 重排序器类型: "sentence-transformer" | "bge" | "cohere" | "llm" | "none"
+RERANKER_TYPE = os.getenv("RERANKER_TYPE", "none")
+
+# 重排序模型（不同类型使用不同默认值）
+RERANKER_MODEL = os.getenv("RERANKER_MODEL", None) or None
+
+# 重排序 Top-N
+RERANK_TOP_N = int(os.getenv("RERANK_TOP_N", "3"))
+
+# Cohere API密钥（仅cohere类型需要）
+COHERE_API_KEY = os.getenv("COHERE_API_KEY", None) or None
+```
+
+---
+
+### 8. ModularQueryEngine 集成
+
+**文件**: `src/modular_query_engine.py`
+
+**修改内容**：
+
+```python
+from src.rerankers.factory import create_reranker
+
+class ModularQueryEngine:
+    def __init__(
+        self,
+        index_manager: IndexManager,
+        # ... 现有参数 ...
+        reranker: Optional[BaseReranker] = None,  # 新增：可插拔的重排序器
+        reranker_type: Optional[str] = None,      # 新增：重排序器类型
+    ):
+        # ...
+        
+        # 重排序器（优先使用传入的实例）
+        if reranker is not None:
+            self.reranker = reranker
+            logger.info(f"✅ 使用提供的Reranker实例: {reranker}")
+        else:
+            # 使用工厂创建
+            self.reranker = create_reranker(
+                reranker_type=reranker_type,
+            )
+            if self.reranker:
+                logger.info(f"✅ 创建Reranker实例: {self.reranker}")
+            else:
+                logger.info(f"⚪ 重排序已禁用")
+    
+    def _create_postprocessors(self) -> List:
+        """创建后处理器"""
+        postprocessors = []
+        
+        # 1. 相似度过滤
+        postprocessors.append(
+            SimilarityPostprocessor(similarity_cutoff=self.similarity_cutoff)
+        )
+        
+        # 2. 重排序（使用可插拔的reranker）
+        if self.reranker is not None:
+            # 获取LlamaIndex兼容的Postprocessor
+            reranker_postprocessor = self.reranker.get_llama_index_postprocessor()
+            if reranker_postprocessor:
+                postprocessors.append(reranker_postprocessor)
+                logger.info(f"✅ 添加重排序模块: {self.reranker}")
+            else:
+                logger.warning(f"⚠️  Reranker不支持LlamaIndex Postprocessor接口")
+        
+        return postprocessors
+```
+
+---
+
+## 💡 使用示例
+
+### 示例1：默认配置（无重排序）
+
+```python
+from src.modular_query_engine import ModularQueryEngine
+
+# 默认不启用重排序
+query_engine = ModularQueryEngine(index_manager)
+```
+
+### 示例2：使用SentenceTransformer重排序
+
+```python
+from src.modular_query_engine import ModularQueryEngine
+
+# 配置方式
+query_engine = ModularQueryEngine(
+    index_manager,
+    reranker_type="sentence-transformer",
+)
+
+# 或使用工厂函数
+from src.rerankers import create_reranker
+reranker = create_reranker(
+    reranker_type="sentence-transformer",
+    model="BAAI/bge-reranker-base",
+    top_n=3,
+)
+query_engine = ModularQueryEngine(index_manager, reranker=reranker)
+```
+
+### 示例3：使用BGE重排序
+
+```python
+from src.rerankers import BGEReranker
+from src.modular_query_engine import ModularQueryEngine
+
+# 显式创建
+reranker = BGEReranker(
+    model="BAAI/bge-reranker-large",
+    top_n=5,
+    use_fp16=True,
+)
+
+query_engine = ModularQueryEngine(index_manager, reranker=reranker)
+```
+
+### 示例4：环境变量配置
+
+```bash
+# .env
+RERANKER_TYPE=bge
+RERANKER_MODEL=BAAI/bge-reranker-base
+RERANK_TOP_N=3
+```
+
+```python
+# 自动读取配置
+query_engine = ModularQueryEngine(index_manager)  # 自动创建BGE重排序器
+```
+
+---
+
+## 📊 重排序器对比
+
+| 重排序器 | 优点 | 缺点 | 适用场景 |
+|---------|------|------|---------|
+| **SentenceTransformer** | 本地部署、速度快 | 模型较小，精度一般 | 通用场景 |
+| **BGE** | 精度高、中文友好 | 需要下载模型 | 中文垂直领域 |
+| **Cohere** | 精度高、易用 | 需要API密钥、有成本 | 生产环境 |
+| **LLM** | 最高精度、可解释 | 速度慢、成本高 | 高精度需求 |
+
+---
+
+## 🎯 实施计划
+
+### 阶段1：核心实现（优先）
+
+- [ ] 创建 `BaseReranker` 抽象基类
+- [ ] 实现 `SentenceTransformerReranker`
+- [ ] 实现 `BGEReranker`
+- [ ] 实现工厂函数 `create_reranker`
+- [ ] 更新 `ModularQueryEngine` 集成
+- [ ] 更新配置管理
+
+**工作量**：~3小时
+
+### 阶段2：扩展实现（可选）
+
+- [ ] 实现 `CohereReranker`（需要API密钥）
+- [ ] 实现 `LLMReranker`（需要LLM实例）
+- [ ] 单元测试
+- [ ] 性能对比测试
+
+**工作量**：~2小时
+
+### 阶段3：评估与优化（后续）
+
+- [ ] 检索评估工具集成
+- [ ] 不同重排序器效果对比
+- [ ] 针对系统科学领域优化
+- [ ] 计算成本优化
+
+**工作量**：~4小时
+
+---
+
+## ❓ 需要您决策的问题
+
+### 问题1：实施优先级？
+
+**选项 A**：立即实施阶段1（核心实现）  
+**选项 B**：先评估必要性，再决定是否实施  
+**选项 C**：仅更新设计文档，暂不实施
+
+### 问题2：重排序器选择？
+
+需要支持哪些重排序器？
+- [ ] SentenceTransformer（基础）
+- [ ] BGE（推荐，中文友好）
+- [ ] Cohere（需要API密钥）
+- [ ] LLM（高精度，高成本）
+
+### 问题3：默认配置？
+
+**选项 A**：默认禁用重排序（`RERANKER_TYPE=none`）  
+**选项 B**：默认启用SentenceTransformer  
+**选项 C**：默认启用BGE
+
+---
+
+## 📄 相关文档
+
+- 📄 [LlamaIndex Reranker文档](https://docs.llamaindex.ai/en/stable/module_guides/models/rerankers/)
+- 📄 [BGE Reranker模型](https://huggingface.co/BAAI/bge-reranker-base)
+- 📄 [Cohere Rerank API](https://docs.cohere.com/docs/reranking)
+
+---
+
+**创建时间**: 2025-11-01  
+**状态**: ⏸️ 待决策  
+**下一步**: 等待决策后开始实施
+

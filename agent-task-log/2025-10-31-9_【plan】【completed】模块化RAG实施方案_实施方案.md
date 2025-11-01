@@ -1,0 +1,1096 @@
+# 模块化 RAG 实施方案
+
+> **任务来源**: RAG架构演进评估 - 阶段1实施  
+> **创建时间**: 2025-10-31  
+> **预计工作量**: 约1周  
+> **文档类型**: 实施方案
+
+---
+
+## 目录
+
+- [一、方案概述](#一方案概述)
+- [二、架构设计](#二架构设计)
+- [三、技术实现](#三技术实现)
+- [四、实施步骤](#四实施步骤)
+- [五、测试验证](#五测试验证)
+- [六、风险与应对](#六风险与应对)
+
+---
+
+## 一、方案概述
+
+### 1.1 目标
+
+将当前**固定流程的 RAG 系统**升级为**模块化、可配置的 RAG 系统**，支持：
+- ✅ 多种检索策略（向量、BM25、混合）
+- ✅ 可插拔的后处理模块（相似度过滤、重排序）
+- ✅ 配置化切换，无需修改代码
+- ✅ 保持现有功能不受影响
+
+### 1.2 核心价值
+
+| 能力 | 当前 | 升级后 |
+|------|------|--------|
+| **切换检索策略** | 修改代码 | 配置参数 |
+| **添加后处理** | 需重构 | 添加模块 |
+| **实验新策略** | 困难 | 容易 |
+| **维护成本** | 高 | 低 |
+| **开发速度** | 慢 | 快（1天内尝试新策略） |
+
+### 1.3 实施原则
+
+1. **最小改动原则**：尽量复用现有代码，减少破坏性修改
+2. **向后兼容**：保证现有 API 不变，Web 应用无需修改
+3. **渐进式演进**：先核心功能，再逐步完善
+4. **充分测试**：每个模块都要对比基线效果
+
+---
+
+## 二、架构设计
+
+### 2.1 整体架构
+
+#### 当前架构（一阶段）
+
+```
+QueryEngine
+  ↓
+CitationQueryEngine (固定)
+  ↓
+VectorRetriever (固定)
+  ↓
+DeepSeek LLM (固定)
+```
+
+#### 目标架构（二阶段）
+
+```
+ModularQueryEngine (工厂模式)
+  ↓
+  ├─ 策略选择 (配置驱动)
+  │   ├─ vector (向量检索)
+  │   ├─ bm25 (关键词检索)
+  │   └─ hybrid (混合检索)
+  ↓
+RetrieverQueryEngine (可配置)
+  ↓
+  ├─ Retriever (可替换)
+  │   ├─ VectorIndexRetriever
+  │   ├─ BM25Retriever
+  │   └─ QueryFusionRetriever
+  ↓
+  ├─ Postprocessor (可选模块)
+  │   ├─ SimilarityPostprocessor (相似度过滤)
+  │   ├─ SentenceTransformerRerank (重排序)
+  │   └─ KeywordNodePostprocessor (关键词过滤)
+  ↓
+LLM (不变)
+```
+
+### 2.2 核心组件设计
+
+#### 2.2.1 ModularQueryEngine（核心类）
+
+**职责**：
+- 根据配置创建合适的检索器和后处理器
+- 提供统一的查询接口
+- 兼容现有 QueryEngine API
+
+**接口设计**：
+
+```python
+class ModularQueryEngine:
+    """模块化查询引擎（工厂模式）"""
+    
+    def __init__(
+        self,
+        index_manager: IndexManager,
+        retrieval_strategy: str = "vector",  # 检索策略
+        enable_rerank: bool = False,         # 是否启用重排序
+        similarity_cutoff: float = 0.6,      # 相似度过滤阈值
+        **kwargs
+    ):
+        """初始化模块化查询引擎"""
+        pass
+    
+    def query(self, question: str) -> Tuple[str, List[dict]]:
+        """执行查询（兼容现有API）"""
+        pass
+```
+
+#### 2.2.2 检索器模块（Retriever）
+
+支持3种策略：
+
+| 策略 | 实现类 | 特点 | 适用场景 |
+|------|--------|------|---------|
+| `vector` | VectorIndexRetriever | 语义检索，精度高 | 概念理解、相似文档 |
+| `bm25` | BM25Retriever | 关键词检索，召回高 | 精确匹配、术语查找 |
+| `hybrid` | QueryFusionRetriever | 结合语义+关键词 | 综合查询、平衡精度召回 |
+
+#### 2.2.3 后处理模块（Postprocessor）
+
+可选的后处理模块（链式组合）：
+
+| 模块 | 作用 | 参数 |
+|------|------|------|
+| SimilarityPostprocessor | 过滤低相似度结果 | similarity_cutoff=0.6 |
+| SentenceTransformerRerank | 重排序提升精度 | top_n=3 |
+| KeywordNodePostprocessor | 必须包含关键词 | required_keywords=[] |
+
+### 2.3 配置设计
+
+#### 新增配置项（config.py）
+
+```python
+class Config:
+    # ===== 模块化RAG配置 =====
+    
+    # 检索策略: "vector" | "bm25" | "hybrid"
+    RETRIEVAL_STRATEGY = os.getenv("RETRIEVAL_STRATEGY", "vector")
+    
+    # 是否启用重排序
+    ENABLE_RERANK = os.getenv("ENABLE_RERANK", "false").lower() == "true"
+    
+    # 重排序模型（默认使用 embedding 模型）
+    RERANK_MODEL = os.getenv("RERANK_MODEL", None)  # None = 使用 EMBEDDING_MODEL
+    
+    # 重排序 Top-N
+    RERANK_TOP_N = int(os.getenv("RERANK_TOP_N", "3"))
+    
+    # 相似度过滤阈值（Postprocessor）
+    SIMILARITY_CUTOFF = float(os.getenv("SIMILARITY_CUTOFF", "0.6"))
+    
+    # 混合检索权重（仅hybrid策略）
+    HYBRID_ALPHA = float(os.getenv("HYBRID_ALPHA", "0.5"))  # 0=全BM25, 1=全Vector
+```
+
+#### 配置文件示例（.env）
+
+```bash
+# 模块化RAG配置
+
+# 检索策略（vector/bm25/hybrid）
+RETRIEVAL_STRATEGY=hybrid
+
+# 启用重排序
+ENABLE_RERANK=true
+RERANK_TOP_N=3
+
+# 相似度过滤
+SIMILARITY_CUTOFF=0.6
+
+# 混合检索权重（0-1之间，1表示纯向量）
+HYBRID_ALPHA=0.5
+```
+
+---
+
+## 三、技术实现
+
+### 3.1 模块化查询引擎实现
+
+#### 文件：`src/modular_query_engine.py`（新建）
+
+```python
+"""
+模块化查询引擎
+支持多种检索策略和后处理模块的灵活组合
+"""
+
+import time
+from typing import List, Optional, Tuple, Dict, Any
+from llama_index.core import VectorStoreIndex, Settings
+from llama_index.core.retrievers import (
+    VectorIndexRetriever,
+    QueryFusionRetriever,
+)
+from llama_index.core.query_engine import RetrieverQueryEngine
+from llama_index.core.postprocessor import (
+    SimilarityPostprocessor,
+    SentenceTransformerRerank,
+)
+from llama_index.llms.deepseek import DeepSeek
+
+from src.config import config
+from src.indexer import IndexManager
+from src.logger import setup_logger
+from src.response_formatter import ResponseFormatter
+
+logger = setup_logger('modular_query_engine')
+
+
+class ModularQueryEngine:
+    """模块化查询引擎（工厂模式）"""
+    
+    # 支持的检索策略
+    SUPPORTED_STRATEGIES = ["vector", "bm25", "hybrid"]
+    
+    def __init__(
+        self,
+        index_manager: IndexManager,
+        api_key: Optional[str] = None,
+        model: Optional[str] = None,
+        retrieval_strategy: Optional[str] = None,
+        similarity_top_k: Optional[int] = None,
+        enable_rerank: Optional[bool] = None,
+        rerank_top_n: Optional[int] = None,
+        similarity_cutoff: Optional[float] = None,
+        enable_markdown_formatting: bool = True,
+        **kwargs
+    ):
+        """初始化模块化查询引擎
+        
+        Args:
+            index_manager: 索引管理器
+            api_key: DeepSeek API密钥
+            model: 模型名称
+            retrieval_strategy: 检索策略 ("vector"|"bm25"|"hybrid")
+            similarity_top_k: 检索文档数量
+            enable_rerank: 是否启用重排序
+            rerank_top_n: 重排序保留文档数
+            similarity_cutoff: 相似度过滤阈值
+            enable_markdown_formatting: 是否启用Markdown格式化
+        """
+        self.index_manager = index_manager
+        self.index = index_manager.get_index()
+        
+        # 配置参数（优先使用传入参数，否则使用配置文件）
+        self.retrieval_strategy = retrieval_strategy or config.RETRIEVAL_STRATEGY
+        self.similarity_top_k = similarity_top_k or config.SIMILARITY_TOP_K
+        self.enable_rerank = enable_rerank if enable_rerank is not None else config.ENABLE_RERANK
+        self.rerank_top_n = rerank_top_n or config.RERANK_TOP_N
+        self.similarity_cutoff = similarity_cutoff or config.SIMILARITY_CUTOFF
+        
+        # 验证策略
+        if self.retrieval_strategy not in self.SUPPORTED_STRATEGIES:
+            raise ValueError(
+                f"不支持的检索策略: {self.retrieval_strategy}. "
+                f"支持的策略: {self.SUPPORTED_STRATEGIES}"
+            )
+        
+        # 初始化响应格式化器
+        self.formatter = ResponseFormatter(enable_formatting=enable_markdown_formatting)
+        
+        # 配置 LLM
+        self.api_key = api_key or config.DEEPSEEK_API_KEY
+        self.model = model or config.LLM_MODEL
+        if not self.api_key:
+            raise ValueError("未设置DEEPSEEK_API_KEY")
+        
+        self.llm = DeepSeek(
+            api_key=self.api_key,
+            model=self.model,
+            temperature=0.5,
+            max_tokens=4096,
+        )
+        
+        # 创建检索器
+        self.retriever = self._create_retriever()
+        
+        # 创建后处理器
+        self.postprocessors = self._create_postprocessors()
+        
+        # 创建查询引擎
+        self.query_engine = RetrieverQueryEngine.from_args(
+            retriever=self.retriever,
+            llm=self.llm,
+            node_postprocessors=self.postprocessors,
+        )
+        
+        logger.info(
+            f"模块化查询引擎初始化完成: "
+            f"策略={self.retrieval_strategy}, "
+            f"top_k={self.similarity_top_k}, "
+            f"重排序={self.enable_rerank}, "
+            f"相似度阈值={self.similarity_cutoff}"
+        )
+        print(f"✅ 模块化查询引擎初始化完成")
+        print(f"   检索策略: {self.retrieval_strategy}")
+        print(f"   Top-K: {self.similarity_top_k}")
+        print(f"   重排序: {'启用' if self.enable_rerank else '禁用'}")
+        print(f"   相似度阈值: {self.similarity_cutoff}")
+    
+    def _create_retriever(self):
+        """创建检索器（根据策略）"""
+        if self.retrieval_strategy == "vector":
+            logger.info("创建向量检索器")
+            return VectorIndexRetriever(
+                index=self.index,
+                similarity_top_k=self.similarity_top_k,
+            )
+        
+        elif self.retrieval_strategy == "bm25":
+            logger.info("创建BM25检索器")
+            from llama_index.retrievers.bm25 import BM25Retriever
+            
+            # 从索引中获取所有节点
+            nodes = list(self.index.docstore.docs.values())
+            
+            return BM25Retriever.from_defaults(
+                nodes=nodes,
+                similarity_top_k=self.similarity_top_k,
+            )
+        
+        elif self.retrieval_strategy == "hybrid":
+            logger.info("创建混合检索器（向量+BM25）")
+            from llama_index.retrievers.bm25 import BM25Retriever
+            
+            # 向量检索器
+            vector_retriever = VectorIndexRetriever(
+                index=self.index,
+                similarity_top_k=self.similarity_top_k,
+            )
+            
+            # BM25检索器
+            nodes = list(self.index.docstore.docs.values())
+            bm25_retriever = BM25Retriever.from_defaults(
+                nodes=nodes,
+                similarity_top_k=self.similarity_top_k,
+            )
+            
+            # 融合检索器
+            return QueryFusionRetriever(
+                retrievers=[vector_retriever, bm25_retriever],
+                similarity_top_k=self.similarity_top_k,
+                num_queries=1,  # 不生成额外查询
+                mode="reciprocal_rerank",  # 倒数排名融合
+                use_async=False,
+            )
+    
+    def _create_postprocessors(self) -> List:
+        """创建后处理器（链式组合）"""
+        postprocessors = []
+        
+        # 1. 相似度过滤（总是启用）
+        postprocessors.append(
+            SimilarityPostprocessor(similarity_cutoff=self.similarity_cutoff)
+        )
+        logger.info(f"添加相似度过滤器: cutoff={self.similarity_cutoff}")
+        
+        # 2. 重排序（可选）
+        if self.enable_rerank:
+            try:
+                postprocessors.append(
+                    SentenceTransformerRerank(
+                        model=config.RERANK_MODEL or config.EMBEDDING_MODEL,
+                        top_n=self.rerank_top_n,
+                    )
+                )
+                logger.info(f"添加重排序模块: top_n={self.rerank_top_n}")
+            except Exception as e:
+                logger.warning(f"重排序模块初始化失败，跳过: {e}")
+                print(f"⚠️  重排序模块初始化失败: {e}")
+        
+        return postprocessors
+    
+    def query(
+        self, 
+        question: str, 
+        collect_trace: bool = False
+    ) -> Tuple[str, List[dict], Optional[Dict[str, Any]]]:
+        """执行查询（兼容现有API）
+        
+        Args:
+            question: 用户问题
+            collect_trace: 是否收集追踪信息
+            
+        Returns:
+            (答案文本, 引用来源列表, 追踪信息)
+        """
+        trace_info = None
+        
+        try:
+            logger.info(f"执行查询: {question}")
+            print(f"\n💬 查询: {question}")
+            
+            if collect_trace:
+                trace_info = {
+                    "query": question,
+                    "strategy": self.retrieval_strategy,
+                    "start_time": time.time(),
+                }
+            
+            # 执行查询
+            retrieval_start = time.time()
+            response = self.query_engine.query(question)
+            retrieval_time = time.time() - retrieval_start
+            
+            # 提取答案
+            answer = str(response)
+            answer = self.formatter.format(answer, None)
+            
+            # 提取引用来源
+            sources = []
+            if hasattr(response, 'source_nodes') and response.source_nodes:
+                logger.info(f"检索到 {len(response.source_nodes)} 个文档片段")
+                print(f"🔍 检索到 {len(response.source_nodes)} 个文档片段")
+                
+                for i, node in enumerate(response.source_nodes, 1):
+                    metadata = node.node.metadata if hasattr(node, 'node') else {}
+                    score = node.score if hasattr(node, 'score') else None
+                    
+                    source = {
+                        'index': i,
+                        'text': node.node.text if hasattr(node, 'node') else '',
+                        'score': score,
+                        'metadata': metadata,
+                    }
+                    sources.append(source)
+                    
+                    # 打印简要信息
+                    score_str = f"{score:.4f}" if score is not None else "N/A"
+                    file_name = metadata.get('file_name', '未知')
+                    print(f"  [{i}] {file_name} (分数: {score_str})")
+            
+            # 追踪信息
+            if collect_trace and trace_info:
+                trace_info["retrieval_time"] = round(retrieval_time, 2)
+                trace_info["chunks_retrieved"] = len(sources)
+                trace_info["total_time"] = round(time.time() - trace_info["start_time"], 2)
+            
+            print(f"✅ 查询完成，找到 {len(sources)} 个引用来源")
+            
+            return answer, sources, trace_info
+            
+        except Exception as e:
+            logger.error(f"查询失败: {e}", exc_info=True)
+            print(f"❌ 查询失败: {e}")
+            raise
+    
+    async def stream_query(self, question: str):
+        """异步流式查询（用于Web应用）"""
+        # TODO: 实现流式查询
+        raise NotImplementedError("流式查询暂未实现")
+
+
+def create_modular_query_engine(
+    index_manager: IndexManager,
+    strategy: Optional[str] = None,
+    **kwargs
+) -> ModularQueryEngine:
+    """创建模块化查询引擎（便捷函数）
+    
+    Args:
+        index_manager: 索引管理器
+        strategy: 检索策略 ("vector"|"bm25"|"hybrid")
+        **kwargs: 其他参数
+        
+    Returns:
+        ModularQueryEngine实例
+    """
+    return ModularQueryEngine(
+        index_manager=index_manager,
+        retrieval_strategy=strategy,
+        **kwargs
+    )
+```
+
+### 3.2 配置更新（src/config.py）
+
+在 `Config` 类中添加新配置：
+
+```python
+class Config:
+    # ... 现有配置 ...
+    
+    # ===== 模块化RAG配置（新增）=====
+    
+    # 检索策略: "vector" | "bm25" | "hybrid"
+    RETRIEVAL_STRATEGY = os.getenv("RETRIEVAL_STRATEGY", "vector")
+    
+    # 是否启用重排序
+    ENABLE_RERANK = os.getenv("ENABLE_RERANK", "false").lower() == "true"
+    
+    # 重排序模型（None表示使用embedding模型）
+    RERANK_MODEL = os.getenv("RERANK_MODEL", None)
+    
+    # 重排序 Top-N
+    RERANK_TOP_N = int(os.getenv("RERANK_TOP_N", "3"))
+    
+    # 相似度过滤阈值
+    SIMILARITY_CUTOFF = float(os.getenv("SIMILARITY_CUTOFF", "0.6"))
+    
+    # 混合检索权重（0=全BM25, 1=全Vector）
+    HYBRID_ALPHA = float(os.getenv("HYBRID_ALPHA", "0.5"))
+```
+
+### 3.3 向后兼容（src/query_engine.py）
+
+**方案1：保持现有类不变，添加新类**（推荐）
+
+```python
+# src/query_engine.py
+
+# 保留现有 QueryEngine 类（向后兼容）
+class QueryEngine:
+    """查询引擎（保持不变，向后兼容）"""
+    # ... 现有代码不变 ...
+
+# 添加工厂函数
+def create_query_engine(
+    index_manager: IndexManager,
+    use_modular: bool = False,  # 是否使用模块化引擎
+    **kwargs
+) -> QueryEngine:
+    """创建查询引擎（工厂函数）
+    
+    Args:
+        index_manager: 索引管理器
+        use_modular: 是否使用模块化引擎
+        **kwargs: 其他参数
+        
+    Returns:
+        QueryEngine 或 ModularQueryEngine
+    """
+    if use_modular:
+        from src.modular_query_engine import ModularQueryEngine
+        return ModularQueryEngine(index_manager, **kwargs)
+    else:
+        return QueryEngine(index_manager, **kwargs)
+```
+
+**方案2：重构为统一接口**（激进）
+
+```python
+# src/query_engine.py
+
+# 将现有 QueryEngine 重命名为 LegacyQueryEngine
+class LegacyQueryEngine:
+    """传统查询引擎（保留）"""
+    # ... 现有代码 ...
+
+# 新的 QueryEngine 使用模块化实现
+from src.modular_query_engine import ModularQueryEngine as QueryEngine
+```
+
+**推荐**：采用方案1，保持向后兼容。
+
+---
+
+## 四、实施步骤
+
+### 4.1 任务分解
+
+| 任务 | 工作量 | 优先级 | 产出 | 负责人 |
+|------|--------|--------|------|--------|
+| **Day 1: 设计与配置** | 1天 | ⭐⭐⭐ | - | - |
+| 1.1 设计模块化架构 | 2h | ⭐⭐⭐ | 架构文档 | - |
+| 1.2 更新配置模块 | 2h | ⭐⭐⭐ | config.py 更新 | - |
+| 1.3 编写单元测试框架 | 2h | ⭐⭐⭐ | test_modular_query_engine.py | - |
+| **Day 2: 核心实现** | 1天 | ⭐⭐⭐ | - | - |
+| 2.1 实现 ModularQueryEngine | 4h | ⭐⭐⭐ | modular_query_engine.py | - |
+| 2.2 实现向量检索器 | 1h | ⭐⭐⭐ | _create_retriever (vector) | - |
+| 2.3 实现后处理模块 | 2h | ⭐⭐⭐ | _create_postprocessors | - |
+| **Day 3: 混合检索** | 1天 | ⭐⭐⭐ | - | - |
+| 3.1 实现 BM25 检索器 | 3h | ⭐⭐⭐ | _create_retriever (bm25) | - |
+| 3.2 实现混合检索器 | 3h | ⭐⭐⭐ | _create_retriever (hybrid) | - |
+| 3.3 测试各检索策略 | 2h | ⭐⭐⭐ | 测试用例 | - |
+| **Day 4: 重排序模块** | 1天 | ⭐⭐ | - | - |
+| 4.1 集成重排序模块 | 3h | ⭐⭐ | SentenceTransformerRerank | - |
+| 4.2 测试重排序效果 | 2h | ⭐⭐ | 对比测试 | - |
+| 4.3 调优重排序参数 | 2h | ⭐⭐ | 参数配置 | - |
+| **Day 5: 配置化改造** | 1天 | ⭐⭐⭐ | - | - |
+| 5.1 环境变量配置 | 2h | ⭐⭐⭐ | .env 示例 | - |
+| 5.2 CLI 参数支持 | 2h | ⭐⭐⭐ | main.py 更新 | - |
+| 5.3 Web UI 集成 | 3h | ⭐⭐⭐ | app.py 更新 | - |
+| **Day 6-7: 测试与优化** | 2天 | ⭐⭐⭐ | - | - |
+| 6.1 单元测试 | 3h | ⭐⭐⭐ | 测试覆盖率 | - |
+| 6.2 集成测试 | 3h | ⭐⭐⭐ | E2E测试 | - |
+| 6.3 性能测试 | 2h | ⭐⭐ | 性能报告 | - |
+| 6.4 对比基线效果 | 3h | ⭐⭐⭐ | 对比报告 | - |
+| 6.5 文档更新 | 2h | ⭐⭐ | README、ARCHITECTURE | - |
+
+### 4.2 详细步骤
+
+#### Day 1: 设计与配置
+
+**任务1.1：设计模块化架构**
+- 绘制架构图（当前 vs 目标）
+- 定义组件接口
+- 确定配置项
+
+**任务1.2：更新配置模块**
+```bash
+# 1. 编辑 src/config.py
+# 2. 添加新配置项（参考3.2节）
+# 3. 更新 .env.example
+```
+
+**任务1.3：编写单元测试框架**
+```bash
+# 创建测试文件
+touch tests/test_modular_query_engine.py
+
+# 编写基础测试用例
+# - test_vector_retrieval
+# - test_bm25_retrieval
+# - test_hybrid_retrieval
+# - test_postprocessor
+```
+
+#### Day 2: 核心实现
+
+**任务2.1：实现 ModularQueryEngine**
+```bash
+# 1. 创建新文件
+touch src/modular_query_engine.py
+
+# 2. 实现核心类（参考3.1节）
+# 3. 实现 __init__ 和 query 方法
+```
+
+**任务2.2：实现向量检索器**
+```python
+def _create_retriever(self):
+    if self.retrieval_strategy == "vector":
+        return VectorIndexRetriever(
+            index=self.index,
+            similarity_top_k=self.similarity_top_k,
+        )
+```
+
+**任务2.3：实现后处理模块**
+```python
+def _create_postprocessors(self):
+    return [
+        SimilarityPostprocessor(
+            similarity_cutoff=self.similarity_cutoff
+        )
+    ]
+```
+
+#### Day 3: 混合检索
+
+**任务3.1：实现 BM25 检索器**
+```bash
+# 1. 安装依赖
+pip install rank-bm25
+
+# 2. 实现 BM25 策略（参考3.1节）
+```
+
+**任务3.2：实现混合检索器**
+```python
+# 使用 QueryFusionRetriever 融合
+vector_retriever + bm25_retriever → QueryFusionRetriever
+```
+
+**任务3.3：测试各检索策略**
+```bash
+# 运行测试
+pytest tests/test_modular_query_engine.py -v
+
+# 对比3种策略效果
+python scripts/compare_strategies.py
+```
+
+#### Day 4: 重排序模块
+
+**任务4.1：集成重排序模块**
+```python
+if self.enable_rerank:
+    postprocessors.append(
+        SentenceTransformerRerank(
+            model=config.RERANK_MODEL,
+            top_n=self.rerank_top_n,
+        )
+    )
+```
+
+**任务4.2：测试重排序效果**
+```bash
+# 测试：不启用 vs 启用重排序
+python scripts/test_rerank.py
+```
+
+#### Day 5: 配置化改造
+
+**任务5.1：环境变量配置**
+```bash
+# 更新 .env.example
+cat >> .env.example << EOF
+# 模块化RAG配置
+RETRIEVAL_STRATEGY=vector
+ENABLE_RERANK=false
+SIMILARITY_CUTOFF=0.6
+EOF
+```
+
+**任务5.2：CLI 参数支持**
+```python
+# main.py 添加参数
+@click.option('--strategy', type=click.Choice(['vector', 'bm25', 'hybrid']))
+@click.option('--enable-rerank', is_flag=True)
+```
+
+**任务5.3：Web UI 集成**
+```python
+# app.py 中替换查询引擎
+# query_engine = QueryEngine(...)
+query_engine = ModularQueryEngine(
+    index_manager,
+    retrieval_strategy=st.session_state.get('strategy', 'vector')
+)
+```
+
+#### Day 6-7: 测试与优化
+
+**任务6.1：单元测试**
+```bash
+# 运行所有测试
+pytest tests/ -v --cov=src
+
+# 生成覆盖率报告
+pytest tests/ --cov=src --cov-report=html
+```
+
+**任务6.2：集成测试**
+```bash
+# E2E测试
+python tests/integration/test_modular_rag_e2e.py
+```
+
+**任务6.3：性能测试**
+```bash
+# 性能基准测试
+python scripts/benchmark_strategies.py
+```
+
+**任务6.4：对比基线效果**
+```bash
+# 对比传统 vs 模块化
+python scripts/compare_with_baseline.py
+
+# 生成对比报告
+```
+
+**任务6.5：文档更新**
+```bash
+# 更新文档
+# - README.md（添加配置说明）
+# - ARCHITECTURE.md（更新架构图）
+# - TRACKER.md（标记任务完成）
+```
+
+---
+
+## 五、测试验证
+
+### 5.1 测试策略
+
+#### 测试层级
+
+| 层级 | 内容 | 工具 |
+|------|------|------|
+| 单元测试 | 各模块独立功能 | pytest |
+| 集成测试 | 模块组合效果 | pytest |
+| 性能测试 | 检索速度、精度 | 自定义脚本 |
+| 对比测试 | 新旧实现对比 | 自定义脚本 |
+
+### 5.2 测试用例设计
+
+#### 5.2.1 单元测试（tests/test_modular_query_engine.py）
+
+```python
+import pytest
+from src.modular_query_engine import ModularQueryEngine
+from src.indexer import IndexManager
+
+@pytest.fixture
+def index_manager():
+    """创建测试索引"""
+    # 创建测试文档
+    docs = [...]  # 测试数据
+    manager = IndexManager(collection_name="test_modular")
+    manager.build_index(docs)
+    return manager
+
+def test_vector_strategy(index_manager):
+    """测试向量检索策略"""
+    engine = ModularQueryEngine(
+        index_manager,
+        retrieval_strategy="vector"
+    )
+    answer, sources, _ = engine.query("系统科学是什么？")
+    
+    assert answer is not None
+    assert len(sources) > 0
+    assert all('score' in s for s in sources)
+
+def test_bm25_strategy(index_manager):
+    """测试BM25检索策略"""
+    engine = ModularQueryEngine(
+        index_manager,
+        retrieval_strategy="bm25"
+    )
+    answer, sources, _ = engine.query("钱学森")
+    
+    assert answer is not None
+    assert len(sources) > 0
+
+def test_hybrid_strategy(index_manager):
+    """测试混合检索策略"""
+    engine = ModularQueryEngine(
+        index_manager,
+        retrieval_strategy="hybrid"
+    )
+    answer, sources, _ = engine.query("系统工程方法")
+    
+    assert answer is not None
+    assert len(sources) > 0
+
+def test_rerank_postprocessor(index_manager):
+    """测试重排序模块"""
+    # 不启用重排序
+    engine1 = ModularQueryEngine(
+        index_manager,
+        retrieval_strategy="vector",
+        enable_rerank=False
+    )
+    _, sources1, _ = engine1.query("系统科学")
+    
+    # 启用重排序
+    engine2 = ModularQueryEngine(
+        index_manager,
+        retrieval_strategy="vector",
+        enable_rerank=True,
+        rerank_top_n=3
+    )
+    _, sources2, _ = engine2.query("系统科学")
+    
+    # 重排序应该改变结果顺序
+    assert len(sources2) <= 3  # 重排序限制数量
+    # 注意：顺序可能不同
+
+def test_similarity_cutoff(index_manager):
+    """测试相似度过滤"""
+    engine = ModularQueryEngine(
+        index_manager,
+        retrieval_strategy="vector",
+        similarity_cutoff=0.8  # 高阈值
+    )
+    _, sources, _ = engine.query("无关问题")
+    
+    # 高阈值应该过滤掉大部分结果
+    assert all(s.get('score', 0) >= 0.8 for s in sources if s.get('score'))
+```
+
+#### 5.2.2 对比测试（scripts/compare_strategies.py）
+
+```python
+"""
+对比不同检索策略的效果
+"""
+
+import time
+from src.indexer import IndexManager
+from src.modular_query_engine import ModularQueryEngine
+
+def compare_strategies(index_manager, questions):
+    """对比不同策略"""
+    strategies = ["vector", "bm25", "hybrid"]
+    results = {}
+    
+    for strategy in strategies:
+        print(f"\n{'='*50}")
+        print(f"测试策略: {strategy}")
+        print(f"{'='*50}")
+        
+        engine = ModularQueryEngine(
+            index_manager,
+            retrieval_strategy=strategy,
+        )
+        
+        strategy_results = []
+        for question in questions:
+            start = time.time()
+            answer, sources, _ = engine.query(question)
+            elapsed = time.time() - start
+            
+            strategy_results.append({
+                'question': question,
+                'answer_length': len(answer),
+                'source_count': len(sources),
+                'avg_score': sum(s.get('score', 0) for s in sources) / len(sources) if sources else 0,
+                'time': elapsed,
+            })
+            
+            print(f"\nQ: {question}")
+            print(f"   来源数: {len(sources)}, 平均分数: {strategy_results[-1]['avg_score']:.3f}, 耗时: {elapsed:.2f}s")
+        
+        results[strategy] = strategy_results
+    
+    return results
+
+if __name__ == "__main__":
+    # 准备测试问题
+    questions = [
+        "什么是系统科学？",
+        "钱学森的主要贡献是什么？",
+        "系统工程的基本方法有哪些？",
+        "控制论和信息论的关系",
+        "复杂系统的特征",
+    ]
+    
+    # 创建索引
+    index_manager = IndexManager(collection_name="test_compare")
+    # ... 加载测试数据 ...
+    
+    # 对比策略
+    results = compare_strategies(index_manager, questions)
+    
+    # 生成报告
+    print("\n" + "="*50)
+    print("对比总结")
+    print("="*50)
+    for strategy, strategy_results in results.items():
+        avg_time = sum(r['time'] for r in strategy_results) / len(strategy_results)
+        avg_sources = sum(r['source_count'] for r in strategy_results) / len(strategy_results)
+        avg_score = sum(r['avg_score'] for r in strategy_results) / len(strategy_results)
+        
+        print(f"\n{strategy}:")
+        print(f"  平均耗时: {avg_time:.2f}s")
+        print(f"  平均来源数: {avg_sources:.1f}")
+        print(f"  平均分数: {avg_score:.3f}")
+```
+
+### 5.3 性能基准
+
+#### 测试指标
+
+| 指标 | 说明 | 目标 |
+|------|------|------|
+| **检索精度** | 相关文档召回率 | >80% |
+| **检索速度** | 平均查询时间 | <3秒 |
+| **答案质量** | 人工评估 | 良好 |
+| **稳定性** | 错误率 | <1% |
+
+#### 性能对比（预期）
+
+| 策略 | 检索时间 | 精度 | 召回 | 适用场景 |
+|------|---------|------|------|---------|
+| **vector** | 快 (~1s) | 高 | 中 | 概念理解、相似文档 |
+| **bm25** | 很快 (~0.5s) | 中 | 高 | 精确匹配、术语查找 |
+| **hybrid** | 中等 (~2s) | 很高 | 高 | 综合查询、平衡精度召回 |
+| **hybrid+rerank** | 慢 (~3s) | 极高 | 高 | 高要求场景 |
+
+### 5.4 验收标准
+
+#### ✅ 必须满足
+
+1. **功能完整**
+   - ✅ 支持3种检索策略
+   - ✅ 支持重排序模块
+   - ✅ 配置化切换无需修改代码
+
+2. **向后兼容**
+   - ✅ 现有 API 不变
+   - ✅ Web 应用无需修改
+   - ✅ CLI 工具正常运行
+
+3. **质量保证**
+   - ✅ 单元测试覆盖率 >80%
+   - ✅ 所有测试通过
+   - ✅ 无明显性能退化
+
+4. **文档完善**
+   - ✅ 配置说明文档
+   - ✅ 使用示例
+   - ✅ 架构更新
+
+#### 🔶 可选优化
+
+1. **性能优化**
+   - 🔶 混合检索并行化
+   - 🔶 缓存优化
+
+2. **功能增强**
+   - 🔶 更多后处理模块
+   - 🔶 自定义检索器
+
+---
+
+## 六、风险与应对
+
+### 6.1 技术风险
+
+| 风险 | 可能性 | 影响 | 应对措施 |
+|------|--------|------|---------|
+| BM25 依赖安装失败 | 中 | 中 | 提供安装文档，降级为仅vector |
+| 重排序性能差 | 中 | 低 | 提供禁用选项，默认关闭 |
+| 混合检索精度低 | 低 | 中 | 充分测试，调优参数 |
+| 向后不兼容 | 低 | 高 | 保留现有类，严格测试 |
+
+### 6.2 进度风险
+
+| 风险 | 应对措施 |
+|------|---------|
+| 开发进度延迟 | 优先核心功能，降低可选功能优先级 |
+| 测试不充分 | 至少保证核心策略测试完成 |
+| 文档更新滞后 | 边开发边更新，不留到最后 |
+
+### 6.3 质量风险
+
+| 风险 | 应对措施 |
+|------|---------|
+| 精度下降 | 充分对比测试，保留回退方案 |
+| 性能退化 | 性能基准测试，必要时优化 |
+| 兼容性问题 | 严格API兼容性测试 |
+
+### 6.4 回退方案
+
+如果模块化实施失败或效果不佳：
+
+1. **立即回退**：保留现有 `QueryEngine`，删除新代码
+2. **部分回退**：仅启用已验证的模块（如vector策略）
+3. **优化后再试**：找出问题原因，改进后重新尝试
+
+---
+
+## 七、总结
+
+### 7.1 方案亮点
+
+1. ✅ **低风险**：保持向后兼容，无破坏性修改
+2. ✅ **高收益**：显著提升灵活性和开发效率
+3. ✅ **可扩展**：易于添加新策略和模块
+4. ✅ **工业级**：基于 LlamaIndex 成熟组件
+
+### 7.2 预期效果
+
+#### 短期（1周内）
+- ✅ 完成模块化实施
+- ✅ 支持3种检索策略
+- ✅ 配置化切换
+
+#### 中期（1个月）
+- ✅ 通过实际使用验证效果
+- ✅ 根据反馈优化参数
+- ✅ 识别最优策略组合
+
+#### 长期（3个月）
+- ✅ 积累丰富的使用经验
+- ✅ 为 Agentic RAG 打下基础
+- ✅ 建立系统化的 RAG 优化流程
+
+### 7.3 下一步行动
+
+1. **评审方案**：团队评审技术方案
+2. **确认资源**：确认开发人员和时间
+3. **启动实施**：按步骤开始开发
+4. **持续跟进**：每日同步进度和问题
+
+---
+
+**方案创建时间**: 2025-10-31  
+**预计开始时间**: 待定  
+**预计完成时间**: 开始后1周  
+**方案状态**: ✅ 已完成，等待评审
+
+
+
+
+
+

@@ -1,461 +1,245 @@
-嗯# 项目结构说明
+# 项目结构说明
 
-> 详细的目录和文件组织说明
+> 快速理解目录组织
 
-## 📁 完整项目结构
+## 📁 项目结构树
 
 ```
 Creating-Systematology-RAG/
 │
-├── README.md                       # 📖 项目主文档（项目概览、功能介绍、使用指南）
-├── env.template                    # 🔐 环境变量模板（API密钥配置示例）
-├── pyproject.toml                  # 📦 Python项目配置（依赖管理）
-├── uv.lock                         # 🔒 依赖锁定文件（uv生成）
-├── .python-version                 # 🐍 Python版本指定
+├── app.py                          # 🖥️ Streamlit Web主页（聊天界面）
+├── main.py                         # ⌨️ CLI命令行工具
+├── pages/                          # 📄 Streamlit多页面
+│   ├── 1_⚙️_设置.py               # 数据源、配置、调试工具
+│   └── 2_📄_文件查看.py           # 文件浏览
 │
-├── app.py                          # 🖥️ Streamlit Web应用主页（聊天界面）
-├── main.py                         # ⌨️ CLI命令行工具（批量操作、管理）
-├── pages/                          # 📄 Streamlit多页面应用
-│   └── 1_⚙️_设置.py               # ⚙️ 设置页面（详细配置）
-│
-├── streamlit-test.py              # 🧪 Streamlit测试文件
+├── src/                           # 💻 源代码（核心业务）
+│   ├── config.py                  # ⚙️ 配置管理
+│   ├── logger.py                  # 📋 日志系统
+│   ├── ui_components.py           # 🎨 UI共用组件
+│   │
+│   ├── data_loader.py             # 📥 数据加载
+│   ├── git_repository_manager.py  # 🔄 GitHub仓库管理
+│   ├── indexer.py                 # 🗂️ 索引构建
+│   ├── query_engine.py            # 🔍 查询引擎
+│   ├── chat_manager.py            # 💬 对话管理
+│   ├── modular_query_engine.py    # 🔧 模块化查询引擎
+│   │
+│   ├── user_manager.py            # 👤 用户管理
+│   ├── activity_logger.py         # 📊 行为日志
+│   ├── phoenix_utils.py           # 🔍 Phoenix可观测性
+│   ├── metadata_manager.py        # 📝 元数据管理
+│   │
+│   ├── embeddings/                # 📊 Embedding可插拔
+│   │   ├── base.py                    # 基类
+│   │   ├── local_embedding.py         # 本地模型
+│   │   └── api_embedding.py           # API模型
+│   │
+│   ├── data_source/               # 📦 数据源可插拔
+│   │   ├── base.py                    # 基类
+│   │   ├── local_source.py            # 本地文件
+│   │   ├── github_source.py           # GitHub仓库
+│   │   └── web_source.py              # 网页抓取
+│   │
+│   ├── observers/                 # 👁️ 可观测性
+│   │   ├── base.py                    # 基类
+│   │   ├── llama_debug_observer.py    # LlamaDebug
+│   │   └── phoenix_observer.py        # Phoenix
+│   │
+│   ├── response_formatter/        # 📝 响应格式化
+│   │   ├── formatter.py               # 主格式化器
+│   │   ├── validator.py               # 验证器
+│   │   └── templates.py               # 模板
+│   │
+│   └── data_parser/               # 🔧 文档解析
+│       └── document_parser.py         # 解析器
 │
 ├── docs/                          # 📚 文档中心
-│   ├── README.md                  # 📖 文档中心首页（整合导航）
-│   ├── ARCHITECTURE.md            # 🏗️ 架构设计文档（系统架构、设计思路）
-│   ├── API.md                     # 📚 API参考文档（接口文档）
-│   ├── PROJECT_STRUCTURE.md       # 📁 项目结构说明（本文件）
-│   └── TRACKER.md                 # 📊 项目追踪（任务管理与进度）
+│   ├── README.md                  # 文档导航
+│   ├── ARCHITECTURE.md            # 架构设计
+│   ├── API.md                     # API参考
+│   ├── PROJECT_STRUCTURE.md       # 本文件
+│   └── TRACKER.md                 # 项目追踪
 │
-├── src/                           # 💻 源代码（核心业务逻辑）
-│   ├── __init__.py                # 📦 包初始化文件
-│   ├── config.py                  # ⚙️ 配置管理（环境变量、参数）
-│   ├── logger.py                  # 📋 日志系统（应用日志配置）
-│   ├── ui_components.py           # 🎨 UI共用组件（Streamlit复用函数）
-│   ├── data_loader.py             # 📥 数据加载（Markdown、网页、GitHub）
-│   ├── indexer.py                 # 🗂️ 索引构建（向量化、存储）
-│   ├── query_engine.py            # 🔍 查询引擎（问答、引用溯源、调试支持）
-│   ├── chat_manager.py            # 💬 对话管理（多轮对话、会话、调试支持）
-│   ├── user_manager.py            # 👤 用户管理（注册、登录、会话关联）
-│   ├── activity_logger.py         # 📊 行为日志（用户操作追踪）
-│   ├── phoenix_utils.py           # 🔍 Phoenix工具（RAG可观测性、追踪）
-│   └── metadata_manager.py        # 📝 元数据管理（GitHub增量更新）
+├── tests/                         # 🧪 测试套件
+│   ├── unit/                      # 单元测试（60+）
+│   ├── integration/               # 集成测试（25+）
+│   ├── performance/               # 性能测试（13+）
+│   └── tools/                     # 诊断工具
 │
 ├── data/                          # 📁 数据目录
-│   ├── raw/                       # 📄 原始文档存储
-│   │   ├── 系统科学基础/          # 系统科学基础知识
-│   │   │   └── 系统科学简介.md
-│   │   ├── 钱学森-创建系统学/     # 钱学森系统学理论
-│   │   │   ├── 钱学森生平.md
-│   │   │   └── 开放的复杂巨系统理论.md
-│   │   └── 论系统工程/            # 系统工程方法
-│   │       └── 系统工程概述.md
-│   └── processed/                 # 📊 处理后的数据
+│   ├── processed/                 # 处理后数据
+│   └── github_repos/              # GitHub仓库缓存
 │
-├── vector_store/                  # 🗄️ Chroma向量数据库
-│   └── chroma.sqlite3             # SQLite数据库文件（自动生成）
+├── vector_store/                  # 🗄️ Chroma向量库
+├── sessions/                      # 💾 对话会话记录
+├── logs/                          # 📋 日志目录
+├── agent-task-log/                # 📝 AI Agent任务记录
 │
-├── sessions/                      # 💾 对话会话记录（自动生成）
-│   └── {user_email}/              # 用户专属会话目录
-│       └── session_*.json         # 会话文件
-│
-├── logs/                          # 📋 日志目录（自动生成）
-│   ├── YYYY-MM-DD.log             # 应用日志（按日期）
-│   └── activity/                  # 用户行为日志
-│       └── {user_email}/          # 用户专属日志目录
-│           └── activity.jsonl     # 行为日志（JSONL格式）
-│
-├── .git/                          # 🔧 Git版本控制
-├── .gitignore                     # 🚫 Git忽略文件
-└── .idea/                         # 💡 IDE配置（PyCharm/IDEA）
+├── pyproject.toml                 # 📦 依赖配置
+├── Makefile                       # 🛠️ 构建脚本
+└── README.md                      # 📖 项目主文档
 ```
 
 ---
 
-## 📂 目录详细说明
+## 📊 核心模块说明
 
-### 根目录文件
-
-| 文件 | 用途 | 是否必需 |
-|------|------|---------|
-| `README.md` | 项目主文档，包含项目介绍、安装、使用说明 | ✅ 必需 |
-| `app.py` | Streamlit Web应用主页（聊天界面） | ✅ 必需 |
-| `pages/` | Streamlit多页面应用目录 | ✅ 必需 |
-| `pages/1_⚙️_设置.py` | 设置页面（数据源、配置、调试工具） | ✅ 必需 |
-| `main.py` | CLI命令行工具 | ✅ 必需 |
-| `pyproject.toml` | Python项目配置文件，定义依赖 | ✅ 必需 |
-| `uv.lock` | 依赖锁定文件，确保环境一致性 | ✅ 必需 |
-| `env.template` | 环境变量模板，需复制为`.env`使用 | ✅ 必需 |
-| `.python-version` | 指定Python版本（3.12+） | 推荐 |
-| `streamlit-test.py` | Streamlit测试文件 | 可选 |
-
-### docs/ - 文档中心
-
-完整的项目文档，包括：
-
-**核心技术文档**（必读）：
-- `ARCHITECTURE.md` - 系统架构和设计思路 ⭐
-- `API.md` - 完整的API接口文档
-
-**用户文档**：
-- `QUICKSTART.md` - 5分钟快速上手
-- `README.md` - 文档中心首页（整合导航）
-
-**管理文档**：
-- `DECISIONS.md` - 技术决策记录
-- `TODO.md` - 待办事项
-- `PROJECT_STRUCTURE.md` - 本文件
-
-### src/ - 源代码
-
-核心业务逻辑模块，采用分层架构：
+### 源代码模块 (src/)
 
 | 模块 | 职责 | 依赖关系 |
 |------|------|---------|
-| `config.py` | 配置管理 | 基础模块，无依赖 |
-| `logger.py` | 日志系统 | 依赖 config |
-| `ui_components.py` | UI共用组件（Streamlit复用函数） | 依赖 config, indexer, query_engine, chat_manager |
-| `data_loader.py` | 数据加载（Markdown、网页、GitHub） | 依赖 config, logger, git_repository_manager |
-| `git_repository_manager.py` | GitHub仓库管理（克隆、更新） | 依赖 config, logger |
-| `indexer.py` | 索引构建 | 依赖 config, data_loader, logger |
-| `query_engine.py` | 查询引擎（含调试支持） | 依赖 config, indexer, logger |
-| `chat_manager.py` | 对话管理（含调试支持） | 依赖 config, indexer, logger |
-| `user_manager.py` | 用户管理（注册、登录、会话关联） | 依赖 config, logger |
-| `activity_logger.py` | 用户行为日志（操作追踪） | 依赖 config, logger |
-| `phoenix_utils.py` | Phoenix可观测性工具 | 依赖 logger |
-| `metadata_manager.py` | GitHub元数据管理 | 依赖 config, logger |
+| `config.py` | 配置管理 | 无依赖（基础模块） |
+| `logger.py` | 日志系统 | config |
+| `data_loader.py` | 数据加载 | config, logger, git_repository_manager |
+| `indexer.py` | 索引构建 | config, data_loader, embeddings, observers |
+| `query_engine.py` | 查询引擎 | config, indexer, response_formatter |
+| `chat_manager.py` | 对话管理 | config, query_engine |
+| `user_manager.py` | 用户管理 | config, logger |
+| `phoenix_utils.py` | 可观测性 | logger |
 
-**依赖关系图**：
+**依赖关系图:**
 ```
 config.py (基础)
     ↓
 logger.py
     ↓
-    ├── data_loader.py → indexer.py → query_engine.py
-    │                           ↓
-    │                     chat_manager.py
+    ├── data_loader.py → indexer.py → query_engine.py → chat_manager.py
     ├── user_manager.py
-    └── activity_logger.py
+    └── phoenix_utils.py
 ```
 
-### data/ - 数据目录
+### 可插拔模块
 
-**data/raw/**：存放原始文档
-- 支持任意深度的子目录
-- 当前包含4个示例Markdown文档
-- 用户可以添加自己的文档到这里
-
-**data/processed/**：存放处理后的数据
-- 自动生成
-- 用于缓存处理结果（如果需要）
-
-### vector_store/ - 向量数据库
-
-**Chroma数据库存储目录**：
-- `chroma.sqlite3` - SQLite数据库文件
-- 存储文档向量和元数据
-- 自动创建和管理
-
-**特点**：
-- 持久化存储
-- 支持增量更新
-- 可以删除重建
-
-### sessions/ - 会话记录
-
-**对话会话持久化**：
-- 自动创建目录
-- 每个会话一个JSON文件
-- 格式：`session_YYYYMMDD_HHMMSS.json`
-
-**用途**：
-- 保存对话历史
-- 恢复会话
-- 分析对话记录
+| 模块 | 说明 | 实现 |
+|------|------|------|
+| `embeddings/` | 向量化可插拔 | local (本地) / api (API) |
+| `data_source/` | 数据源可插拔 | local / github / web |
+| `observers/` | 可观测性 | llama_debug / phoenix |
+| `response_formatter/` | 响应格式化 | 模块化格式化器 |
+| `data_parser/` | 文档解析 | 统一解析接口 |
 
 ---
 
-## 📊 文件统计
+## 🎨 UI架构
 
-### 代码文件
-
-| 类型 | 数量 | 总行数（约） |
-|------|------|-------------|
-| Python源码 | 6个 | 2,000+ |
-| Python应用 | 2个 | 700+ |
-| 配置文件 | 2个 | 100+ |
-| **合计** | **10个** | **2,800+** |
-
-### 文档文件
-
-| 类型 | 数量 | 总字数（约） |
-|------|------|-------------|
-| 技术文档 | 2个 | 12,000+ |
-| 用户文档 | 2个 | 10,000+ |
-| 管理文档 | 3个 | 3,000+ |
-| **合计** | **7个** | **25,000+** |
-
-### 示例数据
-
-| 类型 | 数量 |
-|------|------|
-| Markdown文档 | 4个 |
-| 文档分类 | 3个 |
-
----
-
-## 🎨 UI架构说明
-
-### Streamlit 多页面应用
-
-本项目采用Streamlit的多页面架构，提供更清晰的功能组织：
+### Streamlit多页面应用
 
 **主页 (app.py)** - 聊天界面
 - 用户登录/注册
 - 对话主界面
-- 精简的侧边栏（快速操作）
-  - 📊 索引状态展示
-  - 🐙 GitHub仓库导入
-  - 📁 本地文档上传
-  - 💬 会话管理
-  - ⚙️ 进入设置页按钮
+- 侧边栏快速操作
 
 **设置页 (pages/1_⚙️_设置.py)** - 详细配置
-- Tab1: 📦 数据源管理
-  - 网页URL导入
-  - 本地目录加载
-  - GitHub高级管理
-  - 维基百科预索引
-- Tab2: 🔧 查询配置
-  - 维基百科增强设置
-  - 检索参数调整
-- Tab3: 🐛 开发者工具
-  - Phoenix可视化平台
-  - LlamaDebugHandler调试
-  - 查询追踪信息
-- Tab4: ⚙️ 系统状态
-  - 索引管理
-  - 模型状态
-  - 系统信息
+- Tab1: 数据源管理
+- Tab2: 查询配置
+- Tab3: 开发者工具
+- Tab4: 系统状态
+
+**文件查看页 (pages/2_📄_文件查看.py)** - 文件浏览
+- 文档列表查看
+- 元数据查看
+- 文件搜索
 
 ### UI组件复用 (src/ui_components.py)
 
-提取的共用组件函数：
+提取的共用函数:
 - `init_session_state()` - 会话状态初始化
-- `preload_embedding_model()` - 模型预加载
 - `load_index()` - 索引加载
 - `load_chat_manager()` - 对话管理器加载
-- `load_hybrid_query_engine()` - 混合查询引擎加载
-- `display_hybrid_sources()` - 混合来源展示
 - `display_model_status()` - 模型状态展示
-
-### 页面导航
-
-- Streamlit自动在侧边栏顶部添加页面导航
-- `st.switch_page()` 用于程序化页面跳转
-- session_state在所有页面间共享
 
 ---
 
-## 🔍 文件查找指南
+## 📂 目录职责
+
+| 目录 | 职责 | 是否必需 |
+|------|------|---------|
+| `src/` | 核心业务逻辑 | ✅ 必需 |
+| `docs/` | 项目文档 | ✅ 必需 |
+| `tests/` | 测试套件 | ✅ 必需 |
+| `data/` | 数据存储 | ✅ 必需 |
+| `vector_store/` | 向量库（自动生成） | 运行时生成 |
+| `sessions/` | 会话记录（自动生成） | 运行时生成 |
+| `logs/` | 日志（自动生成） | 运行时生成 |
+| `agent-task-log/` | AI任务记录 | 推荐保留 |
+
+---
+
+## 🔍 快速查找
 
 ### 我想修改...
 
 | 需求 | 文件位置 |
 |------|---------|
 | **配置参数** | `src/config.py` 或 `.env` |
-| **添加新数据源** | `src/data_loader.py` |
+| **添加数据源** | `src/data_source/` |
 | **修改索引逻辑** | `src/indexer.py` |
 | **调整查询行为** | `src/query_engine.py` |
 | **改进对话功能** | `src/chat_manager.py` |
-| **修改主页界面** | `app.py`（聊天界面） |
-| **修改设置页面** | `pages/1_⚙️_设置.py`（配置界面） |
-| **修改UI组件** | `src/ui_components.py`（共用函数） |
-| **修改CLI命令** | `main.py` |
-| **更新文档** | `docs/` 目录 |
+| **修改主页界面** | `app.py` |
+| **修改设置页** | `pages/1_⚙️_设置.py` |
+| **修改UI组件** | `src/ui_components.py` |
 
 ### 我想查看...
 
 | 需求 | 文件位置 |
 |------|---------|
 | **如何使用** | `README.md` |
-| **快速开始** | `docs/QUICKSTART.md` |
 | **系统架构** | `docs/ARCHITECTURE.md` |
 | **API接口** | `docs/API.md` |
-| **文档导航** | `docs/README.md` |
-| **技术选型原因** | `docs/DECISIONS.md` |
 | **项目追踪** | `docs/TRACKER.md` |
-| **未来计划** | `docs/TODO.md` |
+| **测试指南** | `tests/README.md` |
 
 ---
 
-## 🎯 目录设计原则
+## 📝 文件统计
 
-### 1. 关注点分离
-- **源码** (`src/`) - 业务逻辑
-- **应用** (`app.py`, `main.py`) - 用户界面
-- **文档** (`docs/`) - 说明文档
-- **数据** (`data/`) - 原始和处理数据
-- **存储** (`vector_store/`, `sessions/`) - 持久化数据
+### 代码文件
 
-### 2. 模块化
-- 每个模块职责单一
-- 清晰的依赖关系
-- 易于测试和维护
+| 类型 | 数量 | 总行数（约） |
+|------|------|-------------|
+| Python源码 | 20+ | 3,500+ |
+| Python应用 | 3 | 800+ |
+| 配置文件 | 3 | 150+ |
 
-### 3. 可扩展性
-- 添加新模块：在 `src/` 目录创建新文件
-- 添加新数据源：扩展 `data_loader.py`
-- 添加新命令：扩展 `main.py`
+### 文档文件
 
-### 4. 约定优于配置
-- 配置文件在根目录
-- 源码在 `src/`
-- 文档在 `docs/`
-- 数据在 `data/`
+| 类型 | 数量 | 总行数 |
+|------|------|--------|
+| 核心文档 | 5 | ~1,500 |
+| Agent记录 | 100+ | - |
 
----
+### 测试文件
 
-## 🔧 自动生成的文件/目录
-
-以下文件和目录会在运行时自动创建，无需手动创建：
-
-### 运行时生成
-
-| 路径 | 生成时机 | 说明 |
-|------|---------|------|
-| `.env` | 用户首次配置时 | 从 `env.template` 复制 |
-| `vector_store/` | 首次构建索引时 | Chroma数据库目录 |
-| `sessions/` | 首次保存会话时 | 对话记录目录 |
-| `data/processed/` | 处理数据时 | 处理后数据缓存 |
-
-### Python生成
-
-| 路径 | 生成时机 | 说明 |
-|------|---------|------|
-| `__pycache__/` | 运行Python代码时 | Python字节码缓存 |
-| `*.pyc` | 运行Python代码时 | 编译后的Python文件 |
-
-### 依赖工具生成
-
-| 路径 | 工具 | 说明 |
-|------|------|------|
-| `uv.lock` | uv | 依赖锁定文件 |
-| `.venv/` | uv/pip | 虚拟环境（如使用） |
+| 类型 | 数量 |
+|------|------|
+| 测试用例 | 88+ |
+| 测试覆盖率 | ~92% |
 
 ---
 
-## 🚫 忽略的文件
+## 🚫 自动生成的文件/目录
 
-`.gitignore` 配置忽略以下内容：
+以下内容运行时自动创建，无需手动管理:
 
-```gitignore
-# Python
-__pycache__/
-*.py[cod]
-*.so
-.Python
-
-# 虚拟环境
-venv/
-.venv/
-env/
-
-# IDE
-.idea/
-.vscode/
-*.swp
-
-# 环境变量
-.env
-
-# 数据
-vector_store/
-sessions/
-data/processed/
-
-# 系统
-.DS_Store
-Thumbs.db
-```
+| 路径 | 生成时机 |
+|------|---------|
+| `.env` | 用户首次配置 |
+| `vector_store/` | 首次构建索引 |
+| `sessions/` | 首次保存会话 |
+| `logs/` | 应用启动时 |
+| `__pycache__/` | 运行Python时 |
+| `.venv/` | 创建虚拟环境时 |
 
 ---
 
-## 📝 目录使用建议
+## 🎯 设计原则
 
-### 开发时
-
-1. **源码修改**：只修改 `src/` 目录下的文件
-2. **文档更新**：修改 `docs/` 目录下的对应文档
-3. **测试数据**：在 `data/raw/` 添加测试文档
-4. **配置调整**：修改 `.env` 文件，不要修改 `env.template`
-
-### 部署时
-
-1. **必需文件**：
-   - 所有 Python 源码
-   - `pyproject.toml` 和 `uv.lock`
-   - `env.template`（用户需要配置）
-   - `README.md`
-
-2. **可选文件**：
-   - `docs/` - 文档（建议包含）
-   - `data/raw/` - 示例数据
-   - `streamlit-test.py` - 测试文件
-
-3. **不需要的**：
-   - `vector_store/` - 运行时生成
-   - `sessions/` - 运行时生成
-   - `.env` - 用户配置
-   - `__pycache__/` - Python缓存
-
-### 备份时
-
-**建议备份**：
-- 所有源码和配置
-- 所有文档
-- 原始数据（`data/raw/`）
-- 重要的会话记录（`sessions/`）
-
-**可以不备份**：
-- `vector_store/` - 可以重建
-- `__pycache__/` - 自动生成
-- `.venv/` - 可以重建
-
----
-
-## 🔄 目录演进
-
-### 当前版本（v0.1.0）
-
-完整的MVP版本，包含所有核心功能和完善的文档。
-
-### 可能的扩展
-
-未来可能添加的目录/文件：
-
-```
-tests/              # 单元测试
-├── test_config.py
-├── test_data_loader.py
-└── ...
-
-scripts/            # 工具脚本
-├── backup.sh
-├── deploy.sh
-└── ...
-
-logs/               # 日志文件
-└── app.log
-
-docker/             # Docker配置
-├── Dockerfile
-└── docker-compose.yml
-
-examples/           # 示例代码
-├── basic_usage.py
-└── advanced_usage.py
-```
+1. **关注点分离** - 源码、应用、文档、数据分离
+2. **模块化** - 每个模块职责单一，依赖清晰
+3. **可扩展性** - 易于添加新模块和功能
+4. **约定优于配置** - 遵循标准目录约定
 
 ---
 
@@ -463,17 +247,9 @@ examples/           # 示例代码
 
 - [README.md](../README.md) - 项目概览
 - [架构设计](ARCHITECTURE.md) - 系统架构详解
-- [文档中心](README.md) - 文档导航和索引
+- [API参考](API.md) - 接口文档
+- [文档中心](README.md) - 文档导航
 
 ---
 
-**最后更新**: 2025-10-14
-
-**维护者**: 项目团队
-
-**更新日志**:
-- 2025-10-14: 重构UI为多页面架构，添加设置页面
-- 2025-10-09: 初始版本
-
-如有任何关于项目结构的问题，欢迎查看相关文档或提交Issue！
-
+**最后更新**: 2025-11-01
