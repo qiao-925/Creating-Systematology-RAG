@@ -175,27 +175,6 @@ def load_chat_manager():
         return None
 
 
-def load_hybrid_query_engine():
-    """加载或创建混合查询引擎"""
-    try:
-        index_manager = load_index()
-        if not index_manager:
-            return None
-        
-        if st.session_state.hybrid_query_engine is None:
-            with st.spinner("🔧 初始化混合查询引擎..."):
-                st.session_state.hybrid_query_engine = HybridQueryEngine(
-                    index_manager,
-                    enable_wikipedia=st.session_state.enable_wikipedia,
-                    wikipedia_threshold=st.session_state.wikipedia_threshold,
-                    wikipedia_max_results=config.WIKIPEDIA_MAX_RESULTS,
-                )
-                st.success("✅ 混合查询引擎已初始化")
-        
-        return st.session_state.hybrid_query_engine
-    except Exception as e:
-        st.error(f"❌ 混合查询引擎初始化失败: {e}")
-        return None
 
 
 def format_answer_with_citation_links(answer: str, sources: list, message_id: str = None) -> str:
