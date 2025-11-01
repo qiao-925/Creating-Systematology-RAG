@@ -32,18 +32,9 @@ try:
 except ImportError:
     GitRepositoryManager = None
 
-try:
-    from llama_index.readers.wikipedia import WikipediaReader
-except ImportError:
-    WikipediaReader = None
-
 # 新架构导入
-try:
-    from src.data_source import DataSource, GitHubSource, LocalFileSource, WebSource
-    from src.data_parser import DocumentParser
-    NEW_ARCHITECTURE_AVAILABLE = True
-except ImportError:
-    NEW_ARCHITECTURE_AVAILABLE = False
+from src.data_source import DataSource, GitHubSource, LocalFileSource, WebSource
+from src.data_parser import DocumentParser
 
 from src.logger import setup_logger
 from src.config import config
@@ -1065,134 +1056,6 @@ def load_documents_from_github_url(
         clean=clean,
         show_progress=show_progress
     )
-
-
-def load_documents_from_wikipedia(
-    pages: List[str],
-    lang: str = "zh",
-    auto_suggest: bool = True,
-    clean: bool = True,
-    show_progress: bool = True
-) -> List[LlamaDocument]:
-    """从维基百科加载文档（使用官方 WikipediaReader）
-    
-    Args:
-        pages: 维基百科页面标题列表
-        lang: 语言代码（zh=中文, en=英文）
-        auto_suggest: 自动纠正页面标题拼写
-        clean: 是否清理文本
-        show_progress: 是否显示进度
-        
-    Returns:
-        Document对象列表
-        
-    Examples:
-        >>> docs = load_documents_from_wikipedia(["钱学森", "系统科学"], lang="zh")
-        >>> docs = load_documents_from_wikipedia(["Systems science"], lang="en")
-    """
-    if WikipediaReader is None:
-        safe_print("❌ 缺少依赖：llama-index-readers-wikipedia")
-        safe_print("   安装：pip install llama-index-readers-wikipedia wikipedia")
-        logger.error("WikipediaReader 未安装")
-        return []
-    
-    if not pages:
-        safe_print("⚠️  页面列表为空")
-        return []
-    
-    try:
-        if show_progress:
-            safe_print(f"📖 正在从维基百科加载 {len(pages)} 个页面（语言: {lang}）...")
-        
-        logger.info(f"开始加载维基百科页面: {pages}, 语言: {lang}")
-        
-        # 使用 WikipediaReader 加载页面
-        reader = WikipediaReader()
-        
-        # 批量加载页面
-        documents = []
-        iterator = tqdm(pages, desc="加载维基百科", unit="页") if show_progress else pages
-        
-        for page_title in iterator:
-            try:
-                page_docs = reader.load_data(
-                    pages=[page_title],
-                    lang=lang,
-                    auto_suggest=auto_suggest
-                )
-                
-                if page_docs:
-                    documents.extend(page_docs)
-                    if show_progress:
-                        safe_print(f"✅ 已加载: {page_title}")
-                else:
-                    if show_progress:
-                        safe_print(f"⚠️  未找到页面: {page_title}")
-                    logger.warning(f"维基百科页面未找到: {page_title}")
-                    
-            except Exception as e:
-                error_msg = str(e)
-                if "does not match any pages" in error_msg or "Page id" in error_msg:
-                    if show_progress:
-                        safe_print(f"⚠️  页面不存在: {page_title}")
-                    logger.warning(f"维基百科页面不存在: {page_title}")
-                else:
-                    if show_progress:
-                        safe_print(f"❌ 加载失败: {page_title} - {error_msg}")
-                    logger.error(f"加载维基百科页面失败 {page_title}: {e}")
-        
-        if not documents:
-            if show_progress:
-                safe_print("⚠️  未成功加载任何维基百科页面")
-            logger.warning("没有成功加载任何维基百科页面")
-            return []
-        
-        # 增强元数据：标识来源
-        for doc in documents:
-            # 获取页面标题（从元数据或文本中提取）
-            page_title = doc.metadata.get('title', 'Unknown')
-            
-            # 构建维基百科 URL
-            # 注意：URL 中的标题需要替换空格为下划线
-            url_title = page_title.replace(' ', '_')
-            wikipedia_url = f"https://{lang}.wikipedia.org/wiki/{url_title}"
-            
-            # 增强元数据
-            doc.metadata.update({
-                "source_type": "wikipedia",
-                "language": lang,
-                "wikipedia_url": wikipedia_url,
-            })
-            
-            # 确保有标题
-            if not doc.metadata.get('title'):
-                doc.metadata['title'] = page_title
-        
-        if show_progress:
-            safe_print(f"✅ 成功加载 {len(documents)} 个维基百科页面")
-        
-        logger.info(f"成功加载 {len(documents)} 个维基百科页面")
-        
-        # 可选的文本清理
-        if clean:
-            processor = DocumentProcessor()
-            cleaned_documents = []
-            for doc in documents:
-                cleaned_text = processor.clean_text(doc.text)
-                cleaned_doc = LlamaDocument(
-                    text=cleaned_text,
-                    metadata=doc.metadata,
-                    id_=doc.id_
-                )
-                cleaned_documents.append(cleaned_doc)
-            return cleaned_documents
-        
-        return documents
-        
-    except Exception as e:
-        safe_print(f"❌ 加载维基百科失败: {e}")
-        logger.error(f"加载维基百科失败: {e}")
-        return []
 
 
 if __name__ == "__main__":
