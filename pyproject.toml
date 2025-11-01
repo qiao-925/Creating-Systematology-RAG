@@ -20,6 +20,7 @@ dependencies = [
     "tqdm>=4.66.0",
     "arize-phoenix>=4.0.0",
     "openinference-instrumentation-llama-index>=2.0.0",
+    "debugpy>=1.8.0",
 ]
 
 [project.optional-dependencies]
