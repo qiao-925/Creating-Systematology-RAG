@@ -1250,20 +1250,73 @@ class IndexManager:
                     self.chroma_collection = existing_collection
                     print(f"✅ Collection为空，可以使用: {self.collection_name}")
                     logger.info(f"Collection为空，直接使用: {self.collection_name}")
-                # 如果collection有数据但无法获取维度，采用保守策略：删除并重建
+                # 如果collection有数据但无法获取维度，尝试更安全的方法
                 elif collection_dim is None:
-                    print(f"⚠️  Collection有数据但无法检测维度，采用保守策略删除并重建")
+                    logger.warning(f"⚠️  Collection有数据但无法检测维度: {self.collection_name}")
+                    print(f"⚠️  Collection有数据（{collection_count}个向量）但无法检测维度")
                     print(f"   当前模型维度: {model_dim}")
-                    print(f"🔄 自动删除旧collection并重新创建...")
                     
-                    self.chroma_client.delete_collection(name=self.collection_name)
-                    logger.warning(f"因无法检测维度，已删除collection: {self.collection_name} (模型维度: {model_dim})")
+                    # 尝试多种方法获取维度（增加重试）
+                    retry_dim = None
+                    retry_methods = []
                     
-                    # 重新创建collection
-                    self.chroma_collection = self.chroma_client.get_or_create_collection(
-                        name=self.collection_name
-                    )
-                    print(f"✅ 已重新创建collection: {self.collection_name}")
+                    # 方法1: 尝试查询更多样本
+                    try:
+                        larger_sample = existing_collection.peek(limit=min(10, collection_count))
+                        if larger_sample and 'embeddings' in larger_sample and larger_sample['embeddings']:
+                            for emb in larger_sample['embeddings']:
+                                if emb and len(emb) > 0:
+                                    retry_dim = len(emb)
+                                    retry_methods.append("查询多个样本")
+                                    break
+                    except Exception as e:
+                        logger.debug(f"查询多个样本失败: {e}")
+                    
+                    # 方法2: 尝试查询第一条数据
+                    if retry_dim is None:
+                        try:
+                            first_result = existing_collection.get(limit=1)
+                            if first_result and 'embeddings' in first_result and first_result['embeddings']:
+                                if first_result['embeddings'] and len(first_result['embeddings']) > 0:
+                                    retry_dim = len(first_result['embeddings'][0])
+                                    retry_methods.append("查询第一条数据")
+                        except Exception as e:
+                            logger.debug(f"查询第一条数据失败: {e}")
+                    
+                    # 如果重试后仍无法获取维度，采用保守策略：先警告，不删除
+                    if retry_dim is None:
+                        logger.error(
+                            f"❌ 无法检测collection维度，但collection有{collection_count}个向量。"
+                            f"为保护数据，不删除collection，直接使用现有collection。"
+                            f"如果后续出现维度错误，请手动处理。"
+                        )
+                        print(f"⚠️  警告: 无法检测维度，但collection有数据")
+                        print(f"   为保护数据，保留现有collection")
+                        print(f"   如果后续出现维度错误，请检查模型配置或手动重建索引")
+                        # 不删除，直接使用现有collection
+                        self.chroma_collection = existing_collection
+                    elif retry_dim == model_dim:
+                        # 重试后维度匹配，使用现有collection
+                        logger.info(f"✅ 重试后检测到维度匹配: {retry_dim} (方法: {', '.join(retry_methods)})")
+                        print(f"✅ 重试后检测到维度匹配: {retry_dim}维")
+                        self.chroma_collection = existing_collection
+                    else:
+                        # 重试后维度不匹配，才删除重建
+                        logger.warning(
+                            f"⚠️  重试后检测到维度不匹配: collection={retry_dim}, model={model_dim}。"
+                            f"删除并重建collection"
+                        )
+                        print(f"⚠️  重试后检测到维度不匹配: {retry_dim} != {model_dim}")
+                        print(f"🔄 删除旧collection并重新创建...")
+                        
+                        self.chroma_client.delete_collection(name=self.collection_name)
+                        logger.warning(f"因维度不匹配，已删除collection: {self.collection_name} (维度: {retry_dim} -> {model_dim})")
+                        
+                        # 重新创建collection
+                        self.chroma_collection = self.chroma_client.get_or_create_collection(
+                            name=self.collection_name
+                        )
+                        print(f"✅ 已重新创建collection: {self.collection_name}")
                 # 如果维度不匹配，删除并重建
                 elif model_dim != collection_dim:
                     print(f"⚠️  检测到embedding维度不匹配:")
@@ -1299,29 +1352,57 @@ class IndexManager:
                     raise
                     
         except Exception as e:
-            # 如果检测过程出错，尝试删除旧collection并重建（保守策略）
+            # 如果检测过程出错，先尝试检查collection是否存在且有数据
             logger.error(f"维度检测过程出错: {e}")
-            logger.info("采用保守策略：删除旧collection并重建")
             
             try:
-                # 尝试删除旧collection（如果存在）
+                # 先尝试获取collection（不删除）
                 try:
-                    self.chroma_client.delete_collection(name=self.collection_name)
-                    logger.info(f"已删除可能不兼容的collection: {self.collection_name}")
-                    print(f"🔄 已删除可能不兼容的collection: {self.collection_name}")
-                except:
-                    # 如果删除失败（collection不存在），继续创建新collection
-                    pass
+                    existing_collection = self.chroma_client.get_collection(name=self.collection_name)
+                    collection_count = existing_collection.count()
+                    
+                    if collection_count > 0:
+                        # collection有数据，保护数据，不删除
+                        logger.warning(
+                            f"⚠️  维度检测失败，但collection '{self.collection_name}' 有{collection_count}个向量。"
+                            f"为保护数据，不删除collection，直接使用现有collection。"
+                            f"如果后续出现维度错误，请手动处理。"
+                        )
+                        print(f"⚠️  警告: 维度检测失败，但collection有{collection_count}个向量")
+                        print(f"   为保护数据，保留现有collection")
+                        print(f"   如果后续出现维度错误，请检查模型配置或手动重建索引")
+                        print(f"   错误详情: {e}")
+                        self.chroma_collection = existing_collection
+                        return
+                    else:
+                        # collection为空，可以安全删除重建
+                        logger.info(f"Collection为空，可以安全删除重建")
+                        self.chroma_client.delete_collection(name=self.collection_name)
+                except Exception as get_error:
+                    # 获取collection失败，可能是collection不存在
+                    if "does not exist" in str(get_error) or "not found" in str(get_error).lower():
+                        logger.info(f"Collection不存在，创建新collection")
+                    else:
+                        # 其他错误，记录但不删除
+                        logger.error(f"获取collection时出错: {get_error}")
+                        logger.warning("为安全起见，不删除collection，尝试创建新collection")
                 
-                # 创建新collection
+                # 创建新collection（如果collection不存在或为空）
                 self.chroma_collection = self.chroma_client.get_or_create_collection(
                     name=self.collection_name
                 )
-                print(f"✅ 已重新创建collection: {self.collection_name}")
-                logger.info(f"已重新创建collection: {self.collection_name}")
+                print(f"✅ 已创建/获取collection: {self.collection_name}")
+                logger.info(f"已创建/获取collection: {self.collection_name}")
+                
             except Exception as fallback_error:
-                logger.error(f"回退创建collection也失败: {fallback_error}")
-                raise
+                logger.error(f"回退处理也失败: {fallback_error}")
+                # 最后尝试：如果collection存在，直接使用（不删除）
+                try:
+                    self.chroma_collection = self.chroma_client.get_collection(name=self.collection_name)
+                    logger.warning(f"使用现有collection: {self.collection_name}（可能存在维度不匹配风险）")
+                    print(f"⚠️  使用现有collection（可能存在维度不匹配风险）")
+                except:
+                    raise fallback_error
     
     def clear_index(self):
         """清空索引"""

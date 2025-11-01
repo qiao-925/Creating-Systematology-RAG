@@ -187,7 +187,7 @@ class Config:
         self.CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "512"))
         self.CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "50"))
         self.SIMILARITY_TOP_K = int(os.getenv("SIMILARITY_TOP_K", "3"))
-        self.SIMILARITY_THRESHOLD = float(os.getenv("SIMILARITY_THRESHOLD", "0.5"))  # 相似度阈值，低于此值会启用推理模式
+        self.SIMILARITY_THRESHOLD = float(os.getenv("SIMILARITY_THRESHOLD", "0.2"))  # 相似度阈值，低于此值会启用推理模式
         
         # Embedding性能优化配置
         self.EMBED_BATCH_SIZE = int(os.getenv("EMBED_BATCH_SIZE", "10"))  # 批处理大小，默认10（可根据GPU内存调整）

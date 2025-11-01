@@ -33,6 +33,7 @@ def start_phoenix_ui(port: int = 6006) -> Optional[any]:
         import phoenix as px
         from phoenix.otel import register
         from openinference.instrumentation.llama_index import LlamaIndexInstrumentor
+        import logging
         
         # 启动Phoenix应用
         _phoenix_session = px.launch_app(port=port)
@@ -40,6 +41,13 @@ def start_phoenix_ui(port: int = 6006) -> Optional[any]:
         # 配置OpenTelemetry追踪
         tracer_provider = register()
         LlamaIndexInstrumentor().instrument(tracer_provider=tracer_provider)
+        
+        # 抑制OpenTelemetry导出器的错误日志（避免连接失败时的噪音）
+        # 这些错误通常是 transient 的，不影响应用功能
+        otlp_logger = logging.getLogger('opentelemetry.sdk.trace.export')
+        otlp_logger.setLevel(logging.WARNING)  # 只显示警告及以上级别
+        otlp_exporter_logger = logging.getLogger('opentelemetry.exporter.otlp')
+        otlp_exporter_logger.setLevel(logging.WARNING)
         
         logger.info(f"✅ Phoenix UI 已启动: http://localhost:{port}")
         print(f"\n🔍 Phoenix可观测性平台已启动")
