@@ -6,7 +6,7 @@
 
 import time
 from typing import List, Optional, Tuple, Dict, Any
-from llama_index.core import VectorStoreIndex, Settings
+from llama_index.core import VectorStoreIndex, Settings, PromptTemplate
 from llama_index.core.query_engine import CitationQueryEngine
 from llama_index.core.base.response.schema import Response
 from llama_index.core.schema import Document as LlamaDocument
@@ -16,6 +16,8 @@ from llama_index.llms.deepseek import DeepSeek
 from src.config import config, get_gpu_device, is_gpu_available
 from src.indexer import IndexManager
 from src.logger import setup_logger
+from src.response_formatter import ResponseFormatter
+from src.response_formatter.templates import SIMPLE_MARKDOWN_TEMPLATE
 
 logger = setup_logger('query_engine')
 
@@ -33,6 +35,7 @@ class QueryEngine:
         citation_chunk_size: int = 512,
         enable_debug: bool = False,
         similarity_threshold: Optional[float] = None,
+        enable_markdown_formatting: bool = True,
     ):
         """初始化查询引擎
         
@@ -45,12 +48,17 @@ class QueryEngine:
             citation_chunk_size: 引用块大小
             enable_debug: 是否启用调试模式（LlamaDebugHandler）
             similarity_threshold: 相似度阈值，低于此值启用推理模式
+            enable_markdown_formatting: 是否启用Markdown格式化
         """
         self.index_manager = index_manager
         self.similarity_top_k = similarity_top_k or config.SIMILARITY_TOP_K
         self.citation_chunk_size = citation_chunk_size
         self.enable_debug = enable_debug
         self.similarity_threshold = similarity_threshold or config.SIMILARITY_THRESHOLD
+        
+        # 初始化响应格式化器
+        self.formatter = ResponseFormatter(enable_formatting=enable_markdown_formatting)
+        logger.info(f"响应格式化器已{'启用' if enable_markdown_formatting else '禁用'}")
         
         # 配置DeepSeek LLM
         self.api_key = api_key or config.DEEPSEEK_API_KEY
@@ -78,13 +86,28 @@ class QueryEngine:
         # 获取索引
         self.index = self.index_manager.get_index()
         
+        # 创建 Markdown Prompt 模板（如果启用格式化）
+        markdown_template = None
+        if enable_markdown_formatting:
+            markdown_template = PromptTemplate(SIMPLE_MARKDOWN_TEMPLATE)
+            logger.info("已启用 Markdown Prompt 模板")
+            print("📝 启用 Markdown 格式化 Prompt")
+        
         # 创建带引用的查询引擎
         print("📝 创建引用查询引擎")
+        query_engine_kwargs = {
+            'llm': self.llm,
+            'similarity_top_k': self.similarity_top_k,
+            'citation_chunk_size': self.citation_chunk_size,
+        }
+        
+        # 如果有自定义模板，注入到查询引擎
+        if markdown_template is not None:
+            query_engine_kwargs['text_qa_template'] = markdown_template
+        
         self.query_engine = CitationQueryEngine.from_args(
             self.index,
-            llm=self.llm,
-            similarity_top_k=self.similarity_top_k,
-            citation_chunk_size=self.citation_chunk_size,
+            **query_engine_kwargs
         )
         
         print("✅ 查询引擎初始化完成")
@@ -138,14 +161,19 @@ class QueryEngine:
             logger.info(f"📊 Collection 信息: {collection_name}, 总文档数: {collection_total_docs}")
             print(f"📊 Collection: {collection_name}, 总文档数: {collection_total_docs}")
             
-            # 如果文档数为0，输出警告
+            # 如果文档数为0，输出警告并给出明确的解决建议
             if collection_total_docs == 0:
                 logger.warning(f"⚠️  Collection '{collection_name}' 的文档数为0，可能是空collection或初始化问题")
-                print(f"⚠️  注意: Collection '{collection_name}' 的文档数为0")
-                print(f"   如果这不符合预期，请检查:")
-                print(f"   1. 索引是否已正确构建")
-                print(f"   2. Collection名称是否正确")
-                print(f"   3. 向量存储路径是否正确")
+                print(f"\n⚠️  **重要提示**: Collection '{collection_name}' 的文档数为0")
+                print(f"   可能的原因:")
+                print(f"   1. Collection 被重新创建（例如：维度不匹配或检测失败）")
+                print(f"   2. 索引尚未构建")
+                print(f"   3. 数据尚未导入")
+                print(f"\n   💡 **解决方案**:")
+                print(f"   请前往 '设置页面 > 数据源管理' 重新导入数据")
+                print(f"   或者使用命令行工具重新构建索引:")
+                print(f"   python main.py import-docs --directory <your_data_dir> --collection {collection_name}")
+                print(f"\n   注意: 如果Collection被自动重建，您需要重新导入数据才能使用RAG功能")
             
             # 执行查询
             response: Response = self.query_engine.query(question)
@@ -154,6 +182,9 @@ class QueryEngine:
             
             # 提取答案
             answer = str(response)
+            
+            # 格式化答案（Markdown）
+            answer = self.formatter.format(answer, None)  # sources 稍后提取
             
             # 提取引用来源
             sources = []

@@ -27,7 +27,11 @@ htmlcov/
 .env
 
 # 应用数据
-vector_store/
+# 向量库：只忽略非版本化的旧格式，允许 version_* 目录提交
+vector_store/*
+!vector_store/version_*/
+!vector_store/.gitkeep
+
 sessions/
 data/processed/
 data/users.json

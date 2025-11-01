@@ -17,6 +17,8 @@ from llama_index.llms.deepseek import DeepSeek
 from src.config import config
 from src.indexer import IndexManager
 from src.logger import setup_logger
+from src.response_formatter import ResponseFormatter
+from src.response_formatter.templates import CHAT_MARKDOWN_TEMPLATE
 
 logger = setup_logger('chat_manager')
 
@@ -181,6 +183,7 @@ class ChatManager:
         user_email: Optional[str] = None,
         enable_debug: bool = False,
         similarity_threshold: Optional[float] = None,
+        enable_markdown_formatting: bool = True,
     ):
         """初始化对话管理器
         
@@ -195,6 +198,7 @@ class ChatManager:
             user_email: 用户邮箱（用于会话目录隔离）
             enable_debug: 是否启用调试模式
             similarity_threshold: 相似度阈值，低于此值启用推理模式
+            enable_markdown_formatting: 是否启用Markdown格式化
         """
         self.index_manager = index_manager
         self.similarity_top_k = similarity_top_k or config.SIMILARITY_TOP_K
@@ -202,6 +206,10 @@ class ChatManager:
         self.user_email = user_email
         self.enable_debug = enable_debug
         self.similarity_threshold = similarity_threshold or config.SIMILARITY_THRESHOLD
+        
+        # 初始化响应格式化器
+        self.formatter = ResponseFormatter(enable_formatting=enable_markdown_formatting)
+        logger.info(f"响应格式化器已{'启用' if enable_markdown_formatting else '禁用'}")
         
         # 配置DeepSeek LLM
         self.api_key = api_key or config.DEEPSEEK_API_KEY
@@ -236,11 +244,13 @@ class ChatManager:
             # 有索引：使用RAG增强的对话引擎
             self.index = self.index_manager.get_index()
             logger.info("创建RAG增强对话引擎")
-            self.chat_engine = CondensePlusContextChatEngine.from_defaults(
-                retriever=self.index.as_retriever(similarity_top_k=self.similarity_top_k),
-                llm=self.llm,
-                memory=self.memory,
-                context_prompt=(
+            
+            # 选择 Prompt（根据是否启用 Markdown 格式化）
+            if enable_markdown_formatting:
+                context_prompt = CHAT_MARKDOWN_TEMPLATE
+                logger.info("已启用 Markdown 格式的对话 Prompt")
+            else:
+                context_prompt = (
                     "你是一位系统科学领域的资深专家，拥有深厚的理论基础和丰富的实践经验。\n\n"
                     "【知识库参考】\n{context_str}\n\n"
                     "【回答要求】\n"
@@ -250,7 +260,13 @@ class ChatManager:
                     "4. 当知识库信息不足时，可基于专业原理进行合理推断，但需说明这是推理结论\n"
                     "5. 提供完整、深入、有洞察力的回答\n\n"
                     "请用中文回答问题。"
-                ),
+                )
+            
+            self.chat_engine = CondensePlusContextChatEngine.from_defaults(
+                retriever=self.index.as_retriever(similarity_top_k=self.similarity_top_k),
+                llm=self.llm,
+                memory=self.memory,
+                context_prompt=context_prompt,
             )
         else:
             # 无索引：使用纯LLM对话引擎
@@ -320,6 +336,9 @@ class ChatManager:
             
             # 提取答案
             answer = str(response)
+            
+            # 格式化答案（Markdown）
+            answer = self.formatter.format(answer, None)  # sources稍后提取
             
             # 提取引用来源（仅RAG模式有）
             sources = []
