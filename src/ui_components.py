@@ -11,6 +11,7 @@ from src.config import config
 from src.indexer import IndexManager, get_embedding_model_status, get_global_embed_model, load_embedding_model
 from src.chat_manager import ChatManager
 from src.query_engine import HybridQueryEngine
+from src.business.services import RAGService
 from src.logger import setup_logger
 
 logger = setup_logger('ui_components')
@@ -117,13 +118,45 @@ def init_session_state():
     if 'collect_trace' not in st.session_state:
         st.session_state.collect_trace = True
     
+    # RAG服务（新架构）
+    if 'rag_service' not in st.session_state:
+        st.session_state.rag_service = None
+    
     # 启动遮罩：首屏加载完成前为 False，完成后置 True
     if 'boot_ready' not in st.session_state:
         st.session_state.boot_ready = False
 
 
+def load_rag_service() -> Optional[RAGService]:
+    """加载或创建RAG服务（新架构推荐）
+    
+    Returns:
+        Optional[RAGService]: RAG服务实例，失败返回None
+    """
+    try:
+        if st.session_state.rag_service is None:
+            # 使用用户专属的 collection
+            if not st.session_state.collection_name:
+                raise ValueError("未登录或 collection_name 未设置，请先登录")
+            collection_name = st.session_state.collection_name
+            
+            with st.spinner("🔧 初始化RAG服务..."):
+                st.session_state.rag_service = RAGService(
+                    collection_name=collection_name,
+                    enable_debug=st.session_state.get('debug_mode_enabled', False),
+                    enable_markdown_formatting=True,
+                )
+                st.success("✅ RAG服务已初始化")
+        
+        return st.session_state.rag_service
+    except Exception as e:
+        st.error(f"❌ RAG服务初始化失败: {e}")
+        logger.error(f"RAG服务初始化失败: {e}", exc_info=True)
+        return None
+
+
 def load_index():
-    """加载或创建索引"""
+    """加载或创建索引（向后兼容）"""
     try:
         if st.session_state.index_manager is None:
             # 使用用户专属的 collection（登录后必须有 collection_name）
