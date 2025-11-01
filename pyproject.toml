@@ -31,6 +31,9 @@ test = [
     "pytest-benchmark>=4.0.0",
     "pytest-asyncio>=0.21.0",
 ]
+dev = [
+    "debugpy>=1.8.0",
+]
 
 # ==================== PyTorch CUDA 配置 ====================
 # 配置从 PyTorch 官方 CUDA 索引安装，确保使用 GPU 版本
