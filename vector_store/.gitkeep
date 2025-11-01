@@ -1,0 +1,3 @@
+# 此文件用于在 Git 中保留 vector_store 目录
+# 向量库版本将存储在 version_YYYYMMDD_HHMMSS/ 子目录中
+

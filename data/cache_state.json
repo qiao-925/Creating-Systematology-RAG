@@ -69,7 +69,11 @@
         "hash": "36b24746e04c5dc01f9abd795e4b5d1f"
       },
       "step_parse": {
-        "status": "pending"
+        "status": "completed",
+        "timestamp": "2025-11-01T14:15:32.938758",
+        "file_count": 21,
+        "parsed_data_path": "/home/qiao/Desktop/Git Repo/Creating-Systematology-RAG/data/processed/qiao-925_Creating-Systematology-Test_main_13c0b480/documents.pkl",
+        "hash": "57186970d368da0282504539864e246e"
       },
       "step_vectorize": {
         "status": "completed",
