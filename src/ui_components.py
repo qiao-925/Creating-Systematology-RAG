@@ -174,6 +174,7 @@ def load_chat_manager():
         return None
 
 
+<<<<<<< Current (Your changes)
 def load_hybrid_query_engine():
     """加载或创建混合查询引擎"""
     try:
@@ -194,6 +195,8 @@ def load_hybrid_query_engine():
     except Exception as e:
         st.error(f"❌ 混合查询引擎初始化失败: {e}")
         return None
+=======
+>>>>>>> Incoming (Background Agent changes)
 
 
 def format_answer_with_citation_links(answer: str, sources: list, message_id: str = None) -> str:
