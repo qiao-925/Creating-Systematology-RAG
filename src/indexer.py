@@ -111,7 +111,6 @@ def load_embedding_model(model_name: Optional[str] = None, force_reload: bool = 
             logger.info(f"   CUDA版本: {cuda_version}")
         else:
             logger.warning("⚠️  Embedding模型使用CPU模式")
-            logger.info("💡 性能提示: CPU模式较慢，索引构建可能需要30分钟+（GPU模式下约5分钟）")
             logger.info("💡 建议: 如有GPU，请安装CUDA版本的PyTorch以获得最佳性能")
         
         # 构建模型参数
@@ -169,7 +168,6 @@ def load_embedding_model(model_name: Optional[str] = None, force_reload: bool = 
                     logger.info(f"✅ Embedding模型使用GPU加速: {device_name} ({device})")
                 else:
                     logger.warning("⚠️  Embedding模型使用CPU模式")
-                    logger.info("💡 性能提示: CPU模式较慢，索引构建可能需要30分钟+（GPU模式下约5分钟）")
                 
                 # 构建模型参数
                 model_kwargs = {
@@ -370,7 +368,7 @@ class IndexManager:
                 # 配置 HuggingFace 环境变量
                 _setup_huggingface_env()
                 
-                print(f"📦 正在加载Embedding模型: {self.embedding_model_name}")
+                logger.info(f"📦 正在加载Embedding模型: {self.embedding_model_name}")
                 
                 # 使用load_embedding_model函数以确保缓存管理正确
                 try:
@@ -394,14 +392,11 @@ class IndexManager:
                         if device.startswith("cuda") and is_gpu_available():
                             device_name = torch.cuda.get_device_name()
                             cuda_version = torch.version.cuda
-                            print(f"✅ Embedding模型使用GPU加速:")
-                            print(f"   设备: {device}")
-                            print(f"   GPU名称: {device_name}")
-                            print(f"   CUDA版本: {cuda_version}")
-                            logger.info(f"✅ Embedding模型使用GPU: {device_name} ({device})")
+                            logger.info(f"✅ Embedding模型使用GPU加速:")
+                            logger.info(f"   设备: {device}")
+                            logger.info(f"   GPU名称: {device_name}")
+                            logger.info(f"   CUDA版本: {cuda_version}")
                         else:
-                            print("⚠️  Embedding模型使用CPU模式")
-                            print("💡 性能提示: CPU模式较慢，索引构建可能需要30分钟+（GPU模式下约5分钟）")
                             logger.warning("⚠️  Embedding模型使用CPU模式")
                             logger.info("💡 建议: 如有GPU，请安装CUDA版本的PyTorch以获得最佳性能")
                         
@@ -435,13 +430,13 @@ class IndexManager:
                             logger.info(f"📌 模型将使用 CPU")
                         
                         if device.startswith("cuda"):
-                            print(f"✅ 模型加载完成 (GPU加速, 批处理: {config.EMBED_BATCH_SIZE})")
+                            logger.info(f"✅ 模型加载完成 (GPU加速, 批处理: {config.EMBED_BATCH_SIZE})")
                         else:
-                            print(f"✅ 模型加载完成 (CPU模式, 批处理: {config.EMBED_BATCH_SIZE}, 建议调整为5-10)")
+                            logger.info(f"✅ 模型加载完成 (CPU模式, 批处理: {config.EMBED_BATCH_SIZE}, 建议调整为5-10)")
                     except Exception as load_error:
                         # 如果是离线模式且缺少缓存，尝试切换到在线模式
                         if config.HF_OFFLINE_MODE and "offline" in str(load_error).lower():
-                            print(f"⚠️  离线模式下本地无缓存，自动切换到在线模式尝试下载...")
+                            logger.warning(f"⚠️  离线模式下本地无缓存，自动切换到在线模式尝试下载...")
                             os.environ.pop('HF_HUB_OFFLINE', None)
                             
                             try:
@@ -454,11 +449,8 @@ class IndexManager:
                                 # 输出详细的设备信息
                                 if device.startswith("cuda") and is_gpu_available():
                                     device_name = torch.cuda.get_device_name()
-                                    print(f"✅ Embedding模型使用GPU加速: {device_name} ({device})")
-                                    logger.info(f"✅ Embedding模型使用GPU: {device_name} ({device})")
+                                    logger.info(f"✅ Embedding模型使用GPU加速: {device_name} ({device})")
                                 else:
-                                    print("⚠️  Embedding模型使用CPU模式")
-                                    print("💡 性能提示: CPU模式较慢，索引构建可能需要30分钟+（GPU模式下约5分钟）")
                                     logger.warning("⚠️  Embedding模型使用CPU模式")
                                 
                                 # 构建模型参数
@@ -490,14 +482,14 @@ class IndexManager:
                                     logger.info(f"📌 模型将使用 CPU")
                                 
                                 if device.startswith("cuda"):
-                                    print(f"✅ 模型下载并加载完成 (GPU加速, 批处理: {config.EMBED_BATCH_SIZE})")
+                                    logger.info(f"✅ 模型下载并加载完成 (GPU加速, 批处理: {config.EMBED_BATCH_SIZE})")
                                 else:
-                                    print(f"✅ 模型下载并加载完成 (CPU模式, 批处理: {config.EMBED_BATCH_SIZE}, 建议调整为5-10)")
+                                    logger.info(f"✅ 模型下载并加载完成 (CPU模式, 批处理: {config.EMBED_BATCH_SIZE}, 建议调整为5-10)")
                             except Exception as retry_error:
-                                print(f"❌ 模型加载失败: {retry_error}")
+                                logger.error(f"❌ 模型加载失败: {retry_error}")
                                 raise
                         else:
-                            print(f"❌ 模型加载失败: {load_error}")
+                            logger.error(f"❌ 模型加载失败: {load_error}")
                             raise
         
         # 配置全局Settings
@@ -506,7 +498,7 @@ class IndexManager:
         Settings.chunk_overlap = self.chunk_overlap
         
         # 初始化Chroma客户端
-        print(f"🗄️  初始化Chroma向量数据库: {self.persist_dir}")
+        logger.info(f"🗄️  初始化Chroma向量数据库: {self.persist_dir}")
         self.chroma_client = chromadb.PersistentClient(path=str(self.persist_dir))
         
         # 打印数据库信息
@@ -526,7 +518,7 @@ class IndexManager:
         # 索引对象（延迟初始化）
         self._index: Optional[VectorStoreIndex] = None
         
-        print("✅ 索引管理器初始化完成")
+        logger.info("✅ 索引管理器初始化完成")
 
     # ==================== 批处理：按目录/子模块分组 ====================
     def _group_documents_by_directory(
@@ -660,7 +652,7 @@ class IndexManager:
         start_time = time.time()
         
         if not documents:
-            print("⚠️  没有文档可索引")
+            logger.warning("⚠️  没有文档可索引")
             return self.get_index(), {}
         
         # 文档级断点续传：检查每个文档是否已向量化，只处理未完成的文档
@@ -669,7 +661,7 @@ class IndexManager:
         
         if already_vectorized > 0:
             logger.info(f"✅ 检测到 {already_vectorized} 个文档已向量化，跳过处理")
-            print(f"📊 断点续传: {already_vectorized}/{len(documents)} 个文档已向量化，剩余 {len(documents_to_process)} 个待处理")
+            logger.info(f"📊 断点续传: {already_vectorized}/{len(documents)} 个文档已向量化，剩余 {len(documents_to_process)} 个待处理")
         
         # 如果没有需要处理的文档，直接返回
         if not documents_to_process:
@@ -701,22 +693,19 @@ class IndexManager:
         # 获取当前设备信息
         device = get_gpu_device()
         
-        print(f"\n🔨 开始构建索引，共 {len(documents)} 个文档")
-        print(f"   分块参数: size={self.chunk_size}, overlap={self.chunk_overlap}")
+        logger.info(f"🔨 开始构建索引，共 {len(documents)} 个文档")
+        logger.info(f"   分块参数: size={self.chunk_size}, overlap={self.chunk_overlap}")
         
         # 输出设备信息
         if device.startswith("cuda"):
             import torch
             device_name = torch.cuda.get_device_name()
-            print(f"📊 索引构建设备: {device} ⚡ GPU加速模式")
-            print(f"   GPU: {device_name}")
-            print(f"   批处理大小: {config.EMBED_BATCH_SIZE} (GPU推荐10-50)")
-            logger.info(f"📊 索引构建使用GPU: {device_name} ({device})")
+            logger.info(f"📊 索引构建设备: {device} ⚡ GPU加速模式")
+            logger.info(f"   GPU: {device_name}")
+            logger.info(f"   批处理大小: {config.EMBED_BATCH_SIZE} (GPU推荐10-50)")
         else:
-            print(f"📊 索引构建设备: {device} 🐌 CPU模式")
-            print(f"   批处理大小: {config.EMBED_BATCH_SIZE} (CPU建议5-10)")
-            print(f"💡 性能提示: CPU模式较慢，预计耗时30分钟+（GPU模式下约5分钟）")
-            logger.warning(f"📊 索引构建使用CPU（性能较慢）")
+            logger.warning(f"📊 索引构建设备: {device} 🐌 CPU模式")
+            logger.info(f"   批处理大小: {config.EMBED_BATCH_SIZE} (CPU建议5-10)")
             logger.info(f"💡 建议调整EMBED_BATCH_SIZE为5-10以获得最佳CPU性能")
         
         try:
@@ -726,10 +715,10 @@ class IndexManager:
                 group_depth = max(1, config.GROUP_DEPTH)
                 docs_per_batch = max(1, config.DOCS_PER_BATCH)
 
-                print("\n🧭 批处理模式已启用")
-                print(f"   分组方式: directory (depth={group_depth})")
-                print(f"   目标每批文档数: {docs_per_batch}")
-                print(f"   总文档数: {total_docs}")
+                logger.info("🧭 批处理模式已启用")
+                logger.info(f"   分组方式: directory (depth={group_depth})")
+                logger.info(f"   目标每批文档数: {docs_per_batch}")
+                logger.info(f"   总文档数: {total_docs}")
 
                 batches = self._group_documents_by_directory(
                     documents=documents,
@@ -738,10 +727,10 @@ class IndexManager:
                 )
                 # 测试/限速：仅处理前 N 批
                 if config.INDEX_MAX_BATCHES and config.INDEX_MAX_BATCHES > 0:
-                    print(f"   测试模式: 仅处理前 {config.INDEX_MAX_BATCHES} 批")
+                    logger.info(f"   测试模式: 仅处理前 {config.INDEX_MAX_BATCHES} 批")
                     batches = batches[:config.INDEX_MAX_BATCHES]
                 total_batches = len(batches)
-                print(f"   生成批次数: {total_batches}")
+                logger.info(f"   生成批次数: {total_batches}")
 
                 # 确保索引对象存在
                 index = self.get_index()
@@ -776,15 +765,15 @@ class IndexManager:
                     file_list = [d.metadata.get('file_path', '') or '' for d in batch_docs]
                     batch_id = self._compute_batch_id(group_key, file_list)
                     if completed.get(batch_id):
-                        print(f"\n📦 批次 {b_idx}/{total_batches} | 组: {group_key} 已完成，跳过 (checkpoint)")
+                        logger.info(f"📦 批次 {b_idx}/{total_batches} | 组: {group_key} 已完成，跳过 (checkpoint)")
                         grand_docs += batch_doc_count
                         # 节点/令牌未知，采用0累加，仅作为跳过提示
                         continue
 
-                    print(f"\n📦 批次 {b_idx}/{total_batches} | 组: {group_key}")
-                    print(f"   文档: {batch_doc_count} | 估算tokens: {tokens_est}")
+                    logger.info(f"📦 批次 {b_idx}/{total_batches} | 组: {group_key}")
+                    logger.info(f"   文档: {batch_doc_count} | 估算tokens: {tokens_est}")
                     if show_progress:
-                        print("   阶段: 分块中...")
+                        logger.debug("   阶段: 分块中...")
 
                     # 分块：按文档循环，便于展示 doc 级进度
                     nodes = []
@@ -795,11 +784,11 @@ class IndexManager:
                         nodes = node_parser.get_nodes_from_documents(batch_docs)
 
                     node_count = len(nodes)
-                    print(f"   节点: {node_count}")
+                    logger.info(f"   节点: {node_count}")
 
                     # 插入：优先使用 insert_nodes（批量），否则按批次内逐个 insert
                     if show_progress:
-                        print("   阶段: 向量化+写入中...")
+                        logger.debug("   阶段: 向量化+写入中...")
                     insert_start = time.time()
                     try:
                         if hasattr(self._index, 'insert_nodes'):
@@ -828,7 +817,7 @@ class IndexManager:
                     docs_per_s = batch_doc_count / insert_elapsed if insert_elapsed > 0 else 0
                     nodes_per_s = node_count / insert_elapsed if insert_elapsed > 0 else 0
                     tokens_per_s = tokens_est / insert_elapsed if insert_elapsed > 0 else 0
-                    print(f"   ⏱️ 批耗时: {insert_elapsed:.2f}s | 速率: {nodes_per_s:.1f} nodes/s, {docs_per_s:.1f} docs/s, {tokens_per_s:.1f} tok/s | it/s={nodes_per_s:.1f}")
+                    logger.info(f"   ⏱️ 批耗时: {insert_elapsed:.2f}s | 速率: {nodes_per_s:.1f} nodes/s, {docs_per_s:.1f} docs/s, {tokens_per_s:.1f} tok/s | it/s={nodes_per_s:.1f}")
 
                     grand_docs += batch_doc_count
                     grand_nodes += node_count
@@ -850,9 +839,9 @@ class IndexManager:
                 grand_docs_s = grand_docs / grand_elapsed if grand_elapsed > 0 else 0
                 grand_nodes_s = grand_nodes / grand_elapsed if grand_elapsed > 0 else 0
                 grand_tokens_s = grand_tokens_est / grand_elapsed if grand_elapsed > 0 else 0
-                print("\n✅ 批处理完成")
-                print(f"   总批次: {total_batches} | 总文档: {grand_docs} | 总节点: {grand_nodes} | 总tokens(估算): {grand_tokens_est}")
-                print(f"   总耗时: {grand_elapsed:.2f}s | 平均速率: {grand_nodes_s:.1f} nodes/s, {grand_docs_s:.1f} docs/s, {grand_tokens_s:.1f} tok/s")
+                logger.info("✅ 批处理完成")
+                logger.info(f"   总批次: {total_batches} | 总文档: {grand_docs} | 总节点: {grand_nodes} | 总tokens(估算): {grand_tokens_est}")
+                logger.info(f"   总耗时: {grand_elapsed:.2f}s | 平均速率: {grand_nodes_s:.1f} nodes/s, {grand_docs_s:.1f} docs/s, {grand_tokens_s:.1f} tok/s")
 
             # 非批模式：保持现有路径
             elif self._index is None:
@@ -863,8 +852,7 @@ class IndexManager:
                     show_progress=show_progress,
                 )
                 index_elapsed = time.time() - index_start_time
-                print(f"✅ 索引创建成功 (耗时: {index_elapsed:.2f}s)")
-                logger.info(f"索引创建完成: {len(documents)}个文档, 耗时{index_elapsed:.2f}s, 平均{index_elapsed/len(documents):.3f}s/文档")
+                logger.info(f"✅ 索引创建成功 (耗时: {index_elapsed:.2f}s)")
             else:
                 # 如果索引已存在，批量增量添加文档（优化：使用insert_ref_docs批量插入）
                 insert_start_time = time.time()
@@ -874,12 +862,7 @@ class IndexManager:
                 try:
                     self._index.insert_ref_docs(documents, show_progress=show_progress)
                     insert_elapsed = time.time() - insert_start_time
-                    print(f"✅ 文档已批量添加到现有索引 (耗时: {insert_elapsed:.2f}s)")
-                    logger.info(
-                        f"批量增量添加完成: {len(documents)}个文档, "
-                        f"耗时{insert_elapsed:.2f}s, "
-                        f"平均{insert_elapsed/len(documents):.3f}s/文档"
-                    )
+                    logger.info(f"✅ 文档已批量添加到现有索引 (耗时: {insert_elapsed:.2f}s)")
                 except AttributeError:
                     # 如果insert_ref_docs不存在，回退到批量插入节点的方式
                     logger.warning("insert_ref_docs不可用，使用节点批量插入方式")
@@ -892,7 +875,7 @@ class IndexManager:
                     # 先批量分块所有文档，获取总节点数
                     all_nodes = []
                     if show_progress:
-                        print("   正在分块文档...")
+                        logger.debug("   正在分块文档...")
                     for doc in tqdm(documents, desc="分块", disable=not show_progress, unit="doc"):
                         nodes = node_parser.get_nodes_from_documents([doc])
                         all_nodes.extend(nodes)
@@ -959,18 +942,13 @@ class IndexManager:
                     
                     insert_elapsed = time.time() - insert_start_time
                     avg_rate = total_nodes / insert_elapsed if insert_elapsed > 0 else 0
-                    print(f"✅ 文档已批量添加到现有索引 (耗时: {insert_elapsed:.2f}s, 平均速率: {avg_rate:.1f} nodes/s)")
-                    logger.info(
-                        f"批量增量添加完成: {len(documents)}个文档, {total_nodes}个节点, "
-                        f"耗时{insert_elapsed:.2f}s, "
-                        f"平均速率={avg_rate:.1f} nodes/s"
-                    )
+                    logger.info(f"✅ 文档已批量添加到现有索引 (耗时: {insert_elapsed:.2f}s, 平均速率: {avg_rate:.1f} nodes/s)")
             
             # 获取索引统计信息
             stats = self.get_stats()
             total_elapsed = time.time() - start_time
             
-            print(f"📊 索引统计: {stats}")
+            logger.info(f"📊 索引统计: {stats}")
             device_info = f"{device} ({'GPU加速' if device.startswith('cuda') else 'CPU模式'})"
             logger.info(
                 f"索引构建完成 (设备: {device_info}): "
@@ -987,8 +965,7 @@ class IndexManager:
                  if doc.metadata.get("file_path")]
             )
             vector_ids_elapsed = time.time() - vector_ids_map_start
-            print(f"📋 已记录 {len(vector_ids_map)} 个文件的向量ID映射 (耗时: {vector_ids_elapsed:.2f}s)")
-            logger.debug(f"向量ID映射构建耗时: {vector_ids_elapsed:.2f}s")
+            logger.info(f"📋 已记录 {len(vector_ids_map)} 个文件的向量ID映射 (耗时: {vector_ids_elapsed:.2f}s)")
             
             # 如果提供了缓存管理器，更新缓存状态
             if cache_manager and task_id:
@@ -1009,7 +986,7 @@ class IndexManager:
             return self._index, vector_ids_map
             
         except Exception as e:
-            print(f"❌ 索引构建失败: {e}")
+            logger.error(f"❌ 索引构建失败: {e}")
             
             # 如果提供了缓存管理器，标记步骤失败
             if cache_manager and task_id:
@@ -1045,9 +1022,9 @@ class IndexManager:
                     vector_store=self.vector_store,
                     storage_context=self.storage_context,
                 )
-                print("✅ 从向量存储加载索引成功")
+                logger.info("✅ 从向量存储加载索引成功")
             except Exception as e:
-                print(f"ℹ️  没有找到现有索引，将在添加文档后创建")
+                logger.info("ℹ️  没有找到现有索引，将在添加文档后创建")
                 # 创建一个空索引
                 self._index = VectorStoreIndex.from_documents(
                     [],
@@ -1062,33 +1039,29 @@ class IndexManager:
             # 1. 列出所有collections
             try:
                 all_collections = self.chroma_client.list_collections()
-                print(f"\n📋 数据库中的Collections列表:")
+                logger.info("📋 数据库中的Collections列表:")
                 if all_collections:
                     for idx, coll in enumerate(all_collections, 1):
                         try:
                             coll_count = coll.count() if hasattr(coll, 'count') else 0
                             coll_name = coll.name if hasattr(coll, 'name') else str(coll)
-                            print(f"   {idx}. {coll_name} - {coll_count} 个向量")
-                            logger.info(f"Collection: {coll_name}, 向量数: {coll_count}")
+                            logger.info(f"   {idx}. {coll_name} - {coll_count} 个向量")
                         except Exception as e:
                             coll_name = coll.name if hasattr(coll, 'name') else str(coll)
-                            print(f"   {idx}. {coll_name} - 无法获取统计信息: {e}")
+                            logger.warning(f"   {idx}. {coll_name} - 无法获取统计信息: {e}")
                 else:
-                    print("   (无collections)")
-                    logger.info("数据库中暂无collections")
+                    logger.info("   (无collections)")
             except Exception as e:
                 logger.warning(f"获取collections列表失败: {e}")
-                print(f"   ⚠️  无法列出collections: {e}")
             
             # 2. 检查当前collection是否存在
-            print(f"\n🔍 检查目标Collection: {self.collection_name}")
+            logger.info(f"🔍 检查目标Collection: {self.collection_name}")
             try:
                 existing_collection = self.chroma_client.get_collection(name=self.collection_name)
                 collection_count = existing_collection.count()
                 
-                print(f"   ✅ Collection存在")
-                print(f"   📊 向量总数: {collection_count}")
-                logger.info(f"Collection '{self.collection_name}' 存在，向量数: {collection_count}")
+                logger.info(f"   ✅ Collection存在")
+                logger.info(f"   📊 向量总数: {collection_count}")
                 
                 # 3. 获取collection的详细信息
                 sample_data = None  # 初始化变量
@@ -1121,49 +1094,49 @@ class IndexManager:
                                         file_types[file_ext] = file_types.get(file_ext, 0) + 1
                         
                         # 打印统计信息
-                        print(f"\n   📈 Collection统计信息:")
-                        print(f"      • 向量数量: {collection_count}")
+                        logger.info(f"   📈 Collection统计信息:")
+                        logger.info(f"      • 向量数量: {collection_count}")
                         
                         if file_paths:
-                            print(f"      • 唯一文件路径数: {len(file_paths)}")
+                            logger.info(f"      • 唯一文件路径数: {len(file_paths)}")
                             if len(file_paths) <= 20:
-                                print(f"      • 文件路径列表:")
+                                logger.debug(f"      • 文件路径列表:")
                                 for fp in sorted(list(file_paths))[:20]:
-                                    print(f"        - {fp}")
+                                    logger.debug(f"        - {fp}")
                             else:
-                                print(f"      • 文件路径列表（前20个）:")
+                                logger.debug(f"      • 文件路径列表（前20个）:")
                                 for fp in sorted(list(file_paths))[:20]:
-                                    print(f"        - {fp}")
-                                print(f"        ... 还有 {len(file_paths) - 20} 个文件")
+                                    logger.debug(f"        - {fp}")
+                                logger.debug(f"        ... 还有 {len(file_paths) - 20} 个文件")
                         
                         if repositories:
-                            print(f"      • 仓库列表:")
+                            logger.info(f"      • 仓库列表:")
                             for repo in sorted(list(repositories)):
-                                print(f"        - {repo}")
+                                logger.debug(f"        - {repo}")
                         
                         if file_types:
-                            print(f"      • 文件类型分布:")
+                            logger.info(f"      • 文件类型分布:")
                             for ext, count in sorted(file_types.items(), key=lambda x: x[1], reverse=True):
                                 ext_display = ext if ext else "(无扩展名)"
-                                print(f"        {ext_display}: {count} 个")
+                                logger.info(f"        {ext_display}: {count} 个")
                         
                         # 打印样本metadata（前5条）
                         if sample_data and 'metadatas' in sample_data and sample_data['metadatas']:
-                            print(f"\n   📄 样本数据（前5条）:")
+                            logger.debug(f"   📄 样本数据（前5条）:")
                             for idx, metadata in enumerate(sample_data['metadatas'][:5], 1):
                                 if metadata:
-                                    print(f"      {idx}. Metadata:")
+                                    logger.debug(f"      {idx}. Metadata:")
                                     for key, value in metadata.items():
                                         # 截断过长的值
                                         value_str = str(value)
                                         if len(value_str) > 100:
                                             value_str = value_str[:100] + "..."
-                                        print(f"         {key}: {value_str}")
+                                        logger.debug(f"         {key}: {value_str}")
                                     
                                     # 如果有对应的文档ID
                                     if 'ids' in sample_data and idx <= len(sample_data['ids']):
                                         doc_id = sample_data['ids'][idx - 1]
-                                        print(f"         id: {doc_id}")
+                                        logger.debug(f"         id: {doc_id}")
                         
                         logger.info(
                             f"Collection详情: 向量数={collection_count}, "
@@ -1174,38 +1147,29 @@ class IndexManager:
                         
                     except Exception as e:
                         logger.warning(f"获取collection样本数据失败: {e}")
-                        print(f"   ⚠️  无法获取样本数据: {e}")
                     
                     # 获取维度信息
                     try:
                         if existing_collection.metadata and 'embedding_dimension' in existing_collection.metadata:
                             dim = existing_collection.metadata['embedding_dimension']
-                            print(f"   📏 Embedding维度: {dim}")
-                            logger.info(f"Collection维度: {dim}")
+                            logger.info(f"   📏 Embedding维度: {dim}")
                         elif sample_data and 'embeddings' in sample_data and sample_data['embeddings']:
                             dim = len(sample_data['embeddings'][0])
-                            print(f"   📏 Embedding维度: {dim} (从样本数据检测)")
-                            logger.info(f"Collection维度: {dim} (从样本数据检测)")
+                            logger.info(f"   📏 Embedding维度: {dim} (从样本数据检测)")
                     except Exception as e:
                         logger.debug(f"获取维度信息失败: {e}")
                 else:
-                    print(f"   ℹ️  Collection为空")
-                    logger.info(f"Collection '{self.collection_name}' 为空")
+                    logger.info(f"   ℹ️  Collection为空")
                 
             except Exception as e:
                 # Collection不存在
                 if "does not exist" in str(e) or "not found" in str(e).lower():
-                    print(f"   ℹ️  Collection不存在，将创建新collection")
-                    logger.info(f"Collection '{self.collection_name}' 不存在，将创建")
+                    logger.info(f"   ℹ️  Collection不存在，将创建新collection")
                 else:
-                    print(f"   ⚠️  检查collection时出错: {e}")
-                    logger.warning(f"检查collection失败: {e}")
-            
-            print()  # 空行分隔
+                    logger.warning(f"   ⚠️  检查collection时出错: {e}")
             
         except Exception as e:
             logger.error(f"打印数据库信息失败: {e}")
-            print(f"⚠️  打印数据库信息失败: {e}")
     
     def _ensure_collection_dimension_match(self):
         """确保collection的embedding维度与当前模型匹配
@@ -1255,13 +1219,10 @@ class IndexManager:
             # 如果仍然无法获取模型维度，这是严重错误
             if model_dim is None:
                 error_msg = "无法检测embedding模型维度，这可能导致维度不匹配错误"
-                logger.error(error_msg)
-                print(f"❌ {error_msg}")
-                print(f"   尝试的方法: {dim_detection_methods}")
+                logger.error(f"{error_msg}, 尝试的方法: {dim_detection_methods}")
                 raise ValueError(error_msg)
             
             logger.info(f"✅ 成功检测到embedding模型维度: {model_dim} (方法: {', '.join(dim_detection_methods)})")
-            print(f"📏 当前embedding模型维度: {model_dim}")
             
             # 尝试获取现有collection
             try:
@@ -1313,13 +1274,12 @@ class IndexManager:
                 # 如果collection为空，直接使用（无需检查维度）
                 if collection_count == 0:
                     self.chroma_collection = existing_collection
-                    print(f"✅ Collection为空，可以使用: {self.collection_name}")
-                    logger.info(f"Collection为空，直接使用: {self.collection_name}")
+                    logger.info(f"✅ Collection为空，可以使用: {self.collection_name}")
                 # 如果collection有数据但无法获取维度，采用保守策略：删除并重建
                 elif collection_dim is None:
-                    print(f"⚠️  Collection有数据但无法检测维度，采用保守策略删除并重建")
-                    print(f"   当前模型维度: {model_dim}")
-                    print(f"🔄 自动删除旧collection并重新创建...")
+                    logger.warning(f"⚠️  Collection有数据但无法检测维度，采用保守策略删除并重建")
+                    logger.info(f"   当前模型维度: {model_dim}")
+                    logger.info(f"🔄 自动删除旧collection并重新创建...")
                     
                     self.chroma_client.delete_collection(name=self.collection_name)
                     logger.warning(f"因无法检测维度，已删除collection: {self.collection_name} (模型维度: {model_dim})")
@@ -1328,15 +1288,15 @@ class IndexManager:
                     self.chroma_collection = self.chroma_client.get_or_create_collection(
                         name=self.collection_name
                     )
-                    print(f"✅ 已重新创建collection: {self.collection_name}")
-                    print(f"⚠️  **重要**: Collection已重新创建，原有数据已被清除")
-                    print(f"   💡 请重新导入数据以恢复索引功能")
+                    logger.warning(f"✅ 已重新创建collection: {self.collection_name}")
+                    logger.warning(f"⚠️  **重要**: Collection已重新创建，原有数据已被清除")
+                    logger.info(f"   💡 请重新导入数据以恢复索引功能")
                 # 如果维度不匹配，删除并重建（确保都是整数后再比较，避免numpy数组比较问题）
                 elif int(model_dim) != int(collection_dim):
-                    print(f"⚠️  检测到embedding维度不匹配:")
-                    print(f"   Collection维度: {collection_dim}")
-                    print(f"   当前模型维度: {model_dim}")
-                    print(f"🔄 自动删除旧collection并重新创建...")
+                    logger.warning(f"⚠️  检测到embedding维度不匹配:")
+                    logger.info(f"   Collection维度: {collection_dim}")
+                    logger.info(f"   当前模型维度: {model_dim}")
+                    logger.info(f"🔄 自动删除旧collection并重新创建...")
                     
                     self.chroma_client.delete_collection(name=self.collection_name)
                     logger.info(f"已删除维度不匹配的collection: {self.collection_name} (维度: {collection_dim} -> {model_dim})")
@@ -1345,14 +1305,13 @@ class IndexManager:
                     self.chroma_collection = self.chroma_client.get_or_create_collection(
                         name=self.collection_name
                     )
-                    print(f"✅ 已重新创建collection: {self.collection_name} (维度: {model_dim})")
-                    print(f"⚠️  **重要**: Collection已重新创建，原有数据已被清除")
-                    print(f"   💡 请重新导入数据以恢复索引功能")
+                    logger.warning(f"✅ 已重新创建collection: {self.collection_name} (维度: {model_dim})")
+                    logger.warning(f"⚠️  **重要**: Collection已重新创建，原有数据已被清除")
+                    logger.info(f"   💡 请重新导入数据以恢复索引功能")
                 else:
                     # 维度匹配，使用现有collection
                     self.chroma_collection = existing_collection
-                    print(f"✅ Collection维度检查通过: {model_dim}维")
-                    logger.info(f"Collection维度匹配: {model_dim}维")
+                    logger.info(f"✅ Collection维度检查通过: {model_dim}维")
                     
             except Exception as e:
                 # Collection不存在，创建新的
@@ -1360,8 +1319,7 @@ class IndexManager:
                     self.chroma_collection = self.chroma_client.get_or_create_collection(
                         name=self.collection_name
                     )
-                    print(f"✅ 创建新collection: {self.collection_name} (维度: {model_dim})")
-                    logger.info(f"创建新collection: {self.collection_name} (维度: {model_dim})")
+                    logger.info(f"✅ 创建新collection: {self.collection_name} (维度: {model_dim})")
                 else:
                     # 其他错误，重新抛出
                     logger.error(f"获取collection时出错: {e}")
@@ -1372,22 +1330,20 @@ class IndexManager:
             logger.error(f"维度检测过程出错: {e}")
             logger.info("采用保守策略：删除旧collection并重建")
             
-            try:
-                # 尝试删除旧collection（如果存在）
                 try:
-                    self.chroma_client.delete_collection(name=self.collection_name)
-                    logger.info(f"已删除可能不兼容的collection: {self.collection_name}")
-                    print(f"🔄 已删除可能不兼容的collection: {self.collection_name}")
-                except:
-                    # 如果删除失败（collection不存在），继续创建新collection
-                    pass
-                
-                # 创建新collection
-                self.chroma_collection = self.chroma_client.get_or_create_collection(
-                    name=self.collection_name
-                )
-                print(f"✅ 已重新创建collection: {self.collection_name}")
-                logger.info(f"已重新创建collection: {self.collection_name}")
+                    # 尝试删除旧collection（如果存在）
+                    try:
+                        self.chroma_client.delete_collection(name=self.collection_name)
+                        logger.info(f"🔄 已删除可能不兼容的collection: {self.collection_name}")
+                    except:
+                        # 如果删除失败（collection不存在），继续创建新collection
+                        pass
+                    
+                    # 创建新collection
+                    self.chroma_collection = self.chroma_client.get_or_create_collection(
+                        name=self.collection_name
+                    )
+                    logger.info(f"✅ 已重新创建collection: {self.collection_name}")
             except Exception as fallback_error:
                 logger.error(f"回退创建collection也失败: {fallback_error}")
                 raise
@@ -1397,7 +1353,7 @@ class IndexManager:
         try:
             # 删除集合
             self.chroma_client.delete_collection(name=self.collection_name)
-            print(f"✅ 已删除集合: {self.collection_name}")
+            logger.info(f"✅ 已删除集合: {self.collection_name}")
             
             # 重新创建集合
             self.chroma_collection = self.chroma_client.get_or_create_collection(
@@ -1410,10 +1366,10 @@ class IndexManager:
             
             # 重置索引
             self._index = None
-            print("✅ 索引已清空")
+            logger.info("✅ 索引已清空")
             
         except Exception as e:
-            print(f"❌ 清空索引失败: {e}")
+            logger.error(f"❌ 清空索引失败: {e}")
             raise
     
     def get_stats(self) -> dict:
@@ -1426,7 +1382,6 @@ class IndexManager:
             # 检查chroma_collection是否已初始化
             if not hasattr(self, 'chroma_collection') or self.chroma_collection is None:
                 logger.warning("⚠️  chroma_collection未初始化，无法获取统计信息")
-                print(f"⚠️  chroma_collection未初始化，无法获取统计信息")
                 return {
                     "collection_name": self.collection_name,
                     "document_count": 0,
@@ -1449,7 +1404,6 @@ class IndexManager:
         except AttributeError as e:
             error_msg = f"chroma_collection属性访问失败: {e}"
             logger.error(error_msg)
-            print(f"❌ {error_msg}")
             return {
                 "collection_name": self.collection_name,
                 "document_count": 0,
@@ -1461,7 +1415,6 @@ class IndexManager:
         except Exception as e:
             error_msg = f"获取统计信息失败: {e}"
             logger.error(error_msg, exc_info=True)
-            print(f"❌ {error_msg}")
             return {
                 "collection_name": self.collection_name,
                 "document_count": 0,
@@ -1531,7 +1484,7 @@ class IndexManager:
             try:
                 added_count, added_vector_ids = self._add_documents(added_docs)
                 stats["added"] = added_count
-                print(f"✅ 新增 {added_count} 个文档")
+                logger.info(f"✅ 新增 {added_count} 个文档")
                 
                 # 更新元数据的向量ID
                 if metadata_manager and added_docs:
@@ -1549,7 +1502,7 @@ class IndexManager:
                                 )
             except Exception as e:
                 error_msg = f"新增文档失败: {e}"
-                print(f"❌ {error_msg}")
+                logger.error(error_msg)
                 stats["errors"].append(error_msg)
         
         # 2. 处理修改（先批量删除旧的，再批量添加新的）
@@ -1584,7 +1537,7 @@ class IndexManager:
                 # 批量添加新版本
                 modified_count, modified_vector_ids = self._add_documents(modified_docs)
                 stats["modified"] = modified_count
-                print(f"✅ 更新 {modified_count} 个文档（批量删除 {deleted_vector_count} 个旧向量）")
+                logger.info(f"✅ 更新 {modified_count} 个文档（批量删除 {deleted_vector_count} 个旧向量）")
                 
                 # 更新元数据的向量ID
                 if metadata_manager and modified_docs:
@@ -1602,7 +1555,7 @@ class IndexManager:
                                 )
             except Exception as e:
                 error_msg = f"更新文档失败: {e}"
-                print(f"❌ {error_msg}")
+                logger.error(error_msg)
                 stats["errors"].append(error_msg)
         
         # 3. 处理删除
@@ -1610,10 +1563,10 @@ class IndexManager:
             try:
                 deleted_count = self._delete_documents(deleted_file_paths, metadata_manager)
                 stats["deleted"] = deleted_count
-                print(f"✅ 删除 {deleted_count} 个文档")
+                logger.info(f"✅ 删除 {deleted_count} 个文档")
             except Exception as e:
                 error_msg = f"删除文档失败: {e}"
-                print(f"❌ {error_msg}")
+                logger.error(error_msg)
                 stats["errors"].append(error_msg)
         
         return stats
@@ -1657,11 +1610,9 @@ class IndexManager:
                         self._index.insert(doc)
                         count += 1
                     except Exception as insert_error:
-                        print(f"⚠️  添加文档失败 [{doc.metadata.get('file_path', 'unknown')}]: {insert_error}")
-                        logger.warning(f"添加文档失败: {insert_error}")
+                        logger.warning(f"⚠️  添加文档失败 [{doc.metadata.get('file_path', 'unknown')}]: {insert_error}")
         except Exception as e:
             logger.error(f"批量添加文档失败: {e}")
-            print(f"❌ 批量添加文档失败: {e}")
             return 0, {}
         
         # 优化：批量查询向量ID映射
@@ -1779,7 +1730,7 @@ class IndexManager:
         try:
             self.chroma_collection.delete(ids=vector_ids)
         except Exception as e:
-            print(f"⚠️  删除向量失败: {e}")
+            logger.warning(f"⚠️  删除向量失败: {e}")
             raise
     
     def get_node_ids_for_document(self, doc_id: str) -> List[str]:
@@ -1804,7 +1755,7 @@ class IndexManager:
             # 返回所有ID（简化版本，实际应该根据元数据过滤）
             return result['ids']
         except Exception as e:
-            print(f"⚠️  查询节点ID失败: {e}")
+            logger.warning(f"⚠️  查询节点ID失败: {e}")
             return []
     
     @staticmethod
@@ -1959,16 +1910,13 @@ class IndexManager:
             ... )
         """
         if not concept_keywords:
-            print("⚠️  概念关键词列表为空")
+            logger.warning("⚠️  概念关键词列表为空")
             return 0
         
         try:
             from src.data_loader import load_documents_from_wikipedia
             
-            if show_progress:
-                print(f"📖 预加载 {len(concept_keywords)} 个维基百科概念...")
-            
-            logger.info(f"开始预加载维基百科概念: {concept_keywords}")
+            logger.info(f"📖 预加载 {len(concept_keywords)} 个维基百科概念...")
             
             # 加载维基百科页面
             wiki_docs = load_documents_from_wikipedia(
@@ -1980,24 +1928,18 @@ class IndexManager:
             )
             
             if not wiki_docs:
-                if show_progress:
-                    print("⚠️  未找到任何维基百科内容")
-                logger.warning("未找到任何维基百科内容")
+                logger.warning("⚠️  未找到任何维基百科内容")
                 return 0
             
             # 构建索引
             self.build_index(wiki_docs, show_progress=show_progress)
             
-            if show_progress:
-                print(f"✅ 已索引 {len(wiki_docs)} 个维基百科页面")
-            
-            logger.info(f"成功预加载 {len(wiki_docs)} 个维基百科页面")
+            logger.info(f"✅ 已索引 {len(wiki_docs)} 个维基百科页面")
             
             return len(wiki_docs)
             
         except Exception as e:
-            print(f"❌ 预加载维基百科失败: {e}")
-            logger.error(f"预加载维基百科失败: {e}")
+            logger.error(f"❌ 预加载维基百科失败: {e}")
             return 0
     
     def close(self):
@@ -2099,11 +2041,11 @@ def create_index_from_directory(
     from src.data_loader import load_documents_from_directory
     
     # 加载文档
-    print(f"📂 从目录加载文档: {directory_path}")
+    logger.info(f"📂 从目录加载文档: {directory_path}")
     documents = load_documents_from_directory(directory_path, recursive=recursive)
     
     if not documents:
-        print("⚠️  未找到任何文档")
+        logger.warning("⚠️  未找到任何文档")
         return IndexManager(collection_name=collection_name)
     
     # 创建索引管理器
@@ -2131,11 +2073,11 @@ def create_index_from_urls(
     from src.data_loader import load_documents_from_urls
     
     # 加载文档
-    print(f"🌐 从 {len(urls)} 个URL加载文档")
+    logger.info(f"🌐 从 {len(urls)} 个URL加载文档")
     documents = load_documents_from_urls(urls)
     
     if not documents:
-        print("⚠️  未成功加载任何网页")
+        logger.warning("⚠️  未成功加载任何网页")
         return IndexManager(collection_name=collection_name)
     
     # 创建索引管理器
@@ -2149,7 +2091,7 @@ def create_index_from_urls(
 
 if __name__ == "__main__":
     # 测试代码
-    print("=== 测试索引构建 ===\n")
+    logger.info("=== 测试索引构建 ===\n")
     
     # 创建测试文档
     test_docs = [
@@ -2168,14 +2110,14 @@ if __name__ == "__main__":
     index_manager.build_index(test_docs)
     
     # 测试搜索
-    print("\n=== 测试搜索 ===")
+    logger.info("\n=== 测试搜索 ===")
     results = index_manager.search("钱学森", top_k=2)
     for i, result in enumerate(results, 1):
-        print(f"\n结果 {i}:")
-        print(f"相似度: {result['score']:.4f}")
-        print(f"内容: {result['text']}")
+        logger.info(f"\n结果 {i}:")
+        logger.info(f"相似度: {result['score']:.4f}")
+        logger.info(f"内容: {result['text']}")
     
     # 清理测试数据
     index_manager.clear_index()
-    print("\n✅ 测试完成")
+    logger.info("\n✅ 测试完成")
 

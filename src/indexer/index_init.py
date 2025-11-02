@@ -41,8 +41,12 @@ def init_index_manager(
         tuple: (embed_model, chroma_client, chroma_collection)
     """
     # 初始化embedding模型
+    # 优先使用新架构的BaseEmbedding实例，支持可插拔设计
+    # 新架构提供了统一的接口和更好的扩展性，同时兼容旧接口
     if embedding_instance is not None:
         logger.info(f"✅ 使用提供的Embedding实例: {embedding_instance}")
+        # 适配器模式：如果实例有适配方法，转换为llama_index兼容格式
+        # 否则直接使用（可能是已兼容的实例）
         if hasattr(embedding_instance, 'get_llama_index_embedding'):
             embed_model = embedding_instance.get_llama_index_embedding()
         else:
@@ -52,15 +56,21 @@ def init_index_manager(
         embed_model = embed_model_instance
     else:
         # 检查全局缓存
+        # Embedding模型加载成本高（数GB大小、GPU内存占用），全局缓存避免重复加载
+        # 多个IndexManager实例共享同一个模型实例，节省内存和加载时间
         global_embed_model = get_global_embed_model()
         cached_model_name = None
         if global_embed_model is not None:
             cached_model_name = getattr(global_embed_model, 'model_name', None)
         
+        # 如果配置的模型名称与缓存不一致，必须清空缓存
+        # 不同模型的向量维度不同，混用会导致索引维度不匹配错误
         if cached_model_name and cached_model_name != embedding_model_name:
             logger.info(f"🔄 检测到模型配置变更: {cached_model_name} -> {embedding_model_name}")
             clear_embedding_model_cache()
         
+        # 验证缓存模型是否可用
+        # 模型可能已被释放或损坏，需要实际调用一次确认可用性
         if global_embed_model is not None:
             try:
                 test_embedding = global_embed_model.get_query_embedding("test")
@@ -68,6 +78,7 @@ def init_index_manager(
                 logger.info(f"✅ 使用全局缓存的Embedding模型: {embedding_model_name} (维度: {cached_dim})")
                 embed_model = global_embed_model
             except Exception as e:
+                # 缓存模型不可用时清空，避免后续继续使用损坏的模型
                 logger.warning(f"⚠️  验证缓存模型失败，重新加载: {e}")
                 clear_embedding_model_cache()
                 embed_model = None
@@ -77,7 +88,7 @@ def init_index_manager(
         # 如果缓存不可用，加载新模型
         if embed_model is None:
             _setup_huggingface_env()
-            print(f"📦 正在加载Embedding模型: {embedding_model_name}")
+            logger.info(f"📦 正在加载Embedding模型: {embedding_model_name}")
             try:
                 embed_model = load_embedding_model(
                     model_name=embedding_model_name,
@@ -88,12 +99,14 @@ def init_index_manager(
                 embed_model = _load_embedding_model_fallback(embedding_model_name)
     
     # 配置全局Settings
+    # llama_index使用全局Settings存储默认配置，所有组件都会从中读取
+    # 必须设置这些值，否则文档分块和向量化会使用默认值（可能不符合预期）
     Settings.embed_model = embed_model
     Settings.chunk_size = chunk_size
     Settings.chunk_overlap = chunk_overlap
     
     # 初始化Chroma客户端
-    print(f"🗄️  初始化Chroma向量数据库: {persist_dir}")
+    logger.info(f"🗄️  初始化Chroma向量数据库: {persist_dir}")
     chroma_client = chromadb.PersistentClient(path=str(persist_dir))
     
     # 创建或获取集合
@@ -113,12 +126,10 @@ def _load_embedding_model_fallback(embedding_model_name: str):
     
     if device.startswith("cuda") and is_gpu_available():
         device_name = torch.cuda.get_device_name()
-        print(f"✅ Embedding模型使用GPU加速:")
-        print(f"   设备: {device}")
-        print(f"   GPU名称: {device_name}")
-        logger.info(f"✅ Embedding模型使用GPU: {device_name} ({device})")
+        logger.info(f"✅ Embedding模型使用GPU加速:")
+        logger.info(f"   设备: {device}")
+        logger.info(f"   GPU名称: {device_name}")
     else:
-        print("⚠️  Embedding模型使用CPU模式")
         logger.warning("⚠️  Embedding模型使用CPU模式")
     
     model_kwargs = {
@@ -144,9 +155,9 @@ def _load_embedding_model_fallback(embedding_model_name: str):
         logger.warning(f"⚠️  无法将模型移动到 GPU: {e}")
     
     if device.startswith("cuda"):
-        print(f"✅ 模型加载完成 (GPU加速, 批处理: {config.EMBED_BATCH_SIZE})")
+        logger.info(f"✅ 模型加载完成 (GPU加速, 批处理: {config.EMBED_BATCH_SIZE})")
     else:
-        print(f"✅ 模型加载完成 (CPU模式, 批处理: {config.EMBED_BATCH_SIZE}, 建议调整为5-10)")
+        logger.info(f"✅ 模型加载完成 (CPU模式, 批处理: {config.EMBED_BATCH_SIZE}, 建议调整为5-10)")
     
     return embed_model
 

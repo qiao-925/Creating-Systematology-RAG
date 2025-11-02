@@ -37,8 +37,7 @@ def execute_query(
     trace_ids = observer_manager.on_query_start(question)
     
     try:
-        logger.info(f"执行查询: {question}")
-        print(f"\n💬 查询: {question}")
+        logger.info(f"💬 查询: {question}")
         
         if collect_trace:
             trace_info = {
@@ -59,8 +58,7 @@ def execute_query(
         # 提取引用来源
         sources = []
         if hasattr(response, 'source_nodes') and response.source_nodes:
-            logger.info(f"检索到 {len(response.source_nodes)} 个文档片段")
-            print(f"🔍 检索到 {len(response.source_nodes)} 个文档片段")
+            logger.info(f"🔍 检索到 {len(response.source_nodes)} 个文档片段")
             
             for i, node in enumerate(response.source_nodes, 1):
                 try:
@@ -82,7 +80,7 @@ def execute_query(
                 
                 score_str = f"{score:.4f}" if score is not None else "N/A"
                 file_name = metadata.get('file_name', metadata.get('file_path', '未知').split('/')[-1])
-                print(f"  [{i}] {file_name} (分数: {score_str})")
+                logger.debug(f"  [{i}] {file_name} (分数: {score_str})")
         
         # 追踪信息
         if collect_trace and trace_info:
@@ -90,7 +88,7 @@ def execute_query(
             trace_info["chunks_retrieved"] = len(sources)
             trace_info["total_time"] = round(time.time() - trace_info["start_time"], 2)
         
-        print(f"✅ 查询完成，找到 {len(sources)} 个引用来源")
+        logger.info(f"✅ 查询完成，找到 {len(sources)} 个引用来源")
         
         # 通知观察器：查询结束
         observer_manager.on_query_end(
@@ -104,7 +102,6 @@ def execute_query(
         return answer, sources, trace_info
         
     except Exception as e:
-        logger.error(f"查询失败: {e}", exc_info=True)
-        print(f"❌ 查询失败: {e}")
+        logger.error(f"❌ 查询失败: {e}", exc_info=True)
         raise
 

@@ -35,10 +35,10 @@ def build_index_batch_mode(
     group_depth = max(1, config.GROUP_DEPTH)
     docs_per_batch = max(1, config.DOCS_PER_BATCH)
     
-    print("\n🧭 批处理模式已启用")
-    print(f"   分组方式: directory (depth={group_depth})")
-    print(f"   目标每批文档数: {docs_per_batch}")
-    print(f"   总文档数: {total_docs}")
+    logger.info("🧭 批处理模式已启用")
+    logger.info(f"   分组方式: directory (depth={group_depth})")
+    logger.info(f"   目标每批文档数: {docs_per_batch}")
+    logger.info(f"   总文档数: {total_docs}")
     
     batches = group_documents_by_directory(
         documents=documents,
@@ -48,11 +48,11 @@ def build_index_batch_mode(
     )
     
     if config.INDEX_MAX_BATCHES and config.INDEX_MAX_BATCHES > 0:
-        print(f"   测试模式: 仅处理前 {config.INDEX_MAX_BATCHES} 批")
+        logger.info(f"   测试模式: 仅处理前 {config.INDEX_MAX_BATCHES} 批")
         batches = batches[:config.INDEX_MAX_BATCHES]
     
     total_batches = len(batches)
-    print(f"   生成批次数: {total_batches}")
+    logger.info(f"   生成批次数: {total_batches}")
     
     index = index_manager.get_index()
     node_parser = SentenceSplitter(
@@ -83,15 +83,15 @@ def build_index_batch_mode(
         batch_id = compute_batch_id(group_key, file_list)
         
         if completed.get(batch_id):
-            print(f"\n📦 批次 {b_idx}/{total_batches} | 组: {group_key} 已完成，跳过 (checkpoint)")
+            logger.info(f"📦 批次 {b_idx}/{total_batches} | 组: {group_key} 已完成，跳过 (checkpoint)")
             grand_docs += batch_doc_count
             continue
         
-        print(f"\n📦 批次 {b_idx}/{total_batches} | 组: {group_key}")
-        print(f"   文档: {batch_doc_count} | 估算tokens: {tokens_est}")
+        logger.info(f"📦 批次 {b_idx}/{total_batches} | 组: {group_key}")
+        logger.info(f"   文档: {batch_doc_count} | 估算tokens: {tokens_est}")
         
         if show_progress:
-            print("   阶段: 分块中...")
+            logger.debug("   阶段: 分块中...")
         
         nodes = []
         if show_progress:
@@ -101,10 +101,10 @@ def build_index_batch_mode(
             nodes = node_parser.get_nodes_from_documents(batch_docs)
         
         node_count = len(nodes)
-        print(f"   节点: {node_count}")
+        logger.info(f"   节点: {node_count}")
         
         if show_progress:
-            print("   阶段: 向量化+写入中...")
+            logger.debug("   阶段: 向量化+写入中...")
         
         insert_start = time.time()
         try:
@@ -133,7 +133,7 @@ def build_index_batch_mode(
         docs_per_s = batch_doc_count / insert_elapsed if insert_elapsed > 0 else 0
         nodes_per_s = node_count / insert_elapsed if insert_elapsed > 0 else 0
         tokens_per_s = tokens_est / insert_elapsed if insert_elapsed > 0 else 0
-        print(f"   ⏱️ 批耗时: {insert_elapsed:.2f}s | 速率: {nodes_per_s:.1f} nodes/s, {docs_per_s:.1f} docs/s, {tokens_per_s:.1f} tok/s")
+        logger.info(f"   ⏱️ 批耗时: {insert_elapsed:.2f}s | 速率: {nodes_per_s:.1f} nodes/s, {docs_per_s:.1f} docs/s, {tokens_per_s:.1f} tok/s")
         
         grand_docs += batch_doc_count
         grand_nodes += node_count
@@ -154,9 +154,9 @@ def build_index_batch_mode(
     grand_docs_s = grand_docs / grand_elapsed if grand_elapsed > 0 else 0
     grand_nodes_s = grand_nodes / grand_elapsed if grand_elapsed > 0 else 0
     grand_tokens_s = grand_tokens_est / grand_elapsed if grand_elapsed > 0 else 0
-    print("\n✅ 批处理完成")
-    print(f"   总批次: {total_batches} | 总文档: {grand_docs} | 总节点: {grand_nodes} | 总tokens(估算): {grand_tokens_est}")
-    print(f"   总耗时: {grand_elapsed:.2f}s | 平均速率: {grand_nodes_s:.1f} nodes/s, {grand_docs_s:.1f} docs/s, {grand_tokens_s:.1f} tok/s")
+    logger.info("✅ 批处理完成")
+    logger.info(f"   总批次: {total_batches} | 总文档: {grand_docs} | 总节点: {grand_nodes} | 总tokens(估算): {grand_tokens_est}")
+    logger.info(f"   总耗时: {grand_elapsed:.2f}s | 平均速率: {grand_nodes_s:.1f} nodes/s, {grand_docs_s:.1f} docs/s, {grand_tokens_s:.1f} tok/s")
     
     return index, {}
 
@@ -175,15 +175,14 @@ def build_index_normal_mode(
             show_progress=show_progress,
         )
         index_elapsed = time.time() - index_start_time
-        print(f"✅ 索引创建成功 (耗时: {index_elapsed:.2f}s)")
-        logger.info(f"索引创建完成: {len(documents)}个文档, 耗时{index_elapsed:.2f}s")
+        logger.info(f"✅ 索引创建成功 (耗时: {index_elapsed:.2f}s)")
     else:
         # 增量添加文档
         insert_start_time = time.time()
         try:
             index_manager._index.insert_ref_docs(documents, show_progress=show_progress)
             insert_elapsed = time.time() - insert_start_time
-            print(f"✅ 文档已批量添加到现有索引 (耗时: {insert_elapsed:.2f}s)")
+            logger.info(f"✅ 文档已批量添加到现有索引 (耗时: {insert_elapsed:.2f}s)")
         except AttributeError:
             # 回退到节点批量插入
             from llama_index.core.node_parser import SentenceSplitter
@@ -194,7 +193,7 @@ def build_index_normal_mode(
             
             all_nodes = []
             if show_progress:
-                print("   正在分块文档...")
+                logger.debug("   正在分块文档...")
             for doc in tqdm(documents, desc="分块", disable=not show_progress, unit="doc"):
                 nodes = node_parser.get_nodes_from_documents([doc])
                 all_nodes.extend(nodes)
@@ -231,7 +230,7 @@ def build_index_normal_mode(
             
             insert_elapsed = time.time() - insert_start_time
             avg_rate = total_nodes / insert_elapsed if insert_elapsed > 0 else 0
-            print(f"✅ 文档已批量添加到现有索引 (耗时: {insert_elapsed:.2f}s, 平均速率: {avg_rate:.1f} nodes/s)")
+            logger.info(f"✅ 文档已批量添加到现有索引 (耗时: {insert_elapsed:.2f}s, 平均速率: {avg_rate:.1f} nodes/s)")
     
     return index_manager._index, {}
 

@@ -26,16 +26,13 @@ def preload_wikipedia_concepts(
         成功索引的页面数量
     """
     if not concept_keywords:
-        print("⚠️  概念关键词列表为空")
+        logger.warning("⚠️  概念关键词列表为空")
         return 0
     
     try:
         from src.data_loader import load_documents_from_wikipedia
         
-        if show_progress:
-            print(f"📖 预加载 {len(concept_keywords)} 个维基百科概念...")
-        
-        logger.info(f"开始预加载维基百科概念: {concept_keywords}")
+        logger.info(f"📖 预加载 {len(concept_keywords)} 个维基百科概念...")
         
         # 加载维基百科页面
         wiki_docs = load_documents_from_wikipedia(
@@ -47,23 +44,17 @@ def preload_wikipedia_concepts(
         )
         
         if not wiki_docs:
-            if show_progress:
-                print("⚠️  未找到任何维基百科内容")
-            logger.warning("未找到任何维基百科内容")
+            logger.warning("⚠️  未找到任何维基百科内容")
             return 0
         
         # 构建索引
         index_manager.build_index(wiki_docs, show_progress=show_progress)
         
-        if show_progress:
-            print(f"✅ 已索引 {len(wiki_docs)} 个维基百科页面")
-        
-        logger.info(f"成功预加载 {len(wiki_docs)} 个维基百科页面")
+        logger.info(f"✅ 已索引 {len(wiki_docs)} 个维基百科页面")
         
         return len(wiki_docs)
         
     except Exception as e:
-        print(f"❌ 预加载维基百科失败: {e}")
-        logger.error(f"预加载维基百科失败: {e}")
+        logger.error(f"❌ 预加载维基百科失败: {e}")
         return 0
 

@@ -35,6 +35,7 @@ from src.indexer.index_vector_ids import (
 from src.indexer.index_wikipedia import preload_wikipedia_concepts
 from src.indexer.index_lifecycle import close
 from src.indexer.index_manager_build import build_index_method
+from src.indexer.index_methods import get_manager_methods
 
 logger = setup_logger('indexer')
 
@@ -61,13 +62,19 @@ class IndexManager:
         self.chunk_overlap = chunk_overlap or config.CHUNK_OVERLAP
         
         # 确保持久化目录存在
+        # ChromaDB的PersistentClient要求路径必须存在，否则会抛出异常
+        # 使用parents=True确保父目录链也被创建，exist_ok=True避免目录已存在时报错
         self.persist_dir.mkdir(parents=True, exist_ok=True)
         
         # 保存统一的Embedding实例
+        # 支持可插拔的Embedding架构，避免重复创建模型实例（模型加载成本高）
+        # 同时确保整个索引生命周期内使用相同的embedding模型，保证向量维度一致性
         self._embedding_instance = embedding_instance
         
         # 初始化核心组件
-        self.embed_model, self.chroma_client, self.chroma_collection, _ = init_index_manager(
+        # 将初始化逻辑抽取到独立模块，保持IndexManager类的简洁性
+        # 同时便于单元测试和逻辑复用，符合单一职责原则
+        self.embed_model, self.chroma_client, self.chroma_collection = init_index_manager(
             collection_name=self.collection_name,
             persist_dir=self.persist_dir,
             embedding_model_name=self.embedding_model_name,
@@ -81,6 +88,9 @@ class IndexManager:
         print_database_info(self)
         
         # 检测并修复embedding维度不匹配问题
+        # 如果collection已存在但使用不同维度的embedding模型，会导致向量检索失败
+        # 必须在初始化阶段检测并修复，避免后续操作出错
+        # 策略：维度不匹配时删除旧collection并重建（数据会被清除，但保证了系统可用性）
         ensure_collection_dimension_match(self)
         
         # 创建向量存储
@@ -92,11 +102,18 @@ class IndexManager:
         )
         
         # 索引对象（延迟初始化）
+        # VectorStoreIndex的创建会加载大量数据，延迟到首次使用时创建可以：
+        # 1. 加快IndexManager初始化速度
+        # 2. 避免不必要的资源占用（某些场景可能只需要元数据，不需要完整索引）
+        # 3. 支持更灵活的索引管理策略
         self._index: Optional[VectorStoreIndex] = None
         
-        print("✅ 索引管理器初始化完成")
+        logger.info("✅ 索引管理器初始化完成")
         
         # 绑定转发方法
+        # 使用Python描述符协议(__get__)将模块函数绑定为实例方法
+        # 这样绑定的方法能正确访问self，保持方法签名的完整性
+        # 相比直接赋值，使用描述符可以确保方法调用时this绑定正确，支持多实例场景
         manager_methods = get_manager_methods()
         for method_name, method_func in manager_methods.items():
             setattr(self, method_name, method_func.__get__(self, type(self)))
@@ -157,6 +174,9 @@ class IndexManager:
     
     def __del__(self):
         """析构函数，确保资源被释放"""
+        # 析构函数中必须捕获所有异常
+        # Python析构函数中的异常不会被外部捕获，未处理的异常会导致程序静默失败
+        # 关闭资源时可能遇到各种问题（如连接已断开、资源已释放等），需要静默处理
         try:
             self.close()
         except Exception:

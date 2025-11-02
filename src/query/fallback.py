@@ -39,12 +39,12 @@ def handle_fallback(
     max_score_logged = max(scores_list) if scores_list else None
     
     # 打印统计信息
-    print(f"📊 检索统计:")
-    print(f"   检索到 {len(sources)} 个chunk")
-    print(f"   相似度分数: {len(scores_list)} 个有效, {scores_none_count} 个为空")
+    logger.info(f"📊 检索统计:")
+    logger.info(f"   检索到 {len(sources)} 个chunk")
+    logger.info(f"   相似度分数: {len(scores_list)} 个有效, {scores_none_count} 个为空")
     if scores_list:
-        print(f"   范围: {min_score:.3f} ~ {max_score_logged:.3f}, 平均: {avg_score:.3f}")
-    print(f"   阈值: {similarity_threshold}")
+        logger.info(f"   范围: {min_score:.3f} ~ {max_score_logged:.3f}, 平均: {avg_score:.3f}")
+    logger.info(f"   阈值: {similarity_threshold}")
     
     # 判定是否需要兜底
     fallback_reason = None
@@ -56,8 +56,7 @@ def handle_fallback(
         fallback_reason = "empty_answer"
     
     if fallback_reason:
-        print(f"🛟  触发兜底生成（原因: {fallback_reason}）")
-        logger.info(f"触发兜底生成: reason={fallback_reason}")
+        logger.info(f"🛟  触发兜底生成（原因: {fallback_reason}）")
         
         # 纯LLM定义类回答提示词
         fallback_prompt = (

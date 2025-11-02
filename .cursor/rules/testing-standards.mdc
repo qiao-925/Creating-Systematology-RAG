@@ -1,0 +1,240 @@
+---
+description: 测试规范与最佳实践
+globs:
+  - "tests/**"
+alwaysApply: false
+---
+
+# 测试规范
+
+## 测试结构
+
+```
+tests/
+├── conftest.py          # 共享fixtures
+├── unit/                # 单元测试（快速，无外部依赖）
+├── integration/         # 集成测试（需要真实环境）
+└── performance/         # 性能基准测试
+```
+
+---
+
+## 测试分类
+
+### 1. 单元测试（Unit Tests）
+位置：`tests/unit/`
+
+特点：
+- **快速执行**：无外部依赖（API、数据库、网络）
+- **隔离测试**：使用 Mock 和 Fixture
+- **高覆盖率**：目标 90%+
+
+```python
+import pytest
+from unittest.mock import Mock, patch
+from src.embeddings.local_embedding import LocalEmbedding
+
+def test_local_embedding_embed_query(mock_model):
+    """测试本地Embedding查询向量化"""
+    embedding = LocalEmbedding(model_name="test-model")
+    result = embedding.embed_query("测试文本")
+    
+    assert isinstance(result, list)
+    assert len(result) > 0
+    assert all(isinstance(x, float) for x in result)
+```
+
+### 2. 集成测试（Integration Tests）
+位置：`tests/integration/`
+
+特点：
+- **端到端流程**：测试完整业务流程
+- **真实环境**：需要真实API、数据库等
+- **标记慢速**：使用 `@pytest.mark.slow`
+
+```python
+import pytest
+
+@pytest.mark.slow
+@pytest.mark.integration
+def test_rag_query_pipeline(test_index, test_llm):
+    """测试完整RAG查询流程"""
+    query_engine = create_query_engine(test_index, test_llm)
+    response = query_engine.query("测试问题")
+    
+    assert response is not None
+    assert len(response.source_nodes) > 0
+```
+
+### 3. 性能测试（Performance Tests）
+位置：`tests/performance/`
+
+特点：
+- **基准测试**：记录性能指标
+- **回归检测**：防止性能退化
+- **标记性能**：使用 `@pytest.mark.performance`
+
+---
+
+## 测试标记（Markers）
+
+项目定义的测试标记：
+
+```python
+@pytest.mark.slow          # 慢速测试（需要真实API）
+@pytest.mark.integration   # 集成测试
+@pytest.mark.unit          # 单元测试
+@pytest.mark.performance   # 性能测试
+@pytest.mark.requires_api  # 需要API密钥
+```
+
+### 运行特定标记的测试
+```bash
+pytest -m unit              # 只运行单元测试
+pytest -m "not slow"        # 跳过慢速测试
+pytest -m integration        # 只运行集成测试
+```
+
+---
+
+## 测试 Fixtures
+
+### 共享 Fixtures
+在 `tests/conftest.py` 中定义共享 fixtures：
+
+```python
+import pytest
+from src.config import Config
+
+@pytest.fixture
+def test_config():
+    """测试配置"""
+    return Config(
+        EMBEDDING_MODEL="test-model",
+        DEEPSEEK_API_KEY="test-key"
+    )
+
+@pytest.fixture
+def mock_embedding():
+    """Mock Embedding模型"""
+    from unittest.mock import Mock
+    embedding = Mock()
+    embedding.embed_query.return_value = [0.1] * 384
+    return embedding
+```
+
+---
+
+## Mock 使用规范
+
+### 1. 外部依赖必须 Mock
+- API 调用（LLM、Embedding API）
+- 文件系统操作（使用 `tmp_path` fixture）
+- 网络请求（使用 `responses` 库或 `unittest.mock`）
+
+### 2. 保留核心逻辑测试
+- 不要过度 Mock，保留核心业务逻辑
+- Mock 边界：外部依赖，而非内部逻辑
+
+```python
+from unittest.mock import Mock, patch
+
+@patch('src.embeddings.local_embedding.load_model')
+def test_embedding_initialization(mock_load):
+    """测试Embedding初始化"""
+    mock_load.return_value = MockModel()
+    embedding = LocalEmbedding(model_name="test")
+    
+    assert embedding is not None
+    mock_load.assert_called_once()
+```
+
+---
+
+## 测试覆盖率
+
+### 目标
+- **整体覆盖率**：≥ 90%
+- **核心模块**：≥ 95%（`src/business/`, `src/query/`）
+- **基础设施**：≥ 85%（`src/config/`, `src/logger/`）
+
+### 生成覆盖率报告
+```bash
+pytest --cov=src --cov-report=html
+pytest --cov=src --cov-report=term-missing
+```
+
+---
+
+## 测试最佳实践
+
+### 1. 测试命名
+- 函数名：`test_功能描述`
+- 清晰描述测试内容
+
+```python
+def test_retriever_returns_top_k_results():
+    """测试检索器返回top-k结果"""
+    pass
+
+def test_embedding_handles_empty_input():
+    """测试Embedding处理空输入"""
+    pass
+```
+
+### 2. 测试隔离
+- 每个测试独立，不依赖执行顺序
+- 使用 fixtures 准备测试数据
+- 测试后清理资源
+
+### 3. 断言清晰
+- 使用具体的断言方法
+- 提供有意义的错误信息
+
+```python
+assert result is not None, "结果不应为None"
+assert len(results) == expected_count, f"应返回{expected_count}个结果"
+```
+
+### 4. 测试边界条件
+- 空输入、None值
+- 极端值、边界值
+- 异常情况
+
+---
+
+## 测试运行
+
+### 常用命令
+```bash
+# 运行所有测试
+pytest
+
+# 运行单元测试
+pytest tests/unit -v
+
+# 运行集成测试
+pytest tests/integration -v
+
+# 跳过慢速测试
+pytest -m "not slow"
+
+# 生成覆盖率
+pytest --cov=src --cov-report=html
+```
+
+### Makefile 快捷命令
+```bash
+make test              # 运行所有测试
+make test-unit         # 单元测试
+make test-integration  # 集成测试
+make test-cov          # 覆盖率报告
+```
+
+---
+
+## 参考文档
+
+- 测试使用指南：`tests/README.md`
+- pytest 配置：`pytest.ini`
+- 测试覆盖率：目标 90%+

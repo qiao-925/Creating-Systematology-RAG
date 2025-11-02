@@ -10,6 +10,7 @@ import time
 from src.business.protocols import (
     PipelineModule,
     PipelineContext,
+    Pipeline,
     ModuleList,
 )
 from src.logger import setup_logger
@@ -17,34 +18,6 @@ from src.business.pipeline.modules.execution import PipelineExecutorCore, Execut
 from src.business.pipeline.modules.hooks import HookManager
 
 logger = setup_logger('pipeline_executor')
-
-
-@dataclass
-class Pipeline:
-    """流水线定义"""
-    name: str
-    modules: ModuleList
-    description: str = ""
-    version: str = "1.0.0"
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    
-    def add_module(self, module: PipelineModule):
-        """添加模块"""
-        self.modules.append(module)
-    
-    def remove_module(self, module_name: str):
-        """移除模块"""
-        self.modules = [m for m in self.modules if m.name != module_name]
-    
-    def get_module(self, module_name: str) -> Optional[PipelineModule]:
-        """获取模块"""
-        for module in self.modules:
-            if module.name == module_name:
-                return module
-        return None
-    
-    def __len__(self) -> int:
-        return len(self.modules)
 
 
 class PipelineExecutor:

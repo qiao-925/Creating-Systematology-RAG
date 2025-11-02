@@ -1,0 +1,184 @@
+---
+description: RAG系统架构规范与LlamaIndex使用指南
+globs:
+  - "src/business/**"
+  - "src/query/**"
+  - "src/indexer/**"
+  - "src/retrievers/**"
+alwaysApply: false
+---
+
+# RAG 系统架构规范
+
+## 架构层次
+
+项目采用**三层模块化架构**：
+
+```
+前端层（Presentation） → 业务层（Business） → 基础设施层（Infrastructure）
+```
+
+### 层次职责
+
+| 层次 | 职责 | 示例 |
+|------|------|------|
+| **前端层** | 用户交互、界面展示 | `app.py`, `pages/`, `main.py` |
+| **业务层** | 核心业务逻辑、流程编排 | `RAGService`, `PipelineExecutor`, `StrategyManager` |
+| **基础设施层** | 技术基础设施、资源提供 | `Config`, `Logger`, `Embedding`, `DataSource` |
+
+### 依赖规则
+- **前端层** 只调用业务层的 `RAGService`，不直接访问基础设施层
+- **业务层** 通过依赖注入获取基础设施层资源
+- **基础设施层** 无业务逻辑，只提供服务和资源
+
+---
+
+## LlamaIndex 核心概念
+
+### 1. Document 与 Node
+```python
+from llama_index.core.schema import Document as LlamaDocument
+
+# Document: 原始文档
+doc = LlamaDocument(
+    text="文档内容",
+    metadata={"source": "file.md", "page": 1}
+)
+
+# Node: 分块后的节点（自动创建）
+# 使用 SentenceSplitter 分割文档
+```
+
+### 2. VectorStoreIndex
+```python
+from llama_index.core import VectorStoreIndex, StorageContext
+from llama_index.vector_stores.chroma import ChromaVectorStore
+
+# 创建向量存储
+vector_store = ChromaVectorStore(chroma_collection=collection)
+
+# 创建存储上下文
+storage_context = StorageContext.from_defaults(vector_store=vector_store)
+
+# 创建索引
+index = VectorStoreIndex.from_documents(
+    documents,
+    storage_context=storage_context,
+    embed_model=embedding_model
+)
+```
+
+### 3. QueryEngine
+```python
+from llama_index.core import get_response_synthesizer
+from llama_index.core.query_engine import RetrieverQueryEngine
+
+# 创建检索器
+retriever = index.as_retriever(similarity_top_k=5)
+
+# 创建响应合成器
+response_synthesizer = get_response_synthesizer(
+    response_mode="compact",
+    llm=llm
+)
+
+# 创建查询引擎
+query_engine = RetrieverQueryEngine(
+    retriever=retriever,
+    response_synthesizer=response_synthesizer
+)
+```
+
+---
+
+## 模块化设计原则
+
+### 1. 可插拔架构
+- 所有组件通过**抽象基类**定义接口
+- 使用**工厂模式**创建实例
+- 支持运行时配置切换
+
+### 2. 接口契约
+- 定义清晰的接口协议（`BaseEmbedding`, `BaseDataSource`, `BaseRetriever`）
+- 所有实现类必须实现接口定义的方法
+- 接口变更需要向后兼容或版本管理
+
+### 3. 依赖注入
+- 构造函数传递依赖，而非全局单例
+- 便于单元测试和模拟
+- 避免隐式依赖
+
+```python
+class QueryEngine:
+    def __init__(
+        self,
+        index: VectorStoreIndex,
+        embedding_model: BaseEmbedding,
+        llm: Optional[LLM] = None
+    ):
+        self.index = index
+        self.embedding_model = embedding_model
+        self.llm = llm or self._create_default_llm()
+```
+
+---
+
+## 检索策略
+
+项目支持多种检索策略，通过配置切换：
+
+- **vector**: 向量相似度检索（默认）
+- **bm25**: BM25 关键词检索
+- **hybrid**: 向量 + BM25 混合检索
+- **grep**: 正则表达式检索
+- **multi**: 多策略融合检索
+
+### 实现要点
+- 检索器通过 `retriever_factory.py` 创建
+- 支持自定义权重和合并策略
+- 结果去重和排序可配置
+
+---
+
+## Embedding 模型管理
+
+### 1. 模型加载
+- 使用全局单例缓存，避免重复加载
+- 支持强制重新加载（`force_reload=True`）
+- 自动检测 GPU/CPU 设备
+
+### 2. 模型切换
+```python
+# 通过配置切换
+EMBEDDING_TYPE=local  # 或 api
+EMBEDDING_MODEL=model_name_or_path
+```
+
+### 3. 实现要求
+- 继承 `BaseEmbedding`
+- 实现 `embed_query` 和 `embed_documents` 方法
+- 支持批量处理优化
+
+---
+
+## 可观测性集成
+
+### Phoenix 集成
+- 使用 `PhoenixObserver` 追踪 RAG 流程
+- 记录检索结果、生成过程
+- 支持可视化分析
+
+### LlamaDebugHandler
+- 集成 `LlamaDebugHandler` 进行调试
+- 追踪查询、检索、生成各个阶段
+- 记录详细的时间戳和元数据
+
+---
+
+## 参考实现
+
+参考以下文件了解最佳实践：
+- `src/query/modular/engine.py` - 模块化查询引擎
+- `src/embeddings/factory.py` - Embedding 工厂模式
+- `src/business/services/rag_service.py` - RAG 服务统一接口
+- `src/indexer/index_manager.py` - 索引管理

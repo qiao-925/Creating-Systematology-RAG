@@ -53,11 +53,9 @@ def add_documents(index_manager, documents: List[LlamaDocument]) -> Tuple[int, D
                     index_manager._index.insert(doc)
                     count += 1
                 except Exception as insert_error:
-                    print(f"⚠️  添加文档失败 [{doc.metadata.get('file_path', 'unknown')}]: {insert_error}")
-                    logger.warning(f"添加文档失败: {insert_error}")
+                    logger.warning(f"⚠️  添加文档失败 [{doc.metadata.get('file_path', 'unknown')}]: {insert_error}")
     except Exception as e:
-        logger.error(f"批量添加文档失败: {e}")
-        print(f"❌ 批量添加文档失败: {e}")
+        logger.error(f"❌ 批量添加文档失败: {e}")
         return 0, {}
     
     # 批量查询向量ID映射

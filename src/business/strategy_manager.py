@@ -330,6 +330,13 @@ def get_strategy_manager() -> StrategyManager:
     return _global_strategy_manager
 
 
+def reset_strategy_manager():
+    """重置全局策略管理器（用于测试）"""
+    global _global_strategy_manager
+    _global_strategy_manager = None
+    logger.info("策略管理器已重置")
+
+
 def _init_default_strategies(manager: StrategyManager):
     """初始化默认策略"""
     # 注册默认检索策略

@@ -94,7 +94,7 @@ def delete_vectors_by_ids(index_manager, vector_ids: List[str]):
     try:
         index_manager.chroma_collection.delete(ids=vector_ids)
     except Exception as e:
-        print(f"⚠️  删除向量失败: {e}")
+        logger.warning(f"⚠️  删除向量失败: {e}")
         raise
 
 
@@ -114,6 +114,6 @@ def get_node_ids_for_document(index_manager, doc_id: str) -> List[str]:
             return []
         return result['ids']
     except Exception as e:
-        print(f"⚠️  查询节点ID失败: {e}")
+        logger.warning(f"⚠️  查询节点ID失败: {e}")
         return []
 

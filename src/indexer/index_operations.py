@@ -48,7 +48,6 @@ def get_stats(index_manager) -> dict:
     try:
         if not hasattr(index_manager, 'chroma_collection') or index_manager.chroma_collection is None:
             logger.warning("⚠️  chroma_collection未初始化，无法获取统计信息")
-            print(f"⚠️  chroma_collection未初始化，无法获取统计信息")
             return {
                 "collection_name": index_manager.collection_name,
                 "document_count": 0,
@@ -71,7 +70,6 @@ def get_stats(index_manager) -> dict:
     except AttributeError as e:
         error_msg = f"chroma_collection属性访问失败: {e}"
         logger.error(error_msg)
-        print(f"❌ {error_msg}")
         return {
             "collection_name": index_manager.collection_name,
             "document_count": 0,
@@ -83,7 +81,6 @@ def get_stats(index_manager) -> dict:
     except Exception as e:
         error_msg = f"获取统计信息失败: {e}"
         logger.error(error_msg, exc_info=True)
-        print(f"❌ {error_msg}")
         return {
             "collection_name": index_manager.collection_name,
             "document_count": 0,
@@ -99,7 +96,7 @@ def clear_index(index_manager):
     try:
         # 删除集合
         index_manager.chroma_client.delete_collection(name=index_manager.collection_name)
-        print(f"✅ 已删除集合: {index_manager.collection_name}")
+        logger.info(f"✅ 已删除集合: {index_manager.collection_name}")
         
         # 重新创建集合
         index_manager.chroma_collection = index_manager.chroma_client.get_or_create_collection(
@@ -115,9 +112,9 @@ def clear_index(index_manager):
         
         # 重置索引
         index_manager._index = None
-        print("✅ 索引已清空")
+        logger.info("✅ 索引已清空")
         
     except Exception as e:
-        print(f"❌ 清空索引失败: {e}")
+        logger.error(f"❌ 清空索引失败: {e}")
         raise
 

@@ -68,12 +68,11 @@ class QueryEngine:
         
         # 配置调试模式
         if self.enable_debug:
-            print("🔍 启用调试模式（LlamaDebugHandler）")
+            logger.info("🔍 启用调试模式（LlamaDebugHandler）")
             self.llama_debug = LlamaDebugHandler(print_trace_on_end=True)
             Settings.callback_manager = CallbackManager([self.llama_debug])
-            logger.info("调试模式已启用")
         
-        print(f"🤖 初始化DeepSeek LLM: {self.model}")
+        logger.info(f"🤖 初始化DeepSeek LLM: {self.model}")
         self.llm = DeepSeek(
             api_key=self.api_key,
             model=self.model,
@@ -88,11 +87,10 @@ class QueryEngine:
         markdown_template = None
         if enable_markdown_formatting:
             markdown_template = PromptTemplate(SIMPLE_MARKDOWN_TEMPLATE)
-            logger.info("已启用 Markdown Prompt 模板")
-            print("📝 启用 Markdown 格式化 Prompt")
+            logger.info("📝 启用 Markdown 格式化 Prompt")
         
         # 创建带引用的查询引擎
-        print("📝 创建引用查询引擎")
+        logger.info("📝 创建引用查询引擎")
         query_engine_kwargs = {
             'llm': self.llm,
             'similarity_top_k': self.similarity_top_k,
@@ -107,7 +105,7 @@ class QueryEngine:
             **query_engine_kwargs
         )
         
-        print("✅ 查询引擎初始化完成")
+        logger.info("✅ 查询引擎初始化完成")
     
     def query(self, question: str, collect_trace: bool = False) -> Tuple[str, List[dict], Optional[Dict[str, Any]]]:
         """执行查询并返回带引用的答案
@@ -128,7 +126,7 @@ class QueryEngine:
             device = get_gpu_device()
             device_mode = "GPU加速" if device.startswith("cuda") else "CPU模式"
             
-            print(f"\n💬 查询: {question}")
+            logger.info(f"💬 查询: {question}")
             logger.debug(f"查询设备: {device} ({device_mode})")
             
             if collect_trace:
@@ -150,15 +148,12 @@ class QueryEngine:
             if 'error' in stats:
                 error_info = stats.get('error', '未知错误')
                 logger.warning(f"⚠️  获取Collection统计信息时出现问题: {error_info}")
-                print(f"⚠️  获取Collection统计信息时出现问题: {error_info}")
             
-            logger.info(f"📊 Collection 信息: {collection_name}, 总文档数: {collection_total_docs}")
-            print(f"📊 Collection: {collection_name}, 总文档数: {collection_total_docs}")
+            logger.info(f"📊 Collection: {collection_name}, 总文档数: {collection_total_docs}")
             
             if collection_total_docs == 0:
-                logger.warning(f"⚠️  Collection '{collection_name}' 的文档数为0")
-                print(f"\n⚠️  **重要提示**: Collection '{collection_name}' 的文档数为0")
-                print(f"   请前往 '设置页面 > 数据源管理' 重新导入数据")
+                logger.warning(f"⚠️  **重要提示**: Collection '{collection_name}' 的文档数为0")
+                logger.warning(f"   请前往 '设置页面 > 数据源管理' 重新导入数据")
             
             # 执行查询
             response: Response = self.query_engine.query(question)
@@ -183,13 +178,12 @@ class QueryEngine:
                     self.similarity_threshold, self.model, answer, fallback_reason
                 )
             
-            print(f"✅ 查询完成，找到 {len(sources)} 个引用来源")
+            logger.info(f"✅ 查询完成，找到 {len(sources)} 个引用来源")
             
             return answer, sources, trace_info
             
         except Exception as e:
-            print(f"❌ 查询失败: {e}")
-            logger.error(f"查询失败: {e}")
+            logger.error(f"❌ 查询失败: {e}")
             raise
     
     def _extract_sources(self, response: Response) -> List[dict]:
@@ -204,7 +198,6 @@ class QueryEngine:
         sources = []
         if hasattr(response, 'source_nodes') and response.source_nodes:
             logger.info(f"🔍 检索到 {len(response.source_nodes)} 个文档片段")
-            print(f"🔍 检索到 {len(response.source_nodes)} 个文档片段:")
             
             for i, node in enumerate(response.source_nodes, 1):
                 try:
@@ -223,7 +216,7 @@ class QueryEngine:
                     # 打印调试信息
                     score_str = f" (相似度: {source['score']:.3f})" if source['score'] is not None else ""
                     title = metadata.get('title') or metadata.get('file_name') or 'Unknown'
-                    print(f"  [{i}] {title}{score_str}")
+                    logger.debug(f"  [{i}] {title}{score_str}")
                     
                 except Exception as e:
                     logger.warning(f"提取来源 {i} 失败: {e}")
@@ -243,7 +236,7 @@ class QueryEngine:
         import asyncio
         
         try:
-            print(f"\n💬 流式查询: {question}")
+            logger.info(f"💬 流式查询: {question}")
             
             response_stream = self.query_engine.query(question)
             answer = str(response_stream)
@@ -264,13 +257,13 @@ class QueryEngine:
                 yield {'type': 'token', 'data': char}
                 await asyncio.sleep(0.01)
             
-            print(f"✅ 流式查询完成，找到 {len(sources)} 个引用来源")
+            logger.info(f"✅ 流式查询完成，找到 {len(sources)} 个引用来源")
             
             yield {'type': 'sources', 'data': sources}
             yield {'type': 'done', 'data': answer}
             
         except Exception as e:
-            print(f"❌ 流式查询失败: {e}")
+            logger.error(f"❌ 流式查询失败: {e}")
             raise
     
     def get_retriever(self):

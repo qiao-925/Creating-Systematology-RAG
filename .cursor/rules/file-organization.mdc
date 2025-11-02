@@ -1,0 +1,254 @@
+---
+description: 文件组织与目录结构规范
+alwaysApply: true
+---
+
+# 文件组织规范
+
+## 目录结构
+
+```
+Creating-Systematology-RAG/
+├── .cursor/rules/          # Cursor规则文件
+├── agent-task-log/         # AI任务日志（必须）
+├── src/                    # 源代码
+│   ├── business/           # 业务层
+│   ├── query/              # 查询模块
+│   ├── indexer/            # 索引模块
+│   ├── embeddings/         # Embedding模块
+│   ├── data_source/        # 数据源模块
+│   ├── retrievers/         # 检索器模块
+│   ├── rerankers/          # 重排序模块
+│   ├── observers/          # 可观测性模块
+│   ├── config/             # 配置管理
+│   └── logger.py           # 日志工具
+├── tests/                  # 测试代码
+│   ├── unit/               # 单元测试
+│   ├── integration/        # 集成测试
+│   └── performance/        # 性能测试
+├── docs/                   # 项目文档
+├── pages/                  # Streamlit页面
+├── data/                   # 数据文件
+├── logs/                   # 日志文件（自动生成）
+├── vector_store/           # 向量库（自动生成）
+├── sessions/               # 会话记录（自动生成）
+├── AGENTS.md               # Agent协作指南
+├── README.md               # 项目说明
+└── pyproject.toml          # 项目配置
+```
+
+---
+
+## 文件命名规范
+
+### Python 文件
+- **模块文件**：`snake_case.py`（如 `index_manager.py`）
+- **测试文件**：`test_*.py`（如 `test_indexer.py`）
+- **配置文件**：`config.py`, `settings.py`
+- **工具脚本**：`scripts/*.py`
+
+### 目录文件
+- **特殊文件**：`__init__.py`, `__main__.py`
+- **私有模块**：`_internal.py`（单下划线前缀）
+
+---
+
+## 代码文件组织
+
+### 文件结构模板
+```python
+"""
+模块说明文档
+
+描述模块的职责和主要功能
+"""
+
+# 1. 标准库导入
+import os
+from pathlib import Path
+from typing import List, Optional
+
+# 2. 第三方库导入
+import chromadb
+from llama_index.core import VectorStoreIndex
+
+# 3. 本地模块导入
+from src.config import config
+from src.logger import setup_logger
+
+# 4. 模块级常量
+DEFAULT_TOP_K = 10
+MAX_RETRIES = 3
+
+# 5. 日志器初始化
+logger = setup_logger('module_name')
+
+# 6. 类和函数定义
+class MyClass:
+    """类说明"""
+    pass
+
+def my_function():
+    """函数说明"""
+    pass
+
+# 7. 主程序入口（仅用于可执行脚本）
+if __name__ == "__main__":
+    pass
+```
+
+---
+
+## 模块拆分原则
+
+### 何时拆分文件
+1. **文件超过 300 行**（强制要求）
+2. **职责不单一**：一个文件包含多个不相关功能
+3. **复用性差**：部分代码需要被其他模块复用
+
+### 拆分策略
+1. **按功能拆分**：核心功能、工具函数、适配器分离
+2. **按层次拆分**：接口、实现、工厂分离
+3. **按职责拆分**：管理类、构建类、工具类分离
+
+### 示例：indexer.py 拆分
+```
+src/indexer.py (2124行) → 拆分为：
+├── indexer/index_core.py          # 核心索引逻辑
+├── indexer/index_manager.py       # 索引管理器
+├── indexer/index_builder.py       # 构建流程
+├── indexer/index_operations.py   # 索引操作
+├── indexer/index_utils.py         # 工具函数
+└── indexer/__init__.py            # 导出接口
+```
+
+---
+
+## 导入规范
+
+### 导入顺序
+1. **标准库**：按字母顺序
+2. **第三方库**：按字母顺序
+3. **本地模块**：按模块路径层次
+
+```python
+# ✅ 正确示例
+import os
+from pathlib import Path
+from typing import List, Optional
+
+import chromadb
+from llama_index.core import VectorStoreIndex
+
+from src.config import config
+from src.logger import setup_logger
+from src.embeddings.base import BaseEmbedding
+```
+
+### 导入方式
+- **优先使用绝对导入**：`from src.config import config`
+- **相对导入仅用于同包内**：`from .utils import helper`
+- **避免 `import *`**：明确导入所需符号
+
+### 循环依赖处理
+- 避免模块间的循环依赖
+- 如必须，使用延迟导入（在函数内导入）
+- 或使用类型检查导入（`TYPE_CHECKING`）
+
+```python
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.query.engine import QueryEngine
+
+def process_query(query_engine: "QueryEngine"):
+    pass
+```
+
+---
+
+## 特殊文件说明
+
+### `__init__.py`
+- 定义包的公开接口
+- 提供便捷的导入路径
+- 可包含包级别的初始化代码
+
+```python
+# src/embeddings/__init__.py
+from src.embeddings.base import BaseEmbedding
+from src.embeddings.factory import create_embedding
+
+__all__ = ['BaseEmbedding', 'create_embedding']
+```
+
+### `conftest.py`
+- 测试共享 fixtures
+- 测试配置和工具函数
+- 每个测试目录可有一个
+
+### `.gitkeep`
+- 用于保留空目录
+- 如 `vector_store/.gitkeep`
+
+---
+
+## 任务日志规范
+
+### 位置
+- **所有AI任务日志必须保存在 `agent-task-log/` 目录**
+
+### 命名格式
+```
+agent-task-log/YYYY-MM-DD-N_任务名称_文档类型.md
+```
+
+### 文档类型
+- **快速摘要** - 任务简要总结
+- **详细过程** - 完整实施记录
+- **实施总结** / **完成总结** - 任务完成总结
+- **实施方案** - 任务实施前的方案设计
+
+### 禁止行为
+- ❌ 禁止在项目根目录创建任务总结
+- ❌ 禁止在其他目录创建任务日志
+- ❌ 禁止使用其他命名格式
+
+---
+
+## 自动生成文件
+
+以下目录/文件由运行时自动生成，**不应提交到版本控制**：
+
+| 路径 | 说明 | .gitignore |
+|------|------|------------|
+| `logs/` | 日志文件 | ✅ |
+| `vector_store/*` | 向量库（版本化目录除外） | ✅ |
+| `sessions/` | 会话记录 | ✅ |
+| `data/users.json` | 用户数据 | ✅ |
+| `__pycache__/` | Python缓存 | ✅ |
+| `.pytest_cache/` | pytest缓存 | ✅ |
+
+---
+
+## 文档文件
+
+### 核心文档
+- `README.md` - 项目说明
+- `docs/ARCHITECTURE.md` - 架构设计
+- `docs/API.md` - API接口文档
+- `docs/PROJECT_STRUCTURE.md` - 项目结构
+- `AGENTS.md` - Agent协作指南
+
+### 文档更新规则
+- 修改代码后，同步更新相关文档
+- 重大变更需在 `CHANGELOG.md` 中记录
+- 技术决策需在 `DECISIONS.md` 中说明
+
+---
+
+## 参考文档
+
+- 项目结构详情：`docs/PROJECT_STRUCTURE.md`
+- 架构设计：`docs/ARCHITECTURE.md`
+- Agent协作指南：`AGENTS.md`

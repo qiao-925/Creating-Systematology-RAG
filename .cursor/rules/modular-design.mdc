@@ -1,0 +1,203 @@
+---
+description: 模块化设计原则与实现规范
+globs:
+  - "src/business/**"
+  - "src/embeddings/**"
+  - "src/data_source/**"
+  - "src/retrievers/**"
+  - "src/rerankers/**"
+  - "src/observers/**"
+alwaysApply: false
+---
+
+# 模块化设计规范
+
+## 设计原则
+
+### 1. 单一职责原则
+- 每个模块/类只负责一个功能领域
+- 避免"上帝类"（God Class）
+- 职责边界清晰，易于测试和维护
+
+### 2. 接口隔离
+- 定义最小化接口，避免臃肿
+- 实现类只实现必需的方法
+- 使用组合而非继承
+
+### 3. 开闭原则
+- 对扩展开放：通过继承/实现添加新功能
+- 对修改封闭：不修改已有稳定代码
+- 通过工厂模式创建新实现
+
+---
+
+## 模块化实现模式
+
+### 1. 抽象基类模式
+```python
+from abc import ABC, abstractmethod
+
+class BaseEmbedding(ABC):
+    """Embedding抽象基类"""
+    
+    @abstractmethod
+    def embed_query(self, text: str) -> List[float]:
+        """向量化查询文本"""
+        pass
+    
+    @abstractmethod
+    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        """批量向量化文档"""
+        pass
+```
+
+### 2. 工厂模式
+```python
+def create_embedding(embedding_type: str, **kwargs) -> BaseEmbedding:
+    """创建Embedding实例"""
+    if embedding_type == "local":
+        return LocalEmbedding(**kwargs)
+    elif embedding_type == "api":
+        return APIEmbedding(**kwargs)
+    else:
+        raise ValueError(f"不支持的类型: {embedding_type}")
+```
+
+### 3. 注册表模式（ModuleRegistry）
+```python
+class ModuleRegistry:
+    """模块注册中心"""
+    
+    _modules: Dict[str, Type] = {}
+    
+    @classmethod
+    def register(cls, name: str, module_class: Type):
+        cls._modules[name] = module_class
+    
+    @classmethod
+    def create(cls, name: str, **kwargs):
+        module_class = cls._modules.get(name)
+        if not module_class:
+            raise ValueError(f"未注册的模块: {name}")
+        return module_class(**kwargs)
+```
+
+---
+
+## 模块分类
+
+### 1. 基础设施模块
+位置：`src/embeddings/`, `src/data_source/`, `src/observers/`
+
+特点：
+- 提供基础能力，无业务逻辑
+- 通过接口定义契约
+- 支持可插拔替换
+
+### 2. 业务模块
+位置：`src/business/`, `src/query/`, `src/retrievers/`
+
+特点：
+- 包含业务逻辑和流程编排
+- 通过协议协作
+- 依赖注入基础设施资源
+
+### 3. 适配器模块
+位置：`src/business/pipeline/adapters.py`
+
+特点：
+- 适配不同接口协议
+- 桥接新旧架构
+- 临时过渡方案
+
+---
+
+## 配置驱动
+
+### 集中配置管理
+- 所有配置在 `src/config.py` 中定义
+- 环境变量通过 `.env` 文件管理
+- 配置变更不需要修改代码
+
+### 配置示例
+```python
+# .env
+EMBEDDING_TYPE=local
+EMBEDDING_MODEL=BAAI/bge-small-zh-v1.5
+RETRIEVAL_STRATEGY=multi
+ENABLED_RETRIEVAL_STRATEGIES=vector,bm25,grep
+```
+
+---
+
+## 模块扩展指南
+
+### 添加新 Embedding 实现
+1. 在 `src/embeddings/` 创建新文件
+2. 继承 `BaseEmbedding`
+3. 实现必需方法
+4. 在 `factory.py` 中注册
+
+### 添加新数据源
+1. 在 `src/data_source/` 创建新文件
+2. 继承 `BaseDataSource`
+3. 实现 `load()` 方法
+4. 在工厂函数中注册
+
+### 添加新检索器
+1. 在 `src/retrievers/` 创建新文件
+2. 实现 `BaseRetriever` 接口（或使用适配器）
+3. 在 `retriever_factory.py` 中注册
+
+---
+
+## 模块间协作
+
+### 协议定义
+- 业务模块通过协议定义协作契约
+- 协议定义在 `src/business/protocols.py`
+- 避免直接依赖具体实现类
+
+### 事件钩子
+- 使用观察者模式支持事件钩子
+- 模块可注册钩子函数
+- 支持扩展点注入
+
+```python
+class PipelineExecutor:
+    def __init__(self):
+        self.hooks: Dict[str, List[Callable]] = {}
+    
+    def register_hook(self, event: str, callback: Callable):
+        self.hooks.setdefault(event, []).append(callback)
+    
+    def emit(self, event: str, **kwargs):
+        for callback in self.hooks.get(event, []):
+            callback(**kwargs)
+```
+
+---
+
+## 代码拆分原则
+
+当模块超过 300 行时，按以下原则拆分：
+
+1. **按职责拆分**：每个文件一个主要职责
+2. **按层次拆分**：接口、实现、工厂分离
+3. **按功能拆分**：核心功能、工具函数、适配器分离
+
+示例：`src/indexer.py` 拆分为：
+- `indexer/index_core.py` - 核心索引逻辑
+- `indexer/index_manager.py` - 索引管理
+- `indexer/index_builder.py` - 构建流程
+- `indexer/index_utils.py` - 工具函数
+
+---
+
+## 参考示例
+
+参考以下文件了解模块化设计：
+- `src/embeddings/` - Embedding 可插拔架构
+- `src/query/modular/` - 模块化查询引擎
+- `src/business/services/rag_service.py` - 统一服务接口
+- `src/business/registry.py` - 模块注册中心

@@ -1,0 +1,153 @@
+---
+description: Python代码风格与规范
+alwaysApply: true
+---
+
+# Python 代码风格规范
+
+## 核心原则
+
+### 1. 类型提示（Type Hints）
+- **所有函数必须提供类型提示**
+- 使用 `typing` 模块（`List`, `Dict`, `Optional`, `Union` 等）
+- 返回类型必须明确指定，无返回值使用 `-> None`
+
+```python
+from typing import List, Optional, Dict
+
+def process_documents(
+    docs: List[Document],
+    config: Optional[Dict[str, str]] = None
+) -> List[ProcessedDocument]:
+    """处理文档列表"""
+    pass
+```
+
+### 2. 文件行数限制
+- **强制要求**：单个代码文件不得超过 300 行
+- 超过限制必须拆分成多个模块
+- 拆分原则：按功能职责、单一职责原则
+
+### 3. 日志规范
+- 使用 `src.logger.setup_logger` 创建日志器
+- 日志级别：`DEBUG` < `INFO` < `WARNING` < `ERROR` < `CRITICAL`
+- 关键操作必须记录日志
+
+```python
+from src.logger import setup_logger
+
+logger = setup_logger('module_name')
+
+logger.info("开始处理文档")
+logger.error(f"处理失败: {error}", exc_info=True)
+```
+
+### 4. 异常处理
+- 使用具体的异常类型，避免裸露的 `except:`
+- 捕获异常后必须记录日志或重新抛出
+- 关键路径必须有异常处理
+
+```python
+try:
+    result = process_data()
+except ValueError as e:
+    logger.error(f"数据验证失败: {e}")
+    raise
+except Exception as e:
+    logger.exception("未知错误")
+    raise RuntimeError(f"处理失败: {e}") from e
+```
+
+### 5. 文档字符串（Docstrings）
+- 所有公共函数、类必须有 docstring
+- 使用 Google 风格或 NumPy 风格
+- 包含参数说明、返回值说明、异常说明
+
+```python
+def build_index(
+    documents: List[Document],
+    vector_store: VectorStore,
+    embedding_model: Optional[BaseEmbedding] = None
+) -> VectorStoreIndex:
+    """构建向量索引
+    
+    Args:
+        documents: 文档列表
+        vector_store: 向量存储实例
+        embedding_model: Embedding模型，默认使用配置中的模型
+        
+    Returns:
+        VectorStoreIndex: 构建好的索引
+        
+    Raises:
+        ValueError: 当documents为空时抛出
+    """
+    pass
+```
+
+### 6. 导入规范
+- 标准库 → 第三方库 → 本地模块（三部分，空行分隔）
+- 按字母顺序排列
+- 避免 `from module import *`
+- 相对导入仅用于同包内
+
+```python
+# 标准库
+import os
+from pathlib import Path
+from typing import List, Optional
+
+# 第三方库
+import chromadb
+from llama_index.core import VectorStoreIndex
+
+# 本地模块
+from src.config import config
+from src.logger import setup_logger
+```
+
+### 7. 命名规范
+- **类名**：大驼峰（`PascalCase`）：`BaseEmbedding`, `VectorStoreIndex`
+- **函数/变量**：蛇形命名（`snake_case`）：`build_index`, `embedding_model`
+- **常量**：全大写下划线分隔：`MAX_RETRIES`, `DEFAULT_TOP_K`
+- **私有成员**：单下划线前缀：`_internal_method`, `_cache`
+
+### 8. 枚举使用（Enum）
+- **对于固定的常量集合，使用枚举类型**
+- 使用 `from enum import Enum` 定义枚举类
+- 枚举类名使用大驼峰：`StrategyType`, `ModuleType`
+- 枚举成员使用全大写或清晰描述：`RETRIEVAL`, `RERANKING`
+- 优先使用枚举替代字符串字面量常量，提高类型安全
+
+```python
+from enum import Enum
+
+class StrategyType(Enum):
+    """策略类型枚举"""
+    RETRIEVAL = "retrieval"
+    RERANKING = "reranking"
+    GENERATION = "generation"
+
+# 使用枚举
+strategy = StrategyType.RETRIEVAL
+if strategy == StrategyType.RETRIEVAL:
+    pass
+```
+
+### 9. 代码组织
+- 文件顶部：模块 docstring
+- 然后是导入（分三部分）
+- 然后是常量定义
+- 然后是类和函数定义
+- `if __name__ == "__main__":` 仅用于测试脚本
+
+---
+
+## 参考示例
+
+参考以下文件的代码风格：
+- `src/business/protocols.py` - 枚举使用（`ModuleType`）
+- `src/business/strategy_manager.py` - 枚举使用（`StrategyType`）
+- `src/query/modular/retriever_factory.py` - 工厂模式实现
+- `src/embeddings/base.py` - 抽象基类定义
+- `src/config.py` - 配置管理

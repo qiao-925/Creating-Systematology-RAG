@@ -74,6 +74,6 @@ class SimpleQueryEngine:
             response = self.query_engine.query(question)
             return str(response)
         except Exception as e:
-            print(f"❌ 查询失败: {e}")
+            logger.error(f"❌ 查询失败: {e}")
             raise
 

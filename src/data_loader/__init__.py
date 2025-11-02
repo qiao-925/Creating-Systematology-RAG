@@ -11,8 +11,10 @@ from src.data_loader.github_loader import (
     load_documents_from_github,
     load_documents_from_github_url
 )
+from src.data_loader.github_utils import handle_github_error
 from src.data_loader.github_sync import sync_github_repository
 from src.data_loader.github_url import parse_github_url
+from src.data_loader.wikipedia_loader import load_documents_from_wikipedia
 
 __all__ = [
     'DocumentProcessor',
@@ -22,7 +24,11 @@ __all__ = [
     'load_documents_from_urls',
     'load_documents_from_github',
     'load_documents_from_github_url',
+    'load_documents_from_wikipedia',
     'sync_github_repository',
     'parse_github_url',
 ]
+
+# 向后兼容：导出为 _handle_github_error
+_handle_github_error = handle_github_error
 

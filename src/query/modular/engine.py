@@ -136,18 +136,11 @@ class ModularQueryEngine:
             # 自动路由模式下，query_engine在query时动态创建
             self.query_engine = None
         
-        logger.info(
-            f"模块化查询引擎初始化完成: "
-            f"策略={self.retrieval_strategy}, "
-            f"top_k={self.similarity_top_k}, "
-            f"重排序={self.enable_rerank}, "
-            f"相似度阈值={self.similarity_cutoff}"
-        )
-        print(f"✅ 模块化查询引擎初始化完成")
-        print(f"   检索策略: {self.retrieval_strategy}")
-        print(f"   Top-K: {self.similarity_top_k}")
-        print(f"   重排序: {'启用' if self.enable_rerank else '禁用'}")
-        print(f"   相似度阈值: {self.similarity_cutoff}")
+        logger.info(f"✅ 模块化查询引擎初始化完成")
+        logger.info(f"   检索策略: {self.retrieval_strategy}")
+        logger.info(f"   Top-K: {self.similarity_top_k}")
+        logger.info(f"   重排序: {'启用' if self.enable_rerank else '禁用'}")
+        logger.info(f"   相似度阈值: {self.similarity_cutoff}")
     
     def query(
         self, 

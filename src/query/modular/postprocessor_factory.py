@@ -65,8 +65,7 @@ def create_postprocessors(
                 logger.info("重排序器类型为'none'，跳过重排序")
                 
         except Exception as e:
-            logger.warning(f"重排序模块初始化失败，跳过: {e}")
-            print(f"⚠️  重排序模块初始化失败: {e}")
+            logger.warning(f"⚠️  重排序模块初始化失败: {e}")
     
     return postprocessors
 

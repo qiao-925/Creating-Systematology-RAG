@@ -48,7 +48,7 @@ def incremental_update(
         try:
             added_count, added_vector_ids = add_documents(index_manager, added_docs)
             stats["added"] = added_count
-            print(f"✅ 新增 {added_count} 个文档")
+            logger.info(f"✅ 新增 {added_count} 个文档")
             
             # 更新元数据的向量ID
             if metadata_manager and added_docs:
@@ -66,7 +66,7 @@ def incremental_update(
                             )
         except Exception as e:
             error_msg = f"新增文档失败: {e}"
-            print(f"❌ {error_msg}")
+            logger.error(error_msg)
             stats["errors"].append(error_msg)
     
     # 2. 处理修改（先批量删除旧的，再批量添加新的）
@@ -98,7 +98,7 @@ def incremental_update(
             # 批量添加新版本
             modified_count, modified_vector_ids = add_documents(index_manager, modified_docs)
             stats["modified"] = modified_count
-            print(f"✅ 更新 {modified_count} 个文档（批量删除 {deleted_vector_count} 个旧向量）")
+            logger.info(f"✅ 更新 {modified_count} 个文档（批量删除 {deleted_vector_count} 个旧向量）")
             
             # 更新元数据的向量ID
             if metadata_manager and modified_docs:
@@ -116,7 +116,7 @@ def incremental_update(
                             )
         except Exception as e:
             error_msg = f"更新文档失败: {e}"
-            print(f"❌ {error_msg}")
+            logger.error(error_msg)
             stats["errors"].append(error_msg)
     
     # 3. 处理删除
@@ -127,10 +127,10 @@ def incremental_update(
             # 这里需要metadata_manager提供向量ID信息
             # 暂时跳过具体实现
             stats["deleted"] = deleted_count
-            print(f"✅ 删除 {deleted_count} 个文档")
+            logger.info(f"✅ 删除 {deleted_count} 个文档")
         except Exception as e:
             error_msg = f"删除文档失败: {e}"
-            print(f"❌ {error_msg}")
+            logger.error(error_msg)
             stats["errors"].append(error_msg)
     
     return stats

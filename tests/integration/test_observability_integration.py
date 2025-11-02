@@ -183,6 +183,7 @@ class TestRAGASIntegration:
             if ragas_evaluator.enabled:
                 # 验证评估数据已收集
                 # 注意：可能需要手动触发评估
+                pass
                 
         except ImportError:
             pytest.skip("RAGAS未安装，跳过RAGAS集成测试")

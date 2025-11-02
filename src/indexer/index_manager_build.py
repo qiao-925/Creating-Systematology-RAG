@@ -31,7 +31,7 @@ def build_index_method(
     start_time = time.time()
     
     if not documents:
-        print("⚠️  没有文档可索引")
+        logger.warning("⚠️  没有文档可索引")
         return index_manager.get_index(), {}
     
     # 文档级断点续传
@@ -39,7 +39,7 @@ def build_index_method(
     
     if already_vectorized > 0:
         logger.info(f"✅ 检测到 {already_vectorized} 个文档已向量化，跳过处理")
-        print(f"📊 断点续传: {already_vectorized}/{len(documents)} 个文档已向量化，剩余 {len(documents_to_process)} 个待处理")
+        logger.info(f"📊 断点续传: {already_vectorized}/{len(documents)} 个文档已向量化，剩余 {len(documents_to_process)} 个待处理")
     
     if not documents_to_process:
         logger.info(f"✅ 所有文档已向量化，跳过向量化步骤")
@@ -65,18 +65,16 @@ def build_index_method(
     documents = documents_to_process
     device = get_gpu_device()
     
-    print(f"\n🔨 开始构建索引，共 {len(documents)} 个文档")
-    print(f"   分块参数: size={index_manager.chunk_size}, overlap={index_manager.chunk_overlap}")
+    logger.info(f"🔨 开始构建索引，共 {len(documents)} 个文档")
+    logger.info(f"   分块参数: size={index_manager.chunk_size}, overlap={index_manager.chunk_overlap}")
     
     if device.startswith("cuda"):
         import torch
         device_name = torch.cuda.get_device_name()
-        print(f"📊 索引构建设备: {device} ⚡ GPU加速模式")
-        print(f"   GPU: {device_name}")
-        logger.info(f"📊 索引构建使用GPU: {device_name} ({device})")
+        logger.info(f"📊 索引构建设备: {device} ⚡ GPU加速模式")
+        logger.info(f"   GPU: {device_name}")
     else:
-        print(f"📊 索引构建设备: {device} 🐌 CPU模式")
-        logger.warning(f"📊 索引构建使用CPU（性能较慢）")
+        logger.warning(f"📊 索引构建设备: {device} 🐌 CPU模式")
     
     try:
         if config.INDEX_BATCH_MODE:
@@ -88,7 +86,7 @@ def build_index_method(
         stats = index_manager.get_stats()
         total_elapsed = time.time() - start_time
         
-        print(f"📊 索引统计: {stats}")
+        logger.info(f"📊 索引统计: {stats}")
         logger.info(
             f"索引构建完成: "
             f"文档数={len(documents)}, "
@@ -121,7 +119,7 @@ def build_index_method(
         return index_manager._index, vector_ids_map
         
     except Exception as e:
-        print(f"❌ 索引构建失败: {e}")
+        logger.error(f"❌ 索引构建失败: {e}")
         if cache_manager and task_id:
             try:
                 cache_manager.mark_step_failed(
