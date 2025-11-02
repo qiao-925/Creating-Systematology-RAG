@@ -1,51 +1,27 @@
 """
-流水线执行器
-
-负责编排和执行能力模块，实现模块化的RAG流程
+Pipeline执行器 - 核心执行模块
+PipelineExecutor类实现
 """
 
 from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Any, Callable
-from datetime import datetime
 import time
 
 from src.business.protocols import (
     PipelineModule,
     PipelineContext,
-    ModuleType,
     ModuleList,
 )
 from src.logger import setup_logger
+from src.business.pipeline.modules.execution import PipelineExecutorCore, ExecutionResult
+from src.business.pipeline.modules.hooks import HookManager
 
 logger = setup_logger('pipeline_executor')
 
 
 @dataclass
-class ExecutionResult:
-    """执行结果"""
-    success: bool
-    context: PipelineContext
-    execution_time: float
-    modules_executed: List[str]
-    errors: List[str] = field(default_factory=list)
-    
-    def to_dict(self) -> Dict[str, Any]:
-        """转换为字典"""
-        return {
-            "success": self.success,
-            "execution_time": self.execution_time,
-            "modules_executed": self.modules_executed,
-            "errors": self.errors,
-            "has_errors": len(self.errors) > 0,
-        }
-
-
-@dataclass
 class Pipeline:
-    """流水线定义
-    
-    包含模块列表和执行配置
-    """
+    """流水线定义"""
     name: str
     modules: ModuleList
     description: str = ""
@@ -72,18 +48,7 @@ class Pipeline:
 
 
 class PipelineExecutor:
-    """流水线执行器
-    
-    负责按顺序执行流水线中的各个模块
-    支持事件钩子、错误处理、性能监控
-    
-    Examples:
-        >>> executor = PipelineExecutor()
-        >>> pipeline = Pipeline(name="rag", modules=[retrieval, generation])
-        >>> context = PipelineContext(query="问题")
-        >>> result = executor.execute(pipeline, context)
-        >>> print(result.context.formatted_answer)
-    """
+    """流水线执行器"""
     
     def __init__(
         self,
@@ -91,23 +56,16 @@ class PipelineExecutor:
         stop_on_error: bool = False,
         max_execution_time: Optional[float] = None,
     ):
-        """初始化执行器
-        
-        Args:
-            enable_hooks: 是否启用事件钩子
-            stop_on_error: 遇到错误是否停止（False继续执行）
-            max_execution_time: 最大执行时间（秒），超时则中止
-        """
+        """初始化执行器"""
         self.enable_hooks = enable_hooks
         self.stop_on_error = stop_on_error
         self.max_execution_time = max_execution_time
         
-        # 事件钩子
-        self._pre_pipeline_hooks: List[Callable] = []
-        self._post_pipeline_hooks: List[Callable] = []
-        self._pre_module_hooks: List[Callable] = []
-        self._post_module_hooks: List[Callable] = []
-        self._error_hooks: List[Callable] = []
+        self.hook_manager = HookManager(enable_hooks)
+        self.executor_core = PipelineExecutorCore(
+            stop_on_error=stop_on_error,
+            max_execution_time=max_execution_time
+        )
         
         logger.info(f"PipelineExecutor初始化: hooks={enable_hooks}, stop_on_error={stop_on_error}")
     
@@ -116,92 +74,28 @@ class PipelineExecutor:
         pipeline: Pipeline,
         context: PipelineContext,
     ) -> ExecutionResult:
-        """执行流水线
-        
-        Args:
-            pipeline: 流水线定义
-            context: 初始上下文
-            
-        Returns:
-            ExecutionResult: 执行结果
-        """
+        """执行流水线"""
         start_time = time.time()
-        modules_executed = []
         
         logger.info(f"开始执行流水线: {pipeline.name}, modules={len(pipeline.modules)}")
         
         # 执行前钩子
         if self.enable_hooks:
-            self._trigger_pre_pipeline_hooks(pipeline, context)
+            self.hook_manager.trigger_pre_pipeline_hooks(pipeline, context)
         
         try:
-            # 按顺序执行模块
-            for i, module in enumerate(pipeline.modules):
-                # 检查超时
-                if self.max_execution_time:
-                    elapsed = time.time() - start_time
-                    if elapsed > self.max_execution_time:
-                        error_msg = f"流水线执行超时: {elapsed:.2f}s > {self.max_execution_time}s"
-                        logger.error(error_msg)
-                        context.set_error(error_msg)
-                        break
-                
-                # 执行模块
-                try:
-                    logger.debug(f"执行模块 [{i+1}/{len(pipeline.modules)}]: {module.name}")
-                    
-                    # 执行前钩子
-                    if self.enable_hooks:
-                        self._trigger_pre_module_hooks(module, context)
-                    
-                    # 检查是否应该执行
-                    should_execute = module.pre_execute(context)
-                    if not should_execute:
-                        logger.info(f"跳过模块: {module.name}")
-                        continue
-                    
-                    # 执行模块
-                    context = module.execute(context)
-                    modules_executed.append(module.name)
-                    
-                    # 执行后钩子
-                    module.post_execute(context)
-                    if self.enable_hooks:
-                        self._trigger_post_module_hooks(module, context)
-                    
-                except Exception as e:
-                    logger.error(f"模块执行失败: {module.name}, error={e}", exc_info=True)
-                    
-                    # 调用模块错误处理
-                    module.on_error(context, e)
-                    
-                    # 调用全局错误钩子
-                    if self.enable_hooks:
-                        self._trigger_error_hooks(module, context, e)
-                    
-                    # 根据配置决定是否继续
-                    if self.stop_on_error:
-                        logger.error("遇到错误，停止执行")
-                        break
+            result = self.executor_core.execute(pipeline, context, self.hook_manager)
+            
+            execution_time = time.time() - start_time
+            result.execution_time = execution_time
             
             # 执行后钩子
             if self.enable_hooks:
-                self._trigger_post_pipeline_hooks(pipeline, context)
-            
-            execution_time = time.time() - start_time
-            success = not context.has_errors()
-            
-            result = ExecutionResult(
-                success=success,
-                context=context,
-                execution_time=execution_time,
-                modules_executed=modules_executed,
-                errors=context.errors,
-            )
+                self.hook_manager.trigger_post_pipeline_hooks(pipeline, context)
             
             logger.info(
-                f"流水线执行完成: success={success}, time={execution_time:.3f}s, "
-                f"modules={len(modules_executed)}/{len(pipeline.modules)}"
+                f"流水线执行完成: success={result.success}, time={execution_time:.3f}s, "
+                f"modules={len(result.modules_executed)}/{len(pipeline.modules)}"
             )
             
             return result
@@ -215,7 +109,7 @@ class PipelineExecutor:
                 success=False,
                 context=context,
                 execution_time=execution_time,
-                modules_executed=modules_executed,
+                modules_executed=[],
                 errors=context.errors,
             )
     
@@ -223,84 +117,33 @@ class PipelineExecutor:
     
     def add_pre_pipeline_hook(self, hook: Callable):
         """添加流水线执行前钩子"""
-        self._pre_pipeline_hooks.append(hook)
+        self.hook_manager.add_pre_pipeline_hook(hook)
     
     def add_post_pipeline_hook(self, hook: Callable):
         """添加流水线执行后钩子"""
-        self._post_pipeline_hooks.append(hook)
+        self.hook_manager.add_post_pipeline_hook(hook)
     
     def add_pre_module_hook(self, hook: Callable):
         """添加模块执行前钩子"""
-        self._pre_module_hooks.append(hook)
+        self.hook_manager.add_pre_module_hook(hook)
     
     def add_post_module_hook(self, hook: Callable):
         """添加模块执行后钩子"""
-        self._post_module_hooks.append(hook)
+        self.hook_manager.add_post_module_hook(hook)
     
     def add_error_hook(self, hook: Callable):
         """添加错误钩子"""
-        self._error_hooks.append(hook)
-    
-    def _trigger_pre_pipeline_hooks(self, pipeline: Pipeline, context: PipelineContext):
-        """触发流水线执行前钩子"""
-        for hook in self._pre_pipeline_hooks:
-            try:
-                hook(pipeline, context)
-            except Exception as e:
-                logger.warning(f"Pre-pipeline hook失败: {e}")
-    
-    def _trigger_post_pipeline_hooks(self, pipeline: Pipeline, context: PipelineContext):
-        """触发流水线执行后钩子"""
-        for hook in self._post_pipeline_hooks:
-            try:
-                hook(pipeline, context)
-            except Exception as e:
-                logger.warning(f"Post-pipeline hook失败: {e}")
-    
-    def _trigger_pre_module_hooks(self, module: PipelineModule, context: PipelineContext):
-        """触发模块执行前钩子"""
-        for hook in self._pre_module_hooks:
-            try:
-                hook(module, context)
-            except Exception as e:
-                logger.warning(f"Pre-module hook失败: {e}")
-    
-    def _trigger_post_module_hooks(self, module: PipelineModule, context: PipelineContext):
-        """触发模块执行后钩子"""
-        for hook in self._post_module_hooks:
-            try:
-                hook(module, context)
-            except Exception as e:
-                logger.warning(f"Post-module hook失败: {e}")
-    
-    def _trigger_error_hooks(self, module: PipelineModule, context: PipelineContext, error: Exception):
-        """触发错误钩子"""
-        for hook in self._error_hooks:
-            try:
-                hook(module, context, error)
-            except Exception as e:
-                logger.warning(f"Error hook失败: {e}")
+        self.hook_manager.add_error_hook(hook)
 
 
 # 便捷函数
-
 def create_simple_rag_pipeline(
     retrieval_module: PipelineModule,
     generation_module: PipelineModule,
     formatting_module: Optional[PipelineModule] = None,
     name: str = "simple_rag",
 ) -> Pipeline:
-    """创建简单RAG流水线
-    
-    Args:
-        retrieval_module: 检索模块
-        generation_module: 生成模块
-        formatting_module: 格式化模块（可选）
-        name: 流水线名称
-        
-    Returns:
-        Pipeline: 流水线对象
-    """
+    """创建简单RAG流水线"""
     modules = [retrieval_module, generation_module]
     if formatting_module:
         modules.append(formatting_module)
@@ -320,19 +163,7 @@ def create_advanced_rag_pipeline(
     formatting_module: PipelineModule,
     name: str = "advanced_rag",
 ) -> Pipeline:
-    """创建高级RAG流水线
-    
-    Args:
-        retrieval_module: 检索模块
-        reranking_module: 重排序模块
-        prompt_module: 提示工程模块
-        generation_module: 生成模块
-        formatting_module: 格式化模块
-        name: 流水线名称
-        
-    Returns:
-        Pipeline: 流水线对象
-    """
+    """创建高级RAG流水线"""
     return Pipeline(
         name=name,
         modules=[

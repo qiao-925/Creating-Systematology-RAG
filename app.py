@@ -34,9 +34,9 @@ from src.config import config
 from src.ui_components import (
     init_session_state,
     preload_embedding_model,
+    load_rag_service,
     load_index,
     load_chat_manager,
-    load_hybrid_query_engine,
     display_hybrid_sources,
     display_model_status,
     format_answer_with_citation_links,
@@ -745,11 +745,44 @@ def main():
     # 已登录，显示侧边栏
     sidebar()
     
-    # 初始化对话管理器（无论是否有索引都可以初始化）
+    # 初始化RAG服务（新架构推荐）
+    rag_service = load_rag_service()
+    if not rag_service:
+        st.error("❌ RAG服务初始化失败")
+        return
+    
+    # 初始化对话管理器（用于会话管理和历史记录）
     chat_manager = load_chat_manager()
     if not chat_manager:
         st.error("❌ 对话管理器初始化失败")
         return
+    
+    # 辅助函数：使用RAGService执行查询
+    def execute_query_with_rag_service(query: str, user_id: str = None, session_id: str = None):
+        """使用RAGService执行查询
+        
+        Returns:
+            tuple: (answer, sources, wikipedia_sources)
+                - answer: 回答文本
+                - sources: 本地来源列表
+                - wikipedia_sources: Wikipedia来源列表（当前为空，待后续集成）
+        """
+        try:
+            # 使用RAGService查询
+            response = rag_service.query(
+                question=query,
+                user_id=user_id or st.session_state.user_email,
+                session_id=session_id or (chat_manager.current_session.session_id if chat_manager.current_session else None),
+            )
+            
+            # 返回兼容格式
+            # TODO: 如果未来需要Wikipedia增强，可以在这里集成
+            wikipedia_sources = []  # 暂不支持Wikipedia增强
+            
+            return response.answer, response.sources, wikipedia_sources
+        except Exception as e:
+            logger.error(f"RAGService查询失败: {e}", exc_info=True)
+            raise
     
     # ========== 处理历史会话加载 ==========
     if 'load_session_id' in st.session_state and st.session_state.load_session_id:
@@ -895,143 +928,67 @@ def main():
                         answer = ""
                         sources = []
                         
-                        # 判断使用哪种查询模式
-                        if st.session_state.enable_wikipedia:
-                            # 混合查询模式（维基百科增强）
-                            hybrid_engine = load_hybrid_query_engine()
-                            if hybrid_engine:
-                                answer, local_sources, wikipedia_sources = hybrid_engine.query(prompt)
-                                
-                                # 生成消息ID
-                                msg_idx = len(st.session_state.messages)
-                                message_id = f"msg_{msg_idx}_{hash(str(answer))}"
-                                
-                                # 合并本地和维基百科来源用于右侧显示
-                                all_sources_for_display = local_sources + [
-                                    {**s, 'index': len(local_sources) + i + 1} 
-                                    for i, s in enumerate(wikipedia_sources)
-                                ]
-                                
-                                # 如果有引用，使用带链接的格式
-                                if all_sources_for_display:
-                                    formatted_answer = format_answer_with_citation_links(
-                                        answer,
-                                        all_sources_for_display,
-                                        message_id=message_id
-                                    )
-                                    st.markdown(formatted_answer, unsafe_allow_html=True)
-                                    # 存储引用来源用于右侧显示
-                                    current_sources_map[message_id] = all_sources_for_display
-                                else:
-                                    if answer:  # 只在有答案时显示
-                                        st.markdown(answer)
-                                    current_sources_map[message_id] = []
-                                
-                                # 更新session_state
-                                st.session_state.current_sources_map = current_sources_map
-                                
-                                # 保存到消息历史（UI显示用）
-                                if answer:  # 只在有答案时保存
-                                    st.session_state.messages.append({
-                                        "role": "assistant",
-                                        "content": answer,
-                                        "sources": local_sources,
-                                        "wikipedia_sources": wikipedia_sources
-                                    })
-                                
-                                # 同时保存到ChatManager会话（持久化）
-                                if chat_manager and answer:
-                                    # 合并所有来源用于保存
-                                    all_sources = local_sources + [
-                                        {**s, 'source_type': 'wikipedia'} 
-                                        for s in wikipedia_sources
-                                    ]
-                                    # 如果没有当前会话，先创建一个
-                                    if not chat_manager.current_session:
-                                        chat_manager.start_session()
-                                    # 保存对话
-                                    chat_manager.current_session.add_turn(prompt, answer, all_sources)
-                                    # 自动保存
-                                    if chat_manager.auto_save:
-                                        chat_manager.save_current_session()
-                                
-                                # 混合查询模式已完成显示和保存
-                                st.rerun()  # 刷新页面显示新消息
-                            else:
-                                # 混合查询引擎初始化失败，fallback到普通对话模式
-                                st.warning("⚠️ 混合查询引擎初始化失败，使用普通对话模式")
-                                answer, sources = chat_manager.chat(prompt)
-                                
-                                # 生成消息ID
-                                msg_idx = len(st.session_state.messages)
-                                message_id = f"msg_{msg_idx}_{hash(str(answer))}"
-                                
-                                # 如果有引用，使用带链接的格式
-                                if sources:
-                                    formatted_answer = format_answer_with_citation_links(
-                                        answer,
-                                        sources,
-                                        message_id=message_id
-                                    )
-                                    st.markdown(formatted_answer, unsafe_allow_html=True)
-                                    # 存储引用来源用于右侧显示
-                                    current_sources_map[message_id] = sources
-                                else:
-                                    if answer:  # 只在有答案时显示
-                                        st.markdown(answer)
-                                    # 存储空列表
-                                    current_sources_map[message_id] = []
-                                
-                                # 更新session_state
-                                st.session_state.current_sources_map = current_sources_map
-                                
-                                # 保存到消息历史
-                                if answer:  # 只在有答案时保存
-                                    st.session_state.messages.append({
-                                        "role": "assistant",
-                                        "content": answer,
-                                        "sources": sources
-                                    })
-                                
-                                st.rerun()  # 刷新页面显示新消息
+                        # 使用RAGService执行查询（新架构）
+                        answer, local_sources, wikipedia_sources = execute_query_with_rag_service(
+                            query=prompt,
+                            user_id=st.session_state.user_email,
+                            session_id=chat_manager.current_session.session_id if chat_manager.current_session else None,
+                        )
+                        
+                        # 生成消息ID
+                        msg_idx = len(st.session_state.messages)
+                        message_id = f"msg_{msg_idx}_{hash(str(answer))}"
+                        
+                        # 合并本地和维基百科来源用于右侧显示
+                        all_sources_for_display = local_sources + [
+                            {**s, 'index': len(local_sources) + i + 1} 
+                            for i, s in enumerate(wikipedia_sources)
+                        ]
+                        
+                        # 如果有引用，使用带链接的格式
+                        if all_sources_for_display:
+                            formatted_answer = format_answer_with_citation_links(
+                                answer,
+                                all_sources_for_display,
+                                message_id=message_id
+                            )
+                            st.markdown(formatted_answer, unsafe_allow_html=True)
+                            # 存储引用来源用于右侧显示
+                            current_sources_map[message_id] = all_sources_for_display
                         else:
-                            # 普通对话模式
-                            answer, sources = chat_manager.chat(prompt)
-                            
-                            # 生成消息ID
-                            msg_idx = len(st.session_state.messages)
-                            message_id = f"msg_{msg_idx}_{hash(str(answer))}"
-                            
-                            # 如果有引用，使用带链接的格式
-                            if sources:
-                                formatted_answer = format_answer_with_citation_links(
-                                    answer,
-                                    sources,
-                                    message_id=message_id
-                                )
-                                st.markdown(formatted_answer, unsafe_allow_html=True)
-                                # 存储引用来源用于右侧显示
-                                current_sources_map[message_id] = sources
-                            else:
-                                if answer:  # 只在有答案时显示
-                                    st.markdown(answer)
-                                # 存储空列表
-                                current_sources_map[message_id] = []
-                            
-                            # 引用来源将在右侧面板显示，这里不重复显示
-                            
-                            # 更新session_state
-                            st.session_state.current_sources_map = current_sources_map
-                            
-                            # 保存到消息历史
-                            if answer:  # 只在有答案时保存
-                                st.session_state.messages.append({
-                                    "role": "assistant",
-                                    "content": answer,
-                                    "sources": sources
-                                })
-                            
-                            st.rerun()  # 刷新页面显示新消息
+                            if answer:  # 只在有答案时显示
+                                st.markdown(answer)
+                            current_sources_map[message_id] = []
+                        
+                        # 更新session_state
+                        st.session_state.current_sources_map = current_sources_map
+                        
+                        # 保存到消息历史（UI显示用）
+                        if answer:  # 只在有答案时保存
+                            st.session_state.messages.append({
+                                "role": "assistant",
+                                "content": answer,
+                                "sources": local_sources,
+                                "wikipedia_sources": wikipedia_sources
+                            })
+                        
+                        # 同时保存到ChatManager会话（持久化）
+                        if chat_manager and answer:
+                            # 合并所有来源用于保存
+                            all_sources = local_sources + [
+                                {**s, 'source_type': 'wikipedia'} 
+                                for s in wikipedia_sources
+                            ]
+                            # 如果没有当前会话，先创建一个
+                            if not chat_manager.current_session:
+                                chat_manager.start_session()
+                            # 保存对话
+                            chat_manager.current_session.add_turn(prompt, answer, all_sources)
+                            # 自动保存
+                            if chat_manager.auto_save:
+                                chat_manager.save_current_session()
+                        
+                        st.rerun()  # 刷新页面显示新消息
                         
                     except Exception as e:
                         import traceback
@@ -1072,129 +1029,63 @@ def main():
         with st.chat_message("assistant"):
             with st.spinner("🤔 思考中..."):
                 try:
-                    if st.session_state.enable_wikipedia:
-                        hybrid_engine = load_hybrid_query_engine()
-                        if hybrid_engine:
-                            answer, local_sources, wikipedia_sources = hybrid_engine.query(prompt)
-                            
-                            # 生成消息ID
-                            msg_idx = len(st.session_state.messages)
-                            message_id = f"msg_{msg_idx}_{hash(str(answer))}"
-                            
-                            # 合并本地和维基百科来源用于右侧显示
-                            all_sources_for_display = local_sources + [
-                                {**s, 'index': len(local_sources) + i + 1} 
-                                for i, s in enumerate(wikipedia_sources)
-                            ]
-                            
-                            # 如果有引用，使用带链接的格式
-                            if all_sources_for_display:
-                                formatted_answer = format_answer_with_citation_links(
-                                    answer,
-                                    all_sources_for_display,
-                                    message_id=message_id
-                                )
-                                st.markdown(formatted_answer, unsafe_allow_html=True)
-                                # 存储引用来源用于右侧显示
-                                current_sources_map[message_id] = all_sources_for_display
-                            else:
-                                if answer:  # 只在有答案时显示
-                                    st.markdown(answer)
-                                current_sources_map[message_id] = []
-                            
-                            # 更新session_state
-                            st.session_state.current_sources_map = current_sources_map
-                            
-                            # 保存到消息历史（UI显示用）
-                            if answer:  # 只在有答案时保存
-                                st.session_state.messages.append({
-                                    "role": "assistant",
-                                    "content": answer,
-                                    "sources": local_sources,
-                                    "wikipedia_sources": wikipedia_sources
-                                })
-                            
-                            # 同时保存到ChatManager会话（持久化）
-                            if chat_manager and answer:
-                                all_sources = local_sources + [
-                                    {**s, 'source_type': 'wikipedia'} 
-                                    for s in wikipedia_sources
-                                ]
-                                if not chat_manager.current_session:
-                                    chat_manager.start_session()
-                                chat_manager.current_session.add_turn(prompt, answer, all_sources)
-                                if chat_manager.auto_save:
-                                    chat_manager.save_current_session()
-                        else:
-                            # 混合查询引擎初始化失败，fallback到普通对话模式
-                            st.warning("⚠️ 混合查询引擎初始化失败，使用普通对话模式")
-                            answer, sources = chat_manager.chat(prompt)
-                            
-                            # 生成消息ID
-                            msg_idx = len(st.session_state.messages)
-                            message_id = f"msg_{msg_idx}_{hash(str(answer))}"
-                            
-                            # 如果有引用，使用带链接的格式
-                            if sources:
-                                formatted_answer = format_answer_with_citation_links(
-                                    answer,
-                                    sources,
-                                    message_id=message_id
-                                )
-                                st.markdown(formatted_answer, unsafe_allow_html=True)
-                                # 存储引用来源用于右侧显示
-                                current_sources_map[message_id] = sources
-                            else:
-                                if answer:  # 只在有答案时显示
-                                    st.markdown(answer)
-                                # 存储空列表
-                                current_sources_map[message_id] = []
-                            
-                            # 更新session_state
-                            st.session_state.current_sources_map = current_sources_map
-                            
-                            # 保存到消息历史
-                            if answer:  # 只在有答案时保存
-                                st.session_state.messages.append({
-                                    "role": "assistant",
-                                    "content": answer,
-                                    "sources": sources
-                                })
+                    # 使用RAGService执行查询（新架构）
+                    answer, local_sources, wikipedia_sources = execute_query_with_rag_service(
+                        query=prompt,
+                        user_id=st.session_state.user_email,
+                        session_id=chat_manager.current_session.session_id if chat_manager.current_session else None,
+                    )
+                    
+                    # 生成消息ID
+                    msg_idx = len(st.session_state.messages)
+                    message_id = f"msg_{msg_idx}_{hash(str(answer))}"
+                    
+                    # 合并本地和维基百科来源用于右侧显示
+                    all_sources_for_display = local_sources + [
+                        {**s, 'index': len(local_sources) + i + 1} 
+                        for i, s in enumerate(wikipedia_sources)
+                    ]
+                    
+                    # 如果有引用，使用带链接的格式
+                    if all_sources_for_display:
+                        formatted_answer = format_answer_with_citation_links(
+                            answer,
+                            all_sources_for_display,
+                            message_id=message_id
+                        )
+                        st.markdown(formatted_answer, unsafe_allow_html=True)
+                        # 存储引用来源用于右侧显示
+                        current_sources_map[message_id] = all_sources_for_display
                     else:
-                        answer, sources = chat_manager.chat(prompt)
-                        
-                        # 生成消息ID
-                        msg_idx = len(st.session_state.messages)
-                        message_id = f"msg_{msg_idx}_{hash(str(answer))}"
-                        
-                        # 如果有引用，使用带链接的格式
-                        if sources:
-                            formatted_answer = format_answer_with_citation_links(
-                                answer,
-                                sources,
-                                message_id=message_id
-                            )
-                            st.markdown(formatted_answer, unsafe_allow_html=True)
-                            # 存储引用来源用于右侧显示
-                            current_sources_map[message_id] = sources
-                        else:
-                            if answer:  # 只在有答案时显示
-                                st.markdown(answer)
-                            # 存储空列表
-                            current_sources_map[message_id] = []
-                        
-                        # 引用来源将在右侧面板显示，这里不重复显示
-                        
-                        # 更新session_state
-                        st.session_state.current_sources_map = current_sources_map
-                        
-                        # 保存到消息历史
-                        if answer:  # 只在有答案时保存
-                            st.session_state.messages.append({
-                                "role": "assistant",
-                                "content": answer,
-                                "sources": sources
-                            })
+                        if answer:  # 只在有答案时显示
+                            st.markdown(answer)
+                        current_sources_map[message_id] = []
+                    
+                    # 更新session_state
+                    st.session_state.current_sources_map = current_sources_map
+                    
+                    # 保存到消息历史（UI显示用）
+                    if answer:  # 只在有答案时保存
+                        st.session_state.messages.append({
+                            "role": "assistant",
+                            "content": answer,
+                            "sources": local_sources,
+                            "wikipedia_sources": wikipedia_sources
+                        })
+                    
+                    # 同时保存到ChatManager会话（持久化）
+                    if chat_manager and answer:
+                        all_sources = local_sources + [
+                            {**s, 'source_type': 'wikipedia'} 
+                            for s in wikipedia_sources
+                        ]
+                        if not chat_manager.current_session:
+                            chat_manager.start_session()
+                        chat_manager.current_session.add_turn(prompt, answer, all_sources)
+                        if chat_manager.auto_save:
+                            chat_manager.save_current_session()
+                    
+                    st.rerun()  # 刷新页面显示新消息
                 except Exception as e:
                     import traceback
                     st.error(f"❌ 查询失败: {e}")

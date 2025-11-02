@@ -7,6 +7,7 @@ from typing import List, Optional
 from src.observers.base import BaseObserver
 from src.observers.phoenix_observer import PhoenixObserver, LegacyPhoenixObserver
 from src.observers.llama_debug_observer import LlamaDebugObserver
+from src.observers.ragas_evaluator import RAGASEvaluator
 from src.observers.manager import ObserverManager
 from src.config import config
 from src.logger import setup_logger
@@ -17,6 +18,7 @@ logger = setup_logger('observer_factory')
 def create_default_observers(
     enable_phoenix: bool = True,
     enable_debug: bool = False,
+    enable_ragas: bool = False,
     use_legacy_phoenix: bool = True,  # 默认使用兼容模式
     **kwargs
 ) -> ObserverManager:
@@ -25,6 +27,7 @@ def create_default_observers(
     Args:
         enable_phoenix: 是否启用 Phoenix
         enable_debug: 是否启用 LlamaDebug
+        enable_ragas: 是否启用 RAGAS 评估器
         use_legacy_phoenix: 是否使用兼容模式的Phoenix（推荐）
         **kwargs: 其他参数
         
@@ -70,6 +73,20 @@ def create_default_observers(
         except Exception as e:
             logger.warning(f"⚠️  LlamaDebug 观察器创建失败: {e}")
     
+    # RAGAS 评估器
+    if enable_ragas:
+        try:
+            ragas = RAGASEvaluator(
+                enabled=True,
+                metrics=kwargs.get('ragas_metrics', None),
+                batch_size=kwargs.get('ragas_batch_size', 10),
+            )
+            manager.add_observer(ragas)
+            logger.info("✅ 已添加 RAGAS 评估器")
+            
+        except Exception as e:
+            logger.warning(f"⚠️  RAGAS 评估器创建失败: {e}")
+    
     logger.info(f"📊 观察器管理器已创建: {len(manager.observers)} 个观察器")
     
     return manager
@@ -82,11 +99,13 @@ def create_observer_from_config() -> ObserverManager:
     """
     enable_phoenix = getattr(config, 'ENABLE_PHOENIX', True)
     enable_debug = getattr(config, 'ENABLE_DEBUG_HANDLER', False)
+    enable_ragas = getattr(config, 'ENABLE_RAGAS', False)
     launch_phoenix_app = getattr(config, 'PHOENIX_LAUNCH_APP', False)
     
     return create_default_observers(
         enable_phoenix=enable_phoenix,
         enable_debug=enable_debug,
+        enable_ragas=enable_ragas,
         launch_phoenix_app=launch_phoenix_app,
     )
 

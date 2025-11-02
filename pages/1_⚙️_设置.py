@@ -1,34 +1,10 @@
 """
-设置页面
-提供详细的配置选项：数据源管理、查询配置、开发者工具、系统状态
+设置页面 - 向后兼容层
+已模块化拆分，此文件保持向后兼容
 """
 
-import streamlit as st
-from pathlib import Path
-import sys
-
-# 添加src到路径
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from src.config import config
-from src.ui_components import (
-    init_session_state, 
-    preload_embedding_model, 
-    load_index,
-    display_model_status
-)
-from src.data_loader import (
-    load_documents_from_urls,
-    load_documents_from_github,
-    parse_github_url,
-    sync_github_repository
-)
-from src.phoenix_utils import (
-    start_phoenix_ui, 
-    stop_phoenix_ui, 
-    is_phoenix_running, 
-    get_phoenix_url
-)
+# 从新模块导入并重新导出
+from pages.settings.main import *
 
 
 # 页面配置

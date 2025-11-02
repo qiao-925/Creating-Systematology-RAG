@@ -1,0 +1,170 @@
+"""
+索引维度检查和匹配模块
+确保collection的embedding维度与当前模型匹配
+"""
+
+from src.logger import setup_logger
+
+logger = setup_logger('indexer')
+
+
+def ensure_collection_dimension_match(index_manager):
+    """确保collection的embedding维度与当前模型匹配
+    
+    如果collection已存在但维度不匹配，会自动删除并重新创建
+    """
+    try:
+        # 检测模型维度
+        model_dim = None
+        dim_detection_methods = []
+        
+        # 方法1: 尝试从模型属性获取
+        if hasattr(index_manager.embed_model, 'embed_dim'):
+            model_dim = index_manager.embed_model.embed_dim
+            dim_detection_methods.append("embed_dim属性")
+        elif hasattr(index_manager.embed_model, '_model') and hasattr(index_manager.embed_model._model, 'config'):
+            try:
+                model_dim = getattr(index_manager.embed_model._model.config, 'hidden_size', None)
+                if model_dim:
+                    dim_detection_methods.append("模型config.hidden_size")
+            except Exception as e:
+                logger.debug(f"从模型config获取维度失败: {e}")
+        
+        # 方法2: 通过实际计算一个测试向量获取维度
+        if model_dim is None:
+            try:
+                test_embedding = index_manager.embed_model.get_query_embedding("test")
+                if hasattr(test_embedding, 'shape') and len(test_embedding.shape) > 0:
+                    model_dim = int(test_embedding.shape[0])
+                elif hasattr(test_embedding, '__len__'):
+                    model_dim = int(len(test_embedding))
+                else:
+                    model_dim = int(test_embedding)
+                dim_detection_methods.append("实际计算测试向量")
+            except Exception as e:
+                logger.warning(f"通过测试向量获取维度失败: {e}")
+        
+        if model_dim is not None:
+            model_dim = int(model_dim)
+        
+        if model_dim is None:
+            error_msg = "无法检测embedding模型维度，这可能导致维度不匹配错误"
+            logger.error(error_msg)
+            print(f"❌ {error_msg}")
+            print(f"   尝试的方法: {dim_detection_methods}")
+            raise ValueError(error_msg)
+        
+        logger.info(f"✅ 成功检测到embedding模型维度: {model_dim} (方法: {', '.join(dim_detection_methods)})")
+        print(f"📏 当前embedding模型维度: {model_dim}")
+        
+        # 尝试获取现有collection
+        try:
+            existing_collection = index_manager.chroma_client.get_collection(name=index_manager.collection_name)
+            collection_dim = None
+            collection_count = existing_collection.count()
+            
+            try:
+                # 尝试从collection的metadata获取
+                if existing_collection.metadata and 'embedding_dimension' in existing_collection.metadata:
+                    collection_dim = int(existing_collection.metadata['embedding_dimension'])
+                    logger.info(f"从collection metadata获取维度: {collection_dim}")
+                elif collection_count > 0:
+                    # 从实际数据获取维度
+                    sample = existing_collection.peek(limit=1)
+                    if sample and 'embeddings' in sample and sample['embeddings']:
+                        embeddings_data = sample['embeddings']
+                        if isinstance(embeddings_data, list) and len(embeddings_data) > 0:
+                            first_embedding = embeddings_data[0]
+                        else:
+                            first_embedding = embeddings_data[0] if hasattr(embeddings_data, '__getitem__') else embeddings_data
+                        
+                        try:
+                            if hasattr(first_embedding, 'shape') and len(first_embedding.shape) > 0:
+                                collection_dim = int(first_embedding.shape[0])
+                            elif hasattr(first_embedding, '__len__'):
+                                collection_dim = int(len(first_embedding))
+                            else:
+                                collection_dim = int(first_embedding)
+                        except (TypeError, ValueError) as dim_error:
+                            logger.warning(f"无法从embedding数据获取维度: {dim_error}")
+                            collection_dim = None
+                        
+                        if collection_dim is not None:
+                            logger.info(f"从collection实际数据获取维度: {collection_dim}")
+            except Exception as e:
+                logger.warning(f"获取collection维度失败: {e}")
+            
+            # 如果collection为空，直接使用
+            if collection_count == 0:
+                index_manager.chroma_collection = existing_collection
+                print(f"✅ Collection为空，可以使用: {index_manager.collection_name}")
+                logger.info(f"Collection为空，直接使用: {index_manager.collection_name}")
+            # 如果无法获取维度，采用保守策略：删除并重建
+            elif collection_dim is None:
+                print(f"⚠️  Collection有数据但无法检测维度，采用保守策略删除并重建")
+                print(f"   当前模型维度: {model_dim}")
+                print(f"🔄 自动删除旧collection并重新创建...")
+                
+                index_manager.chroma_client.delete_collection(name=index_manager.collection_name)
+                logger.warning(f"因无法检测维度，已删除collection: {index_manager.collection_name}")
+                
+                index_manager.chroma_collection = index_manager.chroma_client.get_or_create_collection(
+                    name=index_manager.collection_name
+                )
+                print(f"✅ 已重新创建collection: {index_manager.collection_name}")
+                print(f"⚠️  **重要**: Collection已重新创建，原有数据已被清除")
+            # 如果维度不匹配，删除并重建
+            elif int(model_dim) != int(collection_dim):
+                print(f"⚠️  检测到embedding维度不匹配:")
+                print(f"   Collection维度: {collection_dim}")
+                print(f"   当前模型维度: {model_dim}")
+                print(f"🔄 自动删除旧collection并重新创建...")
+                
+                index_manager.chroma_client.delete_collection(name=index_manager.collection_name)
+                logger.info(f"已删除维度不匹配的collection: {index_manager.collection_name}")
+                
+                index_manager.chroma_collection = index_manager.chroma_client.get_or_create_collection(
+                    name=index_manager.collection_name
+                )
+                print(f"✅ 已重新创建collection: {index_manager.collection_name} (维度: {model_dim})")
+                print(f"⚠️  **重要**: Collection已重新创建，原有数据已被清除")
+            else:
+                # 维度匹配，使用现有collection
+                index_manager.chroma_collection = existing_collection
+                print(f"✅ Collection维度检查通过: {model_dim}维")
+                logger.info(f"Collection维度匹配: {model_dim}维")
+                
+        except Exception as e:
+            # Collection不存在，创建新的
+            if "does not exist" in str(e) or "not found" in str(e).lower():
+                index_manager.chroma_collection = index_manager.chroma_client.get_or_create_collection(
+                    name=index_manager.collection_name
+                )
+                print(f"✅ 创建新collection: {index_manager.collection_name} (维度: {model_dim})")
+                logger.info(f"创建新collection: {index_manager.collection_name} (维度: {model_dim})")
+            else:
+                logger.error(f"获取collection时出错: {e}")
+                raise
+                
+    except Exception as e:
+        # 如果检测过程出错，尝试删除旧collection并重建
+        logger.error(f"维度检测过程出错: {e}")
+        logger.info("采用保守策略：删除旧collection并重建")
+        
+        try:
+            try:
+                index_manager.chroma_client.delete_collection(name=index_manager.collection_name)
+                logger.info(f"已删除可能不兼容的collection: {index_manager.collection_name}")
+                print(f"🔄 已删除可能不兼容的collection: {index_manager.collection_name}")
+            except:
+                pass
+            
+            index_manager.chroma_collection = index_manager.chroma_client.get_or_create_collection(
+                name=index_manager.collection_name
+            )
+            print(f"✅ 已重新创建collection: {index_manager.collection_name}")
+            logger.info(f"已重新创建collection: {index_manager.collection_name}")
+        except Exception as fallback_error:
+            logger.error(f"回退创建collection也失败: {fallback_error}")
+            raise
+

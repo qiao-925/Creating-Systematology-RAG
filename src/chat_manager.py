@@ -1,26 +1,23 @@
 """
-多轮对话管理模块
-管理对话历史、上下文记忆和会话持久化
+多轮对话管理模块 - 向后兼容层
+已模块化拆分，此文件保持向后兼容
 """
 
-import json
-from datetime import datetime
-from pathlib import Path
-from typing import List, Optional, Dict, Any
-from dataclasses import dataclass, asdict
+from src.chat import (
+    ChatTurn,
+    ChatSession,
+    ChatManager,
+    get_user_sessions_metadata,
+    load_session_from_file,
+)
 
-from llama_index.core.memory import ChatMemoryBuffer
-from llama_index.core.chat_engine import CondensePlusContextChatEngine
-from llama_index.core.llms import ChatMessage, MessageRole
-from llama_index.llms.deepseek import DeepSeek
-
-from src.config import config
-from src.indexer import IndexManager
-from src.logger import setup_logger
-from src.response_formatter import ResponseFormatter
-from src.response_formatter.templates import CHAT_MARKDOWN_TEMPLATE
-
-logger = setup_logger('chat_manager')
+__all__ = [
+    'ChatTurn',
+    'ChatSession',
+    'ChatManager',
+    'get_user_sessions_metadata',
+    'load_session_from_file',
+]
 
 
 @dataclass

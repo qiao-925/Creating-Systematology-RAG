@@ -19,9 +19,8 @@ except ImportError:
     os.environ["PYTHONIOENCODING"] = "utf-8"
 
 from src.config import config
-from src.indexer import IndexManager, create_index_from_directory, create_index_from_urls
-from src.query_engine import QueryEngine, format_sources
-from src.chat_manager import ChatManager
+from src.business.services import RAGService
+from src.indexer import IndexManager  # 保留用于索引统计等操作
 from src.data_loader import (
     load_documents_from_directory, 
     load_documents_from_urls,
@@ -49,8 +48,14 @@ def cmd_import_docs(args):
             print("⚠️  未找到任何文档")
             return 1
         
-        # 创建或更新索引
+        # 使用RAGService构建索引（新架构）
         print(f"\n🔨 构建索引...")
+        rag_service = RAGService(collection_name=args.collection)
+        
+        # 创建临时目录来存储文档，然后使用RAGService构建索引
+        # 注意：这里需要先将文档保存到临时位置，然后通过RAGService.build_index加载
+        # 或者直接使用index_manager（基础设施层操作）
+        # 为了简化，这里暂时保留使用IndexManager，但未来可以迁移到RAGService.build_index
         index_manager = IndexManager(collection_name=args.collection)
         _, _ = index_manager.build_index(documents)
         
@@ -161,25 +166,27 @@ def cmd_query(args):
     print("=" * 60)
     
     try:
-        # 初始化索引管理器
-        index_manager = IndexManager(collection_name=args.collection)
-        stats = index_manager.get_stats()
+        # 使用RAGService（新架构）
+        rag_service = RAGService(collection_name=args.collection)
         
+        # 检查索引是否存在
+        stats = rag_service.index_manager.get_stats()
         if stats['document_count'] == 0:
             print("⚠️  索引为空，请先导入文档")
             return 1
         
         print(f"\n📊 索引信息: {stats['document_count']} 个文档\n")
         
-        # 创建查询引擎
-        query_engine = QueryEngine(index_manager)
-        
         # 执行查询
         print(f"💬 问题: {args.question}\n")
-        answer, sources, _ = query_engine.query(args.question)
+        response = rag_service.query(question=args.question)
         
-        print(f"🤖 答案:\n{answer}\n")
-        print(format_sources(sources))
+        print(f"🤖 答案:\n{response.answer}\n")
+        
+        # 格式化并显示来源
+        if response.sources:
+            from src.query_engine import format_sources
+            print(format_sources(response.sources))
         
         return 0
         
@@ -198,23 +205,23 @@ def cmd_chat(args):
     print("=" * 60)
     print("输入 'exit' 或 'quit' 退出")
     print("输入 'clear' 清空对话历史")
-    print("输入 'save' 保存当前会话")
     print("=" * 60)
     
     try:
-        # 初始化
-        index_manager = IndexManager(collection_name=args.collection)
-        stats = index_manager.get_stats()
+        # 使用RAGService（新架构）
+        rag_service = RAGService(collection_name=args.collection)
         
+        # 检查索引是否存在
+        stats = rag_service.index_manager.get_stats()
         if stats['document_count'] == 0:
             print("⚠️  索引为空，请先导入文档")
             return 1
         
         print(f"\n📊 索引信息: {stats['document_count']} 个文档")
         
-        # 创建对话管理器
-        chat_manager = ChatManager(index_manager)
-        chat_manager.start_session()
+        # 创建会话ID
+        import uuid
+        session_id = str(uuid.uuid4())
         
         print("\n✅ 对话已开始，请提问：\n")
         
@@ -231,22 +238,22 @@ def cmd_chat(args):
                     break
                 
                 if question.lower() == 'clear':
-                    chat_manager.reset_session()
+                    # 清空对话历史（创建新会话）
+                    session_id = str(uuid.uuid4())
                     print("🔄 对话历史已清空\n")
                     continue
                 
-                if question.lower() == 'save':
-                    chat_manager.save_current_session()
-                    print("💾 会话已保存\n")
-                    continue
+                # 使用RAGService执行对话
+                response = rag_service.chat(
+                    message=question,
+                    session_id=session_id,
+                )
                 
-                # 执行对话
-                answer, sources = chat_manager.chat(question)
+                print(f"\n🤖 AI: {response.answer}\n")
                 
-                print(f"\n🤖 AI: {answer}\n")
-                
-                if args.show_sources and sources:
-                    print(format_sources(sources))
+                if args.show_sources and response.sources:
+                    from src.query_engine import format_sources
+                    print(format_sources(response.sources))
                     print()
                 
             except KeyboardInterrupt:
@@ -254,12 +261,6 @@ def cmd_chat(args):
                 break
             except Exception as e:
                 print(f"\n❌ 错误: {e}\n")
-        
-        # 询问是否保存
-        save = input("\n💾 是否保存会话？(y/n): ").strip().lower()
-        if save == 'y':
-            chat_manager.save_current_session()
-            print("✅ 会话已保存")
         
         return 0
         

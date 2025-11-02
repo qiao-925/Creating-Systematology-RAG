@@ -1,19 +1,14 @@
 """
-元数据管理模块
-负责追踪 GitHub 仓库的文件变化，实现增量更新的核心逻辑
+元数据管理模块 - 向后兼容层
+已模块化拆分，此文件保持向后兼容
 """
 
-import hashlib
-import json
-from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
-from datetime import datetime
+from src.metadata import FileChange, MetadataManager
 
-from llama_index.core.schema import Document as LlamaDocument
-
-from src.logger import setup_logger
-
-logger = setup_logger('metadata_manager')
+__all__ = [
+    'FileChange',
+    'MetadataManager',
+]
 
 
 class FileChange:

@@ -1,0 +1,58 @@
+============================================================
+测试执行摘要
+============================================================
+执行时间: 20251102_091847
+
+
+阶段: 阶段1: 基础设施层单元测试
+  测试路径: tests/unit/test_embeddings.py, tests/unit/test_data_source.py, tests/unit/test_observers.py
+  执行测试: 0
+  失败测试: 0
+
+阶段: 阶段2: 检索器和路由模块测试
+  测试路径: tests/unit/test_query_router.py, tests/unit/test_grep_retriever.py, tests/unit/test_multi_strategy_retriever.py, tests/unit/test_result_merger.py
+  执行测试: 0
+  失败测试: 0
+
+阶段: 阶段3: 业务层核心模块测试
+  测试路径: tests/test_rag_service.py, tests/test_modular_query_engine.py, tests/unit/test_pipeline_executor.py, tests/unit/test_registry.py, tests/unit/test_strategy_manager.py
+  执行测试: 0
+  失败测试: 0
+
+阶段: 阶段4: 集成测试
+  测试路径: tests/integration/test_rag_service_integration.py, tests/integration/test_multi_strategy_integration.py, tests/integration/test_auto_routing_integration.py, tests/integration/test_reranker_integration.py, tests/integration/test_observability_integration.py
+  执行测试: 0
+  失败测试: 0
+
+阶段: 阶段5: E2E测试
+  测试路径: tests/e2e/test_core_workflows.py
+  执行测试: 0
+  失败测试: 0
+
+阶段: 阶段6: UI测试
+  测试路径: tests/ui/test_app.py
+  执行测试: 0
+  失败测试: 0
+
+阶段: 阶段7: 性能测试
+  测试路径: tests/performance/test_query_performance.py, tests/performance/test_multi_strategy_performance.py, tests/performance/test_reranker_performance.py
+  执行测试: 0
+  失败测试: 0
+
+阶段: 阶段8: 兼容性测试
+  测试路径: tests/compatibility/test_backward_compatibility.py, tests/compatibility/test_cross_platform.py
+  执行测试: 0
+  失败测试: 0
+
+阶段: 阶段9: 回归测试
+  测试路径: tests/regression/test_core_features.py, tests/regression/test_ui_features.py
+  执行测试: 0
+  失败测试: 0
+
+============================================================
+总计
+============================================================
+总测试数: 0
+通过: 0
+失败: 0
+跳过: 0

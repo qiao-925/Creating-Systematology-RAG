@@ -1058,16 +1058,32 @@ def load_documents_from_github_url(
     )
 
 
-if __name__ == "__main__":
-    # 测试代码
-    from src.config import config
-    
-    safe_print("=== 测试文档加载器 ===")
-    documents = load_documents_from_directory(config.RAW_DATA_PATH)
-    safe_print(f"加载了 {len(documents)} 个文档")
-    
-    if documents:
-        safe_print("\n第一个文档预览:")
-        safe_print(f"标题: {documents[0].metadata.get('title')}")
-        safe_print(f"内容长度: {len(documents[0].text)}")
-        safe_print(f"内容预览: {documents[0].text[:200]}...")
+"""
+数据加载器模块 - 向后兼容层
+已模块化拆分，此文件保持向后兼容
+"""
+
+# 从新模块导入所有公开接口
+from src.data_loader import (
+    DocumentProcessor,
+    safe_print,
+    load_documents_from_source,
+    load_documents_from_directory,
+    load_documents_from_urls,
+    load_documents_from_github,
+    load_documents_from_github_url,
+    sync_github_repository,
+    parse_github_url,
+)
+
+__all__ = [
+    'DocumentProcessor',
+    'safe_print',
+    'load_documents_from_source',
+    'load_documents_from_directory',
+    'load_documents_from_urls',
+    'load_documents_from_github',
+    'load_documents_from_github_url',
+    'sync_github_repository',
+    'parse_github_url',
+]

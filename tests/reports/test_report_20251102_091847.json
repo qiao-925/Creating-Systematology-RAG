@@ -1,0 +1,165 @@
+{
+  "timestamp": "20251102_091847",
+  "stages": [
+    {
+      "stage": "阶段1: 基础设施层单元测试",
+      "test_paths": [
+        "tests/unit/test_embeddings.py",
+        "tests/unit/test_data_source.py",
+        "tests/unit/test_observers.py"
+      ],
+      "markers": [],
+      "tests_run": 0,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "errors": 0,
+      "failed_tests": [],
+      "output": "C:\\Users\\Q\\AppData\\Local\\Programs\\Python\\Python312\\python.exe: No module named pytest\n",
+      "returncode": 1
+    },
+    {
+      "stage": "阶段2: 检索器和路由模块测试",
+      "test_paths": [
+        "tests/unit/test_query_router.py",
+        "tests/unit/test_grep_retriever.py",
+        "tests/unit/test_multi_strategy_retriever.py",
+        "tests/unit/test_result_merger.py"
+      ],
+      "markers": [],
+      "tests_run": 0,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "errors": 0,
+      "failed_tests": [],
+      "output": "C:\\Users\\Q\\AppData\\Local\\Programs\\Python\\Python312\\python.exe: No module named pytest\n",
+      "returncode": 1
+    },
+    {
+      "stage": "阶段3: 业务层核心模块测试",
+      "test_paths": [
+        "tests/test_rag_service.py",
+        "tests/test_modular_query_engine.py",
+        "tests/unit/test_pipeline_executor.py",
+        "tests/unit/test_registry.py",
+        "tests/unit/test_strategy_manager.py"
+      ],
+      "markers": [],
+      "tests_run": 0,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "errors": 0,
+      "failed_tests": [],
+      "output": "C:\\Users\\Q\\AppData\\Local\\Programs\\Python\\Python312\\python.exe: No module named pytest\n",
+      "returncode": 1
+    },
+    {
+      "stage": "阶段4: 集成测试",
+      "test_paths": [
+        "tests/integration/test_rag_service_integration.py",
+        "tests/integration/test_multi_strategy_integration.py",
+        "tests/integration/test_auto_routing_integration.py",
+        "tests/integration/test_reranker_integration.py",
+        "tests/integration/test_observability_integration.py"
+      ],
+      "markers": [],
+      "tests_run": 0,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "errors": 0,
+      "failed_tests": [],
+      "output": "C:\\Users\\Q\\AppData\\Local\\Programs\\Python\\Python312\\python.exe: No module named pytest\n",
+      "returncode": 1
+    },
+    {
+      "stage": "阶段5: E2E测试",
+      "test_paths": [
+        "tests/e2e/test_core_workflows.py"
+      ],
+      "markers": [],
+      "tests_run": 0,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "errors": 0,
+      "failed_tests": [],
+      "output": "C:\\Users\\Q\\AppData\\Local\\Programs\\Python\\Python312\\python.exe: No module named pytest\n",
+      "returncode": 1
+    },
+    {
+      "stage": "阶段6: UI测试",
+      "test_paths": [
+        "tests/ui/test_app.py"
+      ],
+      "markers": [],
+      "tests_run": 0,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "errors": 0,
+      "failed_tests": [],
+      "output": "C:\\Users\\Q\\AppData\\Local\\Programs\\Python\\Python312\\python.exe: No module named pytest\n",
+      "returncode": 1
+    },
+    {
+      "stage": "阶段7: 性能测试",
+      "test_paths": [
+        "tests/performance/test_query_performance.py",
+        "tests/performance/test_multi_strategy_performance.py",
+        "tests/performance/test_reranker_performance.py"
+      ],
+      "markers": [
+        "performance"
+      ],
+      "tests_run": 0,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "errors": 0,
+      "failed_tests": [],
+      "output": "C:\\Users\\Q\\AppData\\Local\\Programs\\Python\\Python312\\python.exe: No module named pytest\n",
+      "returncode": 1
+    },
+    {
+      "stage": "阶段8: 兼容性测试",
+      "test_paths": [
+        "tests/compatibility/test_backward_compatibility.py",
+        "tests/compatibility/test_cross_platform.py"
+      ],
+      "markers": [],
+      "tests_run": 0,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "errors": 0,
+      "failed_tests": [],
+      "output": "C:\\Users\\Q\\AppData\\Local\\Programs\\Python\\Python312\\python.exe: No module named pytest\n",
+      "returncode": 1
+    },
+    {
+      "stage": "阶段9: 回归测试",
+      "test_paths": [
+        "tests/regression/test_core_features.py",
+        "tests/regression/test_ui_features.py"
+      ],
+      "markers": [],
+      "tests_run": 0,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "errors": 0,
+      "failed_tests": [],
+      "output": "C:\\Users\\Q\\AppData\\Local\\Programs\\Python\\Python312\\python.exe: No module named pytest\n",
+      "returncode": 1
+    }
+  ],
+  "total_tests": 0,
+  "passed": 0,
+  "failed": 0,
+  "skipped": 0,
+  "errors": 0,
+  "failed_tests": []
+}
