@@ -18,6 +18,8 @@
 | **decision-making-principles.mdc** | Always | 全局 | 决策原则与争议处理（基于AGENTS.md） |
 | **collaboration-guidelines.mdc** | Always | 全局 | 人机协作要点（基于AGENTS.md） |
 | **post-task-optimization.mdc** | Always | 全局 | 任务完成后优化分析（强制要求） |
+| **requirement-analysis.mdc** | Always | 全局 | 需求理解与边界分析（基于AGENTS.md） |
+| **agents-sync-workflow.mdc** | Always | 全局 | 规则文件全量同步工作流（基于AGENTS.md） |
 
 ---
 
@@ -146,6 +148,30 @@
 
 **核心要求**: 每个 Agent 任务完成后必须进行优化分析
 
+### 13. 需求理解与边界分析 (`requirement-analysis.mdc`)
+**始终生效**，基于 AGENTS.md 转换
+
+涵盖内容：
+- 需求分析要求
+- 边界条件明确
+- 风险识别
+- 现有业务参考
+
+**使用方式**: Always 生效，任务开始前必须完成（前置任务）
+
+### 14. 规则文件全量同步工作流 (`agents-sync-workflow.mdc`)
+**始终生效**，基于 AGENTS.md 转换
+
+涵盖内容：
+- 全量同步原则
+- 同步流程（4步骤）
+- 全量同步检查清单
+- 同步时机
+
+**使用方式**: Always 生效，当 AGENTS.md 更新时执行
+
+**核心要求**: 确保 AGENTS.md 与规则文件完全同步
+
 ---
 
 ## 📖 AGENTS.md 映射
@@ -204,4 +230,22 @@
 
 ---
 
-**最后更新**: 2025-11-02
+**最后更新**: 2025-11-03
+
+---
+
+## 📝 更新说明
+
+### 2025-11-03 更新
+
+本次更新反映了 AGENTS.md 2.0 版本的分层重构：
+
+1. **新增规则文件**:
+   - `requirement-analysis.mdc` - 需求理解与边界分析（前置任务）
+   - `agents-sync-workflow.mdc` - 规则文件全量同步工作流
+
+2. **更新的规则文件**:
+   - `python-code-style.mdc` - 补充了完整的日志规范和代码注释规范
+
+3. **映射关系**:
+   - 详细映射关系请参考 `.cursor/rules/AGENTS-MAPPING.md`

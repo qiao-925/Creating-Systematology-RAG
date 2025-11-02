@@ -28,10 +28,22 @@ def process_documents(
 - 超过限制必须拆分成多个模块
 - 拆分原则：按功能职责、单一职责原则
 
-### 3. 日志规范
-- 使用 `src.logger.setup_logger` 创建日志器
-- 日志级别：`DEBUG` < `INFO` < `WARNING` < `ERROR` < `CRITICAL`
-- 关键操作必须记录日志
+### 3. 日志规范（使用日志代替 print）
+
+**强制要求**：所有业务代码必须使用 logging 模块记录日志，禁止使用 print 语句
+
+- 使用内置的 `logging` 模块来记录日志，可以控制日志级别、输出格式和输出位置
+- 通过 `src.logger.setup_logger` 创建日志器，统一管理日志配置
+- **日志级别选择**：
+  - `logger.info()` - 一般信息性消息（如操作成功、进度信息）
+  - `logger.warning()` - 警告消息（如降级处理、配置问题）
+  - `logger.error()` - 错误消息（如操作失败、异常情况）
+  - `logger.debug()` - 调试信息（如详细步骤、调试输出）
+- **保留 print 的情况（允许）**：
+  - 测试代码中的示例输出（如 `__main__` 块中的测试）
+  - 文档示例代码（如 docstring 中的 `>>> print(...)`）
+  - 启动脚本中的关键信息输出
+- 所有业务逻辑代码必须使用 logger，确保日志可追踪、可配置
 
 ```python
 from src.logger import setup_logger
@@ -134,7 +146,31 @@ if strategy == StrategyType.RETRIEVAL:
     pass
 ```
 
-### 9. 代码组织
+### 9. 代码注释规范
+
+**强制要求**：在复杂逻辑处添加注释，解释**为什么这样做**，而不是**做什么**
+
+- 代码本身已经表明在做什么，注释应该解释设计决策和实现原因
+- **复杂逻辑包括但不限于**：
+  - 算法选择和实现原因
+  - 架构设计决策（如延迟初始化、全局缓存等）
+  - 异常处理策略（如为什么捕获所有异常、为什么采用保守策略）
+  - 性能优化手段（如为什么使用缓存、为什么延迟加载）
+  - 兼容性处理（如为什么支持多种接口、为什么采用适配器模式）
+- **注释示例**：
+  ```python
+  # ❌ 不好的注释（只说明做什么）
+  # 创建目录
+  self.persist_dir.mkdir(parents=True, exist_ok=True)
+  
+  # ✅ 好的注释（说明为什么这样做）
+  # ChromaDB的PersistentClient要求路径必须存在，否则会抛出异常
+  # 使用parents=True确保父目录链也被创建，exist_ok=True避免目录已存在时报错
+  self.persist_dir.mkdir(parents=True, exist_ok=True)
+  ```
+- **注释目标**：帮助其他开发者（包括未来的自己）理解代码的设计意图和实现原因
+
+### 10. 代码组织
 - 文件顶部：模块 docstring
 - 然后是导入（分三部分）
 - 然后是常量定义
