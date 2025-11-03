@@ -1,0 +1,267 @@
+---
+description: Agent 测试体系整合规则
+alwaysApply: true
+---
+
+# Agent 测试体系整合规则
+
+> 从 `AGENTS.md` 测试相关规则转换  
+> **目标**: 让 Agent 能够理解、识别、调用和管理测试体系
+
+---
+
+## 🎯 核心原则
+
+Agent 在执行任务时必须：
+1. **理解测试体系**: 通过索引文档快速了解测试结构
+2. **选择相关测试**: 根据修改的代码自动识别相关测试
+3. **运行测试验证**: 修改代码后运行相关测试确保功能正常
+4. **理解测试结果**: 能够分析测试结果并提供修复建议
+
+---
+
+## 📚 Agent 如何理解测试体系
+
+### 1. 查阅测试索引文档
+
+Agent 应优先查阅 `tests/AGENTS-TESTING-INDEX.md`，该文档包含：
+- 测试体系概览和分类
+- 源文件 → 测试文件映射表
+- 测试命名规范
+- Agent 使用指南
+
+### 2. 查询测试元数据
+
+使用测试元数据索引 (`tests/test_index.json`) 获取测试详细信息：
+- 测试的目的和覆盖范围
+- 测试的依赖关系
+- 测试的分类和标签
+
+**工具**: `python tests/tools/agent_test_info.py <测试文件>`
+
+---
+
+## 🔍 Agent 如何选择相关测试
+
+### 场景1: 修改代码后选择测试
+
+**步骤**:
+1. 识别所有修改的源文件路径
+2. 使用 `tests/tools/agent_test_selector.py` 工具自动选择
+3. 或查阅 `tests/AGENTS-TESTING-INDEX.md` 中的映射表手动查找
+
+**命令**:
+```bash
+python tests/tools/agent_test_selector.py src/indexer.py src/query_engine.py
+```
+
+**输出**: 推荐运行的测试文件列表和 pytest 命令
+
+### 场景2: 添加新功能后选择测试
+
+1. 确定新功能所属的模块
+2. 查找对应的测试文件（如果存在）
+3. 检查测试覆盖范围（使用 `agent_test_info.py`）
+4. 如缺少测试，参考测试生成指南创建测试
+
+---
+
+## 🧪 Agent 如何运行测试
+
+### 运行策略
+
+**优先级顺序**:
+1. **单元测试优先** - 快速验证核心功能
+2. **集成测试其次** - 验证模块协作
+3. **E2E测试最后** - 验证完整流程
+
+**命令示例**:
+```bash
+# 运行相关单元测试
+pytest tests/unit/test_indexer.py -v
+
+# 运行相关集成测试（如果需要）
+pytest tests/integration/test_data_pipeline.py -v
+
+# 使用工具生成的命令
+python tests/tools/agent_test_selector.py src/indexer.py --command-only | sh
+```
+
+### 测试执行时机
+
+Agent 应在以下情况运行测试：
+- ✅ **修改代码后** - 确保修改不会破坏现有功能
+- ✅ **添加新功能后** - 验证新功能正常工作
+- ✅ **修复 Bug 后** - 验证修复有效（超过2次失败的修复必须测试）
+- ✅ **重构代码后** - 确保功能未受影响
+
+---
+
+## 📊 Agent 如何理解测试结果
+
+### 1. 使用测试摘要工具
+
+使用 `tests/tools/agent_test_summary.py` 生成简明摘要：
+
+```bash
+# 从 pytest 输出生成摘要
+pytest tests/unit/test_indexer.py -v | python tests/tools/agent_test_summary.py
+
+# 或直接运行并生成摘要
+python tests/tools/agent_test_summary.py tests/unit/test_indexer.py --run
+```
+
+### 2. 分析测试失败
+
+**测试通过** ✅:
+- 继续下一步验证或开发
+- 记录到任务日志
+
+**测试失败** ❌:
+- 分析失败原因：
+  1. 查看详细错误信息
+  2. 运行单个失败的测试：`pytest tests/unit/test_xxx.py::TestClass::test_method -vv`
+  3. 检查是代码问题还是测试问题
+- 区分失败类型：
+  - **修改导致的失败** - 必须修复
+  - **原本就失败的测试** - 记录但不阻塞（可能需要后续修复）
+
+**超过3次修复失败**:
+- 主动报告用户，请求指导
+- 说明已尝试的方法
+- 提供问题分析
+
+---
+
+## 🛠️ Agent 测试工具使用
+
+### 工具列表
+
+1. **`tests/tools/agent_test_selector.py`**
+   - **用途**: 根据修改的文件选择相关测试
+   - **输入**: 源文件路径列表
+   - **输出**: 推荐的测试文件和 pytest 命令
+
+2. **`tests/tools/agent_test_info.py`**
+   - **用途**: 查询测试文件详细信息
+   - **输入**: 测试文件路径
+   - **输出**: 测试的目的、覆盖范围、依赖等
+
+3. **`tests/tools/agent_test_summary.py`**
+   - **用途**: 生成测试执行摘要
+   - **输入**: pytest 输出或测试文件路径
+   - **输出**: 简明的测试结果摘要
+
+4. **`tests/tools/generate_test_index.py`**
+   - **用途**: 生成测试元数据索引
+   - **输入**: 无（扫描测试目录）
+   - **输出**: `test_index.json` 元数据文件
+
+---
+
+## ✅ Agent 测试工作流检查清单
+
+### 修改代码后的流程
+
+- [ ] 识别所有修改的源文件
+- [ ] 使用 `agent_test_selector.py` 选择相关测试
+- [ ] 运行相关单元测试
+- [ ] 分析测试结果
+- [ ] 如失败，分析原因并修复（最多3次尝试）
+- [ ] 验证修复效果
+- [ ] 记录到任务日志
+
+### 添加新功能后的流程
+
+- [ ] 确定新功能所属的模块
+- [ ] 查找对应的测试文件
+- [ ] 检查测试覆盖范围（使用 `agent_test_info.py`）
+- [ ] 如缺少测试，参考测试生成指南创建测试
+- [ ] 运行新创建的测试
+- [ ] 确保测试通过
+- [ ] 更新测试索引（如需要）
+
+### 修复 Bug 后的流程
+
+- [ ] 运行相关测试验证修复
+- [ ] 如有回归测试，确保通过
+- [ ] 检查是否引入新问题
+- [ ] 记录修复过程和测试结果
+
+---
+
+## 🔗 与其他规则的整合
+
+### 与错误处理规则整合
+
+参考 `.cursor/agents-expansion/AGENTS-EXPANSION-ERROR_HANDLING-TESTING.md`:
+- 测试用例智能选择与执行
+- 测试用例缺失检测与自动生成
+- 项目整体运行验证
+
+### 与开发工作流整合
+
+- **最小改动原则**: 运行最小范围的测试验证修改
+- **严格按步骤执行**: 每个步骤完成后运行相关测试
+- **参考现有业务**: 参考现有测试的实现风格
+
+---
+
+## 📋 常见场景示例
+
+### 示例1: 修改索引管理器
+
+```bash
+# 1. 选择相关测试
+python tests/tools/agent_test_selector.py src/indexer.py
+# 输出: tests/unit/test_indexer.py
+
+# 2. 运行测试
+pytest tests/unit/test_indexer.py -v
+
+# 3. 查看详细结果
+pytest tests/unit/test_indexer.py -v | python tests/tools/agent_test_summary.py
+```
+
+### 示例2: 添加新的查询功能
+
+```bash
+# 1. 查询测试信息
+python tests/tools/agent_test_info.py tests/unit/test_query_engine.py
+
+# 2. 检查覆盖范围
+# 发现缺少新功能的测试
+
+# 3. 参考测试生成指南创建测试
+# 4. 运行新测试
+pytest tests/unit/test_query_engine.py::TestQueryEngine::test_new_feature -v
+```
+
+### 示例3: 修复 Bug 后验证
+
+```bash
+# 1. 运行相关测试
+pytest tests/unit/test_xxx.py -v
+
+# 2. 运行回归测试（如果存在）
+pytest tests/regression/test_core_features.py -v
+
+# 3. 验证修复
+# 所有测试通过 ✅
+```
+
+---
+
+## 📚 相关文档
+
+- **Agent测试索引**: `tests/AGENTS-TESTING-INDEX.md` - 主索引文档
+- **测试元数据**: `tests/METADATA.md` - 元数据结构说明
+- **测试规范**: `.cursor/rules/testing-standards.mdc` - 测试规范
+- **测试用例生成**: `.cursor/agents-expansion/AGENTS-EXPANSION-ERROR_HANDLING-TESTING.md`
+- **开发工作流**: `.cursor/rules/development-workflow.mdc`
+- **错误处理**: `.cursor/agents-expansion/AGENTS-EXPANSION-ERROR_HANDLING.md`
+
+---
+
+**最后更新**: 2025-11-03  
+**维护者**: 当测试体系变更时更新本文档

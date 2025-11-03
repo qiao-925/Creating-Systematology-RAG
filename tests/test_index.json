@@ -1,0 +1,1208 @@
+{
+  "version": "1.0",
+  "generated_at": "2025-11-03T12:26:30.066673",
+  "test_files": [
+    {
+      "file_path": "tests\\compatibility\\test_backward_compatibility.py",
+      "category": "compatibility",
+      "test_count": 28,
+      "description": "\n向后兼容性测试\n测试旧接口、数据格式和配置的兼容性\n",
+      "target_module": "src.business.services.rag_service",
+      "target_class": "OldInterfaceCompatibility",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "compatibility",
+        "rag_service"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [],
+      "related_tests": [],
+      "source_files": [
+        "src/business/services/rag_service.py"
+      ]
+    },
+    {
+      "file_path": "tests\\compatibility\\test_cross_platform.py",
+      "category": "compatibility",
+      "test_count": 30,
+      "description": "\n跨平台兼容性测试\n测试Windows/Linux/Mac平台的兼容性\n",
+      "target_module": "src.retrievers.grep_retriever",
+      "target_class": "PlatformCompatibility",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "compatibility",
+        "grep_retriever"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [],
+      "related_tests": [],
+      "source_files": [
+        "src/retrievers/grep_retriever.py"
+      ]
+    },
+    {
+      "file_path": "tests\\e2e\\test_core_workflows.py",
+      "category": "e2e",
+      "test_count": 21,
+      "description": "\n核心业务流程E2E测试\n测试完整知识库查询、多轮对话、多策略检索和自动路由流程\n",
+      "target_module": "src.business.services.rag_service",
+      "target_class": "CompleteKnowledgeBaseQueryWorkflow",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "e2e",
+        "rag_service"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "collection_name",
+        "temp_data_dir",
+        "test_documents"
+      ],
+      "related_tests": [],
+      "source_files": [
+        "src/business/services/rag_service.py"
+      ]
+    },
+    {
+      "file_path": "tests\\integration\\test_auto_routing_integration.py",
+      "category": "integration",
+      "test_count": 29,
+      "description": "\n自动路由集成测试\n测试路由决策和降级\n",
+      "target_module": "src.business.services.rag_service",
+      "target_class": "AutoRoutingChunkMode",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "integration",
+        "rag_service"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "index_manager_with_docs",
+        "test_documents"
+      ],
+      "related_tests": [],
+      "source_files": [
+        "src/business/services/rag_service.py"
+      ]
+    },
+    {
+      "file_path": "tests\\integration\\test_data_pipeline.py",
+      "category": "integration",
+      "test_count": 12,
+      "description": "\n数据处理流程集成测试\n测试从加载到索引的完整流程\n",
+      "target_module": "src.data_loader",
+      "target_class": "DataPipeline",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "data_loader",
+        "integration"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "mocker",
+        "sample_markdown_dir",
+        "temp_vector_store",
+        "tmp_path"
+      ],
+      "related_tests": [],
+      "source_files": [
+        "src/data_loader.py"
+      ]
+    },
+    {
+      "file_path": "tests\\integration\\test_github_e2e.py",
+      "category": "integration",
+      "test_count": 1,
+      "description": "\nGitHub仓库端到端集成测试\n测试从GitHub仓库克隆、文档加载、索引构建到查询检索的完整流程\n\n核心原则：\n- 只保留一个完整的端到端测试\n- 所有操作都在测试中实时执行，不预先构建\n- 直接使用项目实际代码，确保测试真实有效\n",
+      "target_module": "src.data_loader",
+      "target_class": "",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "data_loader",
+        "e2e",
+        "github",
+        "integration"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "msg",
+        "temp_vector_store",
+        "tmp_path"
+      ],
+      "related_tests": [],
+      "source_files": [
+        "src/data_loader.py"
+      ]
+    },
+    {
+      "file_path": "tests\\integration\\test_multi_strategy_integration.py",
+      "category": "integration",
+      "test_count": 25,
+      "description": "\n多策略检索集成测试\n测试各种策略组合\n",
+      "target_module": "src.business.services.rag_service",
+      "target_class": "VectorBM25HybridIntegration",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "integration",
+        "rag_service"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "index_manager_with_docs",
+        "temp_data_dir",
+        "test_documents"
+      ],
+      "related_tests": [],
+      "source_files": [
+        "src/business/services/rag_service.py"
+      ]
+    },
+    {
+      "file_path": "tests\\integration\\test_observability_integration.py",
+      "category": "integration",
+      "test_count": 21,
+      "description": "\n可观测性集成测试\n测试Phoenix和RAGAS集成\n",
+      "target_module": "src.query.modular.engine",
+      "target_class": "PhoenixIntegration",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "engine",
+        "integration"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "index_manager_with_docs",
+        "test_documents"
+      ],
+      "related_tests": [],
+      "source_files": [
+        "src/query/modular/engine.py"
+      ]
+    },
+    {
+      "file_path": "tests\\integration\\test_phoenix_integration.py",
+      "category": "integration",
+      "test_count": 5,
+      "description": "\n测试Phoenix集成是否正常工作\n",
+      "target_module": "src.phoenix_utils",
+      "target_class": "",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "integration",
+        "phoenix",
+        "phoenix_utils"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [],
+      "related_tests": [],
+      "source_files": [
+        "src/phoenix_utils.py"
+      ]
+    },
+    {
+      "file_path": "tests\\integration\\test_query_pipeline.py",
+      "category": "integration",
+      "test_count": 10,
+      "description": "\n查询流程集成测试\n测试从索引到查询的完整流程\n",
+      "target_module": "src.indexer",
+      "target_class": "QueryPipeline",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "indexer",
+        "integration"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "mocker",
+        "monkeypatch",
+        "prepared_index_manager"
+      ],
+      "related_tests": [],
+      "source_files": [
+        "src/indexer.py"
+      ]
+    },
+    {
+      "file_path": "tests\\integration\\test_rag_service_integration.py",
+      "category": "integration",
+      "test_count": 27,
+      "description": "\nRAG服务集成测试\n测试完整查询和对话流程\n",
+      "target_module": "src.business.services.rag_service",
+      "target_class": "CompleteQueryFlow",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "integration",
+        "rag_service"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "rag_service_with_index",
+        "temp_data_dir",
+        "test_documents"
+      ],
+      "related_tests": [],
+      "source_files": [
+        "src/business/services/rag_service.py"
+      ]
+    },
+    {
+      "file_path": "tests\\integration\\test_reranker_integration.py",
+      "category": "integration",
+      "test_count": 23,
+      "description": "\n重排序集成测试\n测试重排序与检索的集成\n",
+      "target_module": "src.query.modular.engine",
+      "target_class": "RerankerWithVectorRetrieval",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "engine",
+        "integration"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "index_manager_with_docs",
+        "test_documents"
+      ],
+      "related_tests": [],
+      "source_files": [
+        "src/query/modular/engine.py"
+      ]
+    },
+    {
+      "file_path": "tests\\performance\\test_index_build_optimization.py",
+      "category": "performance",
+      "test_count": 3,
+      "description": "\n索引构建流程优化性能测试\n\n测试场景：\n1. 批量插入性能测试（10/50/100/500个文档）\n2. 向量ID查询性能测试\n3. 增量更新性能测试\n4. 内存使用情况\n\n运行方式：\n    python -m pytest tests/performance/test_index_build_optimization.py -v\n    或\n    python tests/performance/test_index_build_optimization.py\n",
+      "target_module": "src.indexer",
+      "target_class": "",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "indexer",
+        "performance"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "count",
+        "doc_size",
+        "func",
+        "report_file"
+      ],
+      "related_tests": [],
+      "source_files": [
+        "src/indexer.py"
+      ]
+    },
+    {
+      "file_path": "tests\\performance\\test_modular_rag_performance.py",
+      "category": "performance",
+      "test_count": 22,
+      "description": "\n模块化RAG架构性能基准测试\n\n建立性能基线，监控迁移影响\n",
+      "target_module": "src.indexer",
+      "target_class": "QueryEnginePerformance",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "indexer",
+        "performance"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "benchmark_index_manager"
+      ],
+      "related_tests": [],
+      "source_files": [
+        "src/indexer.py"
+      ]
+    },
+    {
+      "file_path": "tests\\performance\\test_multi_strategy_performance.py",
+      "category": "performance",
+      "test_count": 13,
+      "description": "\n多策略检索性能测试\n测试并行检索性能、合并策略性能对比\n",
+      "target_module": "src.indexer",
+      "target_class": "ParallelRetrievalPerformance",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "indexer",
+        "performance"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "collection_name",
+        "performance_index_manager",
+        "test_documents"
+      ],
+      "related_tests": [],
+      "source_files": [
+        "src/indexer.py"
+      ]
+    },
+    {
+      "file_path": "tests\\performance\\test_performance.py",
+      "category": "performance",
+      "test_count": 6,
+      "description": "\n性能测试\n",
+      "target_module": "src.indexer",
+      "target_class": "IndexingPerformance",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "indexer",
+        "performance"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "count",
+        "doc_count",
+        "generate_documents",
+        "temp_vector_store"
+      ],
+      "related_tests": [],
+      "source_files": [
+        "src/indexer.py"
+      ]
+    },
+    {
+      "file_path": "tests\\performance\\test_query_performance.py",
+      "category": "performance",
+      "test_count": 15,
+      "description": "\n查询性能测试\n测试响应时间（P50, P95, P99）、吞吐量（QPS）和资源消耗\n",
+      "target_module": "src.business.services.rag_service",
+      "target_class": "QueryResponseTime",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "performance",
+        "rag_service"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "collection_name",
+        "performance_index_manager",
+        "test_documents"
+      ],
+      "related_tests": [],
+      "source_files": [
+        "src/business/services/rag_service.py"
+      ]
+    },
+    {
+      "file_path": "tests\\performance\\test_reranker_performance.py",
+      "category": "performance",
+      "test_count": 13,
+      "description": "\n重排序性能测试\n测试重排序延迟和对整体查询性能的影响\n",
+      "target_module": "src.indexer",
+      "target_class": "RerankerLatency",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "indexer",
+        "performance"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "collection_name",
+        "performance_index_manager",
+        "test_documents"
+      ],
+      "related_tests": [],
+      "source_files": [
+        "src/indexer.py"
+      ]
+    },
+    {
+      "file_path": "tests\\regression\\test_core_features.py",
+      "category": "regression",
+      "test_count": 26,
+      "description": "\n核心功能回归测试\n验证查询、索引构建、对话等核心功能在代码变更后仍然正常工作\n",
+      "target_module": "src.business.services.rag_service",
+      "target_class": "QueryFunctionRegression",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "rag_service",
+        "regression"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "regression_collection_name",
+        "regression_documents"
+      ],
+      "related_tests": [],
+      "source_files": [
+        "src/business/services/rag_service.py"
+      ]
+    },
+    {
+      "file_path": "tests\\regression\\test_ui_features.py",
+      "category": "regression",
+      "test_count": 30,
+      "description": "\nUI功能回归测试\n验证Streamlit UI功能在代码变更后仍然正常工作\n",
+      "target_module": "",
+      "target_class": "MainPageRegression",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "regression"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [],
+      "related_tests": [],
+      "source_files": []
+    },
+    {
+      "file_path": "tests\\test_github_link.py",
+      "category": "unknown",
+      "test_count": 22,
+      "description": "\nGitHub 链接生成器测试\n",
+      "target_module": "src.github_link",
+      "target_class": "GitHubUrlGeneration",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "github",
+        "github_link",
+        "unknown"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [],
+      "related_tests": [],
+      "source_files": [
+        "src/github_link.py"
+      ]
+    },
+    {
+      "file_path": "tests\\test_modular_query_engine.py",
+      "category": "unknown",
+      "test_count": 47,
+      "description": "\n模块化查询引擎单元测试\n",
+      "target_module": "src.modular_query_engine",
+      "target_class": "ModularQueryEngine",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "modular_query_engine",
+        "unknown"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "index_manager",
+        "test_documents",
+        "tmp_path"
+      ],
+      "related_tests": [],
+      "source_files": [
+        "src/modular_query_engine.py"
+      ]
+    },
+    {
+      "file_path": "tests\\test_pipeline.py",
+      "category": "unknown",
+      "test_count": 32,
+      "description": "\nPipeline流水线集成测试\n",
+      "target_module": "src.business.protocols",
+      "target_class": "PipelineContext",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "protocols",
+        "unknown"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "c",
+        "context",
+        "m",
+        "mock_index_manager",
+        "mock_query_engine",
+        "p",
+        "prompt",
+        "query",
+        "top_k"
+      ],
+      "related_tests": [],
+      "source_files": [
+        "src/business/protocols.py"
+      ]
+    },
+    {
+      "file_path": "tests\\test_prompts.py",
+      "category": "unknown",
+      "test_count": 36,
+      "description": "\n提示工程模块测试\n",
+      "target_module": "src.business.prompts",
+      "target_class": "PromptTemplateManager",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "prompts",
+        "unknown"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [],
+      "related_tests": [],
+      "source_files": []
+    },
+    {
+      "file_path": "tests\\test_rag_service.py",
+      "category": "unknown",
+      "test_count": 66,
+      "description": "\nRAGService单元测试\n",
+      "target_module": "src.business.services",
+      "target_class": "RAGService",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "services",
+        "unknown"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "mock_chat_manager",
+        "mock_index_manager",
+        "mock_query_engine"
+      ],
+      "related_tests": [],
+      "source_files": []
+    },
+    {
+      "file_path": "tests\\tools\\test_env_vars.py",
+      "category": "unknown",
+      "test_count": 0,
+      "description": "测试环境变量设置",
+      "target_module": "src.config",
+      "target_class": "",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "config",
+        "unknown"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [],
+      "related_tests": [],
+      "source_files": [
+        "src/config.py"
+      ]
+    },
+    {
+      "file_path": "tests\\tools\\test_hf_config.py",
+      "category": "unknown",
+      "test_count": 3,
+      "description": "\n测试 HuggingFace 镜像和离线模式配置\n",
+      "target_module": "src.config",
+      "target_class": "",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "config",
+        "unknown"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [],
+      "related_tests": [],
+      "source_files": [
+        "src/config.py"
+      ]
+    },
+    {
+      "file_path": "tests\\tools\\test_hf_mirror.py",
+      "category": "unknown",
+      "test_count": 0,
+      "description": "\n测试 HuggingFace 镜像配置是否生效\n",
+      "target_module": "",
+      "target_class": "",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "unknown"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [],
+      "related_tests": [],
+      "source_files": []
+    },
+    {
+      "file_path": "tests\\ui\\test_app.py",
+      "category": "ui",
+      "test_count": 60,
+      "description": "\nStreamlit应用UI测试\n测试主页、设置页面、文件查看页面和Chroma查看器\n",
+      "target_module": "src.ui_components",
+      "target_class": "MainPageUI",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "ui",
+        "ui_components"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "mock_streamlit"
+      ],
+      "related_tests": [],
+      "source_files": [
+        "src/ui_components.py"
+      ]
+    },
+    {
+      "file_path": "tests\\unit\\test_chat_manager.py",
+      "category": "unit",
+      "test_count": 38,
+      "description": "\n对话管理模块单元测试\n",
+      "target_module": "src.chat_manager",
+      "target_class": "ChatTurn",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "chat_manager",
+        "unit"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "mock_chat_manager",
+        "mocker",
+        "sample_documents",
+        "temp_vector_store",
+        "tmp_path"
+      ],
+      "related_tests": [],
+      "source_files": [
+        "src/chat_manager.py"
+      ]
+    },
+    {
+      "file_path": "tests\\unit\\test_config.py",
+      "category": "unit",
+      "test_count": 23,
+      "description": "\n配置管理模块单元测试\n",
+      "target_module": "src.config",
+      "target_class": "Config",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "config",
+        "unit"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "chunk_overlap",
+        "chunk_size",
+        "monkeypatch",
+        "should_valid",
+        "tmp_path"
+      ],
+      "related_tests": [],
+      "source_files": [
+        "src/config.py"
+      ]
+    },
+    {
+      "file_path": "tests\\unit\\test_data_loader.py",
+      "category": "unit",
+      "test_count": 90,
+      "description": "\n数据加载器模块单元测试\n使用 LlamaIndex 官方 Reader 重构后的测试\n",
+      "target_module": "src.data_loader",
+      "target_class": "LoadDocumentsFromDirectory",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "data_loader",
+        "unit"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "mocker",
+        "sample_documents",
+        "sample_markdown_dir",
+        "tmp_path"
+      ],
+      "related_tests": [],
+      "source_files": [
+        "src/data_loader.py"
+      ]
+    },
+    {
+      "file_path": "tests\\unit\\test_data_source.py",
+      "category": "unit",
+      "test_count": 52,
+      "description": "\nDataSource模块单元测试\n测试LocalFileSource、GitHubSource、WebSource\n",
+      "target_module": "src.data_source.base",
+      "target_class": "DataSourceBase",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "base",
+        "unit"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "mock_reader_class",
+        "sample_markdown_dir"
+      ],
+      "related_tests": [],
+      "source_files": [
+        "src/data_source/base.py"
+      ]
+    },
+    {
+      "file_path": "tests\\unit\\test_embeddings.py",
+      "category": "unit",
+      "test_count": 38,
+      "description": "\nEmbedding模块单元测试\n测试LocalEmbedding、APIEmbedding和工厂函数\n",
+      "target_module": "src.embeddings.base",
+      "target_class": "BaseEmbedding",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "base",
+        "unit"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "default",
+        "mock_post",
+        "name",
+        "obj"
+      ],
+      "related_tests": [],
+      "source_files": [
+        "src/embeddings/base.py"
+      ]
+    },
+    {
+      "file_path": "tests\\unit\\test_git_repository_manager.py",
+      "category": "unit",
+      "test_count": 30,
+      "description": "\nGit 仓库管理器单元测试\n",
+      "target_module": "src.git_repository_manager",
+      "target_class": "GitRepositoryManager",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "git_repository_manager",
+        "unit"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "mock_run",
+        "tmp_path"
+      ],
+      "related_tests": [],
+      "source_files": [
+        "src/git_repository_manager.py"
+      ]
+    },
+    {
+      "file_path": "tests\\unit\\test_grep_retriever.py",
+      "category": "unit",
+      "test_count": 22,
+      "description": "\nGrep检索器单元测试\n",
+      "target_module": "src.retrievers.grep_retriever",
+      "target_class": "GrepRetriever",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "grep_retriever",
+        "unit"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "mock_platform",
+        "mock_subprocess",
+        "temp_dir"
+      ],
+      "related_tests": [],
+      "source_files": [
+        "src/retrievers/grep_retriever.py"
+      ]
+    },
+    {
+      "file_path": "tests\\unit\\test_indexer.py",
+      "category": "unit",
+      "test_count": 21,
+      "description": "\n索引构建模块单元测试\n",
+      "target_module": "src.indexer",
+      "target_class": "IndexManager",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "indexer",
+        "unit"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "chunk_overlap",
+        "chunk_size",
+        "sample_documents",
+        "temp_index_manager",
+        "temp_vector_store"
+      ],
+      "related_tests": [],
+      "source_files": [
+        "src/indexer.py"
+      ]
+    },
+    {
+      "file_path": "tests\\unit\\test_multi_strategy_retriever.py",
+      "category": "unit",
+      "test_count": 20,
+      "description": "\n多策略检索器单元测试\n",
+      "target_module": "src.retrievers.multi_strategy_retriever",
+      "target_class": "BaseRetriever",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "multi_strategy_retriever",
+        "unit"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "delay",
+        "name",
+        "query",
+        "top_k"
+      ],
+      "related_tests": [],
+      "source_files": [
+        "src/retrievers/multi_strategy_retriever.py"
+      ]
+    },
+    {
+      "file_path": "tests\\unit\\test_observers.py",
+      "category": "unit",
+      "test_count": 60,
+      "description": "\nObserver模块单元测试\n测试PhoenixObserver、LlamaDebugObserver、RAGASEvaluator和ObserverManager\n",
+      "target_module": "src.observers.base",
+      "target_class": "BaseObserver",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "base",
+        "unit"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "mock_config",
+        "mock_px",
+        "mock_setup_phoenix",
+        "name"
+      ],
+      "related_tests": [],
+      "source_files": [
+        "src/observers/base.py"
+      ]
+    },
+    {
+      "file_path": "tests\\unit\\test_pipeline_executor.py",
+      "category": "unit",
+      "test_count": 42,
+      "description": "\nPipelineExecutor模块单元测试\n测试流水线执行、钩子和错误处理\n",
+      "target_module": "src.business.pipeline.executor",
+      "target_class": "PipelineExecutor",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "executor",
+        "unit"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "answer",
+        "context",
+        "delay",
+        "error",
+        "module",
+        "name",
+        "order_list",
+        "pipeline",
+        "prompt",
+        "query",
+        "read_key",
+        "set_key",
+        "sources",
+        "top_k"
+      ],
+      "related_tests": [],
+      "source_files": [
+        "src/business/pipeline/executor.py"
+      ]
+    },
+    {
+      "file_path": "tests\\unit\\test_query_engine.py",
+      "category": "unit",
+      "test_count": 16,
+      "description": "\n查询引擎模块单元测试\n",
+      "target_module": "src.query_engine",
+      "target_class": "QueryEngine",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "query_engine",
+        "unit"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "mock_query_engine",
+        "mock_simple_engine",
+        "mocker",
+        "modelname",
+        "monkeypatch",
+        "real_query_engine",
+        "sample_documents",
+        "temp_vector_store"
+      ],
+      "related_tests": [],
+      "source_files": [
+        "src/query_engine.py"
+      ]
+    },
+    {
+      "file_path": "tests\\unit\\test_query_router.py",
+      "category": "unit",
+      "test_count": 22,
+      "description": "\nQueryRouter模块单元测试\n测试路由决策逻辑和降级机制\n",
+      "target_module": "src.routers.query_router",
+      "target_class": "QueryRouter",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "query_router",
+        "unit"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "mock_index_manager"
+      ],
+      "related_tests": [],
+      "source_files": [
+        "src/routers/query_router.py"
+      ]
+    },
+    {
+      "file_path": "tests\\unit\\test_registry.py",
+      "category": "unit",
+      "test_count": 32,
+      "description": "\n模块注册中心单元测试\n",
+      "target_module": "src.business.registry",
+      "target_class": "ModuleRegistry",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "registry",
+        "unit"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "context",
+        "name"
+      ],
+      "related_tests": [],
+      "source_files": [
+        "src/business/registry.py"
+      ]
+    },
+    {
+      "file_path": "tests\\unit\\test_reranker.py",
+      "category": "unit",
+      "test_count": 24,
+      "description": "\nReranker模块单元测试\n",
+      "target_module": "src.rerankers.base",
+      "target_class": "BaseReranker",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "base",
+        "unit"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "sample_nodes"
+      ],
+      "related_tests": [],
+      "source_files": [
+        "src/rerankers/base.py"
+      ]
+    },
+    {
+      "file_path": "tests\\unit\\test_response_formatter.py",
+      "category": "unit",
+      "test_count": 40,
+      "description": "\n响应格式化模块单元测试\n",
+      "target_module": "src.response_formatter",
+      "target_class": "MarkdownValidator",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "response_formatter",
+        "unit"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [],
+      "related_tests": [],
+      "source_files": []
+    },
+    {
+      "file_path": "tests\\unit\\test_result_merger.py",
+      "category": "unit",
+      "test_count": 20,
+      "description": "\n结果合并器单元测试\n",
+      "target_module": "src.retrievers.result_merger",
+      "target_class": "ResultMerger",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "result_merger",
+        "unit"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "sample_nodes"
+      ],
+      "related_tests": [],
+      "source_files": [
+        "src/retrievers/result_merger.py"
+      ]
+    },
+    {
+      "file_path": "tests\\unit\\test_strategy_manager.py",
+      "category": "unit",
+      "test_count": 30,
+      "description": "\n策略管理器单元测试\n",
+      "target_module": "src.business.strategy_manager",
+      "target_class": "StrategyVariant",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "strategy_manager",
+        "unit"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [],
+      "related_tests": [],
+      "source_files": [
+        "src/business/strategy_manager.py"
+      ]
+    },
+    {
+      "file_path": "tests\\unit\\test_user_manager.py",
+      "category": "unit",
+      "test_count": 22,
+      "description": "\n用户管理模块单元测试\n",
+      "target_module": "src.user_manager",
+      "target_class": "UserManager",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "unit",
+        "user_manager"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "temp_users_file",
+        "tmp_path",
+        "user_manager"
+      ],
+      "related_tests": [],
+      "source_files": [
+        "src/user_manager.py"
+      ]
+    },
+    {
+      "file_path": "tests\\unit\\test_wikipedia_loader.py",
+      "category": "unit",
+      "test_count": 5,
+      "description": "\n维基百科加载器测试\n",
+      "target_module": "src.data_loader",
+      "target_class": "",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "data_loader",
+        "unit"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [],
+      "related_tests": [],
+      "source_files": [
+        "src/data_loader.py"
+      ]
+    }
+  ],
+  "statistics": {
+    "total_test_files": 49,
+    "by_category": {
+      "compatibility": 2,
+      "e2e": 1,
+      "integration": 9,
+      "performance": 6,
+      "regression": 2,
+      "unknown": 8,
+      "ui": 1,
+      "unit": 20
+    },
+    "total_test_cases": 1273,
+    "coverage_target": 90.0
+  }
+}

@@ -233,8 +233,132 @@ make test-cov          # 覆盖率报告
 
 ---
 
+## 测试命名规范
+
+### 文件命名
+
+- **单元测试**: `test_<模块名>.py` (如 `test_indexer.py`)
+- **集成测试**: `test_<功能>_integration.py` (如 `test_rag_service_integration.py`)
+- **E2E测试**: `test_<工作流>_e2e.py` 或 `test_<功能>_workflow.py`
+- **性能测试**: `test_<功能>_performance.py`
+- **回归测试**: `test_<功能>_regression.py`
+
+### 测试类命名
+
+- **格式**: `Test<类名>` 或 `Test<功能描述>`
+- **示例**: 
+  - `TestIndexManager` (测试 `IndexManager` 类)
+  - `TestDataPipeline` (测试数据处理流水线)
+
+### 测试函数命名
+
+- **格式**: `test_<功能>_<场景>`
+- **示例**:
+  - `test_build_index_with_valid_documents` (测试使用有效文档构建索引)
+  - `test_query_engine_handles_empty_query` (测试查询引擎处理空查询)
+
+**命名模式**:
+- `test_<功能>_normal` - 正常流程
+- `test_<功能>_edge_cases` - 边界条件
+- `test_<功能>_errors` - 异常情况
+- `test_<功能>_with_<条件>` - 特定条件
+
+### 测试注释规范
+
+#### 模块级 Docstring
+
+每个测试文件应包含模块级 docstring，说明：
+- 测试的目标模块或功能
+- 测试的主要覆盖范围
+
+```python
+"""
+索引构建模块单元测试
+
+测试 IndexManager 的核心功能，包括：
+- 索引构建
+- 索引查询
+- 索引清理和统计
+"""
+```
+
+#### 测试函数 Docstring
+
+每个测试函数应包含 docstring，简要说明测试的场景：
+
+```python
+def test_build_index_with_valid_documents(temp_index_manager, sample_documents):
+    """测试使用有效文档构建索引
+    
+    验证 IndexManager 能够正确处理文档列表并构建索引。
+    """
+    pass
+```
+
+---
+
+## 🤖 Agent 使用指南
+
+### Agent 如何理解测试体系
+
+Agent 应优先查阅以下文档：
+- **主索引**: `tests/AGENTS-TESTING-INDEX.md` - 测试体系索引和映射表
+- **元数据**: `tests/METADATA.md` - 测试元数据结构说明
+- **元数据索引**: `tests/test_index.json` - 测试文件元数据（自动生成）
+
+### Agent 如何选择相关测试
+
+**步骤**:
+1. 识别修改的文件路径（如 `src/indexer.py`）
+2. 使用 `tests/tools/agent_test_selector.py` 工具选择相关测试
+3. 或查阅 `tests/AGENTS-TESTING-INDEX.md` 中的映射表
+
+**命令示例**:
+```bash
+# 使用工具自动选择
+python tests/tools/agent_test_selector.py src/indexer.py
+
+# 或手动查询映射表
+# 查看 tests/AGENTS-TESTING-INDEX.md
+```
+
+### Agent 如何理解测试信息
+
+使用 `tests/tools/agent_test_info.py` 查询测试详细信息：
+
+```bash
+# 查询测试文件信息
+python tests/tools/agent_test_info.py tests/unit/test_indexer.py
+
+# JSON 格式输出（用于程序处理）
+python tests/tools/agent_test_info.py tests/unit/test_indexer.py --format json
+```
+
+### Agent 如何生成测试摘要
+
+使用 `tests/tools/agent_test_summary.py` 生成测试执行摘要：
+
+```bash
+# 从 pytest 输出生成摘要
+pytest tests/unit/test_indexer.py -v | python tests/tools/agent_test_summary.py
+
+# 运行测试并生成摘要
+python tests/tools/agent_test_summary.py tests/unit/test_indexer.py --run
+```
+
+### Agent 如何生成缺失的测试
+
+参考 `.cursor/agents-expansion/AGENTS-EXPANSION-ERROR_HANDLING-TESTING.md` 中的测试用例生成指南。
+
+---
+
 ## 参考文档
 
-- 测试使用指南：`tests/README.md`
-- pytest 配置：`pytest.ini`
-- 测试覆盖率：目标 90%+
+- **测试使用指南**: `tests/README.md` (人类快速参考)
+- **测试详细指南**: `tests/README_TESTING.md` (详细说明)
+- **Agent测试索引**: `tests/AGENTS-TESTING-INDEX.md` (Agent主索引)
+- **测试元数据**: `tests/METADATA.md` (元数据结构)
+- **Agent测试整合**: `.cursor/rules/agent-testing-integration.mdc` (Agent整合规则)
+- **测试用例生成**: `.cursor/agents-expansion/AGENTS-EXPANSION-ERROR_HANDLING-TESTING.md`
+- **pytest 配置**: `pytest.ini`
+- **测试覆盖率**: 目标 90%+

@@ -257,11 +257,27 @@ pytest --cov=src --cov-report=term-missing   # 终端显示未覆盖行
 
 ---
 
+## 🤖 Agent 测试索引
+
+Agent 可以使用以下资源快速理解和使用测试体系：
+
+- **主索引文档**: `tests/AGENTS-TESTING-INDEX.md` - 完整的测试体系索引和映射表
+- **元数据说明**: `tests/METADATA.md` - 测试元数据结构说明
+- **元数据索引**: `tests/test_index.json` - 测试文件元数据（使用 `generate_test_index.py` 生成）
+
+**Agent 工具**:
+- `tests/tools/agent_test_selector.py` - 根据修改的文件选择相关测试
+- `tests/tools/agent_test_info.py` - 查询测试详细信息
+- `tests/tools/agent_test_summary.py` - 生成测试执行摘要
+
+---
+
 ## 📚 相关文档
 
 - [架构设计](../docs/ARCHITECTURE.md) - 系统架构
 - [API参考](../docs/API.md) - 接口文档
 - [诊断工具](tools/README.md) - 工具使用说明
+- [Agent测试索引](AGENTS-TESTING-INDEX.md) - Agent 测试体系索引（**推荐 Agent 查阅**）
 
 ---
 
