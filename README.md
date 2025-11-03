@@ -159,7 +159,7 @@ Creating-Systematology-RAG/
 ### AI Agent 任务记录
 
 - [📖 任务归档](agent-task-log/README.md) - AI Agent 执行任务的完整记录
-- [📖 人机协作范式](agent-task-log/人机协作范式.md) - 协作经验总结
+- [📖 AI Agent 协作指南](AGENTS.md) - 协作规范与要点（含协作范式）
 
 ---
 

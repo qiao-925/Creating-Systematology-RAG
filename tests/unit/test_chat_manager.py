@@ -172,9 +172,9 @@ class TestChatManager:
         )
         index_manager.build_index(sample_documents, show_progress=False)
         
-        # Mock OpenAI
+        # Mock DeepSeek LLM
         mock_llm = mocker.Mock()
-        mocker.patch('src.chat_manager.OpenAI', return_value=mock_llm)
+        mocker.patch('src.chat.manager.DeepSeek', return_value=mock_llm)
         
         # Mock ChatEngine
         mock_engine = mocker.Mock()
@@ -184,7 +184,7 @@ class TestChatManager:
         mock_engine.chat.return_value = mock_response
         
         mocker.patch(
-            'src.chat_manager.CondensePlusContextChatEngine.from_defaults',
+            'src.chat.manager.CondensePlusContextChatEngine.from_defaults',
             return_value=mock_engine
         )
         

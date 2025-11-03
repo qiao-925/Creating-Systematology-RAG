@@ -5,7 +5,7 @@ alwaysApply: true
 
 # 方案讨论工作流
 
-> 从 `AGENTS.md` 第 33-42 行转换的结构化工作流
+> 从 `AGENTS.md` 第 33-66 行转换的结构化工作流
 
 ---
 
@@ -124,4 +124,4 @@ alwaysApply: true
 
 - 开发工作流：`development-workflow.mdc`
 - 决策原则：`decision-making-principles.mdc`
-- AGENTS.md 原始规则：第 33-42 行
+- AGENTS.md 原始规则：第 33-66 行
