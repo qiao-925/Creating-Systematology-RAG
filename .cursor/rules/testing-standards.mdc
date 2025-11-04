@@ -302,8 +302,7 @@ def test_build_index_with_valid_documents(temp_index_manager, sample_documents):
 ### Agent 如何理解测试体系
 
 Agent 应优先查阅以下文档：
-- **主索引**: `tests/AGENTS-TESTING-INDEX.md` - 测试体系索引和映射表
-- **元数据**: `tests/METADATA.md` - 测试元数据结构说明
+- **主索引**: `tests/agent/README.md` - 测试体系索引和映射表（整合版）
 - **元数据索引**: `tests/test_index.json` - 测试文件元数据（自动生成）
 
 ### Agent 如何选择相关测试
@@ -311,7 +310,7 @@ Agent 应优先查阅以下文档：
 **步骤**:
 1. 识别修改的文件路径（如 `src/indexer.py`）
 2. 使用 `tests/tools/agent_test_selector.py` 工具选择相关测试
-3. 或查阅 `tests/AGENTS-TESTING-INDEX.md` 中的映射表
+3. 或查阅 `tests/agent/README.md` 中的映射表
 
 **命令示例**:
 ```bash
@@ -319,7 +318,7 @@ Agent 应优先查阅以下文档：
 python tests/tools/agent_test_selector.py src/indexer.py
 
 # 或手动查询映射表
-# 查看 tests/AGENTS-TESTING-INDEX.md
+# 查看 tests/agent/README.md
 ```
 
 ### Agent 如何理解测试信息
@@ -355,9 +354,8 @@ python tests/tools/agent_test_summary.py tests/unit/test_indexer.py --run
 ## 参考文档
 
 - **测试使用指南**: `tests/README.md` (人类快速参考)
-- **测试详细指南**: `tests/README_TESTING.md` (详细说明)
-- **Agent测试索引**: `tests/AGENTS-TESTING-INDEX.md` (Agent主索引)
-- **测试元数据**: `tests/METADATA.md` (元数据结构)
+- **单元测试指南**: `tests/unit/README.md` (单元测试详细说明)
+- **Agent测试索引**: `tests/agent/README.md` (Agent主索引，整合了测试体系索引和元数据说明)
 - **Agent测试整合**: `.cursor/rules/agent-testing-integration.mdc` (Agent整合规则)
 - **测试用例生成**: `.cursor/agents-expansion/AGENTS-EXPANSION-ERROR_HANDLING-TESTING.md`
 - **pytest 配置**: `pytest.ini`

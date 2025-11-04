@@ -4,28 +4,32 @@
 """
 
 import time
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 
 from llama_index.core.schema import Document as LlamaDocument
 
-from src.data_source import DataSource
-from src.data_parser import DocumentParser
 from src.data_loader.processor import DocumentProcessor, safe_print
 from src.logger import setup_logger
 
 logger = setup_logger('data_loader')
+
+# 类型提示
+if TYPE_CHECKING:
+    from src.data_source import DataSource
 
 # 检查新架构是否可用
 try:
     from src.data_source import DataSource, GitHubSource, LocalFileSource, WebSource
     from src.data_parser import DocumentParser
     NEW_ARCHITECTURE_AVAILABLE = True
+    _GitHubSource = GitHubSource  # 保存引用以便后续使用
 except ImportError:
     NEW_ARCHITECTURE_AVAILABLE = False
+    _GitHubSource = None
 
 
 def load_documents_from_source(
-    source: DataSource,
+    source: "DataSource",
     clean: bool = True,
     show_progress: bool = True,
     cache_manager=None,
@@ -57,7 +61,12 @@ def load_documents_from_source(
             safe_print(f"🔍 正在从数据源获取文件路径...")
         
         source_start_time = time.time()
-        source_files = source.get_files()
+        # 调用数据源的标准方法 get_file_paths()
+        # GitHubSource 支持 cache_manager 和 task_id 参数，其他数据源忽略这些参数
+        if _GitHubSource is not None and isinstance(source, _GitHubSource):
+            source_files = source.get_file_paths(cache_manager=cache_manager, task_id=task_id)
+        else:
+            source_files = source.get_file_paths()
         source_elapsed = time.time() - source_start_time
         
         if not source_files:

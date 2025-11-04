@@ -1,6 +1,6 @@
 ---
-description: Agent 测试体系整合规则
-alwaysApply: true
+description: Agent 测试体系整合规则（详细版）
+alwaysApply: false
 ---
 
 # Agent 测试体系整合规则
@@ -24,7 +24,7 @@ Agent 在执行任务时必须：
 
 ### 1. 查阅测试索引文档
 
-Agent 应优先查阅 `tests/AGENTS-TESTING-INDEX.md`，该文档包含：
+Agent 应优先查阅 `tests/agent/README.md`，该文档包含：
 - 测试体系概览和分类
 - 源文件 → 测试文件映射表
 - 测试命名规范
@@ -48,7 +48,7 @@ Agent 应优先查阅 `tests/AGENTS-TESTING-INDEX.md`，该文档包含：
 **步骤**:
 1. 识别所有修改的源文件路径
 2. 使用 `tests/tools/agent_test_selector.py` 工具自动选择
-3. 或查阅 `tests/AGENTS-TESTING-INDEX.md` 中的映射表手动查找
+3. 或查阅 `tests/agent/README.md` 中的映射表手动查找
 
 **命令**:
 ```bash
@@ -68,32 +68,41 @@ python tests/tools/agent_test_selector.py src/indexer.py src/query_engine.py
 
 ## 🧪 Agent 如何运行测试
 
-### 运行策略
+### 运行策略（强制要求）
 
-**优先级顺序**:
-1. **单元测试优先** - 快速验证核心功能
-2. **集成测试其次** - 验证模块协作
-3. **E2E测试最后** - 验证完整流程
+**⚠️ 核心原则**: 只关注单元测试和 Mock 测试，避免环境依赖问题
+
+**优先级顺序（严格执行）**:
+1. **单元测试优先（必须）** - 使用 Mock，无外部依赖，快速验证核心功能
+2. **集成测试跳过** - 需要环境依赖，由人工处理，Agent 不执行
+3. **E2E测试跳过** - 需要完整环境，由人工处理，Agent 不执行
+
+**执行规则**:
+- ✅ **必须执行**: 修改代码后立即运行相关单元测试
+- ❌ **禁止执行**: 集成测试、E2E测试（需要环境依赖）
+- ✅ **使用 Mock**: 所有单元测试必须使用 Mock，避免真实依赖
 
 **命令示例**:
 ```bash
-# 运行相关单元测试
+# 1. 选择相关单元测试（只选择 tests/unit/ 目录下的测试）
+python tests/tools/agent_test_selector.py src/indexer.py | grep "tests/unit/"
+
+# 2. 运行相关单元测试（必须）
 pytest tests/unit/test_indexer.py -v
 
-# 运行相关集成测试（如果需要）
-pytest tests/integration/test_data_pipeline.py -v
-
-# 使用工具生成的命令
-python tests/tools/agent_test_selector.py src/indexer.py --command-only | sh
+# 3. 如果工具返回了集成测试，过滤掉，只运行单元测试
+pytest tests/unit/test_xxx.py tests/unit/test_yyy.py -v
 ```
 
-### 测试执行时机
+### 测试执行时机（强制要求）
 
-Agent 应在以下情况运行测试：
-- ✅ **修改代码后** - 确保修改不会破坏现有功能
-- ✅ **添加新功能后** - 验证新功能正常工作
-- ✅ **修复 Bug 后** - 验证修复有效（超过2次失败的修复必须测试）
-- ✅ **重构代码后** - 确保功能未受影响
+Agent **必须在以下情况立即运行单元测试**：
+- ✅ **修改代码后** - 立即运行相关单元测试，确保修改不会破坏现有功能
+- ✅ **添加新功能后** - 运行单元测试验证新功能正常工作
+- ✅ **修复 Bug 后** - 运行单元测试验证修复有效（超过2次失败的修复必须测试）
+- ✅ **重构代码后** - 运行单元测试确保功能未受影响
+
+**⚠️ 重要**: 代码修改完成后，必须立即执行测试，不能跳过！
 
 ---
 
@@ -159,17 +168,42 @@ python tests/tools/agent_test_summary.py tests/unit/test_indexer.py --run
 
 ---
 
-## ✅ Agent 测试工作流检查清单
+## ✅ Agent 测试工作流检查清单（强制执行）
 
-### 修改代码后的流程
+### 修改代码后的流程（必须按顺序执行）
 
-- [ ] 识别所有修改的源文件
-- [ ] 使用 `agent_test_selector.py` 选择相关测试
-- [ ] 运行相关单元测试
-- [ ] 分析测试结果
-- [ ] 如失败，分析原因并修复（最多3次尝试）
-- [ ] 验证修复效果
-- [ ] 记录到任务日志
+**⚠️ 这是强制要求，每个步骤必须完成！**
+
+1. **识别修改的文件** ✅
+   - [ ] 列出所有修改的源文件路径
+   - [ ] 记录修改内容摘要
+
+2. **选择相关单元测试** ✅
+   - [ ] 使用 `agent_test_selector.py` 选择相关测试
+   - [ ] **过滤结果，只保留 `tests/unit/` 目录下的测试**
+   - [ ] 如果工具返回集成测试/E2E测试，忽略它们
+
+3. **运行单元测试** ✅ **必须执行**
+   - [ ] 执行 `pytest tests/unit/test_xxx.py -v` 命令
+   - [ ] 记录测试执行结果
+   - [ ] 如果测试文件不存在，记录"缺少测试文件"
+
+4. **分析测试结果** ✅
+   - [ ] 测试通过：继续下一步
+   - [ ] 测试失败：分析失败原因（代码问题/测试问题）
+   - [ ] 使用 `agent_test_summary.py` 生成摘要（如需要）
+
+5. **修复测试失败** ✅
+   - [ ] 如果是代码问题：修复代码（最多3次尝试）
+   - [ ] 如果是测试问题：更新测试用例
+   - [ ] 验证修复效果：重新运行测试
+
+6. **记录到任务日志** ✅
+   - [ ] 记录测试执行情况
+   - [ ] 记录测试结果（通过/失败）
+   - [ ] 记录任何发现的问题
+
+**⚠️ 如果跳过以上任何步骤，必须明确说明原因！**
 
 ### 添加新功能后的流程
 
@@ -212,15 +246,19 @@ python tests/tools/agent_test_summary.py tests/unit/test_indexer.py --run
 ### 示例1: 修改索引管理器
 
 ```bash
-# 1. 选择相关测试
+# 1. 选择相关测试（只关注单元测试）
 python tests/tools/agent_test_selector.py src/indexer.py
-# 输出: tests/unit/test_indexer.py
+# 输出可能包含: tests/unit/test_indexer.py, tests/integration/test_xxx.py
+# 只选择: tests/unit/test_indexer.py
 
-# 2. 运行测试
+# 2. 运行单元测试（必须执行）
 pytest tests/unit/test_indexer.py -v
 
-# 3. 查看详细结果
+# 3. 如果测试通过，查看摘要（可选）
 pytest tests/unit/test_indexer.py -v | python tests/tools/agent_test_summary.py
+
+# 4. 如果测试失败，分析并修复
+# 5. 记录测试结果到任务日志
 ```
 
 ### 示例2: 添加新的查询功能
@@ -254,8 +292,7 @@ pytest tests/regression/test_core_features.py -v
 
 ## 📚 相关文档
 
-- **Agent测试索引**: `tests/AGENTS-TESTING-INDEX.md` - 主索引文档
-- **测试元数据**: `tests/METADATA.md` - 元数据结构说明
+- **Agent测试索引**: `tests/agent/README.md` - 主索引文档（整合了测试体系索引和元数据说明）
 - **测试规范**: `.cursor/rules/testing-standards.mdc` - 测试规范
 - **测试用例生成**: `.cursor/agents-expansion/AGENTS-EXPANSION-ERROR_HANDLING-TESTING.md`
 - **开发工作流**: `.cursor/rules/development-workflow.mdc`

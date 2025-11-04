@@ -103,13 +103,8 @@ def display_session_history(user_email: str, current_session_id: Optional[str] =
         user_email: 用户邮箱
         current_session_id: 当前会话ID（用于高亮显示）
     """
-    # 调试信息
-    logger.debug(f"正在查找用户会话: {user_email}")
-    
     # 获取所有会话元数据
     sessions_metadata = get_user_sessions_metadata(user_email)
-    
-    logger.debug(f"找到 {len(sessions_metadata)} 个会话")
     
     if not sessions_metadata:
         st.info("💡 还没有历史会话")

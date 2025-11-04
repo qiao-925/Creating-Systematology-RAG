@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "generated_at": "2025-11-03T12:26:30.066673",
+  "generated_at": "2025-11-04T11:50:01.270370",
   "test_files": [
     {
       "file_path": "tests\\compatibility\\test_backward_compatibility.py",
@@ -147,6 +147,31 @@
       ]
     },
     {
+      "file_path": "tests\\integration\\test_modular_query_engine.py",
+      "category": "integration",
+      "test_count": 47,
+      "description": "\n模块化查询引擎单元测试\n",
+      "target_module": "src.modular_query_engine",
+      "target_class": "ModularQueryEngine",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "integration",
+        "modular_query_engine"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "index_manager",
+        "test_documents",
+        "tmp_path"
+      ],
+      "related_tests": [],
+      "source_files": [
+        "src/modular_query_engine.py"
+      ]
+    },
+    {
       "file_path": "tests\\integration\\test_multi_strategy_integration.py",
       "category": "integration",
       "test_count": 25,
@@ -218,6 +243,37 @@
       ]
     },
     {
+      "file_path": "tests\\integration\\test_pipeline.py",
+      "category": "integration",
+      "test_count": 32,
+      "description": "\nPipeline流水线集成测试\n",
+      "target_module": "src.business.protocols",
+      "target_class": "PipelineContext",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "integration",
+        "protocols"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "c",
+        "context",
+        "m",
+        "mock_index_manager",
+        "mock_query_engine",
+        "p",
+        "prompt",
+        "query",
+        "top_k"
+      ],
+      "related_tests": [],
+      "source_files": [
+        "src/business/protocols.py"
+      ]
+    },
+    {
       "file_path": "tests\\integration\\test_query_pipeline.py",
       "category": "integration",
       "test_count": 10,
@@ -236,6 +292,32 @@
         "mocker",
         "monkeypatch",
         "prepared_index_manager"
+      ],
+      "related_tests": [],
+      "source_files": [
+        "src/indexer.py"
+      ]
+    },
+    {
+      "file_path": "tests\\integration\\test_query_processing_integration.py",
+      "category": "integration",
+      "test_count": 16,
+      "description": "\n查询处理集成测试\n测试查询处理与策略选择的完整流程\n",
+      "target_module": "src.indexer",
+      "target_class": "QueryProcessingIntegration",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "indexer",
+        "integration"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "mock_index_manager",
+        "mock_llm",
+        "sample_understanding_response",
+        "temp_vector_store"
       ],
       "related_tests": [],
       "source_files": [
@@ -484,126 +566,6 @@
       "source_files": []
     },
     {
-      "file_path": "tests\\test_github_link.py",
-      "category": "unknown",
-      "test_count": 22,
-      "description": "\nGitHub 链接生成器测试\n",
-      "target_module": "src.github_link",
-      "target_class": "GitHubUrlGeneration",
-      "target_functions": [],
-      "coverage": [],
-      "dependencies": [],
-      "tags": [
-        "github",
-        "github_link",
-        "unknown"
-      ],
-      "pytest_markers": [],
-      "fixtures_used": [],
-      "related_tests": [],
-      "source_files": [
-        "src/github_link.py"
-      ]
-    },
-    {
-      "file_path": "tests\\test_modular_query_engine.py",
-      "category": "unknown",
-      "test_count": 47,
-      "description": "\n模块化查询引擎单元测试\n",
-      "target_module": "src.modular_query_engine",
-      "target_class": "ModularQueryEngine",
-      "target_functions": [],
-      "coverage": [],
-      "dependencies": [],
-      "tags": [
-        "modular_query_engine",
-        "unknown"
-      ],
-      "pytest_markers": [],
-      "fixtures_used": [
-        "index_manager",
-        "test_documents",
-        "tmp_path"
-      ],
-      "related_tests": [],
-      "source_files": [
-        "src/modular_query_engine.py"
-      ]
-    },
-    {
-      "file_path": "tests\\test_pipeline.py",
-      "category": "unknown",
-      "test_count": 32,
-      "description": "\nPipeline流水线集成测试\n",
-      "target_module": "src.business.protocols",
-      "target_class": "PipelineContext",
-      "target_functions": [],
-      "coverage": [],
-      "dependencies": [],
-      "tags": [
-        "protocols",
-        "unknown"
-      ],
-      "pytest_markers": [],
-      "fixtures_used": [
-        "c",
-        "context",
-        "m",
-        "mock_index_manager",
-        "mock_query_engine",
-        "p",
-        "prompt",
-        "query",
-        "top_k"
-      ],
-      "related_tests": [],
-      "source_files": [
-        "src/business/protocols.py"
-      ]
-    },
-    {
-      "file_path": "tests\\test_prompts.py",
-      "category": "unknown",
-      "test_count": 36,
-      "description": "\n提示工程模块测试\n",
-      "target_module": "src.business.prompts",
-      "target_class": "PromptTemplateManager",
-      "target_functions": [],
-      "coverage": [],
-      "dependencies": [],
-      "tags": [
-        "prompts",
-        "unknown"
-      ],
-      "pytest_markers": [],
-      "fixtures_used": [],
-      "related_tests": [],
-      "source_files": []
-    },
-    {
-      "file_path": "tests\\test_rag_service.py",
-      "category": "unknown",
-      "test_count": 66,
-      "description": "\nRAGService单元测试\n",
-      "target_module": "src.business.services",
-      "target_class": "RAGService",
-      "target_functions": [],
-      "coverage": [],
-      "dependencies": [],
-      "tags": [
-        "services",
-        "unknown"
-      ],
-      "pytest_markers": [],
-      "fixtures_used": [
-        "mock_chat_manager",
-        "mock_index_manager",
-        "mock_query_engine"
-      ],
-      "related_tests": [],
-      "source_files": []
-    },
-    {
       "file_path": "tests\\tools\\test_env_vars.py",
       "category": "unknown",
       "test_count": 0,
@@ -841,6 +803,28 @@
       ]
     },
     {
+      "file_path": "tests\\unit\\test_github_link.py",
+      "category": "unit",
+      "test_count": 22,
+      "description": "\nGitHub 链接生成器测试\n",
+      "target_module": "src.github_link",
+      "target_class": "GitHubUrlGeneration",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "github",
+        "github_link",
+        "unit"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [],
+      "related_tests": [],
+      "source_files": [
+        "src/github_link.py"
+      ]
+    },
+    {
       "file_path": "tests\\unit\\test_grep_retriever.py",
       "category": "unit",
       "test_count": 22,
@@ -981,6 +965,25 @@
       ]
     },
     {
+      "file_path": "tests\\unit\\test_prompts.py",
+      "category": "unit",
+      "test_count": 36,
+      "description": "\n提示工程模块测试\n",
+      "target_module": "src.business.prompts",
+      "target_class": "PromptTemplateManager",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "prompts",
+        "unit"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [],
+      "related_tests": [],
+      "source_files": []
+    },
+    {
       "file_path": "tests\\unit\\test_query_engine.py",
       "category": "unit",
       "test_count": 16,
@@ -1011,6 +1014,31 @@
       ]
     },
     {
+      "file_path": "tests\\unit\\test_query_processor.py",
+      "category": "unit",
+      "test_count": 28,
+      "description": "\n查询处理器单元测试\n",
+      "target_module": "src.query.modular.query_processor",
+      "target_class": "QueryProcessor",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "query_processor",
+        "unit"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "mock_llm",
+        "query_processor",
+        "sample_understanding_response"
+      ],
+      "related_tests": [],
+      "source_files": [
+        "src/query/modular/query_processor.py"
+      ]
+    },
+    {
       "file_path": "tests\\unit\\test_query_router.py",
       "category": "unit",
       "test_count": 22,
@@ -1032,6 +1060,29 @@
       "source_files": [
         "src/routers/query_router.py"
       ]
+    },
+    {
+      "file_path": "tests\\unit\\test_rag_service.py",
+      "category": "unit",
+      "test_count": 66,
+      "description": "\nRAGService单元测试\n",
+      "target_module": "src.business.services",
+      "target_class": "RAGService",
+      "target_functions": [],
+      "coverage": [],
+      "dependencies": [],
+      "tags": [
+        "services",
+        "unit"
+      ],
+      "pytest_markers": [],
+      "fixtures_used": [
+        "mock_chat_manager",
+        "mock_index_manager",
+        "mock_query_engine"
+      ],
+      "related_tests": [],
+      "source_files": []
     },
     {
       "file_path": "tests\\unit\\test_registry.py",
@@ -1191,18 +1242,18 @@
     }
   ],
   "statistics": {
-    "total_test_files": 49,
+    "total_test_files": 51,
     "by_category": {
       "compatibility": 2,
       "e2e": 1,
-      "integration": 9,
+      "integration": 12,
       "performance": 6,
       "regression": 2,
-      "unknown": 8,
+      "unknown": 3,
       "ui": 1,
-      "unit": 20
+      "unit": 24
     },
-    "total_test_cases": 1273,
+    "total_test_cases": 1317,
     "coverage_target": 90.0
   }
 }

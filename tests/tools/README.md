@@ -14,6 +14,38 @@
 | `test_env_vars.py` | 验证环境变量设置 | 排查环境变量问题 |
 | `download_model.py` | 手动从镜像下载模型 | 首次下载、网络问题 |
 
+### Agent 测试工具
+
+| 文件 | 用途 | 使用场景 |
+|------|------|---------|
+| `agent_test_selector.py` | 根据修改的文件选择相关测试 | 代码修改后自动选择测试 |
+| `agent_test_info.py` | 查询测试文件详细信息 | 了解测试覆盖范围和目的 |
+| `agent_test_summary.py` | 生成测试执行摘要 | 测试执行后生成报告 |
+| `generate_test_index.py` | 生成测试元数据索引 | 更新test_index.json |
+| `analyze_test_coverage.py` | 分析测试覆盖率，找出缺失的测试 | 评估测试体系完整性 |
+
+**使用方法**:
+```bash
+# 选择相关测试
+python tests/tools/agent_test_selector.py src/indexer.py
+
+# 查询测试信息
+python tests/tools/agent_test_info.py tests/unit/test_indexer.py
+
+# 生成测试摘要
+pytest tests/unit/test_indexer.py -v | python tests/tools/agent_test_summary.py
+
+# 生成测试索引
+python tests/tools/generate_test_index.py
+
+# 分析测试覆盖率
+python tests/tools/analyze_test_coverage.py
+```
+
+详细说明: 
+- [Agent测试体系指南](../agent/README.md)
+- [测试覆盖率分析报告](../TEST_COVERAGE_ANALYSIS.md)
+
 ### Phoenix 集成相关
 
 | 文件 | 用途 | 使用场景 |
@@ -83,5 +115,5 @@ uv run python tests/integration/test_phoenix_integration.py
 
 ---
 
-**最后更新**: 2025-10-12
+**最后更新**: 2025-11-03
 

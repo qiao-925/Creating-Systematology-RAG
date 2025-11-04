@@ -33,12 +33,8 @@ def handle_query(
     logger.info(f"收到查询请求: user={user_id}, session={session_id}, question={question[:50]}...")
     
     try:
-        # 使用模块化查询引擎（如果可用）
-        if hasattr(service, 'modular_query_engine') and service.use_modular_engine:
-            answer, sources, trace_info = service.modular_query_engine.query(question, collect_trace=False)
-        else:
-            # 降级到旧查询引擎
-            answer, sources, trace_info = service.query_engine.query(question, collect_trace=False)
+        # 使用模块化查询引擎
+        answer, sources, trace_info = service.modular_query_engine.query(question, collect_trace=False)
         
         # 构造响应
         response = RAGResponse(

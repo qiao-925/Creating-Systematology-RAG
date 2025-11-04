@@ -3,8 +3,33 @@
 已模块化拆分，此文件保持向后兼容
 """
 
+import streamlit as st
+from pathlib import Path
+import sys
+
+# 添加src到路径
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 # 从新模块导入并重新导出
 from pages.settings.main import *
+
+# 导入缺失的函数
+from src.data_loader import (
+    parse_github_url,
+    sync_github_repository,
+    load_documents_from_urls
+)
+from src.phoenix_utils import (
+    is_phoenix_running,
+    get_phoenix_url,
+    start_phoenix_ui,
+    stop_phoenix_ui
+)
+from src.ui_components import (
+    load_index,
+    display_model_status
+)
+from src.config import config
 
 
 # 页面配置
@@ -315,8 +340,7 @@ pre code {
 </style>
 """, unsafe_allow_html=True)
 
-# 预加载模型和初始化状态
-preload_embedding_model()
+# 初始化状态（模型延迟加载，首次使用时自动加载）
 init_session_state()
 
 # 检查登录状态
@@ -356,7 +380,7 @@ with tab1:
     github_url = st.text_input(
         "GitHub 仓库 URL",
         placeholder="https://github.com/owner/repo",
-        key="github_url_settings",
+        key="github_url_settings_legacy",
         help="粘贴完整的 GitHub 仓库链接"
     )
     

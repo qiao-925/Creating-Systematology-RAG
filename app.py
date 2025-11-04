@@ -33,7 +33,6 @@ except ImportError:
 from src.config import config
 from src.ui_components import (
     init_session_state,
-    preload_embedding_model,
     load_rag_service,
     load_index,
     load_chat_manager,
@@ -674,25 +673,11 @@ def main():
     
     # ========== 启动初始化 ==========
     if not st.session_state.boot_ready:
-        # 启动阶段：执行重型初始化
-        try:
-            preload_embedding_model()
-        except Exception:
-            # 错误已在函数内部显示
-            pass
-        try:
-            if not is_phoenix_running():
-                session = start_phoenix_ui(port=6006)
-                if session is None:
-                    st.error("❌ Phoenix 启动失败：请确认已安装 arize-phoenix 与 openinference-instrumentation-llama-index，并检查端口 6006 是否被占用。")
-        except Exception as e:
-            st.error(f"❌ Phoenix 启动异常：{e}")
-        # 启动画面完成 -> 标记并刷新
+        # 启动阶段：简化初始化流程（延迟加载，不预加载模型）
+        # 模型和 Phoenix 将在首次使用时按需加载
         st.session_state.boot_ready = True
         st.rerun()
         return
-    
-    # 启动阶段已处理 Phoenix 与模型加载；此处无需再拉起
     
     # 用户认证界面
     if not st.session_state.logged_in:

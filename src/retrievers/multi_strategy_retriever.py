@@ -91,11 +91,15 @@ class MultiStrategyRetriever(BaseRetriever):
             enable_deduplication=enable_deduplication,
         )
         
+        retriever_names = [r.name for r in retrievers]
         logger.info(
-            f"多策略检索器初始化: "
-            f"检索器数量={len(retrievers)}, "
+            f"🔀 多策略检索器初始化: "
+            f"启用的策略={retriever_names}, "
+            f"策略数量={len(retrievers)}, "
             f"合并策略={merge_strategy}, "
-            f"权重={self.weights}"
+            f"权重分配={self.weights}, "
+            f"去重={'启用' if enable_deduplication else '禁用'}, "
+            f"原因=使用多策略并行检索，融合不同检索方法的优势以提升召回率"
         )
     
     def retrieve(self, query: str, top_k: int = 10) -> List[NodeWithScore]:
@@ -111,14 +115,25 @@ class MultiStrategyRetriever(BaseRetriever):
         # 并行执行所有检索策略
         all_results = self._parallel_retrieve(query, top_k)
         
+        # 记录各策略的检索结果
+        strategy_results_summary = {
+            name: len(results) 
+            for name, results in all_results.items()
+        }
+        
         # 合并结果
         merged_results = self.merger.merge(all_results, top_k=top_k)
         
+        total_retrieved = sum(len(r) for r in all_results.values())
         logger.info(
-            f"多策略检索完成: "
+            f"🔀 多策略检索完成: "
             f"查询={query[:50]}..., "
-            f"检索器结果数={sum(len(r) for r in all_results.values())}, "
-            f"合并后结果数={len(merged_results)}"
+            f"各策略结果数={strategy_results_summary}, "
+            f"总检索结果数={total_retrieved}, "
+            f"合并策略={self.merge_strategy}, "
+            f"合并后结果数={len(merged_results)}, "
+            f"原因=并行执行多种检索策略并通过{self.merge_strategy}融合结果，"
+            f"提升召回率和准确性"
         )
         
         return merged_results
@@ -135,9 +150,17 @@ class MultiStrategyRetriever(BaseRetriever):
             """检索包装函数"""
             try:
                 results = retriever.retrieve(query, top_k=top_k)
+                logger.debug(
+                    f"  ✓ {retriever.name}策略检索完成: "
+                    f"结果数={len(results)}, "
+                    f"权重={self.weights.get(retriever.name, 1.0)}"
+                )
                 return retriever.name, results
             except Exception as e:
-                logger.warning(f"检索器 {retriever.name} 失败: {e}")
+                logger.warning(
+                    f"  ✗ 检索器 {retriever.name} 失败: {e}, "
+                    f"原因=检索过程中发生异常，将使用其他策略的结果"
+                )
                 return retriever.name, []
         
         # 使用线程池并行执行

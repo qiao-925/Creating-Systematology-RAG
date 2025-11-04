@@ -312,6 +312,7 @@ class TestModuleRegistration:
         
         registration = ModuleRegistration(
             metadata=metadata,
+            factory=None,  # 使用 module_class 时，factory 为 None
             module_class=MockModule,
         )
         

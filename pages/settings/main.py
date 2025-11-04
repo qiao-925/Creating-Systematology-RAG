@@ -33,8 +33,7 @@ st.set_page_config(
 # 应用CSS样式
 st.markdown(CLAUDE_STYLE_CSS, unsafe_allow_html=True)
 
-# 预加载模型和初始化状态
-preload_embedding_model()
+# 初始化状态（模型延迟加载，首次使用时自动加载）
 init_session_state()
 
 # 检查登录状态

@@ -1,6 +1,6 @@
 ---
 description: AGENTS.md与规则文件全量同步工作流
-alwaysApply: true
+alwaysApply: false
 ---
 
 # 规则文件全量同步工作流

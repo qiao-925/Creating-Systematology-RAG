@@ -6,7 +6,6 @@ RAGService类实现
 from typing import Optional
 
 from src.indexer import IndexManager
-from src.query_engine import QueryEngine
 from src.query.modular.engine import ModularQueryEngine
 from src.chat_manager import ChatManager
 from src.logger import setup_logger
@@ -20,7 +19,7 @@ class RAGService:
     """RAG统一服务
     
     提供查询、索引构建、对话等核心功能的统一入口
-    支持模块化查询引擎（ModularQueryEngine）
+    使用模块化查询引擎（ModularQueryEngine）
     """
     
     def __init__(
@@ -29,7 +28,6 @@ class RAGService:
         similarity_top_k: Optional[int] = None,
         enable_debug: bool = False,
         enable_markdown_formatting: bool = True,
-        use_modular_engine: bool = True,
         **kwargs
     ):
         """初始化RAG服务
@@ -39,23 +37,20 @@ class RAGService:
             similarity_top_k: 检索相似文档数量
             enable_debug: 是否启用调试模式
             enable_markdown_formatting: 是否启用Markdown格式化
-            use_modular_engine: 是否使用模块化查询引擎（推荐）
             **kwargs: 传递给ModularQueryEngine的其他参数
         """
         self.collection_name = collection_name or config.CHROMA_COLLECTION_NAME
         self.similarity_top_k = similarity_top_k or config.SIMILARITY_TOP_K
         self.enable_debug = enable_debug
         self.enable_markdown_formatting = enable_markdown_formatting
-        self.use_modular_engine = use_modular_engine
         self.engine_kwargs = kwargs
         
         # 延迟初始化（按需加载）
         self._index_manager: Optional[IndexManager] = None
-        self._query_engine: Optional[QueryEngine] = None
         self._modular_query_engine: Optional[ModularQueryEngine] = None
         self._chat_manager: Optional[ChatManager] = None
         
-        logger.info(f"RAGService初始化: collection={self.collection_name}, top_k={self.similarity_top_k}, modular={use_modular_engine}")
+        logger.info(f"RAGService初始化: collection={self.collection_name}, top_k={self.similarity_top_k}")
     
     @property
     def index_manager(self) -> IndexManager:
@@ -64,23 +59,6 @@ class RAGService:
             logger.info("初始化IndexManager...")
             self._index_manager = IndexManager(collection_name=self.collection_name)
         return self._index_manager
-    
-    @property
-    def query_engine(self) -> QueryEngine:
-        """获取查询引擎（延迟加载，兼容旧接口）"""
-        if self.use_modular_engine:
-            # 使用模块化查询引擎，但返回兼容QueryEngine接口的包装
-            return self.modular_query_engine
-        
-        if self._query_engine is None:
-            logger.info("初始化QueryEngine...")
-            self._query_engine = QueryEngine(
-                index_manager=self.index_manager,
-                similarity_top_k=self.similarity_top_k,
-                enable_debug=self.enable_debug,
-                enable_markdown_formatting=self.enable_markdown_formatting,
-            )
-        return self._query_engine
     
     @property
     def modular_query_engine(self) -> ModularQueryEngine:
@@ -184,7 +162,7 @@ class RAGService:
                 logger.warning(f"关闭IndexManager失败: {e}")
         
         self._index_manager = None
-        self._query_engine = None
+        self._modular_query_engine = None
         self._chat_manager = None
         
         logger.info("RAGService已关闭")

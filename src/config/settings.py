@@ -1,12 +1,21 @@
 """
 配置管理 - 配置类模块
 Config类实现
+
+支持混合配置方式：
+1. 环境变量（.env 文件）- 优先级最高，用于敏感信息
+2. YAML 配置文件（application.yml）- 位于项目根目录，用于应用配置
+3. 默认值 - 作为后备
+
+优先级：环境变量 > YAML 配置 > 默认值
 """
 
 import os
+import json
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Any, Dict
 
+import yaml
 from dotenv import load_dotenv
 
 # 加载环境变量
@@ -14,49 +23,70 @@ load_dotenv()
 
 
 class Config:
-    """应用配置类"""
+    """应用配置类
+    
+    支持混合配置方式：
+    - 环境变量（.env）：优先级最高，用于敏感信息
+    - YAML 配置（application.yml）：位于项目根目录，用于应用配置
+    - 默认值：作为后备
+    
+    优先级：环境变量 > YAML 配置 > 默认值
+    """
     
     def __init__(self):
         # 项目根目录
         self.PROJECT_ROOT = Path(__file__).parent.parent.parent
         
-        # DeepSeek API配置
+        # 加载 YAML 配置
+        self._yaml_config = self._load_yaml_config()
+        
+        # 从配置读取日志器（延迟导入避免循环依赖）
+        try:
+            from src.logger import setup_logger as setup_config_logger
+            self._config_logger = setup_config_logger('config')
+        except Exception:
+            self._config_logger = None
+        
+        # DeepSeek API配置（敏感信息，必须从环境变量读取）
         self.DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
-        self.DEEPSEEK_API_BASE = os.getenv("DEEPSEEK_API_BASE", "https://api.deepseek.com/v1")
+        self.DEEPSEEK_API_BASE = self._get_config("DEEPSEEK_API_BASE", "api.deepseek.base", "https://api.deepseek.com/v1")
         
         # 模型配置
-        self.LLM_MODEL = os.getenv("LLM_MODEL", "deepseek-chat")
-        self.EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "Qwen/Qwen3-Embedding-0.6B")
+        self.LLM_MODEL = self._get_config("LLM_MODEL", "model.llm", "deepseek-chat")
+        self.EMBEDDING_MODEL = self._get_config("EMBEDDING_MODEL", "model.embedding", "Qwen/Qwen3-Embedding-0.6B")
         
         # HuggingFace镜像配置
-        self.HF_ENDPOINT = os.getenv("HF_ENDPOINT", "https://hf-mirror.com")
-        self.HF_OFFLINE_MODE = os.getenv("HF_OFFLINE_MODE", "false").lower() == "true"
+        self.HF_ENDPOINT = self._get_config("HF_ENDPOINT", "huggingface.endpoint", "https://hf-mirror.com")
+        hf_offline_str = self._get_config("HF_OFFLINE_MODE", "huggingface.offline_mode", "false")
+        self.HF_OFFLINE_MODE = str(hf_offline_str).lower() == "true"
         
         # 向量数据库配置
-        self.VECTOR_STORE_PATH = self._get_path("VECTOR_STORE_PATH", "vector_store")
-        self.CHROMA_COLLECTION_NAME = os.getenv("CHROMA_COLLECTION_NAME", "default")
+        vector_store_path = self._get_config("VECTOR_STORE_PATH", "vector_store.path", "vector_store")
+        self.VECTOR_STORE_PATH = self._resolve_path(vector_store_path)
+        self.CHROMA_COLLECTION_NAME = self._get_config("CHROMA_COLLECTION_NAME", "vector_store.collection_name", "default")
         
         # 文档路径配置
-        self.RAW_DATA_PATH = self._get_path("RAW_DATA_PATH", "data/raw")
-        self.PROCESSED_DATA_PATH = self._get_path("PROCESSED_DATA_PATH", "data/processed")
+        self.RAW_DATA_PATH = self._resolve_path(self._get_config("RAW_DATA_PATH", "paths.raw_data", "data/raw"))
+        self.PROCESSED_DATA_PATH = self._resolve_path(self._get_config("PROCESSED_DATA_PATH", "paths.processed_data", "data/processed"))
         
         # 会话和日志路径配置
-        self.SESSIONS_PATH = self._get_path("SESSIONS_PATH", "sessions")
-        self.ACTIVITY_LOG_PATH = self._get_path("ACTIVITY_LOG_PATH", "logs/activity")
+        self.SESSIONS_PATH = self._resolve_path(self._get_config("SESSIONS_PATH", "paths.sessions", "sessions"))
+        self.ACTIVITY_LOG_PATH = self._resolve_path(self._get_config("ACTIVITY_LOG_PATH", "paths.activity_log", "logs/activity"))
         
         # GitHub 配置
-        self.GITHUB_REPOS_PATH = self._get_path("GITHUB_REPOS_PATH", "data/github_repos")
-        self.GITHUB_METADATA_PATH = self._get_path("GITHUB_METADATA_PATH", "data/github_metadata.json")
+        self.GITHUB_REPOS_PATH = self._resolve_path(self._get_config("GITHUB_REPOS_PATH", "paths.github_repos", "data/github_repos"))
+        self.GITHUB_METADATA_PATH = self._resolve_path(self._get_config("GITHUB_METADATA_PATH", "paths.github_metadata", "data/github_metadata.json"))
         
         # 缓存配置
-        self.ENABLE_CACHE = os.getenv("ENABLE_CACHE", "true").lower() == "true"
-        self.CACHE_STATE_PATH = self._get_path("CACHE_STATE_PATH", "data/cache_state.json")
+        cache_enable_str = self._get_config("ENABLE_CACHE", "cache.enable", "true")
+        self.ENABLE_CACHE = str(cache_enable_str).lower() == "true"
+        self.CACHE_STATE_PATH = self._resolve_path(self._get_config("CACHE_STATE_PATH", "paths.cache_state", "data/cache_state.json"))
         
         # 索引配置
-        self.CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "512"))
-        self.CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "50"))
-        self.SIMILARITY_TOP_K = int(os.getenv("SIMILARITY_TOP_K", "3"))
-        self.SIMILARITY_THRESHOLD = float(os.getenv("SIMILARITY_THRESHOLD", "0.5"))
+        self.CHUNK_SIZE = int(self._get_config("CHUNK_SIZE", "index.chunk_size", "512"))
+        self.CHUNK_OVERLAP = int(self._get_config("CHUNK_OVERLAP", "index.chunk_overlap", "50"))
+        self.SIMILARITY_TOP_K = int(self._get_config("SIMILARITY_TOP_K", "index.similarity_top_k", "3"))
+        self.SIMILARITY_THRESHOLD = float(self._get_config("SIMILARITY_THRESHOLD", "index.similarity_threshold", "0.4"))
         
         # Embedding配置
         self.EMBEDDING_TYPE = os.getenv("EMBEDDING_TYPE", "local")
@@ -80,13 +110,19 @@ class Config:
         self.RAGAS_BATCH_SIZE = int(os.getenv("RAGAS_BATCH_SIZE", "10"))
         
         # 模块化RAG配置
-        self.RETRIEVAL_STRATEGY = os.getenv("RETRIEVAL_STRATEGY", "vector")
-        self.ENABLE_RERANK = os.getenv("ENABLE_RERANK", "false").lower() == "true"
-        self.RERANKER_TYPE = os.getenv("RERANKER_TYPE", "sentence-transformer")
+        self.RETRIEVAL_STRATEGY = self._get_config("RETRIEVAL_STRATEGY", "rag.retrieval_strategy", "vector")
+        enable_rerank_str = self._get_config("ENABLE_RERANK", "rag.enable_rerank", "false")
+        self.ENABLE_RERANK = str(enable_rerank_str).lower() == "true"
+        self.RERANKER_TYPE = self._get_config("RERANKER_TYPE", "rag.reranker.type", "sentence-transformer")
         self.RERANK_MODEL = os.getenv("RERANK_MODEL", None) or None
-        self.RERANK_TOP_N = int(os.getenv("RERANK_TOP_N", "3"))
-        self.SIMILARITY_CUTOFF = float(os.getenv("SIMILARITY_CUTOFF", "0.6"))
-        self.HYBRID_ALPHA = float(os.getenv("HYBRID_ALPHA", "0.5"))
+        rerank_top_n_str = self._get_config("RERANK_TOP_N", "rag.reranker.top_n", "3")
+        self.RERANK_TOP_N = int(rerank_top_n_str) if isinstance(rerank_top_n_str, (int, str)) else 3
+        similarity_cutoff_str = self._get_config("SIMILARITY_CUTOFF", "rag.similarity_cutoff", "0.4")
+        self.SIMILARITY_CUTOFF = float(similarity_cutoff_str) if isinstance(similarity_cutoff_str, (int, float, str)) else 0.4
+        hybrid_alpha_str = self._get_config("HYBRID_ALPHA", "rag.hybrid_alpha", "0.5")
+        self.HYBRID_ALPHA = float(hybrid_alpha_str) if isinstance(hybrid_alpha_str, (int, float, str)) else 0.5
+        enable_auto_routing_str = self._get_config("ENABLE_AUTO_ROUTING", "rag.enable_auto_routing", "false")
+        self.ENABLE_AUTO_ROUTING = str(enable_auto_routing_str).lower() == "true"
         
         # 多策略检索配置
         enabled_strategies_str = os.getenv("ENABLED_RETRIEVAL_STRATEGIES", "vector")
@@ -147,16 +183,103 @@ class Config:
             ).split(',')
             if concept.strip()
         ]
+        
+        # 日志配置
+        self.LOG_LEVEL = self._get_config("LOG_LEVEL", "logging.level", "INFO").upper()
+        self.LOG_FILE_LEVEL = self._get_config("LOG_FILE_LEVEL", "logging.file_level", "DEBUG").upper()
     
-    def _get_path(self, env_var: str, default: str) -> Path:
-        """获取路径配置，支持相对路径和绝对路径"""
-        path_str = os.getenv(env_var, default)
+    def _load_yaml_config(self) -> Dict[str, Any]:
+        """加载 YAML 配置文件
+        
+        Returns:
+            配置字典，如果文件不存在或加载失败返回空字典
+        """
+        config_file = self.PROJECT_ROOT / "application.yml"
+        
+        if not config_file.exists():
+            # YAML 文件不存在时，使用纯环境变量方式（向后兼容）
+            return {}
+        
+        try:
+            with open(config_file, 'r', encoding='utf-8') as f:
+                config = yaml.safe_load(f) or {}
+            return config
+        except Exception as e:
+            # YAML 加载失败时，回退到环境变量方式
+            if self._config_logger:
+                self._config_logger.warning(f"加载 YAML 配置失败: {e}，回退到环境变量模式")
+            return {}
+    
+    def _get_config(self, env_var: str, yaml_path: str, default: Any) -> Any:
+        """获取配置值，遵循优先级：环境变量 > YAML 配置 > 默认值
+        
+        Args:
+            env_var: 环境变量名称
+            yaml_path: YAML 配置路径，使用点号分隔（如 "api.deepseek.base"）
+            default: 默认值
+            
+        Returns:
+            配置值
+        """
+        # 优先级 1: 环境变量（最高优先级）
+        env_value = os.getenv(env_var)
+        if env_value is not None:
+            return env_value
+        
+        # 优先级 2: YAML 配置
+        if self._yaml_config:
+            yaml_value = self._get_nested_value(self._yaml_config, yaml_path)
+            if yaml_value is not None:
+                return yaml_value
+        
+        # 优先级 3: 默认值
+        return default
+    
+    def _get_nested_value(self, config: Dict[str, Any], path: str) -> Any:
+        """从嵌套字典中获取值
+        
+        Args:
+            config: 配置字典
+            path: 点号分隔的路径（如 "api.deepseek.base"）
+            
+        Returns:
+            配置值，如果不存在返回 None
+        """
+        keys = path.split('.')
+        value = config
+        
+        try:
+            for key in keys:
+                if isinstance(value, dict):
+                    value = value.get(key)
+                else:
+                    return None
+                if value is None:
+                    return None
+            return value
+        except Exception:
+            return None
+    
+    def _resolve_path(self, path_str: str) -> Path:
+        """解析路径，支持相对路径和绝对路径
+        
+        Args:
+            path_str: 路径字符串
+            
+        Returns:
+            Path 对象
+        """
         path = Path(path_str)
         
         if not path.is_absolute():
             path = self.PROJECT_ROOT / path
             
         return path
+    
+    def _get_path(self, env_var: str, default: str) -> Path:
+        """获取路径配置，支持相对路径和绝对路径（向后兼容方法）"""
+        path_str = os.getenv(env_var, default)
+        return self._resolve_path(path_str)
     
     def ensure_directories(self):
         """确保所有必要的目录存在"""

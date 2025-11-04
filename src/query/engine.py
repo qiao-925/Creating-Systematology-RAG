@@ -166,16 +166,18 @@ class QueryEngine:
             # 提取引用来源
             sources = self._extract_sources(response)
             
-            # 处理兜底逻辑
+            # 处理兜底逻辑（使用共享函数，与新引擎逻辑统一）
+            # 使用 SIMILARITY_CUTOFF 确保与新引擎使用相同的阈值配置
+            similarity_cutoff = config.SIMILARITY_CUTOFF
             answer, fallback_reason = handle_fallback(
-                answer, sources, question, self.llm, self.similarity_threshold
+                answer, sources, question, self.llm, similarity_cutoff
             )
             
             # 收集追踪信息
             if collect_trace and trace_info:
                 trace_info = collect_trace_info(
                     trace_info, retrieval_time, sources, self.similarity_top_k,
-                    self.similarity_threshold, self.model, answer, fallback_reason
+                    similarity_cutoff, self.model, answer, fallback_reason
                 )
             
             logger.info(f"✅ 查询完成，找到 {len(sources)} 个引用来源")

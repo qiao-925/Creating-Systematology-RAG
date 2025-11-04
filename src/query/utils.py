@@ -44,17 +44,15 @@ def format_sources(sources: List[dict]) -> str:
 def create_query_engine(index_manager, with_citation: bool = True):
     """创建查询引擎（便捷函数）
     
+    注意：此函数已迁移到使用 ModularQueryEngine，旧引擎已弃用。
+    
     Args:
         index_manager: 索引管理器
-        with_citation: 是否使用引用溯源
+        with_citation: 是否使用引用溯源（已弃用，始终启用）
         
     Returns:
-        QueryEngine或SimpleQueryEngine对象
+        ModularQueryEngine对象
     """
-    if with_citation:
-        from src.query.engine import QueryEngine
-        return QueryEngine(index_manager)
-    else:
-        from src.query.simple import SimpleQueryEngine
-        return SimpleQueryEngine(index_manager)
+    from src.query.modular.engine import ModularQueryEngine
+    return ModularQueryEngine(index_manager=index_manager)
 

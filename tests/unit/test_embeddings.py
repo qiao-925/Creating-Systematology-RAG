@@ -270,48 +270,33 @@ class TestEmbeddingFactory:
         # 清除缓存
         clear_embedding_cache()
         
-        # 方法1：直接测试传入空字符串的情况（这会触发错误检查）
-        from src.embeddings.factory import create_embedding
-        with pytest.raises(ValueError, match="API类型需要提供api_url"):
-            create_embedding(embedding_type="api", api_url="")
+        # 方法1：mock config确保EMBEDDING_API_URL不存在
+        with patch('src.embeddings.factory.config') as mock_config:
+            mock_config.EMBEDDING_TYPE = "api"
+            mock_config.EMBEDDING_MODEL = "test-model"
+            # 确保 getattr 返回 None（模拟没有 EMBEDDING_API_URL）
+            type(mock_config).EMBEDDING_API_URL = property(lambda self: None)
+            
+            from src.embeddings.factory import create_embedding
+            # 测试传入 None 的情况（应该抛出错误）
+            with pytest.raises(ValueError, match="API类型需要提供api_url"):
+                create_embedding(embedding_type="api", api_url=None)
         
         # 清除缓存以便下次测试
         clear_embedding_cache()
         
-        # 方法2：mock config确保EMBEDDING_API_URL不存在
-        # 注意：由于实际config可能有默认值，我们测试传入None的情况
-        # 如果config中有默认值，这个测试可能会跳过
-        try:
-            # 尝试使用patch来移除config中的EMBEDDING_API_URL
-            with patch('src.embeddings.factory.config') as mock_config:
-                # 创建新的Mock对象，不包含EMBEDDING_API_URL
-                mock_config.EMBEDDING_TYPE = "api"
-                mock_config.EMBEDDING_MODEL = "test-model"
-                
-                # 使用spec来限制Mock的属性
-                # 通过不设置EMBEDDING_API_URL，getattr应该返回默认值None
-                def getattr_side_effect(name, default=None):
-                    if name == 'EMBEDDING_API_URL':
-                        return default  # 返回None
-                    return getattr(type('obj', (object,), {'EMBEDDING_TYPE': 'api', 'EMBEDDING_MODEL': 'test-model'})(), name, default)
-                
-                # 更简单的方法：直接patch getattr函数
-                with patch('builtins.getattr') as mock_getattr:
-                    def side_effect(obj, name, default=None):
-                        if name == 'EMBEDDING_API_URL' and obj is mock_config:
-                            return None  # 模拟属性不存在
-                        # 对于其他属性，使用默认行为
-                        if hasattr(obj, name):
-                            return getattr(obj, name)
-                        return default
-                    
-                    mock_getattr.side_effect = side_effect
-                    
-                    with pytest.raises(ValueError, match="API类型需要提供api_url"):
-                        create_embedding(embedding_type="api", api_url=None)
-        except Exception:
-            # 如果mock失败，至少第一种方法（空字符串）应该已经测试通过了
-            pass
+        # 方法2：测试传入空字符串的情况
+        with patch('src.embeddings.factory.config') as mock_config:
+            mock_config.EMBEDDING_TYPE = "api"
+            mock_config.EMBEDDING_MODEL = "test-model"
+            type(mock_config).EMBEDDING_API_URL = property(lambda self: None)
+            
+            from src.embeddings.factory import create_embedding
+            with pytest.raises(ValueError, match="API类型需要提供api_url"):
+                create_embedding(embedding_type="api", api_url="")
+        
+        # 清除缓存以便下次测试
+        clear_embedding_cache()
     
     def test_embedding_factory_cache(self):
         """测试Embedding缓存机制"""

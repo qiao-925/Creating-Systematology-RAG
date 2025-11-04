@@ -25,17 +25,12 @@ def get_user_sessions_metadata(user_email: str) -> List[Dict[str, Any]]:
     """
     sessions_dir = config.SESSIONS_PATH / user_email
     
-    logger.debug(f"查找会话目录: {sessions_dir}")
-    
     if not sessions_dir.exists():
-        logger.debug(f"会话目录不存在: {sessions_dir}")
         return []
     
     sessions_metadata = []
     
-    logger.debug("开始扫描会话文件...")
     for session_file in sessions_dir.glob("*.json"):
-        logger.debug(f"找到会话文件: {session_file}")
         try:
             # 读取会话文件
             with open(session_file, 'r', encoding='utf-8') as f:

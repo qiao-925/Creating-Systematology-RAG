@@ -289,8 +289,6 @@ class ChatManager:
                 save_dir = config.SESSIONS_PATH
                 logger.debug(f"保存到默认目录: {save_dir}")
         
-        logger.debug(f"开始保存会话: {self.current_session.session_id}, 用户: {self.user_email}, 历史条数: {len(self.current_session.history)}")
-        
         self.current_session.save(save_dir)
     
     def reset_session(self):

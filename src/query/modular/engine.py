@@ -17,6 +17,8 @@ from src.observers.factory import create_observer_from_config
 from src.query.modular.retriever_factory import create_retriever
 from src.query.modular.postprocessor_factory import create_postprocessors
 from src.query.modular.query_executor import execute_query
+from src.query.modular.query_processor import QueryProcessor
+from src.query.fallback import handle_fallback
 
 logger = setup_logger('modular_query_engine')
 
@@ -93,6 +95,10 @@ class ModularQueryEngine:
             max_tokens=4096,
         )
         
+        # 初始化查询处理器（标准化流程：意图理解+改写）
+        self.query_processor = QueryProcessor(llm=self.llm)
+        logger.info("✅ 查询处理器已初始化（标准化流程：意图理解+改写）")
+        
         # 如果启用自动路由，创建QueryRouter
         if self.enable_auto_routing:
             from src.routers.query_router import QueryRouter
@@ -148,9 +154,33 @@ class ModularQueryEngine:
         collect_trace: bool = False
     ) -> Tuple[str, List[dict], Optional[Dict[str, Any]]]:
         """执行查询（兼容现有API）"""
+        
+        # Step 1: 查询处理（标准化流程：意图理解+改写）
+        processed = self.query_processor.process(question)
+        final_query = processed["final_query"]
+        understanding = processed.get("understanding")
+        
+        logger.info(
+            f"📝 查询处理完成: "
+            f"原始='{question[:50]}...', "
+            f"最终='{final_query[:50]}...', "
+            f"处理方式={processed['processing_method']}"
+        )
+        
         # 如果启用自动路由，动态创建query_engine
         if self.enable_auto_routing and self.query_router:
-            retriever, routing_decision = self.query_router.route(question, top_k=self.similarity_top_k)
+            # 传递意图理解结果给路由器
+            if understanding:
+                retriever, routing_decision = self.query_router.route_with_understanding(
+                    final_query,
+                    understanding=understanding,
+                    top_k=self.similarity_top_k
+                )
+            else:
+                retriever, routing_decision = self.query_router.route(
+                    final_query,
+                    top_k=self.similarity_top_k
+                )
             
             # 动态创建query_engine
             query_engine = RetrieverQueryEngine.from_args(
@@ -159,23 +189,51 @@ class ModularQueryEngine:
                 node_postprocessors=self.postprocessors,
             )
             
-            logger.info(f"自动路由查询: decision={routing_decision}")
-            return execute_query(
+            logger.info(
+                f"🔍 使用检索策略: "
+                f"策略={routing_decision}, "
+                f"原因=自动路由模式，根据查询意图动态选择"
+            )
+            answer, sources, trace_info = execute_query(
                 query_engine,
                 self.formatter,
                 self.observer_manager,
-                question,
+                final_query,  # 使用改写后的查询
                 collect_trace
             )
         else:
             # 使用固定的query_engine
-            return execute_query(
+            logger.info(
+                f"🔍 使用检索策略: "
+                f"策略={self.retrieval_strategy}, "
+                f"原因=固定检索模式（初始化时配置）"
+            )
+            answer, sources, trace_info = execute_query(
                 self.query_engine,
                 self.formatter,
                 self.observer_manager,
-                question,
+                final_query,  # 使用改写后的查询
                 collect_trace
             )
+        
+        # 记录追踪信息
+        if collect_trace and trace_info:
+            trace_info["original_query"] = question
+            trace_info["processed_query"] = final_query
+            trace_info["query_processing"] = processed
+        
+        # 处理兜底逻辑（无来源、低相似度或空答案时触发）
+        # 注意：使用原始查询进行兜底处理，确保用户看到的是原始问题的答案
+        answer, fallback_reason = handle_fallback(
+            answer, sources, question, self.llm, self.similarity_cutoff
+        )
+        
+        # 如果收集追踪信息，记录兜底状态
+        if collect_trace and trace_info:
+            trace_info['fallback_used'] = bool(fallback_reason)
+            trace_info['fallback_reason'] = fallback_reason
+        
+        return answer, sources, trace_info
     
     async def stream_query(self, question: str):
         """异步流式查询（用于Web应用）"""

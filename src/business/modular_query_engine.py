@@ -1,8 +1,13 @@
 """
-模块化查询引擎
+模块化查询引擎 - 演示文件
+
+注意：这是一个演示文件，展示如何将现有功能适配到新的流水线架构。
+实际业务代码应使用 src.query.modular.engine.ModularQueryEngine。
 
 基于PipelineExecutor实现的模块化RAG查询引擎
 演示如何将现有功能适配到新的流水线架构
+
+此文件中的 QueryEngine 引用已弃用，实际业务应使用 ModularQueryEngine。
 """
 
 from typing import List, Tuple, Optional, Dict, Any
@@ -16,7 +21,7 @@ from src.business.protocols import (
 )
 from src.business.pipeline import PipelineExecutor, Pipeline, ExecutionResult
 from src.indexer import IndexManager
-from src.query_engine import QueryEngine
+from src.query_engine import QueryEngine  # 已弃用：仅用于演示
 from src.logger import setup_logger
 
 logger = setup_logger('modular_query_engine')

@@ -4,22 +4,38 @@
 
 ## 📋 规则文件清单
 
-| 规则文件 | 类型 | 作用范围 | 说明 |
-|---------|------|---------|------|
-| **python-code-style.mdc** | Always | 全局 | Python代码风格规范（类型提示、日志、异常处理等） |
-| **rag-architecture.mdc** | Auto Attached | `src/business/**`, `src/query/**` | RAG系统架构规范与LlamaIndex使用指南 |
-| **modular-design.mdc** | Auto Attached | 模块相关目录 | 模块化设计原则与实现规范 |
-| **testing-standards.mdc** | Auto Attached | `tests/**` | 测试规范与最佳实践 |
-| **file-organization.mdc** | Always | 全局 | 文件组织与目录结构规范 |
-| **development-workflow.mdc** | Always | 全局 | 开发工作流与协作规范 |
-| **workflow-definitions.mdc** | Manual | 按需引用 | 工作流定义指南与最佳实践 |
-| **task-log-workflow.mdc** | Always | 全局 | 任务日志管理工作流（基于AGENTS.md） |
-| **proposal-discussion-workflow.mdc** | Always | 全局 | 方案讨论工作流（基于AGENTS.md） |
-| **decision-making-principles.mdc** | Always | 全局 | 决策原则与争议处理（基于AGENTS.md） |
-| **collaboration-guidelines.mdc** | Always | 全局 | 人机协作要点（基于AGENTS.md） |
-| **post-task-optimization.mdc** | Always | 全局 | 任务完成后优化分析（强制要求） |
-| **requirement-analysis.mdc** | Always | 全局 | 需求理解与边界分析（基于AGENTS.md） |
-| **agents-sync-workflow.mdc** | Always | 全局 | 规则文件全量同步工作流（基于AGENTS.md） |
+### Always 规则（默认加载，核心规则）
+
+| 规则文件 | 作用范围 | 说明 |
+|---------|---------|------|
+| **rule-selector.mdc** | 全局 | **规则选择器** - Agent必须根据任务场景主动选择和应用规则 |
+| **python-code-style.mdc** | 全局 | Python代码风格规范（类型提示、日志、异常处理等） |
+| **file-organization.mdc** | 全局 | 文件组织与目录结构规范 |
+| **development-workflow.mdc** | 全局 | 开发工作流与协作规范 |
+| **collaboration-guidelines.mdc** | 全局 | 人机协作要点（基于AGENTS.md） |
+
+### Auto Attached 规则（文件路径触发）
+
+| 规则文件 | 触发条件 | 说明 |
+|---------|---------|------|
+| **rag-architecture.mdc** | `src/business/**`, `src/query/**` | RAG系统架构规范与LlamaIndex使用指南 |
+| **modular-design.mdc** | 模块相关目录 | 模块化设计原则与实现规范 |
+| **testing-standards.mdc** | `tests/**` | 测试规范与最佳实践 |
+
+### Manual 规则（需要 @引用，由 rule-selector 驱动）
+
+| 规则文件 | 使用场景 | 说明 |
+|---------|---------|------|
+| **agent-testing-integration-simple.mdc** | 代码修改任务 | 测试规则（简化版） |
+| **agent-testing-integration.mdc** | 测试相关任务 | 测试规则（详细版） |
+| **task-log-workflow.mdc** | 任务完成后 | 任务日志管理工作流 |
+| **proposal-discussion-workflow.mdc** | 方案讨论任务 | 方案讨论工作流 |
+| **decision-making-principles.mdc** | 方案讨论/架构决策 | 决策原则与争议处理 |
+| **post-task-optimization.mdc** | 任务完成后 | 任务完成后优化分析 |
+| **requirement-analysis.mdc** | 方案讨论前 | 需求理解与边界分析 |
+| **agents-sync-workflow.mdc** | AGENTS.md更新时 | 规则文件全量同步工作流 |
+| **workflow-definitions.mdc** | 定义新工作流时 | 工作流定义指南与最佳实践 |
+| **rule-execution-validator.mdc** | 任务完成后 | **规则执行校验（必须）** - 确保规则被成功执行 |
 
 ---
 
@@ -197,18 +213,44 @@
 
 ## 📖 使用方式
 
-### 自动应用
-- **Always** 类型规则：自动包含在所有上下文中
-- **Auto Attached** 类型规则：当编辑匹配的文件时自动附加
-- **Manual** 类型规则：需要使用 `@ruleName` 明确引用
+### 规则选择机制（全自动）
 
-### 手动引用
-如果需要明确引用某个规则，在聊天中使用：
+**核心机制**: Agent 驱动的自动规则选择
+
+1. **规则选择器** (`rule-selector.mdc`) 是 Always 规则，指导 Agent 如何选择规则
+2. **Agent 自动**根据任务场景，识别任务类型并应用相关规则要求
+3. **用户无需**手动 @引用任何规则，完全自动化
+
+### 自动应用机制
+- **Always** 类型规则：自动包含在所有上下文中（只有核心规则）
+- **Auto Attached** 类型规则：当编辑匹配的文件时自动附加（Cursor 自动处理）
+- **场景规则**：Agent 根据 `rule-selector.mdc` 的指导自动应用（无需加载规则文件）
+
+### 自动执行示例
+
+Agent 在执行任务时自动处理：
 
 ```
-@python-code-style
-@rag-architecture
+用户: 修改 src/indexer.py 文件
+
+Agent 内部思考（自动，用户不可见）:
+1. 识别任务类型: 代码修改
+2. 查看 rule-selector.mdc 的场景映射
+3. 自动应用规则要求:
+   - agent-testing-integration-simple.mdc 的要求（运行单元测试）
+   - development-workflow.mdc 的要求（已 Always 加载）
+   - python-code-style.mdc 的要求（已 Always 加载）
+
+Agent 响应（用户看到）:
+好的，我将修改 src/indexer.py...
+[执行修改]
+[自动运行单元测试 - 根据测试规则要求]
+[自动记录结果]
 ```
+
+### 规则选择决策树
+
+参考 `rule-selector.mdc` 中的详细决策树，Agent 根据任务类型自动应用规则要求。
 
 ---
 

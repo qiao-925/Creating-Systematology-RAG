@@ -1,0 +1,151 @@
+# 应用配置文件
+# 优先级：环境变量 > YAML 配置 > 默认值
+# 敏感信息（API keys、密码等）请使用 .env 文件
+
+# API 配置
+api:
+  deepseek:
+    # API 密钥请在 .env 文件中设置 DEEPSEEK_API_KEY
+    base: https://api.deepseek.com/v1
+
+# 模型配置
+model:
+  llm: deepseek-chat
+  embedding: Qwen/Qwen3-Embedding-0.6B
+
+# HuggingFace 配置
+huggingface:
+  endpoint: https://hf-mirror.com
+  offline_mode: false
+
+# 向量数据库配置
+vector_store:
+  path: ./vector_store
+  collection_name: default
+
+# 文档路径配置
+paths:
+  raw_data: ./data/raw
+  processed_data: ./data/processed
+  sessions: ./sessions
+  activity_log: ./logs/activity
+  github_repos: ./data/github_repos
+  github_metadata: ./data/github_metadata.json
+  cache_state: ./data/cache_state.json
+
+# 索引配置
+index:
+  chunk_size: 512
+  chunk_overlap: 50
+  similarity_top_k: 3
+  similarity_threshold: 0.4  # 最大化召回，宽松过滤
+
+# Embedding 配置
+embedding:
+  type: local
+  api_url: http://localhost:8000
+  # API 密钥请在 .env 文件中设置 EMBEDDING_API_KEY
+  batch_size: 10
+  max_length: 512
+
+# 可观测性配置
+observability:
+  phoenix:
+    enable: true
+    launch_app: false
+    host: 0.0.0.0
+    port: 6006
+  llama_debug:
+    enable: false
+    print_trace: true
+
+# RAGAS 评估器配置
+ragas:
+  enable: false
+  metrics:
+    - faithfulness
+    - context_precision
+    - context_recall
+    - answer_relevancy
+    - context_relevancy
+  batch_size: 10
+
+# 模块化 RAG 配置
+rag:
+  retrieval_strategy: vector
+  enable_rerank: false
+  reranker:
+    type: sentence-transformer
+    model: null  # 可在 .env 中设置 RERANK_MODEL
+    top_n: 3
+  similarity_cutoff: 0.4  # 最大化召回，宽松过滤（后处理器过滤 + 兜底检查）
+  hybrid_alpha: 0.5
+  enable_auto_routing: true
+  
+  # 多策略检索配置
+  multi_strategy:
+    enabled_strategies:
+      - vector
+    merge_strategy: reciprocal_rank_fusion
+    retriever_weights:
+      vector: 1.0
+      bm25: 0.8
+      grep: 0.6
+    enable_deduplication: true
+
+# 模块注册中心配置
+module_registry:
+  config_path: null  # 可在 .env 中设置 MODULE_CONFIG_PATH
+  auto_register_modules: true
+
+# 批处理与分组配置
+batch_processing:
+  index_batch_mode: false
+  index_group_by: directory
+  group_depth: 1
+  docs_per_batch: 20
+  nodes_per_batch: 0
+  tokens_per_batch: 0
+  index_strategy: nodes
+  index_max_batches: 0
+
+# 应用配置
+app:
+  title: 系统科学知识库RAG
+  port: 8501
+  dev_mode: true
+
+# GitHub 数据源配置
+github:
+  default_branch: main
+
+# 维基百科配置
+wikipedia:
+  enable: true
+  auto_lang: true
+  threshold: 0.6
+  max_results: 2
+  preload_concepts:
+    - 系统科学
+    - 钱学森
+    - 系统工程
+    - 控制论
+    - 信息论
+    - 复杂系统
+
+# 缓存配置
+cache:
+  enable: true
+
+# 日志配置
+logging:
+  level: INFO      # 控制台日志级别
+  file_level: DEBUG  # 文件日志级别
+
+# 测试配置
+test:
+  github:
+    owner: qiao-925
+    repo: Creating-Systematology
+    branch: main
+

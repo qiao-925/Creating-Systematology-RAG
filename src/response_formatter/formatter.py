@@ -60,8 +60,8 @@ class ResponseFormatter:
         
         # Step 1: 校验格式
         if not self.validator.validate(raw_answer):
-            logger.warning("Markdown 格式校验失败，返回原文")
-            logger.debug(f"原文预览: {raw_answer[:200]}...")
+            # 纯文本回答不需要格式化，这是正常情况，使用 DEBUG 级别
+            logger.debug("文本不包含 Markdown 格式，跳过格式化处理")
             return raw_answer
         
         # 获取格式分数

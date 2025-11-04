@@ -6,9 +6,47 @@ import os
 import sys
 import pytest
 from pathlib import Path
+from unittest.mock import MagicMock
 
 # 添加src到Python路径
 sys.path.insert(0, str(Path(__file__).parent.parent))
+
+# ==================== 全局 Mock 依赖 ====================
+# 在导入任何模块之前 mock 可选依赖，避免导入错误
+
+# Mock chromadb 模块（如果未安装）
+try:
+    import chromadb
+except ImportError:
+    # 创建 mock chromadb 模块
+    chromadb = MagicMock()
+    chromadb.PersistentClient = MagicMock
+    chromadb.Client = MagicMock
+    chromadb.Collection = MagicMock
+    
+    # 注入到 sys.modules，这样其他模块导入时会使用这个 mock
+    sys.modules['chromadb'] = chromadb
+
+# Mock llama_index.vector_stores.chroma 模块（如果未安装）
+try:
+    from llama_index.vector_stores.chroma import ChromaVectorStore
+except ImportError:
+    # 创建 mock ChromaVectorStore
+    ChromaVectorStore = MagicMock
+    
+    # 创建 mock 模块结构
+    chroma_vector_store_module = MagicMock()
+    chroma_vector_store_module.ChromaVectorStore = ChromaVectorStore
+    
+    vector_stores_module = MagicMock()
+    vector_stores_module.chroma = chroma_vector_store_module
+    
+    llama_index_module = MagicMock()
+    llama_index_module.vector_stores = vector_stores_module
+    
+    # 注入到 sys.modules
+    sys.modules['llama_index.vector_stores.chroma'] = chroma_vector_store_module
+    sys.modules['llama_index.vector_stores'] = vector_stores_module
 
 # 设置环境编码为 UTF-8（Windows兼容）
 if sys.platform == "win32":
