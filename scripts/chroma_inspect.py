@@ -38,7 +38,20 @@ def _get_client():
     # 延迟导入，避免环境未装时报错影响其它命令
     import chromadb
     from src.config import config
-    client = chromadb.PersistentClient(path=str(config.VECTOR_STORE_PATH))
+    
+    if not config.CHROMA_CLOUD_API_KEY or not config.CHROMA_CLOUD_TENANT or not config.CHROMA_CLOUD_DATABASE:
+        raise ValueError(
+            "Chroma Cloud配置不完整，请设置以下环境变量：\n"
+            "- CHROMA_CLOUD_API_KEY\n"
+            "- CHROMA_CLOUD_TENANT\n"
+            "- CHROMA_CLOUD_DATABASE"
+        )
+    
+    client = chromadb.CloudClient(
+        api_key=config.CHROMA_CLOUD_API_KEY,
+        tenant=config.CHROMA_CLOUD_TENANT,
+        database=config.CHROMA_CLOUD_DATABASE
+    )
     return client
 
 

@@ -23,7 +23,7 @@ from src.embeddings.base import BaseEmbedding
 from src.indexer.index_init import init_index_manager
 from src.indexer.index_core import get_index, print_database_info
 from src.indexer.index_dimension import ensure_collection_dimension_match
-from src.indexer.index_operations import search, get_stats, clear_index
+from src.indexer.index_operations import search, get_stats, clear_index, clear_collection_cache
 from src.indexer.index_incremental import incremental_update
 from src.indexer.index_utils import (
     add_documents as _add_documents
@@ -56,15 +56,12 @@ class IndexManager:
         """初始化索引管理器"""
         # 使用配置或默认值
         self.collection_name = collection_name or config.CHROMA_COLLECTION_NAME
-        self.persist_dir = persist_dir or config.VECTOR_STORE_PATH
         self.embedding_model_name = embedding_model or config.EMBEDDING_MODEL
         self.chunk_size = chunk_size or config.CHUNK_SIZE
         self.chunk_overlap = chunk_overlap or config.CHUNK_OVERLAP
         
-        # 确保持久化目录存在
-        # ChromaDB的PersistentClient要求路径必须存在，否则会抛出异常
-        # 使用parents=True确保父目录链也被创建，exist_ok=True避免目录已存在时报错
-        self.persist_dir.mkdir(parents=True, exist_ok=True)
+        # 注意：Chroma Cloud模式不需要本地目录，persist_dir参数保留用于向后兼容但不再使用
+        self.persist_dir = persist_dir
         
         # 保存统一的Embedding实例
         # 支持可插拔的Embedding架构，避免重复创建模型实例（模型加载成本高）
@@ -74,6 +71,7 @@ class IndexManager:
         # 初始化核心组件
         # 将初始化逻辑抽取到独立模块，保持IndexManager类的简洁性
         # 同时便于单元测试和逻辑复用，符合单一职责原则
+        # 注意：persist_dir参数保留用于向后兼容，Chroma Cloud模式不再使用
         self.embed_model, self.chroma_client, self.chroma_collection = init_index_manager(
             collection_name=self.collection_name,
             persist_dir=self.persist_dir,
@@ -140,6 +138,10 @@ class IndexManager:
     def clear_index(self):
         """清空索引"""
         clear_index(self)
+    
+    def clear_collection_cache(self):
+        """清除collection中的所有向量数据（保留collection结构）"""
+        clear_collection_cache(self)
     
     def get_stats(self) -> dict:
         """获取索引统计信息"""

@@ -28,7 +28,7 @@ logger = setup_logger('indexer')
 
 def init_index_manager(
     collection_name: Optional[str],
-    persist_dir: Path,
+    persist_dir: Optional[Path],  # 保留参数用于向后兼容，Chroma Cloud模式不再使用
     embedding_model_name: str,
     chunk_size: int,
     chunk_overlap: int,
@@ -105,9 +105,23 @@ def init_index_manager(
     Settings.chunk_size = chunk_size
     Settings.chunk_overlap = chunk_overlap
     
-    # 初始化Chroma客户端
-    logger.info(f"🗄️  初始化Chroma向量数据库: {persist_dir}")
-    chroma_client = chromadb.PersistentClient(path=str(persist_dir))
+    # 初始化Chroma Cloud客户端
+    logger.info("🗄️  初始化Chroma Cloud向量数据库")
+    from src.config import config
+    
+    if not config.CHROMA_CLOUD_API_KEY or not config.CHROMA_CLOUD_TENANT or not config.CHROMA_CLOUD_DATABASE:
+        raise ValueError(
+            "Chroma Cloud配置不完整，请设置以下环境变量：\n"
+            "- CHROMA_CLOUD_API_KEY\n"
+            "- CHROMA_CLOUD_TENANT\n"
+            "- CHROMA_CLOUD_DATABASE"
+        )
+    
+    chroma_client = chromadb.CloudClient(
+        api_key=config.CHROMA_CLOUD_API_KEY,
+        tenant=config.CHROMA_CLOUD_TENANT,
+        database=config.CHROMA_CLOUD_DATABASE
+    )
     
     # 创建或获取集合
     chroma_collection = chroma_client.get_or_create_collection(

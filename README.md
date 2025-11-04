@@ -32,7 +32,7 @@
 - **LlamaIndex** - RAG 核心框架
 - **LangChain** - 文档加载器（GitHub集成）
 - **DeepSeek API** - 大语言模型
-- **Chroma** - 向量数据库
+- **Chroma Cloud** - 向量数据库（云端托管）
 - **Streamlit** - Web 界面
 - **HuggingFace Embeddings** - 本地向量模型（支持镜像和离线）
 - **Git** - GitHub仓库本地克隆和增量更新
@@ -52,9 +52,14 @@ cd Creating-Systematology-RAG
 ```
 
 **2. 配置 API 密钥**
+
 ```bash
 cp env.template .env
-# 编辑 .env 文件，添加 DEEPSEEK_API_KEY=your_api_key
+# 编辑 .env 文件，添加以下配置：
+# - DEEPSEEK_API_KEY=your_api_key（必须）
+# - CHROMA_CLOUD_API_KEY=your_chroma_api_key（必须）
+# - CHROMA_CLOUD_TENANT=your_chroma_tenant（必须）
+# - CHROMA_CLOUD_DATABASE=your_chroma_database（必须）
 ```
 
 **3. 安装并启动**
@@ -72,7 +77,25 @@ make test         # 运行所有测试
 make clean        # 清理生成文件
 ```
 
-**GPU加速设置（可选但推荐）**：
+### Chroma Cloud 配置说明
+
+本项目使用 **Chroma Cloud** 作为向量数据库，需要配置以下环境变量：
+
+1. **CHROMA_CLOUD_API_KEY**: Chroma Cloud API 密钥
+2. **CHROMA_CLOUD_TENANT**: Chroma Cloud 租户 ID
+3. **CHROMA_CLOUD_DATABASE**: Chroma Cloud 数据库名称
+
+**配置步骤**：
+1. 在 Chroma Cloud 平台创建账户并获取连接信息
+2. 在 `.env` 文件中设置上述三个环境变量
+3. 启动应用后会自动连接到 Chroma Cloud
+
+**注意事项**：
+- Chroma Cloud 需要网络连接，确保网络畅通
+- 配置错误时会直接抛出错误，不会回退到本地模式
+- 向量数据存储在云端，无需本地存储目录
+
+---
 
 项目支持**GPU优先、CPU兜底**模式。由于 `uv` 在 Windows 平台上默认锁定 CPU 版本的 PyTorch，**需要手动安装 CUDA 版本**以获得 GPU 加速：
 
@@ -133,7 +156,6 @@ Creating-Systematology-RAG/
 │   ├── processed/                 # 📊 处理后的数据
 │   └── github_repos/               # 📦 GitHub仓库
 │
-├── vector_store/                  # 🗄️ Chroma向量数据库
 ├── sessions/                      # 💾 对话会话记录
 ├── logs/                          # 📋 日志目录
 ├── agent-task-log/                # 📝 AI Agent任务记录

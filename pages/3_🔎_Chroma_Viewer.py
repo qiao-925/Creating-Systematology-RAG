@@ -14,7 +14,15 @@ def get_chroma_client():
     try:
         import chromadb
         from src.config import config
-        client = chromadb.PersistentClient(path=str(config.VECTOR_STORE_PATH))
+        
+        if not config.CHROMA_CLOUD_API_KEY or not config.CHROMA_CLOUD_TENANT or not config.CHROMA_CLOUD_DATABASE:
+            return None, "Chroma Cloud配置不完整，请设置以下环境变量：CHROMA_CLOUD_API_KEY, CHROMA_CLOUD_TENANT, CHROMA_CLOUD_DATABASE"
+        
+        client = chromadb.CloudClient(
+            api_key=config.CHROMA_CLOUD_API_KEY,
+            tenant=config.CHROMA_CLOUD_TENANT,
+            database=config.CHROMA_CLOUD_DATABASE
+        )
         return client, None
     except Exception as e:
         return None, str(e)

@@ -52,7 +52,7 @@ class Config:
         self.DEEPSEEK_API_BASE = self._get_config("DEEPSEEK_API_BASE", "api.deepseek.base", "https://api.deepseek.com/v1")
         
         # 模型配置
-        self.LLM_MODEL = self._get_config("LLM_MODEL", "model.llm", "deepseek-chat")
+        self.LLM_MODEL = self._get_config("LLM_MODEL", "model.llm", "deepseek-reasoner")
         self.EMBEDDING_MODEL = self._get_config("EMBEDDING_MODEL", "model.embedding", "Qwen/Qwen3-Embedding-0.6B")
         
         # HuggingFace镜像配置
@@ -60,9 +60,10 @@ class Config:
         hf_offline_str = self._get_config("HF_OFFLINE_MODE", "huggingface.offline_mode", "false")
         self.HF_OFFLINE_MODE = str(hf_offline_str).lower() == "true"
         
-        # 向量数据库配置
-        vector_store_path = self._get_config("VECTOR_STORE_PATH", "vector_store.path", "vector_store")
-        self.VECTOR_STORE_PATH = self._resolve_path(vector_store_path)
+        # 向量数据库配置（Chroma Cloud）
+        self.CHROMA_CLOUD_API_KEY = os.getenv("CHROMA_CLOUD_API_KEY", "")
+        self.CHROMA_CLOUD_TENANT = os.getenv("CHROMA_CLOUD_TENANT", "")
+        self.CHROMA_CLOUD_DATABASE = os.getenv("CHROMA_CLOUD_DATABASE", "")
         self.CHROMA_COLLECTION_NAME = self._get_config("CHROMA_COLLECTION_NAME", "vector_store.collection_name", "default")
         
         # 文档路径配置
@@ -284,7 +285,6 @@ class Config:
     def ensure_directories(self):
         """确保所有必要的目录存在"""
         directories = [
-            self.VECTOR_STORE_PATH,
             self.RAW_DATA_PATH,
             self.PROCESSED_DATA_PATH,
             self.SESSIONS_PATH,
@@ -304,6 +304,14 @@ class Config:
         """
         if not self.DEEPSEEK_API_KEY:
             return False, "未设置DEEPSEEK_API_KEY环境变量"
+        
+        # Chroma Cloud 配置验证
+        if not self.CHROMA_CLOUD_API_KEY:
+            return False, "未设置CHROMA_CLOUD_API_KEY环境变量（Chroma Cloud 模式必需）"
+        if not self.CHROMA_CLOUD_TENANT:
+            return False, "未设置CHROMA_CLOUD_TENANT环境变量（Chroma Cloud 模式必需）"
+        if not self.CHROMA_CLOUD_DATABASE:
+            return False, "未设置CHROMA_CLOUD_DATABASE环境变量（Chroma Cloud 模式必需）"
         
         if self.CHUNK_SIZE <= 0:
             return False, "CHUNK_SIZE必须大于0"
@@ -325,7 +333,9 @@ class Config:
     EMBEDDING_MODEL={self.EMBEDDING_MODEL},
     HF_ENDPOINT={self.HF_ENDPOINT},
     HF_OFFLINE_MODE={self.HF_OFFLINE_MODE},
-    VECTOR_STORE_PATH={self.VECTOR_STORE_PATH},
+    CHROMA_CLOUD_TENANT={self.CHROMA_CLOUD_TENANT},
+    CHROMA_CLOUD_DATABASE={self.CHROMA_CLOUD_DATABASE},
+    CHROMA_COLLECTION_NAME={self.CHROMA_COLLECTION_NAME},
     SESSIONS_PATH={self.SESSIONS_PATH},
     ACTIVITY_LOG_PATH={self.ACTIVITY_LOG_PATH},
     GITHUB_METADATA_PATH={self.GITHUB_METADATA_PATH},

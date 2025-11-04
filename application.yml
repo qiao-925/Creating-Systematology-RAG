@@ -10,7 +10,7 @@ api:
 
 # 模型配置
 model:
-  llm: deepseek-chat
+  llm: deepseek-reasoner
   embedding: Qwen/Qwen3-Embedding-0.6B
 
 # HuggingFace 配置
@@ -18,9 +18,12 @@ huggingface:
   endpoint: https://hf-mirror.com
   offline_mode: false
 
-# 向量数据库配置
+# 向量数据库配置（Chroma Cloud）
 vector_store:
-  path: ./vector_store
+  # Cloud 模式配置
+  cloud_api_key: ""  # 请在 .env 文件中设置 CHROMA_CLOUD_API_KEY
+  cloud_tenant: ""  # 请在 .env 文件中设置 CHROMA_CLOUD_TENANT
+  cloud_database: ""  # 请在 .env 文件中设置 CHROMA_CLOUD_DATABASE
   collection_name: default
 
 # 文档路径配置

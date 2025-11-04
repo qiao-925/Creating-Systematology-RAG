@@ -307,13 +307,12 @@ class IndexManager:
         """
         # 使用配置或默认值
         self.collection_name = collection_name or config.CHROMA_COLLECTION_NAME
-        self.persist_dir = persist_dir or config.VECTOR_STORE_PATH
         self.embedding_model_name = embedding_model or config.EMBEDDING_MODEL
         self.chunk_size = chunk_size or config.CHUNK_SIZE
         self.chunk_overlap = chunk_overlap or config.CHUNK_OVERLAP
         
-        # 确保持久化目录存在
-        self.persist_dir.mkdir(parents=True, exist_ok=True)
+        # 注意：Chroma Cloud模式不需要本地目录，persist_dir参数保留用于向后兼容但不再使用
+        self.persist_dir = persist_dir
         
         # 保存统一的Embedding实例（如果提供）
         self._embedding_instance = embedding_instance
@@ -497,9 +496,22 @@ class IndexManager:
         Settings.chunk_size = self.chunk_size
         Settings.chunk_overlap = self.chunk_overlap
         
-        # 初始化Chroma客户端
-        logger.info(f"🗄️  初始化Chroma向量数据库: {self.persist_dir}")
-        self.chroma_client = chromadb.PersistentClient(path=str(self.persist_dir))
+        # 初始化Chroma Cloud客户端
+        logger.info("🗄️  初始化Chroma Cloud向量数据库")
+        
+        if not config.CHROMA_CLOUD_API_KEY or not config.CHROMA_CLOUD_TENANT or not config.CHROMA_CLOUD_DATABASE:
+            raise ValueError(
+                "Chroma Cloud配置不完整，请设置以下环境变量：\n"
+                "- CHROMA_CLOUD_API_KEY\n"
+                "- CHROMA_CLOUD_TENANT\n"
+                "- CHROMA_CLOUD_DATABASE"
+            )
+        
+        self.chroma_client = chromadb.CloudClient(
+            api_key=config.CHROMA_CLOUD_API_KEY,
+            tenant=config.CHROMA_CLOUD_TENANT,
+            database=config.CHROMA_CLOUD_DATABASE
+        )
         
         # 打印数据库信息
         self._print_database_info()
