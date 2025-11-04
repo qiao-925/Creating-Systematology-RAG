@@ -17,6 +17,7 @@ from src.logger import setup_logger
 from src.response_formatter import ResponseFormatter
 from src.response_formatter.templates import CHAT_MARKDOWN_TEMPLATE
 from src.chat.session import ChatSession
+from src.llms import wrap_deepseek
 
 logger = setup_logger('chat_manager')
 
@@ -80,11 +81,12 @@ class ChatManager:
             Settings.callback_manager = CallbackManager([llama_debug])
         
         logger.info(f"初始化DeepSeek LLM (对话模式): {self.model}")
-        self.llm = DeepSeek(
+        deepseek_instance = DeepSeek(
             api_key=self.api_key,
             model=self.model,
             temperature=0.6,
         )
+        self.llm = wrap_deepseek(deepseek_instance)
         
         # 创建记忆缓冲区
         self.memory = ChatMemoryBuffer.from_defaults(

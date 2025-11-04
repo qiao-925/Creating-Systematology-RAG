@@ -17,6 +17,7 @@ from src.indexer import IndexManager
 from src.logger import setup_logger
 from src.response_formatter import ResponseFormatter
 from src.response_formatter.templates import SIMPLE_MARKDOWN_TEMPLATE
+from src.llms import wrap_deepseek
 
 logger = setup_logger('query_engine')
 
@@ -73,12 +74,13 @@ class QueryEngine:
             Settings.callback_manager = CallbackManager([self.llama_debug])
         
         logger.info(f"🤖 初始化DeepSeek LLM: {self.model}")
-        self.llm = DeepSeek(
+        deepseek_instance = DeepSeek(
             api_key=self.api_key,
             model=self.model,
             temperature=0.5,
             max_tokens=4096,
         )
+        self.llm = wrap_deepseek(deepseek_instance)
         
         # 获取索引
         self.index = self.index_manager.get_index()

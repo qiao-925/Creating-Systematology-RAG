@@ -19,6 +19,7 @@ from src.query.modular.postprocessor_factory import create_postprocessors
 from src.query.modular.query_executor import execute_query
 from src.query.modular.query_processor import QueryProcessor
 from src.query.fallback import handle_fallback
+from src.llms import wrap_deepseek
 
 logger = setup_logger('modular_query_engine')
 
@@ -88,12 +89,13 @@ class ModularQueryEngine:
         if not self.api_key:
             raise ValueError("未设置DEEPSEEK_API_KEY")
         
-        self.llm = DeepSeek(
+        deepseek_instance = DeepSeek(
             api_key=self.api_key,
             model=self.model,
             temperature=0.5,
             max_tokens=4096,
         )
+        self.llm = wrap_deepseek(deepseek_instance)
         
         # 初始化查询处理器（标准化流程：意图理解+改写）
         self.query_processor = QueryProcessor(llm=self.llm)

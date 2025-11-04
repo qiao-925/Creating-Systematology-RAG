@@ -10,6 +10,7 @@ from llama_index.llms.deepseek import DeepSeek
 from src.config import config
 from src.indexer import IndexManager
 from src.logger import setup_logger
+from src.llms import wrap_deepseek
 
 logger = setup_logger('query_engine')
 
@@ -45,12 +46,13 @@ class SimpleQueryEngine:
             raise ValueError("未设置DEEPSEEK_API_KEY")
         
         # 使用官方 DeepSeek 集成
-        self.llm = DeepSeek(
+        deepseek_instance = DeepSeek(
             api_key=self.api_key,
             model=self.model,
             temperature=0.5,
             max_tokens=4096,
         )
+        self.llm = wrap_deepseek(deepseek_instance)
         
         # 获取索引
         self.index = self.index_manager.get_index()

@@ -64,11 +64,10 @@ def load_rag_service() -> Optional[RAGService]:
             # 使用用户专属的 collection
             if not st.session_state.collection_name:
                 raise ValueError("未登录或 collection_name 未设置，请先登录")
-            collection_name = st.session_state.collection_name
             
             with st.spinner("🔧 初始化RAG服务..."):
                 st.session_state.rag_service = RAGService(
-                    collection_name=collection_name,
+                    collection_name=st.session_state.collection_name,
                     enable_debug=st.session_state.get('debug_mode_enabled', False),
                     enable_markdown_formatting=True,
                 )
@@ -88,11 +87,10 @@ def load_index():
             # 使用用户专属的 collection（登录后必须有 collection_name）
             if not st.session_state.collection_name:
                 raise ValueError("未登录或 collection_name 未设置，请先登录")
-            collection_name = st.session_state.collection_name
             
             with st.spinner("🔧 初始化索引管理器..."):
                 st.session_state.index_manager = IndexManager(
-                    collection_name=collection_name,
+                    collection_name=st.session_state.collection_name,
                     embedding_instance=st.session_state.get('embed_model')
                 )
                 st.success("✅ 索引管理器已初始化")

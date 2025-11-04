@@ -15,6 +15,7 @@ from src.retrievers.file_level_retrievers import (
     FilesViaContentRetriever,
     FilesViaMetadataRetriever,
 )
+from src.llms import wrap_deepseek
 
 logger = setup_logger('query_router')
 
@@ -279,11 +280,12 @@ class QueryRouter:
                 from llama_index.llms.deepseek import DeepSeek
                 from src.config import config
                 
-                self._llm = DeepSeek(
+                deepseek_instance = DeepSeek(
                     api_key=config.DEEPSEEK_API_KEY,
                     model=config.LLM_MODEL,
                     temperature=0.3,  # 低温度用于分类任务
                 )
+                self._llm = wrap_deepseek(deepseek_instance)
                 logger.info("查询路由器LLM已初始化")
             except Exception as e:
                 logger.warning(f"查询路由器LLM初始化失败: {e}，将使用规则匹配")
