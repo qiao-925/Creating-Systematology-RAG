@@ -33,8 +33,8 @@ def handle_query(
     logger.info(f"收到查询请求: user={user_id}, session={session_id}, question={question[:50]}...")
     
     try:
-        # 使用模块化查询引擎
-        answer, sources, trace_info = service.modular_query_engine.query(question, collect_trace=False)
+        # 使用模块化查询引擎（返回包含 reasoning_content）
+        answer, sources, reasoning_content, trace_info = service.modular_query_engine.query(question, collect_trace=False)
         
         # 构造响应
         response = RAGResponse(
@@ -44,10 +44,13 @@ def handle_query(
                 'user_id': user_id,
                 'session_id': session_id,
                 'question': question,
+                'reasoning_content': reasoning_content,  # 包含推理链内容
             }
         )
         
         logger.info(f"查询成功: sources={len(sources)}, answer_len={len(answer)}")
+        if reasoning_content:
+            logger.debug(f"推理链内容已包含（长度: {len(reasoning_content)} 字符）")
         return response
         
     except Exception as e:

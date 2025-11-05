@@ -10,14 +10,13 @@ from llama_index.core import VectorStoreIndex, Settings, PromptTemplate
 from llama_index.core.query_engine import CitationQueryEngine
 from llama_index.core.base.response.schema import Response
 from llama_index.core.callbacks import CallbackManager, LlamaDebugHandler
-from llama_index.llms.deepseek import DeepSeek
 
 from src.config import config, get_gpu_device
 from src.indexer import IndexManager
 from src.logger import setup_logger
 from src.response_formatter import ResponseFormatter
 from src.response_formatter.templates import SIMPLE_MARKDOWN_TEMPLATE
-from src.llms import wrap_deepseek
+from src.llms import create_deepseek_llm_for_query, extract_reasoning_content
 
 logger = setup_logger('query_engine')
 
@@ -74,13 +73,11 @@ class QueryEngine:
             Settings.callback_manager = CallbackManager([self.llama_debug])
         
         logger.info(f"🤖 初始化DeepSeek LLM: {self.model}")
-        deepseek_instance = DeepSeek(
+        self.llm = create_deepseek_llm_for_query(
             api_key=self.api_key,
             model=self.model,
-            temperature=0.5,
             max_tokens=4096,
         )
-        self.llm = wrap_deepseek(deepseek_instance)
         
         # 获取索引
         self.index = self.index_manager.get_index()
@@ -109,7 +106,7 @@ class QueryEngine:
         
         logger.info("✅ 查询引擎初始化完成")
     
-    def query(self, question: str, collect_trace: bool = False) -> Tuple[str, List[dict], Optional[Dict[str, Any]]]:
+    def query(self, question: str, collect_trace: bool = False) -> Tuple[str, List[dict], Optional[str], Optional[Dict[str, Any]]]:
         """执行查询并返回带引用的答案
         
         Args:
@@ -117,7 +114,7 @@ class QueryEngine:
             collect_trace: 是否收集详细的追踪信息
             
         Returns:
-            (答案文本, 引用来源列表, 追踪信息字典)
+            (答案文本, 引用来源列表, 推理链内容, 追踪信息字典)
         """
         from src.query.trace import collect_trace_info
         from src.query.fallback import handle_fallback
@@ -161,6 +158,9 @@ class QueryEngine:
             response: Response = self.query_engine.query(question)
             retrieval_time = time.time() - retrieval_start
             
+            # 提取推理链内容（如果存在）
+            reasoning_content = extract_reasoning_content(response)
+            
             # 提取答案
             answer = str(response)
             answer = self.formatter.format(answer, None)
@@ -181,10 +181,15 @@ class QueryEngine:
                     trace_info, retrieval_time, sources, self.similarity_top_k,
                     similarity_cutoff, self.model, answer, fallback_reason
                 )
+                if reasoning_content:
+                    trace_info["has_reasoning"] = True
+                    trace_info["reasoning_length"] = len(reasoning_content)
             
             logger.info(f"✅ 查询完成，找到 {len(sources)} 个引用来源")
+            if reasoning_content:
+                logger.debug(f"🧠 推理链内容已提取（长度: {len(reasoning_content)} 字符）")
             
-            return answer, sources, trace_info
+            return answer, sources, reasoning_content, trace_info
             
         except Exception as e:
             logger.error(f"❌ 查询失败: {e}")

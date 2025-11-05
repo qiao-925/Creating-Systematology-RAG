@@ -232,6 +232,29 @@ def sidebar():
                 st.rerun()
         
         
+        # ========== 推理链显示设置 ==========
+        st.divider()
+        with st.expander("🧠 推理链设置", expanded=False):
+            # 推理链显示开关
+            enable_reasoning_display = st.checkbox(
+                "显示推理链",
+                value=config.DEEPSEEK_ENABLE_REASONING_DISPLAY,
+                help="显示 AI 的推理过程（reasoning_content）"
+            )
+            # 更新 session_state（用于后续显示）
+            st.session_state.show_reasoning = enable_reasoning_display
+            
+            # 推理链存储开关
+            enable_reasoning_store = st.checkbox(
+                "存储推理链到会话历史",
+                value=config.DEEPSEEK_STORE_REASONING,
+                help="将推理链保存到会话历史记录中（会增加文件大小）"
+            )
+            # 更新配置（临时，不会持久化）
+            if enable_reasoning_store != config.DEEPSEEK_STORE_REASONING:
+                # 注意：这里只是 UI 状态，实际存储由 ChatManager 根据配置决定
+                st.session_state.store_reasoning = enable_reasoning_store
+        
         # ========== 系统状态（包含调试日志） ==========
         st.divider()
         with st.expander("🔧 系统状态", expanded=False):
@@ -792,12 +815,15 @@ def main():
                     "role": "user",
                     "content": turn.question
                 })
-                # AI回复
+                # AI回复（包含推理链，如果存在）
                 assistant_msg = {
                     "role": "assistant",
                     "content": turn.answer,
                     "sources": turn.sources
                 }
+                # 如果会话历史中包含推理链，添加到消息中
+                if hasattr(turn, 'reasoning_content') and turn.reasoning_content:
+                    assistant_msg["reasoning_content"] = turn.reasoning_content
                 st.session_state.messages.append(assistant_msg)
                 
                 # 如果有引用来源，存储到current_sources_map
@@ -820,10 +846,16 @@ def main():
         st.markdown(f"<div style='text-align: center;'><h3>{chat_title}</h3></div>", unsafe_allow_html=True)
         st.markdown("---")
     
-    # 存储当前消息的引用来源（用于右侧显示）
+    # 存储当前消息的引用来源和推理链（用于右侧显示）
     if 'current_sources_map' not in st.session_state:
         st.session_state.current_sources_map = {}
+    if 'current_reasoning_map' not in st.session_state:
+        st.session_state.current_reasoning_map = {}
     current_sources_map = st.session_state.current_sources_map
+    current_reasoning_map = st.session_state.current_reasoning_map
+    
+    # 推理链显示开关（默认使用配置值）
+    show_reasoning = st.session_state.get('show_reasoning', config.DEEPSEEK_ENABLE_REASONING_DISPLAY)
     
     # 检查是否有引用来源（用于决定是否显示右侧面板）
     def has_sources():
@@ -866,9 +898,21 @@ def main():
                     # 如果是AI回答但没有引用，存储空列表
                     if message["role"] == "assistant":
                         current_sources_map[message_id] = []
+                
+                # 显示推理链（如果启用且存在）
+                if message["role"] == "assistant":
+                    reasoning_content = message.get("reasoning_content")
+                    if reasoning_content and show_reasoning:
+                        with st.expander("🧠 推理过程", expanded=False):
+                            st.markdown(f"```\n{reasoning_content}\n```")
+                            current_reasoning_map[message_id] = reasoning_content
+                    elif reasoning_content:
+                        # 即使不显示，也存储到映射中（用于后续显示）
+                        current_reasoning_map[message_id] = reasoning_content
             
             # 更新session_state中的映射
             st.session_state.current_sources_map = current_sources_map
+            st.session_state.current_reasoning_map = current_reasoning_map
         
         # 默认问题快捷按钮（仅在无对话历史时显示）
         if not st.session_state.messages:
@@ -914,17 +958,22 @@ def main():
                         sources = []
                         
                         # 使用RAGService执行查询（新架构）
-                        answer, local_sources, wikipedia_sources = execute_query_with_rag_service(
-                            query=prompt,
+                        response = rag_service.query(
+                            question=prompt,
                             user_id=st.session_state.user_email,
                             session_id=chat_manager.current_session.session_id if chat_manager.current_session else None,
                         )
+                        
+                        answer = response.answer
+                        local_sources = response.sources
+                        reasoning_content = response.metadata.get('reasoning_content')
                         
                         # 生成消息ID
                         msg_idx = len(st.session_state.messages)
                         message_id = f"msg_{msg_idx}_{hash(str(answer))}"
                         
                         # 合并本地和维基百科来源用于右侧显示
+                        wikipedia_sources = []  # 暂不支持Wikipedia增强
                         all_sources_for_display = local_sources + [
                             {**s, 'index': len(local_sources) + i + 1} 
                             for i, s in enumerate(wikipedia_sources)
@@ -945,17 +994,29 @@ def main():
                                 st.markdown(answer)
                             current_sources_map[message_id] = []
                         
+                        # 显示推理链（如果启用且存在）
+                        if reasoning_content and show_reasoning:
+                            with st.expander("🧠 推理过程", expanded=False):
+                                st.markdown(f"```\n{reasoning_content}\n```")
+                            current_reasoning_map[message_id] = reasoning_content
+                        elif reasoning_content:
+                            current_reasoning_map[message_id] = reasoning_content
+                        
                         # 更新session_state
                         st.session_state.current_sources_map = current_sources_map
+                        st.session_state.current_reasoning_map = current_reasoning_map
                         
-                        # 保存到消息历史（UI显示用）
+                        # 保存到消息历史（UI显示用，包含推理链）
                         if answer:  # 只在有答案时保存
-                            st.session_state.messages.append({
+                            assistant_msg = {
                                 "role": "assistant",
                                 "content": answer,
                                 "sources": local_sources,
                                 "wikipedia_sources": wikipedia_sources
-                            })
+                            }
+                            if reasoning_content:
+                                assistant_msg["reasoning_content"] = reasoning_content
+                            st.session_state.messages.append(assistant_msg)
                         
                         # 同时保存到ChatManager会话（持久化）
                         if chat_manager and answer:
@@ -967,8 +1028,12 @@ def main():
                             # 如果没有当前会话，先创建一个
                             if not chat_manager.current_session:
                                 chat_manager.start_session()
-                            # 保存对话
-                            chat_manager.current_session.add_turn(prompt, answer, all_sources)
+                            # 保存对话（根据配置决定是否存储推理链）
+                            store_reasoning = st.session_state.get('store_reasoning', config.DEEPSEEK_STORE_REASONING)
+                            if store_reasoning and reasoning_content:
+                                chat_manager.current_session.add_turn(prompt, answer, all_sources, reasoning_content)
+                            else:
+                                chat_manager.current_session.add_turn(prompt, answer, all_sources)
                             # 自动保存
                             if chat_manager.auto_save:
                                 chat_manager.save_current_session()
@@ -1015,17 +1080,22 @@ def main():
             with st.spinner("🤔 思考中..."):
                 try:
                     # 使用RAGService执行查询（新架构）
-                    answer, local_sources, wikipedia_sources = execute_query_with_rag_service(
-                        query=prompt,
+                    response = rag_service.query(
+                        question=prompt,
                         user_id=st.session_state.user_email,
                         session_id=chat_manager.current_session.session_id if chat_manager.current_session else None,
                     )
+                    
+                    answer = response.answer
+                    local_sources = response.sources
+                    reasoning_content = response.metadata.get('reasoning_content')
                     
                     # 生成消息ID
                     msg_idx = len(st.session_state.messages)
                     message_id = f"msg_{msg_idx}_{hash(str(answer))}"
                     
                     # 合并本地和维基百科来源用于右侧显示
+                    wikipedia_sources = []  # 暂不支持Wikipedia增强
                     all_sources_for_display = local_sources + [
                         {**s, 'index': len(local_sources) + i + 1} 
                         for i, s in enumerate(wikipedia_sources)
@@ -1046,17 +1116,29 @@ def main():
                             st.markdown(answer)
                         current_sources_map[message_id] = []
                     
+                    # 显示推理链（如果启用且存在）
+                    if reasoning_content and show_reasoning:
+                        with st.expander("🧠 推理过程", expanded=False):
+                            st.markdown(f"```\n{reasoning_content}\n```")
+                        current_reasoning_map[message_id] = reasoning_content
+                    elif reasoning_content:
+                        current_reasoning_map[message_id] = reasoning_content
+                    
                     # 更新session_state
                     st.session_state.current_sources_map = current_sources_map
+                    st.session_state.current_reasoning_map = current_reasoning_map
                     
-                    # 保存到消息历史（UI显示用）
+                    # 保存到消息历史（UI显示用，包含推理链）
                     if answer:  # 只在有答案时保存
-                        st.session_state.messages.append({
+                        assistant_msg = {
                             "role": "assistant",
                             "content": answer,
                             "sources": local_sources,
                             "wikipedia_sources": wikipedia_sources
-                        })
+                        }
+                        if reasoning_content:
+                            assistant_msg["reasoning_content"] = reasoning_content
+                        st.session_state.messages.append(assistant_msg)
                     
                     # 同时保存到ChatManager会话（持久化）
                     if chat_manager and answer:
@@ -1066,7 +1148,12 @@ def main():
                         ]
                         if not chat_manager.current_session:
                             chat_manager.start_session()
-                        chat_manager.current_session.add_turn(prompt, answer, all_sources)
+                        # 保存对话（根据配置决定是否存储推理链）
+                        store_reasoning = st.session_state.get('store_reasoning', config.DEEPSEEK_STORE_REASONING)
+                        if store_reasoning and reasoning_content:
+                            chat_manager.current_session.add_turn(prompt, answer, all_sources, reasoning_content)
+                        else:
+                            chat_manager.current_session.add_turn(prompt, answer, all_sources)
                         if chat_manager.auto_save:
                             chat_manager.save_current_session()
                     

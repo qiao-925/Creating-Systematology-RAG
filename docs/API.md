@@ -96,11 +96,14 @@ query_engine = QueryEngine(
     similarity_top_k=3  # 可选
 )
 
-# 查询（带引用溯源）
-answer, sources = query_engine.query("问题")
+# 查询（带引用溯源和推理链）
+answer, sources, reasoning_content, trace_info = query_engine.query("问题", collect_trace=False)
 
 # sources 格式
 # [{"index": 1, "text": "原文", "score": 0.95, "metadata": {...}}, ...]
+
+# reasoning_content 格式（可选）
+# 推理链内容字符串，如果模型返回推理过程则包含，否则为 None
 ```
 
 **SimpleQueryEngine (无引用):**
@@ -108,6 +111,21 @@ answer, sources = query_engine.query("问题")
 from src.query_engine import SimpleQueryEngine
 simple_engine = SimpleQueryEngine(index_manager)
 answer = simple_engine.query("快速问题")
+```
+
+**ModularQueryEngine (模块化查询引擎):**
+```python
+from src.query.modular.engine import ModularQueryEngine
+
+query_engine = ModularQueryEngine(
+    index_manager=index_manager,
+    retrieval_strategy="vector",  # vector|bm25|hybrid|grep|multi
+    enable_rerank=True,
+    enable_auto_routing=True
+)
+
+# 查询（返回包含推理链）
+answer, sources, reasoning_content, trace_info = query_engine.query("问题", collect_trace=False)
 ```
 
 ### 5. ChatManager (对话管理)
@@ -125,9 +143,12 @@ chat_manager = ChatManager(
 session = chat_manager.start_session()
 chat_manager.load_session(Path("session.json"))
 
-# 多轮对话
-answer, sources = chat_manager.chat("什么是系统科学？")
-answer, sources = chat_manager.chat("它有哪些应用？")  # 理解上下文
+# 多轮对话（返回包含推理链）
+answer, sources, reasoning_content = chat_manager.chat("什么是系统科学？")
+answer, sources, reasoning_content = chat_manager.chat("它有哪些应用？")  # 理解上下文
+
+# 推理链内容（可选）
+# reasoning_content: Optional[str] - 推理链内容，如果模型返回推理过程则包含，否则为 None
 
 # 会话操作
 chat_manager.save_current_session()
@@ -143,14 +164,85 @@ session.history: List[ChatTurn]
 session.created_at: str
 
 # 方法
-session.add_turn(question, answer, sources)
+session.add_turn(question, answer, sources, reasoning_content=None)  # reasoning_content 可选
 history = session.get_history(last_n=5)
 session.clear_history()
 session.save(Path("./sessions"))
 session = ChatSession.load(Path("session.json"))
 ```
 
-### 6. UserManager (用户管理)
+**ChatTurn 类:**
+```python
+# 单轮对话属性
+turn.question: str
+turn.answer: str
+turn.sources: List[Dict[str, Any]]
+turn.timestamp: str
+turn.reasoning_content: Optional[str]  # 推理链内容（可选）
+```
+
+### 8. LLM 工厂函数（DeepSeek 推理模型）
+
+```python
+from src.llms import (
+    create_deepseek_llm,
+    create_deepseek_llm_for_query,
+    create_deepseek_llm_for_structure
+)
+
+# 创建用于查询的 LLM（自然语言输出）
+llm = create_deepseek_llm_for_query(
+    api_key="your_api_key",  # 可选，默认使用 config.DEEPSEEK_API_KEY
+    model="deepseek-reasoner",  # 可选，默认使用 config.LLM_MODEL
+    max_tokens=4096  # 可选
+)
+
+# 创建用于结构化输出的 LLM（JSON Output）
+llm = create_deepseek_llm_for_structure(
+    api_key="your_api_key",
+    model="deepseek-reasoner",
+    max_tokens=1024
+)
+
+# 通用工厂函数
+llm = create_deepseek_llm(
+    api_key="your_api_key",
+    model="deepseek-reasoner",
+    use_json_output=False,  # 是否启用 JSON Output
+    max_tokens=4096
+)
+```
+
+**推理链处理工具:**
+```python
+from src.llms import (
+    extract_reasoning_content,
+    extract_reasoning_from_stream_chunk,
+    clean_messages_for_api,
+    has_reasoning_content
+)
+
+# 从响应中提取推理链内容
+reasoning = extract_reasoning_content(response)
+
+# 检查响应是否包含推理链
+if has_reasoning_content(response):
+    reasoning = extract_reasoning_content(response)
+
+# 清理消息列表，确保不包含 reasoning_content（用于多轮对话）
+cleaned_messages = clean_messages_for_api(messages)
+```
+
+**DeepSeekLogger (日志包装器):**
+```python
+from src.llms import wrap_deepseek
+
+# 包装 DeepSeek 实例，自动记录 API 调用和推理链
+deepseek_llm = DeepSeek(...)
+wrapped_llm = wrap_deepseek(deepseek_llm)
+
+# 所有调用会自动记录到日志，包括推理链内容
+```
 
 ```python
 from src.user_manager import UserManager
@@ -170,7 +262,7 @@ collection_name = user_manager.get_user_collection_name(email)
 session_dir = user_manager.get_user_session_dir(email)
 ```
 
-### 7. Phoenix可观测性
+### 8. Phoenix可观测性
 
 ```python
 from src.phoenix_utils import (
@@ -216,11 +308,15 @@ from src.indexer import IndexManager
 index_manager = IndexManager()
 index_manager.build_index(docs)
 
-# 4. 对话查询
+# 4. 对话查询（包含推理链）
 from src.chat_manager import ChatManager
 chat_manager = ChatManager(index_manager)
 chat_manager.start_session()
-answer, sources = chat_manager.chat("什么是系统科学？")
+answer, sources, reasoning_content = chat_manager.chat("什么是系统科学？")
+
+# 推理链内容（可选）
+if reasoning_content:
+    print(f"推理过程: {reasoning_content}")
 ```
 
 ---

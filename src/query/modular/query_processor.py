@@ -5,11 +5,10 @@
 
 import json
 from typing import Dict, Any, Optional, List
-from llama_index.llms.deepseek import DeepSeek
 
 from src.config import config
 from src.logger import setup_logger
-from src.llms import wrap_deepseek
+from src.llms import create_deepseek_llm_for_structure
 
 logger = setup_logger('query_processor')
 
@@ -87,14 +86,13 @@ class QueryProcessor:
         
         if self._llm is None:
             try:
-                deepseek_instance = DeepSeek(
+                # 使用工厂函数创建 LLM（结构化场景，JSON Output）
+                self._llm = create_deepseek_llm_for_structure(
                     api_key=config.DEEPSEEK_API_KEY,
                     model=config.LLM_MODEL,
-                    temperature=0.4,  # 中等温度，平衡一致性和创造性
                     max_tokens=1024,
                 )
-                self._llm = wrap_deepseek(deepseek_instance)
-                logger.info("查询处理器LLM已初始化")
+                logger.info("查询处理器LLM已初始化（结构化场景，JSON Output）")
             except Exception as e:
                 logger.error(f"查询处理器LLM初始化失败: {e}")
                 raise

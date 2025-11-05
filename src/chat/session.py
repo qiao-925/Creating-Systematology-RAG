@@ -21,15 +21,26 @@ class ChatTurn:
     answer: str
     sources: List[Dict[str, Any]]
     timestamp: str
+    reasoning_content: Optional[str] = None  # 推理链内容（可选）
     
     def to_dict(self) -> dict:
         """转换为字典"""
-        return asdict(self)
+        result = asdict(self)
+        # 如果推理链为空，不包含在字典中（向后兼容）
+        if not result.get('reasoning_content'):
+            result.pop('reasoning_content', None)
+        return result
     
     @classmethod
     def from_dict(cls, data: dict):
-        """从字典创建"""
-        return cls(**data)
+        """从字典创建（向后兼容）"""
+        # 向后兼容：旧会话文件可能不包含 reasoning_content
+        reasoning_content = data.get('reasoning_content')
+        turn_data = {k: v for k, v in data.items() if k != 'reasoning_content'}
+        turn = cls(**turn_data)
+        if reasoning_content:
+            turn.reasoning_content = reasoning_content
+        return turn
 
 
 class ChatSession:
@@ -53,19 +64,21 @@ class ChatSession:
         """生成会话ID"""
         return f"session_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     
-    def add_turn(self, question: str, answer: str, sources: List[dict]):
+    def add_turn(self, question: str, answer: str, sources: List[dict], reasoning_content: Optional[str] = None):
         """添加一轮对话
         
         Args:
             question: 用户问题
             answer: AI回答
             sources: 引用来源
+            reasoning_content: 推理链内容（可选）
         """
         turn = ChatTurn(
             question=question,
             answer=answer,
             sources=sources,
-            timestamp=datetime.now().isoformat()
+            timestamp=datetime.now().isoformat(),
+            reasoning_content=reasoning_content
         )
         self.history.append(turn)
         self.updated_at = turn.timestamp

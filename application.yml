@@ -140,6 +140,12 @@ wikipedia:
 cache:
   enable: true
 
+# DeepSeek 推理模型配置
+deepseek:
+  enable_reasoning_display: true  # 是否在 UI 中显示推理链（默认显示）
+  store_reasoning: false  # 是否存储推理链到会话历史（默认不存储，节省空间）
+  json_output_enabled: false  # 是否全局启用 JSON Output（默认 false，仅结构化场景启用）
+
 # 日志配置
 logging:
   level: INFO      # 控制台日志级别

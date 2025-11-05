@@ -42,8 +42,8 @@ def handle_chat(
         else:
             session = service.chat_manager.start_session()
         
-        # 发送消息
-        answer, sources = service.chat_manager.chat(message=message)
+        # 发送消息（返回包含 reasoning_content）
+        answer, sources, reasoning_content = service.chat_manager.chat(message=message)
         
         # 构造响应
         response = ChatResponse(
@@ -54,10 +54,13 @@ def handle_chat(
             metadata={
                 'user_id': user_id,
                 'message': message,
+                'reasoning_content': reasoning_content,  # 包含推理链内容
             }
         )
         
         logger.info(f"对话成功: session={session.session_id}, turn={response.turn_count}")
+        if reasoning_content:
+            logger.debug(f"推理链内容已包含（长度: {len(reasoning_content)} 字符）")
         return response
         
     except Exception as e:

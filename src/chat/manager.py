@@ -9,7 +9,6 @@ from pathlib import Path
 from llama_index.core.memory import ChatMemoryBuffer
 from llama_index.core.chat_engine import CondensePlusContextChatEngine
 from llama_index.core.llms import ChatMessage, MessageRole
-from llama_index.llms.deepseek import DeepSeek
 
 from src.config import config
 from src.indexer import IndexManager
@@ -17,7 +16,7 @@ from src.logger import setup_logger
 from src.response_formatter import ResponseFormatter
 from src.response_formatter.templates import CHAT_MARKDOWN_TEMPLATE
 from src.chat.session import ChatSession
-from src.llms import wrap_deepseek
+from src.llms import create_deepseek_llm_for_query, extract_reasoning_content, extract_reasoning_from_stream_chunk
 
 logger = setup_logger('chat_manager')
 
@@ -81,12 +80,10 @@ class ChatManager:
             Settings.callback_manager = CallbackManager([llama_debug])
         
         logger.info(f"初始化DeepSeek LLM (对话模式): {self.model}")
-        deepseek_instance = DeepSeek(
+        self.llm = create_deepseek_llm_for_query(
             api_key=self.api_key,
             model=self.model,
-            temperature=0.6,
         )
-        self.llm = wrap_deepseek(deepseek_instance)
         
         # 创建记忆缓冲区
         self.memory = ChatMemoryBuffer.from_defaults(
@@ -163,8 +160,12 @@ class ChatManager:
         
         logger.info(f"会话已加载: {self.current_session.session_id}, 包含 {len(self.current_session.history)} 轮对话")
     
-    def chat(self, message: str) -> tuple[str, List[dict]]:
-        """进行对话"""
+    def chat(self, message: str) -> tuple[str, List[dict], Optional[str]]:
+        """进行对话
+        
+        Returns:
+            (答案, 引用来源, 推理链内容)
+        """
         if self.current_session is None:
             self.start_session()
         
@@ -173,6 +174,9 @@ class ChatManager:
             
             # 执行对话
             response = self.chat_engine.chat(message)
+            
+            # 提取推理链内容（如果存在）
+            reasoning_content = extract_reasoning_content(response)
             
             # 提取答案
             answer = str(response)
@@ -202,18 +206,25 @@ class ChatManager:
             elif not self.index_manager:
                 logger.debug("纯LLM模式（无知识库检索）")
             
-            # 添加到会话历史
-            self.current_session.add_turn(message, answer, sources)
+            # 添加到会话历史（根据配置决定是否存储推理链）
+            store_reasoning = config.DEEPSEEK_STORE_REASONING if reasoning_content else False
+            if store_reasoning:
+                # 注意：ChatTurn 需要扩展支持 reasoning_content
+                self.current_session.add_turn(message, answer, sources, reasoning_content)
+            else:
+                self.current_session.add_turn(message, answer, sources)
             
             logger.info(f"AI回答（前100字符）: {answer[:100]}...")
             if sources:
                 logger.info(f"引用来源: {len(sources)} 个")
+            if reasoning_content:
+                logger.debug(f"推理链内容已提取（长度: {len(reasoning_content)} 字符）")
             
             # 自动保存会话
             if self.auto_save:
                 self.save_current_session()
             
-            return answer, sources
+            return answer, sources, reasoning_content
             
         except Exception as e:
             logger.error(f"对话失败: {e}", exc_info=True)
@@ -232,13 +243,29 @@ class ChatManager:
             # 执行流式对话
             response_stream = self.chat_engine.stream_chat(message)
             
-            # 收集完整答案
+            # 收集完整答案和推理链
             full_answer = ""
+            full_reasoning = ""
             
-            # 流式输出token
-            for token in response_stream.response_gen:
-                full_answer += token
-                yield {'type': 'token', 'data': token}
+            # 流式输出token和推理链
+            for chunk in response_stream.response_gen:
+                # 提取推理链内容（流式）
+                reasoning_chunk = extract_reasoning_from_stream_chunk(chunk) if hasattr(chunk, 'delta') or hasattr(chunk, 'message') else None
+                if reasoning_chunk:
+                    full_reasoning += reasoning_chunk
+                    # 推理链内容不直接输出给用户，但可以记录
+                    logger.debug(f"收到推理链片段: {len(reasoning_chunk)} 字符")
+                
+                # 提取普通内容
+                if hasattr(chunk, 'delta') and hasattr(chunk.delta, 'content'):
+                    token = chunk.delta.content
+                    if token:
+                        full_answer += token
+                        yield {'type': 'token', 'data': token}
+                elif isinstance(chunk, str):
+                    full_answer += chunk
+                    yield {'type': 'token', 'data': chunk}
+                
                 await asyncio.sleep(0.02)
             
             # 提取引用来源
@@ -253,19 +280,28 @@ class ChatManager:
                     }
                     sources.append(source)
             
-            # 添加到会话历史
-            self.current_session.add_turn(message, full_answer, sources)
+            # 添加到会话历史（根据配置决定是否存储推理链）
+            reasoning_content = full_reasoning if full_reasoning else None
+            store_reasoning = config.DEEPSEEK_STORE_REASONING if reasoning_content else False
+            if store_reasoning:
+                self.current_session.add_turn(message, full_answer, sources, reasoning_content)
+            else:
+                self.current_session.add_turn(message, full_answer, sources)
             
             logger.info(f"AI回答（流式，前100字符）: {full_answer[:100]}...")
             if sources:
                 logger.info(f"引用来源: {len(sources)} 个")
+            if reasoning_content:
+                logger.debug(f"推理链内容已提取（流式，长度: {len(reasoning_content)} 字符）")
             
             # 自动保存会话
             if self.auto_save:
                 self.save_current_session()
             
-            # 返回引用来源和完整答案
+            # 返回引用来源、推理链和完整答案
             yield {'type': 'sources', 'data': sources}
+            if reasoning_content:
+                yield {'type': 'reasoning', 'data': reasoning_content}
             yield {'type': 'done', 'data': full_answer}
             
         except Exception as e:

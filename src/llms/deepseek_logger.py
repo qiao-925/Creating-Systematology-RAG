@@ -9,6 +9,7 @@ from llama_index.core.llms import CompletionResponse, ChatResponse, LLMMetadata
 from llama_index.llms.deepseek import DeepSeek
 
 from src.logger import setup_logger
+from src.llms.reasoning import clean_messages_for_api
 
 logger = setup_logger('deepseek_logger')
 
@@ -82,7 +83,15 @@ class DeepSeekLogger:
             
             # 记录元数据（如果有）
             if hasattr(response, 'raw') and response.raw:
-                logger.debug(f"   原始响应: {json.dumps(response.raw, ensure_ascii=False, indent=2)}")
+                try:
+                    # 尝试序列化原始响应（如果是字典或可序列化对象）
+                    if isinstance(response.raw, dict):
+                        logger.debug(f"   原始响应: {json.dumps(response.raw, ensure_ascii=False, indent=2)}")
+                    else:
+                        logger.debug(f"   原始响应类型: {type(response.raw)}")
+                except (TypeError, ValueError):
+                    # 如果无法序列化（如 ChatCompletion 对象），只记录类型
+                    logger.debug(f"   原始响应类型: {type(response.raw)}（无法序列化）")
             
             logger.info("=" * 80)
             
@@ -135,20 +144,42 @@ class DeepSeekLogger:
         logger.info("-" * 80)
         
         try:
-            # 调用原始方法
-            response = self._llm.chat(messages, **kwargs)
+            # 清理消息，确保不包含 reasoning_content（符合 DeepSeek API 要求）
+            cleaned_messages = clean_messages_for_api(messages)
+            
+            # 调用原始方法（使用清理后的消息）
+            response = self._llm.chat(cleaned_messages, **kwargs)
             
             # 记录响应
             response_message = response.message if hasattr(response, 'message') else None
             response_text = response_message.content if response_message and hasattr(response_message, 'content') else str(response)
             
+            # 提取推理链内容（如果存在）
+            reasoning_content = None
+            if response_message and hasattr(response_message, 'reasoning_content'):
+                reasoning_content = response_message.reasoning_content
+            
             logger.info(f"📥 响应体:")
             logger.info(f"   响应长度: {len(response_text)} 字符")
             logger.info(f"   响应内容: {response_text[:1000]}{'...' if len(response_text) > 1000 else ''}")
             
+            # 记录推理链内容（如果存在）
+            if reasoning_content:
+                logger.info(f"🧠 推理链内容:")
+                logger.info(f"   推理链长度: {len(reasoning_content)} 字符")
+                logger.info(f"   推理链内容: {reasoning_content[:1000]}{'...' if len(reasoning_content) > 1000 else ''}")
+            
             # 记录元数据（如果有）
             if hasattr(response, 'raw') and response.raw:
-                logger.debug(f"   原始响应: {json.dumps(response.raw, ensure_ascii=False, indent=2)}")
+                try:
+                    # 尝试序列化原始响应（如果是字典或可序列化对象）
+                    if isinstance(response.raw, dict):
+                        logger.debug(f"   原始响应: {json.dumps(response.raw, ensure_ascii=False, indent=2)}")
+                    else:
+                        logger.debug(f"   原始响应类型: {type(response.raw)}")
+                except (TypeError, ValueError):
+                    # 如果无法序列化（如 Mock 对象），只记录类型
+                    logger.debug(f"   原始响应类型: {type(response.raw)}（无法序列化）")
             
             logger.info("=" * 80)
             
@@ -238,18 +269,54 @@ class DeepSeekLogger:
         logger.info("-" * 80)
         
         try:
-            # 调用原始方法并收集响应
+            # 清理消息，确保不包含 reasoning_content（符合 DeepSeek API 要求）
+            cleaned_messages = clean_messages_for_api(messages)
+            
+            # 调用原始方法并收集响应（使用清理后的消息）
             full_response = ""
-            for chunk in self._llm.stream_chat(messages, **kwargs):
+            full_reasoning = ""
+            for chunk in self._llm.stream_chat(cleaned_messages, **kwargs):
                 chunk_message = chunk.message if hasattr(chunk, 'message') else None
-                chunk_text = chunk_message.content if chunk_message and hasattr(chunk_message, 'content') else str(chunk)
-                full_response += chunk_text
+                if chunk_message:
+                    # 处理推理链内容（流式）
+                    if hasattr(chunk_message, 'reasoning_content') and chunk_message.reasoning_content:
+                        reasoning_str = str(chunk_message.reasoning_content) if chunk_message.reasoning_content else ""
+                        if reasoning_str:
+                            full_reasoning += reasoning_str
+                    # 处理普通内容（流式）
+                    if hasattr(chunk_message, 'content') and chunk_message.content:
+                        content_str = str(chunk_message.content) if chunk_message.content else ""
+                        if content_str:
+                            full_response += content_str
+                else:
+                    # 处理 delta（流式响应）
+                    if hasattr(chunk, 'delta'):
+                        delta = chunk.delta
+                        if hasattr(delta, 'reasoning_content') and delta.reasoning_content:
+                            reasoning_str = str(delta.reasoning_content) if delta.reasoning_content else ""
+                            if reasoning_str:
+                                full_reasoning += reasoning_str
+                        if hasattr(delta, 'content') and delta.content:
+                            content_str = str(delta.content) if delta.content else ""
+                            if content_str:
+                                full_response += content_str
+                    else:
+                        # 降级处理
+                        chunk_text = str(chunk)
+                        full_response += chunk_text
                 yield chunk
             
             # 记录完整响应
             logger.info(f"📥 响应体（流式）:")
             logger.info(f"   响应长度: {len(full_response)} 字符")
             logger.info(f"   响应内容: {full_response[:1000]}{'...' if len(full_response) > 1000 else ''}")
+            
+            # 记录推理链内容（如果存在）
+            if full_reasoning:
+                logger.info(f"🧠 推理链内容（流式）:")
+                logger.info(f"   推理链长度: {len(full_reasoning)} 字符")
+                logger.info(f"   推理链内容: {full_reasoning[:1000]}{'...' if len(full_reasoning) > 1000 else ''}")
+            
             logger.info("=" * 80)
             
         except Exception as e:

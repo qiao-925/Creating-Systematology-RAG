@@ -189,6 +189,14 @@ class Config:
         self.LOG_LEVEL = self._get_config("LOG_LEVEL", "logging.level", "INFO").upper()
         self.LOG_FILE_LEVEL = self._get_config("LOG_FILE_LEVEL", "logging.file_level", "DEBUG").upper()
     
+        # DeepSeek 推理模型配置
+        enable_reasoning_display_str = self._get_config("DEEPSEEK_ENABLE_REASONING_DISPLAY", "deepseek.enable_reasoning_display", "true")
+        self.DEEPSEEK_ENABLE_REASONING_DISPLAY = str(enable_reasoning_display_str).lower() == "true"
+        store_reasoning_str = self._get_config("DEEPSEEK_STORE_REASONING", "deepseek.store_reasoning", "false")
+        self.DEEPSEEK_STORE_REASONING = str(store_reasoning_str).lower() == "true"
+        json_output_enabled_str = self._get_config("DEEPSEEK_JSON_OUTPUT_ENABLED", "deepseek.json_output_enabled", "false")
+        self.DEEPSEEK_JSON_OUTPUT_ENABLED = str(json_output_enabled_str).lower() == "true"
+    
     def _load_yaml_config(self) -> Dict[str, Any]:
         """加载 YAML 配置文件
         

@@ -152,7 +152,7 @@ graph TD
 | **RAG框架** | LlamaIndex | 专为RAG设计，内置引用溯源 |
 | **向量数据库** | ChromaDB | 轻量级，支持持久化 |
 | **Embedding** | HuggingFace | 本地/API可插拔 |
-| **LLM** | DeepSeek API | OpenAI兼容接口 |
+| **LLM** | DeepSeek API (deepseek-reasoner) | OpenAI兼容接口，支持推理链和JSON输出 |
 | **可观测性** | Phoenix + OpenTelemetry | 实时追踪与可视化 |
 | **前端** | Streamlit | 快速原型，易于交互 |
 
@@ -203,6 +203,37 @@ EMBEDDING_MODEL=新模型路径
 
 ### 6. 切换LLM
 
+项目使用 DeepSeek 推理模型 (`deepseek-reasoner`)，通过统一的 LLM 工厂函数创建实例。
+
+**LLM 工厂模式:**
+```python
+from src.llms import (
+    create_deepseek_llm_for_query,      # 自然语言输出（问答、对话）
+    create_deepseek_llm_for_structure   # 结构化输出（JSON，查询理解、路由）
+)
+
+# 查询场景：自然语言输出
+llm = create_deepseek_llm_for_query()
+
+# 结构化场景：JSON 输出（查询理解、路由决策）
+llm = create_deepseek_llm_for_structure()
+```
+
+**DeepSeek 推理模型特性:**
+- ✅ **推理链支持**: 返回 `reasoning_content` + `content` 双输出
+- ✅ **JSON Output**: 结构化场景支持 JSON 格式输出
+- ✅ **多轮对话优化**: 自动过滤推理链，确保不传入下一轮对话
+- ✅ **统一日志**: 通过 `DeepSeekLogger` 自动记录 API 调用和推理链
+
+**配置示例:**
+```yaml
+# application.yml
+deepseek:
+  enable_reasoning_display: true   # UI 显示推理链
+  store_reasoning: false            # 是否存储到会话历史（默认 false）
+  json_output_enabled: false       # 全局 JSON 输出（默认 false，仅结构化场景启用）
+```
+
 修改 `config.py` 中的 `DEEPSEEK_API_KEY` 和 `DEEPSEEK_API_BASE`，支持任何OpenAI兼容API。
 
 ---
@@ -217,5 +248,5 @@ EMBEDDING_MODEL=新模型路径
 ---
 
 **架构状态**: 渐进式迁移中（Phase 3）  
-**最后更新**: 2025-11-01  
+**最后更新**: 2025-11-05  
 **架构目标**: 完整的模块化三层架构，支持可插拔、配置驱动、流水线编排

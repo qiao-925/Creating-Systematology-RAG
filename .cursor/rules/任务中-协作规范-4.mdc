@@ -1,5 +1,5 @@
 ---
-description: 人机协作要点 - 基于AGENTS.md
+description: 遵循协作规范 - 人机协作要点 - 基于AGENTS.md
 alwaysApply: true
 ---
 
@@ -200,7 +200,6 @@ Agent 执行:
 
 ## 📚 相关规则
 
-- 决策原则：`decision-making-principles.mdc`
-- 开发工作流：`development-workflow.mdc`
-- 方案讨论工作流：`proposal-discussion-workflow.mdc`
+- 决策原则：`前置-方案讨论-1.mdc`（已合并到方案讨论规则）
+- 方案讨论工作流：`前置-方案讨论-1.mdc`
 - AGENTS.md 原始规则：第 73-96 行

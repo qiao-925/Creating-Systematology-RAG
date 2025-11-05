@@ -6,8 +6,6 @@ ModularQueryEngine类实现
 from typing import List, Optional, Tuple, Dict, Any
 from llama_index.core import VectorStoreIndex, Settings
 from llama_index.core.query_engine import RetrieverQueryEngine
-from llama_index.llms.deepseek import DeepSeek
-
 from src.config import config
 from src.indexer import IndexManager
 from src.logger import setup_logger
@@ -19,7 +17,7 @@ from src.query.modular.postprocessor_factory import create_postprocessors
 from src.query.modular.query_executor import execute_query
 from src.query.modular.query_processor import QueryProcessor
 from src.query.fallback import handle_fallback
-from src.llms import wrap_deepseek
+from src.llms import create_deepseek_llm_for_query
 
 logger = setup_logger('modular_query_engine')
 
@@ -83,19 +81,17 @@ class ModularQueryEngine:
             Settings.callback_manager = CallbackManager(callback_handlers)
             logger.info(f"✅ 设置 {len(callback_handlers)} 个回调处理器到 LlamaIndex")
         
-        # 配置 LLM
+        # 配置 LLM（使用工厂函数，自然语言场景）
         self.api_key = api_key or config.DEEPSEEK_API_KEY
         self.model = model or config.LLM_MODEL
         if not self.api_key:
             raise ValueError("未设置DEEPSEEK_API_KEY")
         
-        deepseek_instance = DeepSeek(
+        self.llm = create_deepseek_llm_for_query(
             api_key=self.api_key,
             model=self.model,
-            temperature=0.5,
             max_tokens=4096,
         )
-        self.llm = wrap_deepseek(deepseek_instance)
         
         # 初始化查询处理器（标准化流程：意图理解+改写）
         self.query_processor = QueryProcessor(llm=self.llm)
@@ -154,8 +150,12 @@ class ModularQueryEngine:
         self, 
         question: str, 
         collect_trace: bool = False
-    ) -> Tuple[str, List[dict], Optional[Dict[str, Any]]]:
-        """执行查询（兼容现有API）"""
+    ) -> Tuple[str, List[dict], Optional[str], Optional[Dict[str, Any]]]:
+        """执行查询（兼容现有API）
+        
+        Returns:
+            (答案, 引用来源, 推理链内容, 追踪信息)
+        """
         
         # Step 1: 查询处理（标准化流程：意图理解+改写）
         processed = self.query_processor.process(question)
@@ -196,7 +196,7 @@ class ModularQueryEngine:
                 f"策略={routing_decision}, "
                 f"原因=自动路由模式，根据查询意图动态选择"
             )
-            answer, sources, trace_info = execute_query(
+            answer, sources, reasoning_content, trace_info = execute_query(
                 query_engine,
                 self.formatter,
                 self.observer_manager,
@@ -210,7 +210,7 @@ class ModularQueryEngine:
                 f"策略={self.retrieval_strategy}, "
                 f"原因=固定检索模式（初始化时配置）"
             )
-            answer, sources, trace_info = execute_query(
+            answer, sources, reasoning_content, trace_info = execute_query(
                 self.query_engine,
                 self.formatter,
                 self.observer_manager,
@@ -235,7 +235,7 @@ class ModularQueryEngine:
             trace_info['fallback_used'] = bool(fallback_reason)
             trace_info['fallback_reason'] = fallback_reason
         
-        return answer, sources, trace_info
+        return answer, sources, reasoning_content, trace_info
     
     async def stream_query(self, question: str):
         """异步流式查询（用于Web应用）"""

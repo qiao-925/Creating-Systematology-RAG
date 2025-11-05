@@ -1,5 +1,5 @@
 ---
-description: Python代码风格与规范
+description: 遵循代码规范 - Python代码风格与规范
 alwaysApply: true
 ---
 
@@ -97,7 +97,61 @@ def build_index(
     pass
 ```
 
-### 6. 导入规范
+### 6. 文件命名规范
+
+#### 6.1 Python 文件
+- **模块文件**：`snake_case.py`（如 `index_manager.py`）
+- **测试文件**：`test_*.py`（如 `test_indexer.py`）
+- **配置文件**：`config.py`, `settings.py`
+- **工具脚本**：`scripts/*.py`
+
+#### 6.2 目录文件
+- **特殊文件**：`__init__.py`, `__main__.py`
+- **私有模块**：`_internal.py`（单下划线前缀）
+
+### 7. 代码文件组织
+
+#### 7.1 文件结构模板
+```python
+"""模块说明文档"""
+
+# 1. 标准库导入
+import os
+from pathlib import Path
+from typing import List, Optional
+
+# 2. 第三方库导入
+import chromadb
+from llama_index.core import VectorStoreIndex
+
+# 3. 本地模块导入
+from src.config import config
+from src.logger import setup_logger
+
+# 4. 模块级常量
+DEFAULT_TOP_K = 10
+
+# 5. 日志器初始化
+logger = setup_logger('module_name')
+
+# 6. 类和函数定义
+class MyClass:
+    """类说明"""
+    pass
+
+def my_function():
+    """函数说明"""
+    pass
+```
+
+#### 7.2 代码组织顺序
+- 文件顶部：模块 docstring
+- 然后是导入（分三部分）
+- 然后是常量定义
+- 然后是类和函数定义
+- `if __name__ == "__main__":` 仅用于测试脚本
+
+### 8. 导入规范
 - 标准库 → 第三方库 → 本地模块（三部分，空行分隔）
 - 按字母顺序排列
 - 避免 `from module import *`
@@ -118,13 +172,13 @@ from src.config import config
 from src.logger import setup_logger
 ```
 
-### 7. 命名规范
+### 9. 命名规范
 - **类名**：大驼峰（`PascalCase`）：`BaseEmbedding`, `VectorStoreIndex`
 - **函数/变量**：蛇形命名（`snake_case`）：`build_index`, `embedding_model`
 - **常量**：全大写下划线分隔：`MAX_RETRIES`, `DEFAULT_TOP_K`
 - **私有成员**：单下划线前缀：`_internal_method`, `_cache`
 
-### 8. 枚举使用（Enum）
+### 10. 枚举使用（Enum）
 - **对于固定的常量集合，使用枚举类型**
 - 使用 `from enum import Enum` 定义枚举类
 - 枚举类名使用大驼峰：`StrategyType`, `ModuleType`
@@ -146,7 +200,7 @@ if strategy == StrategyType.RETRIEVAL:
     pass
 ```
 
-### 9. 代码注释规范
+### 11. 代码注释规范
 
 **强制要求**：在复杂逻辑处添加注释，解释**为什么这样做**，而不是**做什么**
 
@@ -169,13 +223,6 @@ if strategy == StrategyType.RETRIEVAL:
   self.persist_dir.mkdir(parents=True, exist_ok=True)
   ```
 - **注释目标**：帮助其他开发者（包括未来的自己）理解代码的设计意图和实现原因
-
-### 10. 代码组织
-- 文件顶部：模块 docstring
-- 然后是导入（分三部分）
-- 然后是常量定义
-- 然后是类和函数定义
-- `if __name__ == "__main__":` 仅用于测试脚本
 
 ---
 
