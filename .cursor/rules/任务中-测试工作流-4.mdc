@@ -238,5 +238,5 @@ pytest tests/unit/test_query_engine.py::TestQueryEngine::test_new_feature -v
 
 ---
 
-**最后更新**: 2025-01-27  
+**最后更新**: 2025-11-05  
 **版本**: v1.0（拆分版，包含Agent测试工作流、Bug修复策略、自纠错机制）
