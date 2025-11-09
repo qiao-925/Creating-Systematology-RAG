@@ -1,4 +1,18 @@
-# 任务中 - 架构设计生成规范
+---
+description: 架构设计规范 - RAG 架构分层与模块规划指南
+autoAttach: true
+globs:
+  - "src/business/**"
+  - "src/query/**"
+  - "src/indexer/**"
+  - "src/retrievers/**"
+  - "src/embeddings/**"
+  - "src/data_source/**"
+  - "src/rerankers/**"
+  - "src/observers/**"
+---
+
+# 架构设计规范
 
 > 适用于 `src/business/`, `src/query/`, `src/indexer/`, `src/retrievers/`, `src/embeddings/`, `src/data_source/`, `src/rerankers/`, `src/observers/` 等目录内的架构设计、重构与新模块规划，确保分层清晰、接口稳定、组件可插拔。
 

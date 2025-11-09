@@ -1,9 +1,9 @@
 ---
-description: 任务中 - 代码约束规范 - Python代码风格与最佳实践
+description: 代码实现规范 - Python 代码风格与最佳实践
 alwaysApply: true
 ---
 
-# 任务中 - 代码约束
+# 代码实现规范
 
 > Python 代码实现阶段的统一基线，覆盖类型、结构、日志、异常、命名与注释要求。
 
