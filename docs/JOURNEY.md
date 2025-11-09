@@ -694,8 +694,8 @@
 ### 任务记录
 
 - [任务归档](../agent-task-log/README.md) - 完整任务记录
-- [模块化实施总结](../agent-task-log/2025-11-01-32_模块化RAG架构实施_完整完成总结.md)
-- [RAG推理增强](../agent-task-log/2025-10/2025-10-14-1_【implementation】【completed】RAG推理能力增强_详细过程.md)
+- [模块化实施总结](../agent-task-log/2025-11-01-32_【documentation】模块化RAG架构实施-完整完成总结.md)
+- [RAG推理增强](../agent-task-log/2025-10/2025-10-14-1_【implementation】RAG推理能力增强-详细过程.md)
 
 ---
 

@@ -1,0 +1,72 @@
+# 任务中 - 架构设计生成规范
+
+> 适用于 `src/business/`, `src/query/`, `src/indexer/`, `src/retrievers/`, `src/embeddings/`, `src/data_source/`, `src/rerankers/`, `src/observers/` 等目录内的架构设计、重构与新模块规划，确保分层清晰、接口稳定、组件可插拔。
+
+---
+
+## 1. 适用范围
+- 涉及跨模块依赖、核心服务改造、RAG 流程编排、向量检索链路优化的任务。
+- 在方案阶段或实施阶段发现结构性调整需求时立即引用本规则。
+
+---
+
+## 2. 三层架构基线
+- [ ] 保持“前端 → 业务 → 基础设施”链路：前端只触达 `RAGService` 等业务接口，禁止越层访问。
+- [ ] 业务层通过依赖注入取得基础设施能力，基础设施层不得夹带业务逻辑。
+- [ ] 设计变更需标注影响到的层级与上下游模块，确认无循环依赖。
+
+---
+
+## 3. 模块规划清单
+
+### 3.1 职责与边界
+- [ ] 每个模块/类仅负责单一领域；必要时拆分为独立组件，避免 God Class。
+- [ ] 新模块命名遵循 `src/<layer>/<role>/module.py` 结构，保持职责可见。
+
+### 3.2 接口与依赖
+- [ ] 以抽象基类或 Protocol 定义契约（例如 `BaseEmbedding`, `BaseDataSource`, `BaseRetriever`）。
+- [ ] 新接口默认向后兼容；若需破坏性变更，提供版本策略或适配层。
+- [ ] 使用构造函数依赖注入，禁止静态单例或隐式全局变量。
+
+### 3.3 可插拔与配置
+- [ ] 复用工厂或注册表模式（`ModuleRegistry`、`retriever_factory` 等）注册新实现。
+- [ ] 所有可切换组件通过配置项启用，默认值写入 `src/config.py` 或对应 `settings`。
+- [ ] 记录运行时切换影响（性能、一致性、资源），必要时提供降级方案。
+
+### 3.4 实现模式提示
+- [ ] 抽象基类：定义核心方法 `embed_query` / `retrieve` / `load` 等。
+- [ ] 工厂模式：集中决策实例化逻辑，处理未知类型抛出明确异常。
+- [ ] 注册表模式：提供 `register`/`create` 接口，新增模块须在初始化时注册。
+
+### 3.5 LlamaIndex 集成要点
+- [ ] 明确 Document（原始文档）→ Node（分块）→ Index → QueryEngine 流程。
+- [ ] 配置 `VectorStoreIndex` 时声明 `StorageContext`、`embedding_model`、`vector_store` 来源。
+- [ ] 定义检索链路：Retriever -> ResponseSynthesizer -> QueryEngine，并说明可调参数。
+
+---
+
+## 4. 设计输出
+- [ ] 在方案文档或实现说明中补充：层次影响、模块职责图、依赖箭头、可插拔节点。
+- [ ] 列出需修改/新增的文件与接口，标注测试覆盖要求。
+- [ ] 若引入第三方依赖或新服务，描述初始化、配置、监控与撤销计划。
+
+---
+
+## 5. 校验与升级
+- [ ] 检查是否违反层级隔离或引入循环依赖。
+- [ ] 确认所有新组件均可通过单元测试与 Mock 进行验证。
+- [ ] 当涉及全局策略、系统性能或数据一致性风险时，升级给用户决策。
+
+---
+
+## 6. 参考资料
+- 架构方案：`agent-task-log/2025-11-09-1_【analysis】Agent任务日志结构重组-任务优化分析.md`
+- 模块示例：`src/business/strategy_manager.py`, `src/query/modular/retriever_factory.py`
+- 测试索引：`tests/agent/README.md`
+
+---
+
+## 7. 版本信息
+
+- **最后更新**：2025-11-09
+- **版本**：v3.0（清单化架构规范，强调三层依赖与可插拔实现）

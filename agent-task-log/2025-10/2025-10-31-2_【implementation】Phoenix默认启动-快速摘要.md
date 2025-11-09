@@ -1,0 +1,22 @@
+# 2025-10-31 【implementation】Phoenix 默认启动 - 快速摘要
+
+**【Task Type】**: implementation
+- 日期：2025-10-31
+- 任务：将 Phoenix 改为无条件默认启动，并在失败时顶部显示错误
+- 文档类型：快速摘要
+
+## 做了什么
+- 在 `app.py` 中取消对 `phoenix_enabled` 的条件判断，改为只要未运行就尝试 `start_phoenix_ui(port=6006)`。
+- 若返回 `None` 或抛出异常，使用 `st.error` 在页面顶部即时提示失败原因/建议（安装依赖、检查端口占用）。
+
+## 关键改动
+- 文件：`app.py`
+  - 将原“自动启动（若启用且未运行）+ 静默忽略失败”的逻辑，改为“无条件尝试启动 + 显示错误”。
+
+## 预期效果
+- 应用启动时自动拉起 Phoenix（若未运行）。
+- 启动失败会在页面顶部醒目标红，提醒安装 `arize-phoenix` 与 `openinference-instrumentation-llama-index` 或检查端口 6006。
+
+## 验证要点
+- 首次进入页面是否自动启动 Phoenix；右侧“调试/日志”区域是否显示“Phoenix 已运行”。
+- 卸载依赖或占用端口时，页面顶部是否出现错误提示，不再静默失败。

@@ -243,7 +243,7 @@ deepseek:
 - [API参考](API.md) - 完整的API接口文档
 - [项目结构](PROJECT_STRUCTURE.md) - 代码组织说明
 - [项目追踪](TRACKER.md) - 任务管理与进度
-- [模块化迁移指南](../agent-task-log/2025-11-01-10_模块化架构整理与迁移指南_实施方案.md)
+- [模块化迁移指南](../agent-task-log/2025-11-01-10_【maintenance】模块化架构整理与迁移指南-实施方案.md)
 
 ---
 
