@@ -1,0 +1,27 @@
+{
+  "generated_at": "2025-11-09T19:25:46",
+  "inventory_file": "agent-task-log/sync_inventory_20251109.json",
+  "total_items": 153,
+  "synced_items": 153,
+  "failed_items": [],
+  "sample_verification": [
+    {
+      "filename": "2025-11-03-4_【refactor】测试体系Agent整合与可读性提升-完成总结.md",
+      "notion_page_id": "2a66c2e8-d0dd-818e-85e4-c9322b62661f",
+      "notion_url": "https://www.notion.so/2a66c2e8d0dd818e85e4c9322b62661f",
+      "checked_at": "2025-11-09T19:25:46"
+    },
+    {
+      "filename": "TASK_TYPES.md",
+      "notion_page_id": "2a66c2e8-d0dd-811c-921c-d9c3502bb9e2",
+      "notion_url": "https://www.notion.so/2a66c2e8d0dd811c921cd9c3502bb9e2",
+      "checked_at": "2025-11-09T19:25:46"
+    },
+    {
+      "filename": "2025-11-09-7_【documentation】Notion同步链路-单点验证总结.md",
+      "notion_page_id": "2a66c2e8-d0dd-819d-b4a1-cfef9ffbc209",
+      "notion_url": "https://www.notion.so/2a66c2e8d0dd819db4a1cfef9ffbc209",
+      "checked_at": "2025-11-09T19:25:46"
+    }
+  ]
+}

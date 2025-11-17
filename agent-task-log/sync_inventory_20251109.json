@@ -1,0 +1,1226 @@
+[
+  {
+    "filename": "2025-10-07_【implementation】MVP项目初始化-项目总结.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-07_【implementation】MVP项目初始化-项目总结.md",
+    "modified_at": "2025-11-09T01:20:24.980804+00:00",
+    "size_bytes": 13020,
+    "notion_page_id": "2a66c2e8-d0dd-81db-b25b-faea961fb672",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81dbb25bfaea961fb672"
+  },
+  {
+    "filename": "2025-10-09-1_【bugfix】测试修复与DeepSeek集成-快速摘要.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-09-1_【bugfix】测试修复与DeepSeek集成-快速摘要.md",
+    "modified_at": "2025-11-09T01:20:24.979804+00:00",
+    "size_bytes": 3707,
+    "notion_page_id": "2a66c2e8-d0dd-81c1-9992-f53bece86fcc",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81c19992f53bece86fcc"
+  },
+  {
+    "filename": "2025-10-09-1_【bugfix】测试修复与DeepSeek集成-详细过程.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-09-1_【bugfix】测试修复与DeepSeek集成-详细过程.md",
+    "modified_at": "2025-11-09T01:20:24.994803+00:00",
+    "size_bytes": 3654,
+    "notion_page_id": "2a66c2e8-d0dd-81ee-a9ad-d007b2bfe611",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81eea9add007b2bfe611"
+  },
+  {
+    "filename": "2025-10-09-2_【bugfix】测试修复-编码与Mock优化-快速摘要.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-09-2_【bugfix】测试修复-编码与Mock优化-快速摘要.md",
+    "modified_at": "2025-11-09T01:20:24.987804+00:00",
+    "size_bytes": 6920,
+    "notion_page_id": "2a66c2e8-d0dd-81ff-956e-dcdc3bf9ea51",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81ff956edcdc3bf9ea51"
+  },
+  {
+    "filename": "2025-10-09-2_【bugfix】测试修复-编码与Mock优化-详细过程.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-09-2_【bugfix】测试修复-编码与Mock优化-详细过程.md",
+    "modified_at": "2025-11-09T01:20:24.982804+00:00",
+    "size_bytes": 18416,
+    "notion_page_id": "2a66c2e8-d0dd-81cf-b014-ee7ab2260b6c",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81cfb014ee7ab2260b6c"
+  },
+  {
+    "filename": "2025-10-09-3_【bugfix】Windows-Make工具安装与Makefile配置-快速摘要.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-09-3_【bugfix】Windows-Make工具安装与Makefile配置-快速摘要.md",
+    "modified_at": "2025-11-09T01:20:24.978804+00:00",
+    "size_bytes": 9164,
+    "notion_page_id": "2a66c2e8-d0dd-818f-8f1e-d17db3ddcdf2",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd818f8f1ed17db3ddcdf2"
+  },
+  {
+    "filename": "2025-10-09-3_【implementation】Windows-Make工具安装与Makefile配置-详细过程.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-09-3_【implementation】Windows-Make工具安装与Makefile配置-详细过程.md",
+    "modified_at": "2025-11-09T01:20:24.977804+00:00",
+    "size_bytes": 20397,
+    "notion_page_id": "2a66c2e8-d0dd-8168-ab74-d4f09d8e033f",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd8168ab74d4f09d8e033f"
+  },
+  {
+    "filename": "2025-10-10-1_【implementation】GitHub数据源集成-详细过程.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-10-1_【implementation】GitHub数据源集成-详细过程.md",
+    "modified_at": "2025-11-09T01:20:24.986804+00:00",
+    "size_bytes": 19776,
+    "notion_page_id": "2a66c2e8-d0dd-811b-bc87-ed7d1612abc4",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd811bbc87ed7d1612abc4"
+  },
+  {
+    "filename": "2025-10-10-1_【plan】GitHub数据源集成-实施方案.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-10-1_【plan】GitHub数据源集成-实施方案.md",
+    "modified_at": "2025-11-09T01:20:24.983804+00:00",
+    "size_bytes": 9589,
+    "notion_page_id": "2a66c2e8-d0dd-8102-bc6c-f4f0dd3f65c1",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd8102bc6cf4f0dd3f65c1"
+  },
+  {
+    "filename": "2025-10-10-2_【implementation】功能增强-进度条日志UI-详细过程.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-10-2_【implementation】功能增强-进度条日志UI-详细过程.md",
+    "modified_at": "2025-11-09T01:20:24.994803+00:00",
+    "size_bytes": 14982,
+    "notion_page_id": "2a66c2e8-d0dd-81d8-81ff-d6eb2e7b774a",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81d881ffd6eb2e7b774a"
+  },
+  {
+    "filename": "2025-10-10-2_【plan】功能增强-进度条日志UI-实施方案.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-10-2_【plan】功能增强-进度条日志UI-实施方案.md",
+    "modified_at": "2025-11-09T01:20:24.989804+00:00",
+    "size_bytes": 4993,
+    "notion_page_id": "2a66c2e8-d0dd-8106-801d-d2ddfdac6333",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd8106801dd2ddfdac6333"
+  },
+  {
+    "filename": "2025-10-10-3_【implementation】GitHub增量更新实施-完成总结.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-10-3_【implementation】GitHub增量更新实施-完成总结.md",
+    "modified_at": "2025-11-09T01:20:24.995803+00:00",
+    "size_bytes": 8854,
+    "notion_page_id": "2a66c2e8-d0dd-81c6-a17f-e1923ecde3a2",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81c6a17fe1923ecde3a2"
+  },
+  {
+    "filename": "2025-10-10-3_【implementation】会话自动持久化增强-实施总结.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-10-3_【implementation】会话自动持久化增强-实施总结.md",
+    "modified_at": "2025-11-09T01:20:24.976804+00:00",
+    "size_bytes": 14833,
+    "notion_page_id": "2a66c2e8-d0dd-81fb-a800-e24a884418b4",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81fba800e24a884418b4"
+  },
+  {
+    "filename": "2025-10-10-3_【plan】维基百科集成-实施方案.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-10-3_【plan】维基百科集成-实施方案.md",
+    "modified_at": "2025-11-09T01:20:24.975804+00:00",
+    "size_bytes": 7605,
+    "notion_page_id": "2a66c2e8-d0dd-81d8-8ebc-e7663eef1658",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81d88ebce7663eef1658"
+  },
+  {
+    "filename": "2025-10-10-4_【implementation】UI优化与热加载增强-实施总结.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-10-4_【implementation】UI优化与热加载增强-实施总结.md",
+    "modified_at": "2025-11-09T01:20:24.974804+00:00",
+    "size_bytes": 8106,
+    "notion_page_id": "2a66c2e8-d0dd-81ec-90a3-f76ed33ae628",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81ec90a3f76ed33ae628"
+  },
+  {
+    "filename": "2025-10-10-5_【implementation】Web流式输出改造-实施总结.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-10-5_【implementation】Web流式输出改造-实施总结.md",
+    "modified_at": "2025-11-09T01:20:24.990803+00:00",
+    "size_bytes": 12077,
+    "notion_page_id": "2a66c2e8-d0dd-81a1-b4d7-f637e1f42806",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81a1b4d7f637e1f42806"
+  },
+  {
+    "filename": "2025-10-12_【bugfix】RAG可观测性集成-实施总结.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-12_【bugfix】RAG可观测性集成-实施总结.md",
+    "modified_at": "2025-11-09T01:20:24.991804+00:00",
+    "size_bytes": 12929,
+    "notion_page_id": "2a66c2e8-d0dd-81f0-978f-d0041c365424",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81f0978fd0041c365424"
+  },
+  {
+    "filename": "2025-10-12_【bugfix】修复query返回值不匹配问题-实施总结.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-12_【bugfix】修复query返回值不匹配问题-实施总结.md",
+    "modified_at": "2025-11-09T01:20:24.974804+00:00",
+    "size_bytes": 3690,
+    "notion_page_id": "2a66c2e8-d0dd-818d-b8b4-c65eb5ee101c",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd818db8b4c65eb5ee101c"
+  },
+  {
+    "filename": "2025-10-12_【bugfix】测试代码归类整理-实施总结.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-12_【bugfix】测试代码归类整理-实施总结.md",
+    "modified_at": "2025-11-09T01:20:24.986804+00:00",
+    "size_bytes": 8769,
+    "notion_page_id": "2a66c2e8-d0dd-81d5-84ed-d4e0b797ca7d",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81d584edd4e0b797ca7d"
+  },
+  {
+    "filename": "2025-10-12_【implementation】GitHub数据源架构重构-完成总结.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-12_【implementation】GitHub数据源架构重构-完成总结.md",
+    "modified_at": "2025-11-09T01:20:24.980804+00:00",
+    "size_bytes": 6336,
+    "notion_page_id": "2a66c2e8-d0dd-8196-9b28-f81e0ff34d7e",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81969b28f81e0ff34d7e"
+  },
+  {
+    "filename": "2025-10-12_【implementation】HuggingFace镜像与离线模式配置-实施总结.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-12_【implementation】HuggingFace镜像与离线模式配置-实施总结.md",
+    "modified_at": "2025-11-09T01:20:24.990803+00:00",
+    "size_bytes": 9425,
+    "notion_page_id": "2a66c2e8-d0dd-813a-9bbb-f735bcfa8b98",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd813a9bbbf735bcfa8b98"
+  },
+  {
+    "filename": "2025-10-12_【plan】GitHub数据源架构重构-实施方案.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-12_【plan】GitHub数据源架构重构-实施方案.md",
+    "modified_at": "2025-11-09T01:20:24.981804+00:00",
+    "size_bytes": 11944,
+    "notion_page_id": "2a66c2e8-d0dd-8143-8c5a-e1d61706830d",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81438c5ae1d61706830d"
+  },
+  {
+    "filename": "2025-10-14-1_【implementation】RAG推理能力增强-快速摘要.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-14-1_【implementation】RAG推理能力增强-快速摘要.md",
+    "modified_at": "2025-11-09T01:20:24.988804+00:00",
+    "size_bytes": 2348,
+    "notion_page_id": "2a66c2e8-d0dd-81ef-8778-d4acf066aba4",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81ef8778d4acf066aba4"
+  },
+  {
+    "filename": "2025-10-14-1_【implementation】RAG推理能力增强-详细过程.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-14-1_【implementation】RAG推理能力增强-详细过程.md",
+    "modified_at": "2025-11-09T01:20:24.994803+00:00",
+    "size_bytes": 13686,
+    "notion_page_id": "2a66c2e8-d0dd-81ed-8fe8-ea263aaed69e",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81ed8fe8ea263aaed69e"
+  },
+  {
+    "filename": "2025-10-14-2_【bugfix】UI布局重构-实施总结.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-14-2_【bugfix】UI布局重构-实施总结.md",
+    "modified_at": "2025-11-09T01:20:24.973804+00:00",
+    "size_bytes": 4020,
+    "notion_page_id": "2a66c2e8-d0dd-81bc-9a28-d97c0e4c70ca",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81bc9a28d97c0e4c70ca"
+  },
+  {
+    "filename": "2025-10-14-3_【bugfix】索引持久化修复-快速摘要.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-14-3_【bugfix】索引持久化修复-快速摘要.md",
+    "modified_at": "2025-11-09T01:20:24.975804+00:00",
+    "size_bytes": 2787,
+    "notion_page_id": "2a66c2e8-d0dd-8105-8f8c-e4d844aa2d5c",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81058f8ce4d844aa2d5c"
+  },
+  {
+    "filename": "2025-10-14-3_【bugfix】索引持久化修复-详细过程.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-14-3_【bugfix】索引持久化修复-详细过程.md",
+    "modified_at": "2025-11-09T01:20:24.990803+00:00",
+    "size_bytes": 10992,
+    "notion_page_id": "2a66c2e8-d0dd-81d5-992b-eaac31b82123",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81d5992beaac31b82123"
+  },
+  {
+    "filename": "2025-10-14-3_【implementation】会话管理优化-实施总结.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-14-3_【implementation】会话管理优化-实施总结.md",
+    "modified_at": "2025-11-09T01:20:24.984804+00:00",
+    "size_bytes": 5775,
+    "notion_page_id": "2a66c2e8-d0dd-8131-bddd-db80c78cb71e",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd8131bddddb80c78cb71e"
+  },
+  {
+    "filename": "2025-10-14-4_【bugfix】UI居中与会话管理优化-实施总结.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-14-4_【bugfix】UI居中与会话管理优化-实施总结.md",
+    "modified_at": "2025-11-09T01:20:24.992804+00:00",
+    "size_bytes": 13604,
+    "notion_page_id": "2a66c2e8-d0dd-81b8-bcd5-f964791c8793",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81b8bcd5f964791c8793"
+  },
+  {
+    "filename": "2025-10-14-5_【bugfix】Embedding模型缓存修复-快速摘要.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-14-5_【bugfix】Embedding模型缓存修复-快速摘要.md",
+    "modified_at": "2025-11-09T01:20:24.993804+00:00",
+    "size_bytes": 9947,
+    "notion_page_id": "2a66c2e8-d0dd-8126-b27f-cb33b554e677",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd8126b27fcb33b554e677"
+  },
+  {
+    "filename": "2025-10-14-5_【bugfix】UI居中布局真修复-快速摘要.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-14-5_【bugfix】UI居中布局真修复-快速摘要.md",
+    "modified_at": "2025-11-09T01:20:24.986804+00:00",
+    "size_bytes": 6124,
+    "notion_page_id": "2a66c2e8-d0dd-8174-982d-e89397f5764f",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd8174982de89397f5764f"
+  },
+  {
+    "filename": "2025-10-14-5_【bugfix】UI居中布局真修复-详细过程.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-14-5_【bugfix】UI居中布局真修复-详细过程.md",
+    "modified_at": "2025-11-09T01:20:24.984804+00:00",
+    "size_bytes": 15830,
+    "notion_page_id": "2a66c2e8-d0dd-8195-8bc9-e6dc30ab007a",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81958bc9e6dc30ab007a"
+  },
+  {
+    "filename": "2025-10-14-6_【implementation】GitHub导入移至设置页-实施总结.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-14-6_【implementation】GitHub导入移至设置页-实施总结.md",
+    "modified_at": "2025-11-09T01:20:24.989804+00:00",
+    "size_bytes": 7662,
+    "notion_page_id": "2a66c2e8-d0dd-816c-9a99-f922fd1be237",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd816c9a99f922fd1be237"
+  },
+  {
+    "filename": "2025-10-14-7_【plan】自动降温-完整方案.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-14-7_【plan】自动降温-完整方案.md",
+    "modified_at": "2025-11-09T01:20:24.973804+00:00",
+    "size_bytes": 2510,
+    "notion_page_id": "2a66c2e8-d0dd-8157-ab18-e5fd6899f9c5",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd8157ab18e5fd6899f9c5"
+  },
+  {
+    "filename": "2025-10-14_【bugfix】今日工作总结-实施总结.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-14_【bugfix】今日工作总结-实施总结.md",
+    "modified_at": "2025-11-09T01:20:24.982804+00:00",
+    "size_bytes": 5583,
+    "notion_page_id": "2a66c2e8-d0dd-81f0-86a3-f639deb5e621",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81f086a3f639deb5e621"
+  },
+  {
+    "filename": "2025-10-15-1_【implementation】UI用户信息移至侧边栏-快速摘要.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-15-1_【implementation】UI用户信息移至侧边栏-快速摘要.md",
+    "modified_at": "2025-11-09T01:20:24.977804+00:00",
+    "size_bytes": 2511,
+    "notion_page_id": "2a66c2e8-d0dd-81ee-9283-ffdb88d4efb3",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81ee9283ffdb88d4efb3"
+  },
+  {
+    "filename": "2025-10-15-2_【implementation】Claude风格UI大改造-实施总结.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-15-2_【implementation】Claude风格UI大改造-实施总结.md",
+    "modified_at": "2025-11-09T01:20:24.973804+00:00",
+    "size_bytes": 7682,
+    "notion_page_id": "2a66c2e8-d0dd-8198-8c0a-cc43dd381e5b",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81988c0acc43dd381e5b"
+  },
+  {
+    "filename": "2025-10-15-3_【implementation】Claude风格UI配色完善-快速摘要.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-15-3_【implementation】Claude风格UI配色完善-快速摘要.md",
+    "modified_at": "2025-11-09T01:20:24.981804+00:00",
+    "size_bytes": 3352,
+    "notion_page_id": "2a66c2e8-d0dd-8146-b326-f8c1a475170c",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd8146b326f8c1a475170c"
+  },
+  {
+    "filename": "2025-10-22-1_【plan】最小化PaaS部署-实施方案.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-22-1_【plan】最小化PaaS部署-实施方案.md",
+    "modified_at": "2025-11-09T01:20:24.983804+00:00",
+    "size_bytes": 11975,
+    "notion_page_id": "2a66c2e8-d0dd-8103-9d58-c954cdd5826b",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81039d58c954cdd5826b"
+  },
+  {
+    "filename": "2025-10-29-1_【bugfix】修复coverage依赖问题-快速摘要.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-29-1_【bugfix】修复coverage依赖问题-快速摘要.md",
+    "modified_at": "2025-11-09T01:20:24.987804+00:00",
+    "size_bytes": 1429,
+    "notion_page_id": "2a66c2e8-d0dd-817f-b5e0-ee034c79df7f",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd817fb5e0ee034c79df7f"
+  },
+  {
+    "filename": "2025-10-29-2_【plan】Embedding并行性能优化-实施方案.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-29-2_【plan】Embedding并行性能优化-实施方案.md",
+    "modified_at": "2025-11-09T01:20:24.986804+00:00",
+    "size_bytes": 9096,
+    "notion_page_id": "2a66c2e8-d0dd-81ae-abb4-cb291a0b38e4",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81aeabb4cb291a0b38e4"
+  },
+  {
+    "filename": "2025-10-29-3_【plan】数据加载架构重构-两层分离设计-实施方案.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-29-3_【plan】数据加载架构重构-两层分离设计-实施方案.md",
+    "modified_at": "2025-11-09T01:20:24.975804+00:00",
+    "size_bytes": 13656,
+    "notion_page_id": "2a66c2e8-d0dd-8112-8f04-c0f548fd3e3e",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81128f04c0f548fd3e3e"
+  },
+  {
+    "filename": "2025-10-29-4_【implementation】索引构建流程优化-实施总结.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-29-4_【implementation】索引构建流程优化-实施总结.md",
+    "modified_at": "2025-11-09T01:20:24.989804+00:00",
+    "size_bytes": 7280,
+    "notion_page_id": "2a66c2e8-d0dd-815c-96a4-f2dcce2aaa37",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd815c96a4f2dcce2aaa37"
+  },
+  {
+    "filename": "2025-10-29-4_【optimization】索引构建流程优化分析-技术分析.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-29-4_【optimization】索引构建流程优化分析-技术分析.md",
+    "modified_at": "2025-11-09T01:20:24.975804+00:00",
+    "size_bytes": 10498,
+    "notion_page_id": "2a66c2e8-d0dd-81f3-8bbd-eb1bc467cd0a",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81f38bbdeb1bc467cd0a"
+  },
+  {
+    "filename": "2025-10-29-5_【bugfix】Qwen3-Embedding模型加载错误修复-快速摘要.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-29-5_【bugfix】Qwen3-Embedding模型加载错误修复-快速摘要.md",
+    "modified_at": "2025-11-09T01:20:24.994803+00:00",
+    "size_bytes": 4072,
+    "notion_page_id": "2a66c2e8-d0dd-8102-a217-c4f8a67c6391",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd8102a217c4f8a67c6391"
+  },
+  {
+    "filename": "2025-10-29-5_【bugfix】模型切换缓存清理说明-说明.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-29-5_【bugfix】模型切换缓存清理说明-说明.md",
+    "modified_at": "2025-11-09T01:20:24.981804+00:00",
+    "size_bytes": 5399,
+    "notion_page_id": "2a66c2e8-d0dd-81c9-8b02-ec3cc77fa689",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81c98b02ec3cc77fa689"
+  },
+  {
+    "filename": "2025-10-29-5_【implementation】嵌入模型更换为Qwen3-Embedding-快速摘要.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-29-5_【implementation】嵌入模型更换为Qwen3-Embedding-快速摘要.md",
+    "modified_at": "2025-11-09T01:20:24.979804+00:00",
+    "size_bytes": 3650,
+    "notion_page_id": "2a66c2e8-d0dd-8141-9c67-fa4d26039de3",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81419c67fa4d26039de3"
+  },
+  {
+    "filename": "2025-10-30-1_【bugfix】GPU加速配置与UV环境冲突解决-详细过程.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-30-1_【bugfix】GPU加速配置与UV环境冲突解决-详细过程.md",
+    "modified_at": "2025-11-09T01:20:24.983804+00:00",
+    "size_bytes": 6616,
+    "notion_page_id": "2a66c2e8-d0dd-8184-8969-c144058b7f30",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81848969c144058b7f30"
+  },
+  {
+    "filename": "2025-10-30-1_【bugfix】索引批模式条件修复-快速摘要.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-30-1_【bugfix】索引批模式条件修复-快速摘要.md",
+    "modified_at": "2025-11-09T01:20:24.979804+00:00",
+    "size_bytes": 888,
+    "notion_page_id": "2a66c2e8-d0dd-810d-9420-f53c6b284765",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd810d9420f53c6b284765"
+  },
+  {
+    "filename": "2025-10-30-1_【implementation】GPU加速配置与UV环境冲突解决-快速摘要.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-30-1_【implementation】GPU加速配置与UV环境冲突解决-快速摘要.md",
+    "modified_at": "2025-11-09T01:20:24.977804+00:00",
+    "size_bytes": 1580,
+    "notion_page_id": "2a66c2e8-d0dd-8103-a38e-c101c9db52e0",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd8103a38ec101c9db52e0"
+  },
+  {
+    "filename": "2025-10-30-2_【bugfix】修复Git子进程环境变量继承问题-快速摘要.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-30-2_【bugfix】修复Git子进程环境变量继承问题-快速摘要.md",
+    "modified_at": "2025-11-09T01:20:24.986804+00:00",
+    "size_bytes": 3005,
+    "notion_page_id": "2a66c2e8-d0dd-8183-a0ba-e042896040ca",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd8183a0bae042896040ca"
+  },
+  {
+    "filename": "2025-10-30-3_【bugfix】修复Git环境变量继承再次确认-快速摘要.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-30-3_【bugfix】修复Git环境变量继承再次确认-快速摘要.md",
+    "modified_at": "2025-11-09T01:20:24.995803+00:00",
+    "size_bytes": 2297,
+    "notion_page_id": "2a66c2e8-d0dd-817d-8b9a-f931b4e9fe46",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd817d8b9af931b4e9fe46"
+  },
+  {
+    "filename": "2025-10-30-4_【bugfix】Embedding维度不匹配修复-任务总结.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-30-4_【bugfix】Embedding维度不匹配修复-任务总结.md",
+    "modified_at": "2025-11-09T01:20:24.990803+00:00",
+    "size_bytes": 5626,
+    "notion_page_id": "2a66c2e8-d0dd-816b-b4cd-ca1fc6c3b95b",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd816bb4cdca1fc6c3b95b"
+  },
+  {
+    "filename": "2025-10-30-4_【bugfix】Embedding维度不匹配修复-快速摘要.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-30-4_【bugfix】Embedding维度不匹配修复-快速摘要.md",
+    "modified_at": "2025-11-09T01:20:24.984804+00:00",
+    "size_bytes": 2243,
+    "notion_page_id": "2a66c2e8-d0dd-810c-bb67-da1c0b816d99",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd810cbb67da1c0b816d99"
+  },
+  {
+    "filename": "2025-10-30-4_【bugfix】Embedding维度不匹配修复-详细过程.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-30-4_【bugfix】Embedding维度不匹配修复-详细过程.md",
+    "modified_at": "2025-11-09T01:20:24.992804+00:00",
+    "size_bytes": 6515,
+    "notion_page_id": "2a66c2e8-d0dd-81c7-a51f-e6dd7c9b995b",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81c7a51fe6dd7c9b995b"
+  },
+  {
+    "filename": "2025-10-30-6_【implementation】批处理分组与E2E测试优化-完成总结.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-30-6_【implementation】批处理分组与E2E测试优化-完成总结.md",
+    "modified_at": "2025-11-09T01:20:24.987804+00:00",
+    "size_bytes": 3307,
+    "notion_page_id": "2a66c2e8-d0dd-8143-9554-f4a54970bcee",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81439554f4a54970bcee"
+  },
+  {
+    "filename": "2025-10-30_【analysis】Chroma后台线程问题诊断与解决方案-解决方案.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-30_【analysis】Chroma后台线程问题诊断与解决方案-解决方案.md",
+    "modified_at": "2025-11-09T01:20:24.989804+00:00",
+    "size_bytes": 7118,
+    "notion_page_id": "2a66c2e8-d0dd-81ef-a731-c22969fd4552",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81efa731c22969fd4552"
+  },
+  {
+    "filename": "2025-10-30_【bugfix】UTF8编码支持实现与测试报告-测试报告.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-30_【bugfix】UTF8编码支持实现与测试报告-测试报告.md",
+    "modified_at": "2025-11-09T01:20:24.987804+00:00",
+    "size_bytes": 4903,
+    "notion_page_id": "2a66c2e8-d0dd-818c-b478-e9880d6d75ae",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd818cb478e9880d6d75ae"
+  },
+  {
+    "filename": "2025-10-31-10_【bugfix】Prompt+Markdown实施方案设计-实施方案.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-31-10_【bugfix】Prompt+Markdown实施方案设计-实施方案.md",
+    "modified_at": "2025-11-09T01:20:24.985804+00:00",
+    "size_bytes": 13896,
+    "notion_page_id": "2a66c2e8-d0dd-819c-93aa-c8127a1099c6",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd819c93aac8127a1099c6"
+  },
+  {
+    "filename": "2025-10-31-11_【bugfix】Prompt+Markdown实施完成总结-完成总结.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-31-11_【bugfix】Prompt+Markdown实施完成总结-完成总结.md",
+    "modified_at": "2025-11-09T01:20:24.974804+00:00",
+    "size_bytes": 9454,
+    "notion_page_id": "2a66c2e8-d0dd-81a2-aac1-ea29c8772ccb",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81a2aac1ea29c8772ccb"
+  },
+  {
+    "filename": "2025-10-31-11_【implementation】GitHub在线链接功能实施-完成总结.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-31-11_【implementation】GitHub在线链接功能实施-完成总结.md",
+    "modified_at": "2025-11-09T01:20:24.976804+00:00",
+    "size_bytes": 8100,
+    "notion_page_id": "2a66c2e8-d0dd-8174-bdeb-f1e8b6d9f489",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd8174bdebf1e8b6d9f489"
+  },
+  {
+    "filename": "2025-10-31-11_【optimization】RAG提示工程与思维链优化-调研报告.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-31-11_【optimization】RAG提示工程与思维链优化-调研报告.md",
+    "modified_at": "2025-11-09T01:20:24.988804+00:00",
+    "size_bytes": 40892,
+    "notion_page_id": "2a66c2e8-d0dd-8110-a81d-fb54e2265e56",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd8110a81dfb54e2265e56"
+  },
+  {
+    "filename": "2025-10-31-12_【implementation】Prompt注入完成总结-完成总结.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-31-12_【implementation】Prompt注入完成总结-完成总结.md",
+    "modified_at": "2025-11-09T01:20:24.978804+00:00",
+    "size_bytes": 12697,
+    "notion_page_id": "2a66c2e8-d0dd-816c-b748-f204094b4078",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd816cb748f204094b4078"
+  },
+  {
+    "filename": "2025-10-31-13_【implementation】Markdown格式化测试结果-测试结果.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-31-13_【implementation】Markdown格式化测试结果-测试结果.md",
+    "modified_at": "2025-11-09T01:20:24.991804+00:00",
+    "size_bytes": 11032,
+    "notion_page_id": "2a66c2e8-d0dd-81d0-a31e-ea5a2f21cba5",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81d0a31eea5a2f21cba5"
+  },
+  {
+    "filename": "2025-10-31-13_【implementation】向量库版本管理实现-快速摘要.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-31-13_【implementation】向量库版本管理实现-快速摘要.md",
+    "modified_at": "2025-11-09T01:20:24.978804+00:00",
+    "size_bytes": 5643,
+    "notion_page_id": "2a66c2e8-d0dd-8158-95f5-d79377f2893e",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd815895f5d79377f2893e"
+  },
+  {
+    "filename": "2025-10-31-1_【implementation】TRACKER补充-快速摘要.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-31-1_【implementation】TRACKER补充-快速摘要.md",
+    "modified_at": "2025-11-09T01:20:24.977804+00:00",
+    "size_bytes": 1026,
+    "notion_page_id": "2a66c2e8-d0dd-8131-8b17-f91ec743bfbb",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81318b17f91ec743bfbb"
+  },
+  {
+    "filename": "2025-10-31-1_【implementation】左侧栏新增新对话按钮-快速摘要.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-31-1_【implementation】左侧栏新增新对话按钮-快速摘要.md",
+    "modified_at": "2025-11-09T01:20:24.987804+00:00",
+    "size_bytes": 1157,
+    "notion_page_id": "2a66c2e8-d0dd-81fd-81c5-ef15fca744b1",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81fd81c5ef15fca744b1"
+  },
+  {
+    "filename": "2025-10-31-1_【implementation】聊天输入UI优化-快速摘要.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-31-1_【implementation】聊天输入UI优化-快速摘要.md",
+    "modified_at": "2025-11-09T01:20:24.982804+00:00",
+    "size_bytes": 1495,
+    "notion_page_id": "2a66c2e8-d0dd-81e3-bc13-fef877974296",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81e3bc13fef877974296"
+  },
+  {
+    "filename": "2025-10-31-2_【bugfix】空回应诊断与后处理流程-快速摘要.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-31-2_【bugfix】空回应诊断与后处理流程-快速摘要.md",
+    "modified_at": "2025-11-09T01:20:24.982804+00:00",
+    "size_bytes": 3957,
+    "notion_page_id": "2a66c2e8-d0dd-81c1-b965-e22cbd1c4554",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81c1b965e22cbd1c4554"
+  },
+  {
+    "filename": "2025-10-31-2_【implementation】Phoenix默认启动-快速摘要.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-31-2_【implementation】Phoenix默认启动-快速摘要.md",
+    "modified_at": "2025-11-09T01:20:24.980804+00:00",
+    "size_bytes": 1166,
+    "notion_page_id": "2a66c2e8-d0dd-815b-ae31-f3f5cefc48a6",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd815bae31f3f5cefc48a6"
+  },
+  {
+    "filename": "2025-10-31-2_【implementation】侧边栏布局与标题调整-快速摘要.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-31-2_【implementation】侧边栏布局与标题调整-快速摘要.md",
+    "modified_at": "2025-11-09T01:20:24.985804+00:00",
+    "size_bytes": 981,
+    "notion_page_id": "2a66c2e8-d0dd-81d7-9129-d2c4ad7451a1",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81d79129d2c4ad7451a1"
+  },
+  {
+    "filename": "2025-10-31-3_【bugfix】方案A落地与日志增强-实施总结.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-31-3_【bugfix】方案A落地与日志增强-实施总结.md",
+    "modified_at": "2025-11-09T01:20:24.980804+00:00",
+    "size_bytes": 4284,
+    "notion_page_id": "2a66c2e8-d0dd-8153-936d-dcc63d2dcde3",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd8153936ddcc63d2dcde3"
+  },
+  {
+    "filename": "2025-10-31-3_【implementation】关闭右下角实时日志-快速摘要.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-31-3_【implementation】关闭右下角实时日志-快速摘要.md",
+    "modified_at": "2025-11-09T01:20:24.978804+00:00",
+    "size_bytes": 881,
+    "notion_page_id": "2a66c2e8-d0dd-819d-a8db-db539ddea469",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd819da8dbdb539ddea469"
+  },
+  {
+    "filename": "2025-10-31-3_【implementation】本地导入迁移到数据源管理-快速摘要.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-31-3_【implementation】本地导入迁移到数据源管理-快速摘要.md",
+    "modified_at": "2025-11-09T01:20:24.983804+00:00",
+    "size_bytes": 889,
+    "notion_page_id": "2a66c2e8-d0dd-81c1-9721-f73b80a66a86",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81c19721f73b80a66a86"
+  },
+  {
+    "filename": "2025-10-31-4_【bugfix】RAG链路与技术栈梳理-快速摘要.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-31-4_【bugfix】RAG链路与技术栈梳理-快速摘要.md",
+    "modified_at": "2025-11-09T01:20:24.979804+00:00",
+    "size_bytes": 4804,
+    "notion_page_id": "2a66c2e8-d0dd-81ed-8113-ff7483023bc8",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81ed8113ff7483023bc8"
+  },
+  {
+    "filename": "2025-10-31-4_【implementation】数据源管理顺序调整与移除目录导入-快速摘要.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-31-4_【implementation】数据源管理顺序调整与移除目录导入-快速摘要.md",
+    "modified_at": "2025-11-09T01:20:24.977804+00:00",
+    "size_bytes": 575,
+    "notion_page_id": "2a66c2e8-d0dd-8110-bf2d-ec94b59a0256",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd8110bf2dec94b59a0256"
+  },
+  {
+    "filename": "2025-10-31-4_【implementation】方案A启动遮罩-快速摘要.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-31-4_【implementation】方案A启动遮罩-快速摘要.md",
+    "modified_at": "2025-11-09T01:20:24.985804+00:00",
+    "size_bytes": 1700,
+    "notion_page_id": "2a66c2e8-d0dd-810d-b4b4-d52d565c8036",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd810db4b4d52d565c8036"
+  },
+  {
+    "filename": "2025-10-31-5_【bugfix】None评分判定修复与日志增强-快速摘要.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-31-5_【bugfix】None评分判定修复与日志增强-快速摘要.md",
+    "modified_at": "2025-11-09T01:20:24.989804+00:00",
+    "size_bytes": 3052,
+    "notion_page_id": "2a66c2e8-d0dd-8172-bce7-ca12591a5ca7",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd8172bce7ca12591a5ca7"
+  },
+  {
+    "filename": "2025-10-31-5_【bugfix】索引维度异常诊断-快速摘要.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-31-5_【bugfix】索引维度异常诊断-快速摘要.md",
+    "modified_at": "2025-11-09T01:20:24.985804+00:00",
+    "size_bytes": 2372,
+    "notion_page_id": "2a66c2e8-d0dd-81a1-9d7a-f83c425f630a",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81a19d7af83c425f630a"
+  },
+  {
+    "filename": "2025-10-31-5_【implementation】GitHub同步按钮迁移到仓库项-快速摘要.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-31-5_【implementation】GitHub同步按钮迁移到仓库项-快速摘要.md",
+    "modified_at": "2025-11-09T01:20:24.984804+00:00",
+    "size_bytes": 791,
+    "notion_page_id": "2a66c2e8-d0dd-8184-b51b-ec61b8eede85",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd8184b51bec61b8eede85"
+  },
+  {
+    "filename": "2025-10-31-5_【implementation】启动遮罩文案与图标-快速摘要.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-31-5_【implementation】启动遮罩文案与图标-快速摘要.md",
+    "modified_at": "2025-11-09T01:20:24.979804+00:00",
+    "size_bytes": 693,
+    "notion_page_id": "2a66c2e8-d0dd-81f1-91b8-f2e4a548a205",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81f191b8f2e4a548a205"
+  },
+  {
+    "filename": "2025-10-31-6_【bugfix】开发者工具默认开启与自动启动Phoenix-快速摘要.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-31-6_【bugfix】开发者工具默认开启与自动启动Phoenix-快速摘要.md",
+    "modified_at": "2025-11-09T01:20:24.987804+00:00",
+    "size_bytes": 886,
+    "notion_page_id": "2a66c2e8-d0dd-8184-a642-c24d21889690",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd8184a642c24d21889690"
+  },
+  {
+    "filename": "2025-10-31-6_【implementation】方案B-实时日志与Phoenix-实施摘要.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-31-6_【implementation】方案B-实时日志与Phoenix-实施摘要.md",
+    "modified_at": "2025-11-09T01:20:24.995803+00:00",
+    "size_bytes": 1626,
+    "notion_page_id": "2a66c2e8-d0dd-8187-84d2-d4f6c2e841ce",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd818784d2d4f6c2e841ce"
+  },
+  {
+    "filename": "2025-10-31-6_【implementation】聊天历史间距调整-快速摘要.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-31-6_【implementation】聊天历史间距调整-快速摘要.md",
+    "modified_at": "2025-11-09T01:20:24.992804+00:00",
+    "size_bytes": 643,
+    "notion_page_id": "2a66c2e8-d0dd-8156-8374-fb4043b2fa9d",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81568374fb4043b2fa9d"
+  },
+  {
+    "filename": "2025-10-31-7_【bugfix】代码库检查与修复-检查报告.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-31-7_【bugfix】代码库检查与修复-检查报告.md",
+    "modified_at": "2025-11-09T01:20:24.993804+00:00",
+    "size_bytes": 5457,
+    "notion_page_id": "2a66c2e8-d0dd-81b6-a484-cf15e375b2e5",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81b6a484cf15e375b2e5"
+  },
+  {
+    "filename": "2025-10-31-7_【implementation】Chroma可视化页面-实施摘要.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-31-7_【implementation】Chroma可视化页面-实施摘要.md",
+    "modified_at": "2025-11-09T01:20:24.975804+00:00",
+    "size_bytes": 1175,
+    "notion_page_id": "2a66c2e8-d0dd-8183-be23-e43071613b72",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd8183be23e43071613b72"
+  },
+  {
+    "filename": "2025-10-31-7_【implementation】设置页“系统设置”改名为“系统状态”-快速摘要.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-31-7_【implementation】设置页“系统设置”改名为“系统状态”-快速摘要.md",
+    "modified_at": "2025-11-09T01:20:24.981804+00:00",
+    "size_bytes": 1445,
+    "notion_page_id": "2a66c2e8-d0dd-81f7-a545-d01d962cc9ea",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81f7a545d01d962cc9ea"
+  },
+  {
+    "filename": "2025-10-31-8_【bugfix】RAG架构演进评估-快速摘要.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-31-8_【bugfix】RAG架构演进评估-快速摘要.md",
+    "modified_at": "2025-11-09T01:20:24.985804+00:00",
+    "size_bytes": 4129,
+    "notion_page_id": "2a66c2e8-d0dd-8118-999e-df2b896005f2",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd8118999edf2b896005f2"
+  },
+  {
+    "filename": "2025-10-31-8_【bugfix】RAG架构演进评估-调研报告.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-31-8_【bugfix】RAG架构演进评估-调研报告.md",
+    "modified_at": "2025-11-09T01:20:24.984804+00:00",
+    "size_bytes": 24590,
+    "notion_page_id": "2a66c2e8-d0dd-81ab-ab33-dcc03fa13288",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81abab33dcc03fa13288"
+  },
+  {
+    "filename": "2025-10-31-9_【implementation】三种方案生成效果对比示例-实施总结.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-31-9_【implementation】三种方案生成效果对比示例-实施总结.md",
+    "modified_at": "2025-11-09T01:20:24.988804+00:00",
+    "size_bytes": 6541,
+    "notion_page_id": "2a66c2e8-d0dd-816b-bf37-f1abbc06c79d",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd816bbf37f1abbc06c79d"
+  },
+  {
+    "filename": "2025-10-31-9_【plan】模块化RAG实施方案-实施方案.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-31-9_【plan】模块化RAG实施方案-实施方案.md",
+    "modified_at": "2025-11-09T01:20:24.991804+00:00",
+    "size_bytes": 32304,
+    "notion_page_id": "2a66c2e8-d0dd-8130-85e6-e97d76e18b51",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd813085e6e97d76e18b51"
+  },
+  {
+    "filename": "2025-10-31-9_【plan】模块化RAG实施方案-快速摘要.md",
+    "relative_path": "agent-task-log/2025-10/2025-10-31-9_【plan】模块化RAG实施方案-快速摘要.md",
+    "modified_at": "2025-11-09T01:20:24.993804+00:00",
+    "size_bytes": 6489,
+    "notion_page_id": "2a66c2e8-d0dd-81ab-9f79-d85936284f27",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81ab9f79d85936284f27"
+  },
+  {
+    "filename": "2025-11-01-10_【maintenance】模块化架构整理与迁移指南-实施方案.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-01-10_【maintenance】模块化架构整理与迁移指南-实施方案.md",
+    "modified_at": "2025-11-09T01:20:24.969804+00:00",
+    "size_bytes": 10001,
+    "notion_page_id": "2a66c2e8-d0dd-8133-b85d-d8b41c6d9801",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd8133b85dd8b41c6d9801"
+  },
+  {
+    "filename": "2025-11-01-10_【plan】TaskLog批量重命名-完成总结.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-01-10_【plan】TaskLog批量重命名-完成总结.md",
+    "modified_at": "2025-11-09T01:20:24.967804+00:00",
+    "size_bytes": 7601,
+    "notion_page_id": "2a66c2e8-d0dd-81ce-88ad-d99e83fabb3f",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81ce88add99e83fabb3f"
+  },
+  {
+    "filename": "2025-11-01-11_【documentation】模块化架构文档索引.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-01-11_【documentation】模块化架构文档索引.md",
+    "modified_at": "2025-11-09T01:26:23.090246+00:00",
+    "size_bytes": 6294,
+    "notion_page_id": "2a66c2e8-d0dd-8168-9387-ce885206b9e9",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81689387ce885206b9e9"
+  },
+  {
+    "filename": "2025-11-01-12_【documentation】模块化架构确立与文档整理-完成总结.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-01-12_【documentation】模块化架构确立与文档整理-完成总结.md",
+    "modified_at": "2025-11-09T01:26:23.089246+00:00",
+    "size_bytes": 10007,
+    "notion_page_id": "2a66c2e8-d0dd-8156-ae36-c0f531d33a88",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd8156ae36c0f531d33a88"
+  },
+  {
+    "filename": "2025-11-01-19_【implementation】项目文档全面简化-完成总结.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-01-19_【implementation】项目文档全面简化-完成总结.md",
+    "modified_at": "2025-11-09T01:20:24.971804+00:00",
+    "size_bytes": 7179,
+    "notion_page_id": "2a66c2e8-d0dd-813b-a3d1-dcc4c3d22ead",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd813ba3d1dcc4c3d22ead"
+  },
+  {
+    "filename": "2025-11-01-1_【implementation】模块化RAG核心实现-完成总结.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-01-1_【implementation】模块化RAG核心实现-完成总结.md",
+    "modified_at": "2025-11-09T01:20:24.965804+00:00",
+    "size_bytes": 8821,
+    "notion_page_id": "2a66c2e8-d0dd-81d9-a9bf-f37038607054",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81d9a9bff37038607054"
+  },
+  {
+    "filename": "2025-11-01-1_【plan】主流RAG实现范式调研-快速摘要.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-01-1_【plan】主流RAG实现范式调研-快速摘要.md",
+    "modified_at": "2025-11-09T01:20:24.969804+00:00",
+    "size_bytes": 2511,
+    "notion_page_id": "2a66c2e8-d0dd-811d-8354-fff757f71b2c",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd811d8354fff757f71b2c"
+  },
+  {
+    "filename": "2025-11-01-20_【documentation】模块化RAG架构核心思路-设计文档.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-01-20_【documentation】模块化RAG架构核心思路-设计文档.md",
+    "modified_at": "2025-11-09T01:20:24.972804+00:00",
+    "size_bytes": 8611,
+    "notion_page_id": "2a66c2e8-d0dd-813e-b5f5-fa7e263001c9",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd813eb5f5fa7e263001c9"
+  },
+  {
+    "filename": "2025-11-01-20_【implementation】月度任务日志归档-归档记录.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-01-20_【implementation】月度任务日志归档-归档记录.md",
+    "modified_at": "2025-11-09T01:20:24.965804+00:00",
+    "size_bytes": 3720,
+    "notion_page_id": "2a66c2e8-d0dd-815a-bff4-f4868a916484",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd815abff4f4868a916484"
+  },
+  {
+    "filename": "2025-11-01-21_【documentation】Grep检索器和多策略检索框架-实施总结.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-01-21_【documentation】Grep检索器和多策略检索框架-实施总结.md",
+    "modified_at": "2025-11-09T01:20:24.968804+00:00",
+    "size_bytes": 6107,
+    "notion_page_id": "2a66c2e8-d0dd-813e-bc90-ea6be4c216cf",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd813ebc90ea6be4c216cf"
+  },
+  {
+    "filename": "2025-11-01-22_【documentation】Reranker模块和RAGAS评估器-实施总结.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-01-22_【documentation】Reranker模块和RAGAS评估器-实施总结.md",
+    "modified_at": "2025-11-09T01:20:24.971804+00:00",
+    "size_bytes": 5417,
+    "notion_page_id": "2a66c2e8-d0dd-812b-ae64-f2c80c3e7381",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd812bae64f2c80c3e7381"
+  },
+  {
+    "filename": "2025-11-01-23_【documentation】模块化RAG架构实施-最终总结.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-01-23_【documentation】模块化RAG架构实施-最终总结.md",
+    "modified_at": "2025-11-09T01:20:24.969804+00:00",
+    "size_bytes": 6340,
+    "notion_page_id": "2a66c2e8-d0dd-810e-a626-cb9f904f7a4d",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd810ea626cb9f904f7a4d"
+  },
+  {
+    "filename": "2025-11-01-24_【documentation】模块化RAG架构实施-完整总结.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-01-24_【documentation】模块化RAG架构实施-完整总结.md",
+    "modified_at": "2025-11-09T01:20:24.971804+00:00",
+    "size_bytes": 7348,
+    "notion_page_id": "2a66c2e8-d0dd-81cd-9a71-e5d74812f8f1",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81cd9a71e5d74812f8f1"
+  },
+  {
+    "filename": "2025-11-01-25_【documentation】P1迁移-流水线编排与协议对接-实施总结.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-01-25_【documentation】P1迁移-流水线编排与协议对接-实施总结.md",
+    "modified_at": "2025-11-09T01:20:24.967804+00:00",
+    "size_bytes": 5441,
+    "notion_page_id": "2a66c2e8-d0dd-8147-8a8a-eece3d836e3f",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81478a8aeece3d836e3f"
+  },
+  {
+    "filename": "2025-11-01-26_【documentation】P2迁移-ModuleRegistry和配置驱动-实施总结.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-01-26_【documentation】P2迁移-ModuleRegistry和配置驱动-实施总结.md",
+    "modified_at": "2025-11-09T01:20:24.972804+00:00",
+    "size_bytes": 3733,
+    "notion_page_id": "2a66c2e8-d0dd-81f7-a845-d2967c5f23d3",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81f7a845d2967c5f23d3"
+  },
+  {
+    "filename": "2025-11-01-27_【documentation】P3迁移-事件钩子和策略管理-实施总结.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-01-27_【documentation】P3迁移-事件钩子和策略管理-实施总结.md",
+    "modified_at": "2025-11-09T01:20:24.963804+00:00",
+    "size_bytes": 3702,
+    "notion_page_id": "2a66c2e8-d0dd-8167-8cd6-e8f061c611fb",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81678cd6e8f061c611fb"
+  },
+  {
+    "filename": "2025-11-01-28_【documentation】模块化RAG架构实施-最终总结.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-01-28_【documentation】模块化RAG架构实施-最终总结.md",
+    "modified_at": "2025-11-09T01:20:24.972804+00:00",
+    "size_bytes": 8642,
+    "notion_page_id": "2a66c2e8-d0dd-81a0-a245-ce7ac94da4da",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81a0a245ce7ac94da4da"
+  },
+  {
+    "filename": "2025-11-01-29_【testing】单元测试补充-实施总结.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-01-29_【testing】单元测试补充-实施总结.md",
+    "modified_at": "2025-11-09T01:20:24.964804+00:00",
+    "size_bytes": 4056,
+    "notion_page_id": "2a66c2e8-d0dd-81b1-a326-fd1af1548b92",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81b1a326fd1af1548b92"
+  },
+  {
+    "filename": "2025-11-01-2_【plan】模块化RAG与Embedding可插拔-合并方案.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-01-2_【plan】模块化RAG与Embedding可插拔-合并方案.md",
+    "modified_at": "2025-11-09T01:20:24.964804+00:00",
+    "size_bytes": 14999,
+    "notion_page_id": "2a66c2e8-d0dd-813f-8a0e-dbc1abf56408",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd813f8a0edbc1abf56408"
+  },
+  {
+    "filename": "2025-11-01-2_【plan】模块化顶层设计-实施方案.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-01-2_【plan】模块化顶层设计-实施方案.md",
+    "modified_at": "2025-11-09T01:20:24.966804+00:00",
+    "size_bytes": 23224,
+    "notion_page_id": "2a66c2e8-d0dd-81e7-b9d4-c9ce8d2ff6ba",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81e7b9d4c9ce8d2ff6ba"
+  },
+  {
+    "filename": "2025-11-01-30_【optimization】性能基准测试-实施总结.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-01-30_【optimization】性能基准测试-实施总结.md",
+    "modified_at": "2025-11-09T01:20:24.963804+00:00",
+    "size_bytes": 3882,
+    "notion_page_id": "2a66c2e8-d0dd-812f-a8d8-c8e8192b7456",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd812fa8d8c8e8192b7456"
+  },
+  {
+    "filename": "2025-11-01-31_【documentation】P0迁移-前端层兼容层-实施总结.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-01-31_【documentation】P0迁移-前端层兼容层-实施总结.md",
+    "modified_at": "2025-11-09T01:20:24.969804+00:00",
+    "size_bytes": 3982,
+    "notion_page_id": "2a66c2e8-d0dd-81ea-9ecd-f06a9148cf78",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81ea9ecdf06a9148cf78"
+  },
+  {
+    "filename": "2025-11-01-32_【documentation】模块化RAG架构实施-完整完成总结.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-01-32_【documentation】模块化RAG架构实施-完整完成总结.md",
+    "modified_at": "2025-11-09T01:20:24.970804+00:00",
+    "size_bytes": 11736,
+    "notion_page_id": "2a66c2e8-d0dd-8133-b83b-db9e2259dd51",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd8133b83bdb9e2259dd51"
+  },
+  {
+    "filename": "2025-11-01-33_【documentation】前端层完全迁移-完成总结.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-01-33_【documentation】前端层完全迁移-完成总结.md",
+    "modified_at": "2025-11-09T01:20:24.969804+00:00",
+    "size_bytes": 4536,
+    "notion_page_id": "2a66c2e8-d0dd-8180-a5e3-db38064be6fb",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd8180a5e3db38064be6fb"
+  },
+  {
+    "filename": "2025-11-01-34_【testing】模块化RAG项目全面测试规划-测试方案.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-01-34_【testing】模块化RAG项目全面测试规划-测试方案.md",
+    "modified_at": "2025-11-09T01:20:24.970804+00:00",
+    "size_bytes": 24648,
+    "notion_page_id": "2a66c2e8-d0dd-8106-9c48-eef46c3f7319",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81069c48eef46c3f7319"
+  },
+  {
+    "filename": "2025-11-01-3_【implementation】Embedding可插拔架构-阶段1完成.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-01-3_【implementation】Embedding可插拔架构-阶段1完成.md",
+    "modified_at": "2025-11-09T01:20:24.963804+00:00",
+    "size_bytes": 9539,
+    "notion_page_id": "2a66c2e8-d0dd-8189-903c-f3047de04d71",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd8189903cf3047de04d71"
+  },
+  {
+    "filename": "2025-11-01-3_【plan】模块化技术方案评估-技术分析.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-01-3_【plan】模块化技术方案评估-技术分析.md",
+    "modified_at": "2025-11-09T01:20:24.962804+00:00",
+    "size_bytes": 13655,
+    "notion_page_id": "2a66c2e8-d0dd-8173-961e-e8783c0f9889",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd8173961ee8783c0f9889"
+  },
+  {
+    "filename": "2025-11-01-4_【implementation】Embedding可插拔架构-实施总结.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-01-4_【implementation】Embedding可插拔架构-实施总结.md",
+    "modified_at": "2025-11-09T01:20:24.967804+00:00",
+    "size_bytes": 15601,
+    "notion_page_id": "2a66c2e8-d0dd-81d8-8d65-c3540813fb57",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81d88d65c3540813fb57"
+  },
+  {
+    "filename": "2025-11-01-4_【implementation】Embedding可插拔架构-快速摘要.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-01-4_【implementation】Embedding可插拔架构-快速摘要.md",
+    "modified_at": "2025-11-09T01:20:24.963804+00:00",
+    "size_bytes": 4033,
+    "notion_page_id": "2a66c2e8-d0dd-8118-b725-db1d3cf6a0a1",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd8118b725db1d3cf6a0a1"
+  },
+  {
+    "filename": "2025-11-01-5_【implementation】模块化RAG与Embedding可插拔-完成总结.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-01-5_【implementation】模块化RAG与Embedding可插拔-完成总结.md",
+    "modified_at": "2025-11-09T01:20:24.968804+00:00",
+    "size_bytes": 14140,
+    "notion_page_id": "2a66c2e8-d0dd-8151-b662-e0f0c3bcdfc6",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd8151b662e0f0c3bcdfc6"
+  },
+  {
+    "filename": "2025-11-01-6_【plan】重排序模块纳入模块化RAG-设计方案.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-01-6_【plan】重排序模块纳入模块化RAG-设计方案.md",
+    "modified_at": "2025-11-09T01:20:24.962804+00:00",
+    "size_bytes": 23041,
+    "notion_page_id": "2a66c2e8-d0dd-81f9-aa3f-f5d2bc1c1bd7",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81f9aa3ff5d2bc1c1bd7"
+  },
+  {
+    "filename": "2025-11-01-7_【bugfix】可观测性纳入模块化RAG-设计方案.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-01-7_【bugfix】可观测性纳入模块化RAG-设计方案.md",
+    "modified_at": "2025-11-09T01:20:24.968804+00:00",
+    "size_bytes": 33757,
+    "notion_page_id": "2a66c2e8-d0dd-8109-8c7f-c373a383389f",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81098c7fc373a383389f"
+  },
+  {
+    "filename": "2025-11-01-8_【bugfix】可观测性模块化-完成总结.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-01-8_【bugfix】可观测性模块化-完成总结.md",
+    "modified_at": "2025-11-09T01:20:24.964804+00:00",
+    "size_bytes": 12816,
+    "notion_page_id": "2a66c2e8-d0dd-8149-9e48-e88b4b38a6bb",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81499e48e88b4b38a6bb"
+  },
+  {
+    "filename": "2025-11-01-8_【bugfix】可观测性模块化-快速摘要.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-01-8_【bugfix】可观测性模块化-快速摘要.md",
+    "modified_at": "2025-11-09T01:20:24.965804+00:00",
+    "size_bytes": 3438,
+    "notion_page_id": "2a66c2e8-d0dd-81c7-96aa-c5df7646f33d",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81c796aac5df7646f33d"
+  },
+  {
+    "filename": "2025-11-01-9_【bugfix】模块化RAG-实施总结.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-01-9_【bugfix】模块化RAG-实施总结.md",
+    "modified_at": "2025-11-09T01:20:24.969804+00:00",
+    "size_bytes": 17814,
+    "notion_page_id": "2a66c2e8-d0dd-8125-aa63-c2633e69f1cc",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd8125aa63c2633e69f1cc"
+  },
+  {
+    "filename": "2025-11-02-1_【bugfix】修复chat-manager导入错误-完成总结.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-02-1_【bugfix】修复chat-manager导入错误-完成总结.md",
+    "modified_at": "2025-11-09T01:20:24.963804+00:00",
+    "size_bytes": 4575,
+    "notion_page_id": "2a66c2e8-d0dd-817f-bbc7-f696135ce53e",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd817fbbc7f696135ce53e"
+  },
+  {
+    "filename": "2025-11-02-2_【documentation】项目架构和功能状态评估-状态报告.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-02-2_【documentation】项目架构和功能状态评估-状态报告.md",
+    "modified_at": "2025-11-09T01:20:24.963804+00:00",
+    "size_bytes": 15300,
+    "notion_page_id": "2a66c2e8-d0dd-8125-90b7-fc2d8de8cfbb",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd812590b7fc2d8de8cfbb"
+  },
+  {
+    "filename": "2025-11-02-3_【bugfix】修复测试导入错误-完成总结.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-02-3_【bugfix】修复测试导入错误-完成总结.md",
+    "modified_at": "2025-11-09T01:20:24.967804+00:00",
+    "size_bytes": 7563,
+    "notion_page_id": "2a66c2e8-d0dd-81b6-973a-ff87aac8adb0",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81b6973aff87aac8adb0"
+  },
+  {
+    "filename": "2025-11-02-4_【plan】Cursor规则设计与实施-完成总结.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-02-4_【plan】Cursor规则设计与实施-完成总结.md",
+    "modified_at": "2025-11-09T01:20:24.965804+00:00",
+    "size_bytes": 5455,
+    "notion_page_id": "2a66c2e8-d0dd-8195-86c0-e3e3f76f33e1",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd819586c0e3e3f76f33e1"
+  },
+  {
+    "filename": "2025-11-03-1_【documentation】枚举规则添加到AGENTS-完成总结.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-03-1_【documentation】枚举规则添加到AGENTS-完成总结.md",
+    "modified_at": "2025-11-09T01:20:24.967804+00:00",
+    "size_bytes": 3881,
+    "notion_page_id": "2a66c2e8-d0dd-8136-a35d-e6e6e7543f29",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd8136a35de6e6e7543f29"
+  },
+  {
+    "filename": "2025-11-03-2_【analysis】AGENTS与规则同步分析-详细过程.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-03-2_【analysis】AGENTS与规则同步分析-详细过程.md",
+    "modified_at": "2025-11-09T01:20:24.964804+00:00",
+    "size_bytes": 10460,
+    "notion_page_id": "2a66c2e8-d0dd-818f-91d0-cc99f4d1f25f",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd818f91d0cc99f4d1f25f"
+  },
+  {
+    "filename": "2025-11-03-2_【documentation】AGENTS与规范同步冗余分析-详细过程.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-03-2_【documentation】AGENTS与规范同步冗余分析-详细过程.md",
+    "modified_at": "2025-11-09T01:26:23.093247+00:00",
+    "size_bytes": 12289,
+    "notion_page_id": "2a66c2e8-d0dd-81c9-a28d-f0a23fe49e15",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81c9a28df0a23fe49e15"
+  },
+  {
+    "filename": "2025-11-03-3_【documentation】文档长度限制分析与拆分建议-分析报告.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-03-3_【documentation】文档长度限制分析与拆分建议-分析报告.md",
+    "modified_at": "2025-11-09T01:20:24.964804+00:00",
+    "size_bytes": 5517,
+    "notion_page_id": "2a66c2e8-d0dd-81ff-ae41-fc3260b06dcb",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81ffae41fc3260b06dcb"
+  },
+  {
+    "filename": "2025-11-03-4_【refactor】测试体系Agent整合与可读性提升-完成总结.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-03-4_【refactor】测试体系Agent整合与可读性提升-完成总结.md",
+    "modified_at": "2025-11-09T01:20:24.967804+00:00",
+    "size_bytes": 12614,
+    "notion_page_id": "2a66c2e8-d0dd-818e-85e4-c9322b62661f",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd818e85e4c9322b62661f"
+  },
+  {
+    "filename": "2025-11-04-1_【documentation】规则执行校验机制创建-完成总结.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-04-1_【documentation】规则执行校验机制创建-完成总结.md",
+    "modified_at": "2025-11-09T01:20:24.961804+00:00",
+    "size_bytes": 5293,
+    "notion_page_id": "2a66c2e8-d0dd-8193-9bc1-d5a9982bcd67",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81939bc1d5a9982bcd67"
+  },
+  {
+    "filename": "2025-11-04-1_【implementation】files-via-content-和-files-via-metadata-检索器实现-实施方案.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-04-1_【implementation】files-via-content-和-files-via-metadata-检索器实现-实施方案.md",
+    "modified_at": "2025-11-09T01:20:24.962804+00:00",
+    "size_bytes": 16082,
+    "notion_page_id": "2a66c2e8-d0dd-813a-94ac-da1161e49625",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd813a94acda1161e49625"
+  },
+  {
+    "filename": "2025-11-04-1_【maintenance】集成ChromaCloudDB-实施总结.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-04-1_【maintenance】集成ChromaCloudDB-实施总结.md",
+    "modified_at": "2025-11-09T01:26:23.097247+00:00",
+    "size_bytes": 8858,
+    "notion_page_id": "2a66c2e8-d0dd-81a6-874f-c3ea9a9d6e50",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81a6874fc3ea9a9d6e50"
+  },
+  {
+    "filename": "2025-11-04-1_【maintenance】集成ChromaCloudDB-规则执行日志.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-04-1_【maintenance】集成ChromaCloudDB-规则执行日志.md",
+    "modified_at": "2025-11-09T01:26:23.098248+00:00",
+    "size_bytes": 3245,
+    "notion_page_id": "2a66c2e8-d0dd-81b4-861f-f48e6e9bce22",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81b4861ff48e6e9bce22"
+  },
+  {
+    "filename": "2025-11-05-1_【documentation】规则设计合理性分析-完成总结.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-05-1_【documentation】规则设计合理性分析-完成总结.md",
+    "modified_at": "2025-11-09T01:20:24.965804+00:00",
+    "size_bytes": 10414,
+    "notion_page_id": "2a66c2e8-d0dd-811d-8cf6-f7ae060d0bbe",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd811d8cf6f7ae060d0bbe"
+  },
+  {
+    "filename": "2025-11-09-1_【analysis】Agent任务日志结构重组-任务优化分析.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-09-1_【analysis】Agent任务日志结构重组-任务优化分析.md",
+    "modified_at": "2025-11-09T01:53:32.797280+00:00",
+    "size_bytes": 2694,
+    "notion_page_id": "2a66c2e8-d0dd-81a7-848e-c0dfdb3c200f",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81a7848ec0dfdb3c200f"
+  },
+  {
+    "filename": "2025-11-09-1_【documentation】Agent任务日志结构重组-完成总结.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-09-1_【documentation】Agent任务日志结构重组-完成总结.md",
+    "modified_at": "2025-11-09T01:53:32.809280+00:00",
+    "size_bytes": 3185,
+    "notion_page_id": "2a66c2e8-d0dd-81de-821b-c87b7629ed74",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81de821bc87b7629ed74"
+  },
+  {
+    "filename": "2025-11-09-1_【documentation】Agent任务日志结构重组-规则执行日志.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-09-1_【documentation】Agent任务日志结构重组-规则执行日志.md",
+    "modified_at": "2025-11-09T01:54:20.910573+00:00",
+    "size_bytes": 1942,
+    "notion_page_id": "2a66c2e8-d0dd-819a-9229-e1a64f146abc",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd819a9229e1a64f146abc"
+  },
+  {
+    "filename": "2025-11-09-2_【analysis】Cursor规则精简重构-任务优化分析.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-09-2_【analysis】Cursor规则精简重构-任务优化分析.md",
+    "modified_at": "2025-11-09T03:01:07.828108+00:00",
+    "size_bytes": 3106,
+    "notion_page_id": "2a66c2e8-d0dd-81db-bc19-c3fd367e0e07",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81dbbc19c3fd367e0e07"
+  },
+  {
+    "filename": "2025-11-09-2_【documentation】Cursor规则精简重构-完成总结.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-09-2_【documentation】Cursor规则精简重构-完成总结.md",
+    "modified_at": "2025-11-09T03:01:07.827108+00:00",
+    "size_bytes": 2341,
+    "notion_page_id": "2a66c2e8-d0dd-8100-8e68-eed5da462839",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd81008e68eed5da462839"
+  },
+  {
+    "filename": "2025-11-09-2_【documentation】Cursor规则精简重构-规则执行日志.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-09-2_【documentation】Cursor规则精简重构-规则执行日志.md",
+    "modified_at": "2025-11-09T03:01:07.828108+00:00",
+    "size_bytes": 1673,
+    "notion_page_id": "2a66c2e8-d0dd-8178-82a6-cd91bb927580",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd817882a6cd91bb927580"
+  },
+  {
+    "filename": "2025-11-09-3_【documentation】任务中-架构设计生成规范元数据补全-完成总结.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-09-3_【documentation】任务中-架构设计生成规范元数据补全-完成总结.md",
+    "modified_at": "2025-11-09T03:31:51.656845+00:00",
+    "size_bytes": 3386,
+    "notion_page_id": "2a66c2e8-d0dd-819b-8950-e9df18d1a88c",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd819b8950e9df18d1a88c"
+  },
+  {
+    "filename": "2025-11-09-4_【documentation】规则与命令分层重构-完成总结.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-09-4_【documentation】规则与命令分层重构-完成总结.md",
+    "modified_at": "2025-11-09T04:04:12.117521+00:00",
+    "size_bytes": 5153,
+    "notion_page_id": "2a66c2e8-d0dd-8182-b596-d88dbfffb19d",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd8182b596d88dbfffb19d"
+  },
+  {
+    "filename": "2025-11-09-5_【documentation】规则触发命令体系重构-完成总结.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-09-5_【documentation】规则触发命令体系重构-完成总结.md",
+    "modified_at": "2025-11-09T04:40:09.136347+00:00",
+    "size_bytes": 5339,
+    "notion_page_id": "2a66c2e8-d0dd-8115-aa80-c156524e818e",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd8115aa80c156524e818e"
+  },
+  {
+    "filename": "2025-11-09-6_【documentation】测试与诊断规范合并-完成总结.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-09-6_【documentation】测试与诊断规范合并-完成总结.md",
+    "modified_at": "2025-11-09T05:03:25.151240+00:00",
+    "size_bytes": 4027,
+    "notion_page_id": "2a66c2e8-d0dd-8189-92b6-ec0d9b34e3eb",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd818992b6ec0d9b34e3eb"
+  },
+  {
+    "filename": "2025-11-09-7_【documentation】Notion同步链路-单点验证总结.md",
+    "relative_path": "agent-task-log/2025-11/2025-11-09-7_【documentation】Notion同步链路-单点验证总结.md",
+    "modified_at": "2025-11-09T08:27:10.087826+00:00",
+    "size_bytes": 3190,
+    "notion_page_id": "2a66c2e8-d0dd-819d-b4a1-cfef9ffbc209",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd819db4a1cfef9ffbc209"
+  },
+  {
+    "filename": "TASK_TYPES.md",
+    "relative_path": "agent-task-log/TASK_TYPES.md",
+    "modified_at": "2025-11-09T01:15:09.058100+00:00",
+    "size_bytes": 2005,
+    "notion_page_id": "2a66c2e8-d0dd-811c-921c-d9c3502bb9e2",
+    "notion_url": "https://www.notion.so/2a66c2e8d0dd811c921cd9c3502bb9e2"
+  }
+]
