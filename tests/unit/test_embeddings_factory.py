@@ -3,6 +3,7 @@ Embedding 工厂单元测试
 测试 create_embedding 函数、缓存机制、错误处理等
 """
 
+import os
 import pytest
 from unittest.mock import Mock, patch, MagicMock
 from typing import Optional
@@ -167,6 +168,70 @@ class TestCreateEmbeddingAPI:
         
         with pytest.raises(ValueError, match="API类型需要提供api_url"):
             create_embedding(embedding_type="api", api_url="")
+
+
+class TestCreateEmbeddingHFInference:
+    """测试创建 HF Inference API Embedding"""
+
+    @patch('src.embeddings.factory.HFInferenceEmbedding')
+    def test_create_hf_inference_embedding(self, mock_hf_class, monkeypatch):
+        """测试创建 HF Inference API Embedding"""
+        mock_config = Mock()
+        mock_config.EMBEDDING_TYPE = "hf-inference"
+        mock_config.EMBEDDING_MODEL = "Qwen/Qwen3-Embedding-0.6B"
+        mock_config.HF_TOKEN = "hf_test_token_123"
+        
+        monkeypatch.setattr("src.embeddings.factory.config", mock_config)
+        clear_embedding_cache()
+        
+        mock_instance = Mock(spec=BaseEmbedding)
+        mock_instance.get_model_name.return_value = "Qwen/Qwen3-Embedding-0.6B"
+        mock_hf_class.return_value = mock_instance
+        
+        result = create_embedding(embedding_type="hf-inference")
+        
+        assert result == mock_instance
+        mock_hf_class.assert_called_once()
+        call_kwargs = mock_hf_class.call_args[1]
+        assert call_kwargs['model_name'] == "Qwen/Qwen3-Embedding-0.6B"
+        assert call_kwargs['api_key'] == "hf_test_token_123"
+
+    def test_create_hf_inference_embedding_missing_token(self, monkeypatch):
+        """测试缺少 HF_TOKEN 时抛出错误"""
+        mock_config = Mock()
+        mock_config.EMBEDDING_TYPE = "hf-inference"
+        mock_config.EMBEDDING_MODEL = "Qwen/Qwen3-Embedding-0.6B"
+        mock_config.HF_TOKEN = None
+        
+        monkeypatch.setattr("src.embeddings.factory.config", mock_config)
+        clear_embedding_cache()
+        
+        with patch.dict(os.environ, {}, clear=True):
+            with pytest.raises(ValueError, match="HF Inference API 需要设置 HF_TOKEN"):
+                create_embedding(embedding_type="hf-inference")
+
+    @patch('src.embeddings.factory.HFInferenceEmbedding')
+    def test_create_hf_inference_embedding_with_custom_model(self, mock_hf_class, monkeypatch):
+        """测试使用自定义模型名称创建 HF Inference Embedding"""
+        mock_config = Mock()
+        mock_config.EMBEDDING_TYPE = "hf-inference"
+        mock_config.EMBEDDING_MODEL = "default-model"
+        mock_config.HF_TOKEN = "hf_test_token_123"
+        
+        monkeypatch.setattr("src.embeddings.factory.config", mock_config)
+        clear_embedding_cache()
+        
+        mock_instance = Mock(spec=BaseEmbedding)
+        mock_hf_class.return_value = mock_instance
+        
+        result = create_embedding(
+            embedding_type="hf-inference",
+            model_name="custom-model"
+        )
+        
+        assert result == mock_instance
+        call_kwargs = mock_hf_class.call_args[1]
+        assert call_kwargs['model_name'] == "custom-model"
 
 
 class TestCreateEmbeddingErrors:

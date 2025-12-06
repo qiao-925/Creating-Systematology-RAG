@@ -45,9 +45,10 @@ index:
 
 # Embedding 配置
 embedding:
-  type: local
-  api_url: http://localhost:8000
-  # API 密钥请在 .env 文件中设置 EMBEDDING_API_KEY
+  type: hf-inference  # 使用 Hugging Face Inference API
+  api_url: http://localhost:8000  # 仅在使用 api 类型时有效
+  # HF Token 请在 .env 文件中设置 HF_TOKEN
+  # 获取地址：https://huggingface.co/settings/tokens
   batch_size: 10
   max_length: 512
 

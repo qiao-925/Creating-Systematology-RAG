@@ -8,6 +8,22 @@
       "description": "DeepSeek API 密钥",
       "required": true
     },
+    "JWT_SECRET_KEY": {
+      "description": "JWT 密钥（至少32字符）",
+      "required": true
+    },
+    "CHROMA_CLOUD_API_KEY": {
+      "description": "Chroma Cloud API 密钥",
+      "required": true
+    },
+    "CHROMA_CLOUD_TENANT": {
+      "description": "Chroma Cloud Tenant",
+      "required": true
+    },
+    "CHROMA_CLOUD_DATABASE": {
+      "description": "Chroma Cloud Database",
+      "required": true
+    },
     "EMBEDDING_MODEL": {
       "default": "BAAI/bge-base-zh-v1.5"
     },
@@ -15,12 +31,15 @@
       "default": "https://hf-mirror.com"
     },
     "APP_PORT": {
-      "default": "8501"
+      "default": "8000"
+    },
+    "CORS_ORIGINS": {
+      "default": "*"
     }
   },
   "ports": [
     {
-      "port": 8501,
+      "port": 8000,
       "protocol": "http"
     }
   ]

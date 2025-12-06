@@ -51,6 +51,9 @@ class Config:
         self.DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
         self.DEEPSEEK_API_BASE = self._get_config("DEEPSEEK_API_BASE", "api.deepseek.base", "https://api.deepseek.com/v1")
         
+        # Hugging Face Token（用于 Inference API）
+        self.HF_TOKEN = os.getenv("HF_TOKEN", "")
+        
         # 模型配置
         self.LLM_MODEL = self._get_config("LLM_MODEL", "model.llm", "deepseek-reasoner")
         self.EMBEDDING_MODEL = self._get_config("EMBEDDING_MODEL", "model.embedding", "Qwen/Qwen3-Embedding-0.6B")
@@ -114,6 +117,10 @@ class Config:
         self.RETRIEVAL_STRATEGY = self._get_config("RETRIEVAL_STRATEGY", "rag.retrieval_strategy", "vector")
         enable_rerank_str = self._get_config("ENABLE_RERANK", "rag.enable_rerank", "false")
         self.ENABLE_RERANK = str(enable_rerank_str).lower() == "true"
+        
+        # JWT 配置
+        self.JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "change-this-in-production-min-32-chars")
+        self.JWT_ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "43200"))  # 30天
         self.RERANKER_TYPE = self._get_config("RERANKER_TYPE", "rag.reranker.type", "sentence-transformer")
         self.RERANK_MODEL = os.getenv("RERANK_MODEL", None) or None
         rerank_top_n_str = self._get_config("RERANK_TOP_N", "rag.reranker.top_n", "3")

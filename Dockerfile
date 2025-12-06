@@ -21,8 +21,9 @@ RUN uv pip install --system -r pyproject.toml
 # 复制应用代码
 COPY . .
 
-# 暴露端口
-EXPOSE 8501
+# 暴露端口（FastAPI 默认 8000，Streamlit 8501）
+EXPOSE 8000 8501
 
-# 启动命令
-CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+# 启动命令（支持环境变量选择）
+# 默认启动 FastAPI，可通过环境变量切换
+CMD ["sh", "-c", "if [ \"$APP_MODE\" = \"streamlit\" ]; then streamlit run app.py --server.port=8501 --server.address=0.0.0.0; else uvicorn src.api.main:app --host 0.0.0.0 --port ${PORT:-8000}; fi"]

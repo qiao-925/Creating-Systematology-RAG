@@ -3,6 +3,7 @@ Embedding工厂函数
 根据配置创建合适的Embedding实例
 """
 
+import os
 from typing import Optional
 from src.embeddings.base import BaseEmbedding
 from src.embeddings.local_embedding import LocalEmbedding
@@ -26,7 +27,7 @@ def create_embedding(
     """创建Embedding实例（工厂函数）
     
     Args:
-        embedding_type: Embedding类型（"local"|"api"，默认使用配置）
+        embedding_type: Embedding类型（"local"|"api"|"hf-inference"，默认使用配置）
         model_name: 模型名称（默认使用配置）
         api_url: API地址（仅API类型需要）
         force_reload: 是否强制重新创建（忽略缓存）
@@ -75,10 +76,34 @@ def create_embedding(
             model_name=model_name,
             **kwargs
         )
+    elif embedding_type == "hf-inference":
+        from src.embeddings.hf_inference_embedding import HFInferenceEmbedding
+        
+        # 如果未提供 model_name，使用配置中的默认值
+        if not model_name:
+            model_name = config.EMBEDDING_MODEL
+        
+        # 处理 api_key 参数（从环境变量或配置读取）
+        api_key = kwargs.get('api_key') or os.getenv("HF_TOKEN") or getattr(config, 'HF_TOKEN', None)
+        
+        if not api_key:
+            raise ValueError(
+                "HF Inference API 需要设置 HF_TOKEN 环境变量或配置。"
+                "获取 Token: https://huggingface.co/settings/tokens"
+            )
+        
+        # 从 kwargs 中移除 api_key，避免重复传递
+        kwargs_without_key = {k: v for k, v in kwargs.items() if k != 'api_key'}
+        
+        _global_embedding_instance = HFInferenceEmbedding(
+            model_name=model_name,
+            api_key=api_key,
+            **kwargs_without_key
+        )
     else:
         raise ValueError(
             f"不支持的Embedding类型: {embedding_type}. "
-            f"支持的类型: local, api"
+            f"支持的类型: local, api, hf-inference"
         )
     
     logger.info(f"✅ Embedding实例创建完成: {_global_embedding_instance}")
