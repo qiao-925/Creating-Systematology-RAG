@@ -97,6 +97,12 @@ async def general_exception_handler(request: Request, exc: Exception):
 app.include_router(chat.router)
 
 
+@app.get("/health")
+async def health_check():
+    """健康检查端点"""
+    return {"status": "healthy"}
+
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", "8000"))

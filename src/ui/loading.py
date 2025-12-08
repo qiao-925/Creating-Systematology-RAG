@@ -79,7 +79,6 @@ def preload_embedding_model() -> None:
             embedding_instance = create_embedding()
             st.session_state.embed_model = embedding_instance
             st.session_state.embed_model_loaded = True
-            st.success(success_text)
             logger.info(f"✅ Embedding 实例创建成功: {type(embedding_instance).__name__}")
         except Exception as e:
             error_msg = f"❌ Embedding 加载失败: {e}"
@@ -237,7 +236,7 @@ def load_index(force_validate: bool = False) -> Optional[IndexManager]:
                 )
                 # 新创建的索引管理器标记为已验证
                 st.session_state.index_manager_validated = True
-                st.success("✅ 索引管理器已初始化")
+                logger.info("✅ 索引管理器已初始化")
         
         return st.session_state.index_manager
     except Exception as e:
@@ -266,8 +265,7 @@ def load_chat_manager() -> Optional[ChatManager]:
                         enable_debug=st.session_state.get('debug_mode_enabled', False),
                         enable_markdown_formatting=True,
                     )
-                    st.success("✅ 对话管理器已初始化")
-                    logger.info("对话管理器初始化成功")
+                    logger.info("✅ 对话管理器已初始化")
                 except ValueError as e:
                     error_str = str(e)
                     if "DEEPSEEK_API_KEY" in error_str or "未设置" in error_str:

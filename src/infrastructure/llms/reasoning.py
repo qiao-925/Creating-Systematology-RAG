@@ -40,29 +40,79 @@ def extract_reasoning_content(response: Any) -> Optional[str]:
         推理链内容，如果不存在返回 None
     """
     try:
+        # 调试：记录提取过程
+        logger.debug(f"🔍 开始提取推理链，响应类型: {type(response)}")
+        
+        # 处理 LlamaIndex Response 对象（可能包含 response.response 属性）
+        if hasattr(response, 'response'):
+            inner_response = response.response
+            logger.debug(f"🔍 找到 response.response 属性，类型: {type(inner_response)}")
+            if hasattr(inner_response, 'message'):
+                message = inner_response.message
+                logger.debug(f"🔍 response.response.message 类型: {type(message)}")
+                if hasattr(message, 'reasoning_content'):
+                    logger.debug(f"🔍 response.response.message.reasoning_content 存在: {message.reasoning_content is not None}")
+                    if message.reasoning_content:
+                        logger.info(f"✅ 从 response.response.message.reasoning_content 提取到推理链（长度: {len(message.reasoning_content)}）")
+                        return message.reasoning_content
+        
         # 处理 ChatResponse
         if hasattr(response, 'message'):
             message = response.message
-            if hasattr(message, 'reasoning_content') and message.reasoning_content:
-                return message.reasoning_content
+            logger.debug(f"🔍 找到 message 属性，类型: {type(message)}")
+            if hasattr(message, 'reasoning_content'):
+                logger.debug(f"🔍 message.reasoning_content 存在: {message.reasoning_content is not None}")
+                if message.reasoning_content:
+                    logger.info(f"✅ 从 message.reasoning_content 提取到推理链（长度: {len(message.reasoning_content)}）")
+                    return message.reasoning_content
+            else:
+                logger.debug(f"🔍 message 没有 reasoning_content 属性，message 属性: {dir(message) if hasattr(message, '__dict__') else 'N/A'}")
         
         # 处理 CompletionResponse（如果支持）
         if hasattr(response, 'reasoning_content') and response.reasoning_content:
             return response.reasoning_content
         
+        # 处理 LlamaIndex Response 对象的 response 属性（可能是底层的 ChatResponse）
+        if hasattr(response, 'response'):
+            inner_response = response.response
+            logger.debug(f"🔍 检查 response.response.raw")
+            if hasattr(inner_response, 'raw') and inner_response.raw:
+                raw = inner_response.raw
+                logger.debug(f"🔍 response.response.raw 类型: {type(raw)}")
+                if isinstance(raw, dict):
+                    choices = raw.get('choices', [])
+                    logger.debug(f"🔍 response.response.raw 中有 {len(choices)} 个 choices")
+                    if choices and len(choices) > 0:
+                        choice = choices[0]
+                        message = choice.get('message', {})
+                        logger.debug(f"🔍 response.response.raw.choice.message 类型: {type(message)}")
+                        if isinstance(message, dict):
+                            reasoning = message.get('reasoning_content')
+                            logger.debug(f"🔍 response.response.raw.choice.message.reasoning_content: {reasoning is not None if reasoning else False}")
+                            if reasoning:
+                                logger.info(f"✅ 从 response.response.raw.choices[0].message.reasoning_content 提取到推理链（长度: {len(reasoning)}）")
+                                return reasoning
+        
         # 处理原始响应（raw）
         if hasattr(response, 'raw') and response.raw:
             raw = response.raw
+            logger.debug(f"🔍 找到 raw 属性，类型: {type(raw)}")
             # 检查 choices[0].message.reasoning_content
             if isinstance(raw, dict):
                 choices = raw.get('choices', [])
+                logger.debug(f"🔍 raw 中有 {len(choices)} 个 choices")
                 if choices and len(choices) > 0:
                     choice = choices[0]
                     message = choice.get('message', {})
+                    logger.debug(f"🔍 choice.message 类型: {type(message)}")
                     if isinstance(message, dict):
                         reasoning = message.get('reasoning_content')
+                        logger.debug(f"🔍 message.reasoning_content: {reasoning is not None if reasoning else False}")
                         if reasoning:
+                            logger.info(f"✅ 从 raw.choices[0].message.reasoning_content 提取到推理链（长度: {len(reasoning)}）")
                             return reasoning
+                    else:
+                        logger.debug(f"🔍 message 不是字典类型，无法提取 reasoning_content")
         
         return None
         

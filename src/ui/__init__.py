@@ -42,6 +42,7 @@ from .history import (
     group_sessions_by_time,
     display_session_history
 )
+from .chat_input import deepseek_style_chat_input
 
 __all__ = [
     'init_session_state',
@@ -58,5 +59,6 @@ __all__ = [
     'display_model_status',
     'group_sessions_by_time',
     'display_session_history',
+    'deepseek_style_chat_input',
 ]
 

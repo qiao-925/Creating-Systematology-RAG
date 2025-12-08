@@ -26,4 +26,4 @@ EXPOSE 8000 8501
 
 # 启动命令（支持环境变量选择）
 # 默认启动 FastAPI，可通过环境变量切换
-CMD ["sh", "-c", "if [ \"$APP_MODE\" = \"streamlit\" ]; then streamlit run app.py --server.port=8501 --server.address=0.0.0.0; else uvicorn src.api.main:app --host 0.0.0.0 --port ${PORT:-8000}; fi"]
+CMD ["sh", "-c", "if [ \"$APP_MODE\" = \"streamlit\" ]; then streamlit run app.py --server.port=8501 --server.address=0.0.0.0; else uvicorn src.business.rag_api.fastapi_app:app --host 0.0.0.0 --port ${PORT:-8000}; fi"]

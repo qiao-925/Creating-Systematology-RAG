@@ -174,12 +174,24 @@ class DeepSeekLogger:
                 try:
                     # 尝试序列化原始响应（如果是字典或可序列化对象）
                     if isinstance(response.raw, dict):
+                        logger.info(f"   原始响应 keys: {list(response.raw.keys())}")
+                        # 检查 choices 中是否有 reasoning_content
+                        if 'choices' in response.raw and response.raw['choices']:
+                            choice = response.raw['choices'][0]
+                            if isinstance(choice, dict) and 'message' in choice:
+                                msg = choice['message']
+                                if isinstance(msg, dict):
+                                    logger.info(f"   message keys: {list(msg.keys())}")
+                                    if 'reasoning_content' in msg:
+                                        logger.info(f"   ✅ 找到 reasoning_content（长度: {len(msg['reasoning_content']) if msg['reasoning_content'] else 0}）")
+                                    else:
+                                        logger.warning(f"   ⚠️ message 中没有 reasoning_content 字段")
                         logger.debug(f"   原始响应: {json.dumps(response.raw, ensure_ascii=False, indent=2)}")
                     else:
                         logger.debug(f"   原始响应类型: {type(response.raw)}")
-                except (TypeError, ValueError):
+                except (TypeError, ValueError) as e:
                     # 如果无法序列化（如 Mock 对象），只记录类型
-                    logger.debug(f"   原始响应类型: {type(response.raw)}（无法序列化）")
+                    logger.debug(f"   原始响应类型: {type(response.raw)}（无法序列化: {e}）")
             
             logger.info("=" * 80)
             

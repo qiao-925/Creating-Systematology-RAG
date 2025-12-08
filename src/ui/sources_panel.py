@@ -97,15 +97,6 @@ def display_sources_right_panel(sources: List[Dict[str, Any]], message_id: Optio
                     dialog_key = f"file_viewer_{message_id}_{citation_num}"
                     if st.button("📖 查看文件", key=dialog_key, use_container_width=True):
                         st.session_state[f"show_file_{dialog_key}"] = file_path
-                
-                # 检查是否需要显示弹窗
-                if st.session_state.get(f"show_file_{dialog_key}"):
-                    show_file_viewer_dialog(st.session_state[f"show_file_{dialog_key}"])
-                    # 检查是否需要关闭弹窗
-                    if st.session_state.get(f"close_file_{dialog_key}", False):
-                        st.session_state[f"show_file_{dialog_key}"] = None
-                        st.session_state[f"close_file_{dialog_key}"] = False
-                        st.rerun()
             
             # 显示引用编号和相似度
             metadata_parts = []
@@ -130,6 +121,23 @@ def display_sources_right_panel(sources: List[Dict[str, Any]], message_id: Optio
             
             if source != sources[-1]:
                 st.divider()
+    
+    # 在循环外部统一处理对话框打开（确保同一时间只打开一个对话框）
+    # 遍历所有可能的对话框键，只打开第一个需要打开的对话框
+    for idx, source in enumerate(sources):
+        citation_num = source.get('index', idx + 1)
+        dialog_key = f"file_viewer_{message_id}_{citation_num}"
+        
+        # 检查是否需要显示弹窗
+        if st.session_state.get(f"show_file_{dialog_key}"):
+            show_file_viewer_dialog(st.session_state[f"show_file_{dialog_key}"])
+            # 检查是否需要关闭弹窗
+            if st.session_state.get(f"close_file_{dialog_key}", False):
+                st.session_state[f"show_file_{dialog_key}"] = None
+                st.session_state[f"close_file_{dialog_key}"] = False
+                st.rerun()
+            # 只打开第一个对话框，避免同时打开多个
+            break
 
 
 def display_sources_below_message(sources: List[Dict[str, Any]], message_id: Optional[str] = None) -> None:
@@ -199,15 +207,6 @@ def display_sources_below_message(sources: List[Dict[str, Any]], message_id: Opt
                 if st.button("📖 查看", key=dialog_key, use_container_width=True):
                     st.session_state[f"show_file_{dialog_key}"] = file_path
             
-            # 检查是否需要显示弹窗
-            if st.session_state.get(f"show_file_{dialog_key}"):
-                show_file_viewer_dialog(st.session_state[f"show_file_{dialog_key}"])
-                # 检查是否需要关闭弹窗
-                if st.session_state.get(f"close_file_{dialog_key}", False):
-                    st.session_state[f"show_file_{dialog_key}"] = None
-                    st.session_state[f"close_file_{dialog_key}"] = False
-                    st.rerun()
-            
             # 显示文本内容（限制长度）
             text = source.get('text', '')
             if len(text) > 200:
@@ -218,6 +217,23 @@ def display_sources_below_message(sources: List[Dict[str, Any]], message_id: Opt
                 st.caption(text)
             
             st.markdown('</div>', unsafe_allow_html=True)
+    
+    # 在循环外部统一处理对话框打开（确保同一时间只打开一个对话框）
+    # 遍历所有可能的对话框键，只打开第一个需要打开的对话框
+    for idx, source in enumerate(sources):
+        citation_num = source.get('index', idx + 1)
+        dialog_key = f"file_viewer_below_{message_id}_{citation_num}"
+        
+        # 检查是否需要显示弹窗
+        if st.session_state.get(f"show_file_{dialog_key}"):
+            show_file_viewer_dialog(st.session_state[f"show_file_{dialog_key}"])
+            # 检查是否需要关闭弹窗
+            if st.session_state.get(f"close_file_{dialog_key}", False):
+                st.session_state[f"show_file_{dialog_key}"] = None
+                st.session_state[f"close_file_{dialog_key}"] = False
+                st.rerun()
+            # 只打开第一个对话框，避免同时打开多个
+            break
 
 
 def display_hybrid_sources(sources: List[Dict[str, Any]], message_id: Optional[str] = None, container: Optional[Any] = None) -> None:

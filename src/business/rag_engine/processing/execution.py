@@ -74,6 +74,48 @@ def execute_query(
         retrieval_time = time.time() - retrieval_start
         
         # 提取推理链内容（如果存在）
+        # 调试：检查响应对象结构
+        logger.debug(f"🔍 响应对象类型: {type(response)}")
+        logger.debug(f"🔍 响应对象属性: {dir(response)}")
+        
+        # 检查 response.response 属性（LlamaIndex Response 对象可能包含底层的 ChatResponse）
+        if hasattr(response, 'response'):
+            logger.debug(f"🔍 response.response 类型: {type(response.response)}")
+            # 如果 response.response 是字符串，说明不是 ChatResponse
+            if isinstance(response.response, str):
+                logger.debug(f"🔍 response.response 是字符串（答案文本），不是 ChatResponse 对象")
+            else:
+                logger.debug(f"🔍 response.response 属性: {dir(response.response) if hasattr(response.response, '__dict__') else 'N/A'}")
+                if hasattr(response.response, 'message'):
+                    logger.debug(f"🔍 response.response.message 类型: {type(response.response.message)}")
+                    if hasattr(response.response.message, 'reasoning_content'):
+                        logger.debug(f"🔍 response.response.message.reasoning_content: {response.response.message.reasoning_content is not None}")
+        
+        # 检查 metadata 中是否有原始响应
+        if hasattr(response, 'metadata'):
+            logger.debug(f"🔍 response.metadata 类型: {type(response.metadata)}")
+            if isinstance(response.metadata, dict):
+                logger.debug(f"🔍 response.metadata.keys(): {list(response.metadata.keys())}")
+                # 检查是否有原始 ChatResponse
+                if 'raw_response' in response.metadata:
+                    logger.debug(f"🔍 找到 metadata.raw_response")
+                if 'llm_response' in response.metadata:
+                    logger.debug(f"🔍 找到 metadata.llm_response")
+        
+        if hasattr(response, 'message'):
+            logger.debug(f"🔍 response.message 类型: {type(response.message)}")
+            logger.debug(f"🔍 response.message 属性: {dir(response.message) if hasattr(response.message, '__dict__') else 'N/A'}")
+        if hasattr(response, 'raw'):
+            logger.debug(f"🔍 response.raw 类型: {type(response.raw)}")
+            if isinstance(response.raw, dict):
+                logger.debug(f"🔍 response.raw.keys(): {list(response.raw.keys())}")
+                if 'choices' in response.raw:
+                    choice = response.raw['choices'][0] if response.raw['choices'] else {}
+                    logger.debug(f"🔍 choice.keys(): {list(choice.keys()) if isinstance(choice, dict) else 'N/A'}")
+                    if isinstance(choice, dict) and 'message' in choice:
+                        msg = choice['message']
+                        logger.debug(f"🔍 message.keys(): {list(msg.keys()) if isinstance(msg, dict) else 'N/A'}")
+        
         reasoning_content = extract_reasoning_content(response)
         
         # 提取答案
@@ -94,7 +136,10 @@ def execute_query(
         
         logger.info(f"✅ 查询完成，找到 {len(sources)} 个引用来源")
         if reasoning_content:
-            logger.debug(f"🧠 推理链内容已提取（长度: {len(reasoning_content)} 字符）")
+            logger.info(f"🧠 推理链内容已提取（长度: {len(reasoning_content)} 字符）")
+            logger.debug(f"🧠 推理链内容预览（前200字符）: {reasoning_content[:200]}...")
+        else:
+            logger.warning("⚠️ 响应中没有推理链内容，可能原因：1) 模型不支持推理链 2) API未返回推理链 3) 提取失败")
         
         # 通知观察器：查询结束
         observer_manager.on_query_end(
