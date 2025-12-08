@@ -8,11 +8,12 @@ import re
 import uuid
 import urllib.parse
 from pathlib import Path
-from typing import List
+from typing import List, Optional, Any, Dict
 
-from src.logger import setup_logger
+from src.infrastructure.logger import get_logger
+from .file_viewer import show_file_viewer_dialog
 
-logger = setup_logger('ui_components')
+logger = get_logger('ui_components')
 
 
 def format_answer_with_citation_links(answer: str, sources: list, message_id: str = None) -> str:
@@ -86,18 +87,20 @@ def get_file_viewer_url(file_path: str) -> str:
         file_path: 文件路径
         
     Returns:
-        URL字符串
+        URL字符串（已编码，可直接用于 HTML 链接）
     """
     # 对文件路径进行URL编码
     encoded_path = urllib.parse.quote(str(file_path), safe='')
     
     # 页面名称：Streamlit pages 目录下的文件名（不含.py）
-    page_name = "2_📄_文件查看"
+    # 对页面名称进行 URL 编码，确保中文字符正确传递
+    page_name = "2_文件查看"
+    encoded_page_name = urllib.parse.quote(page_name, safe='/')
     
-    return f"/{page_name}?path={encoded_path}"
+    return f"/{encoded_page_name}?path={encoded_path}"
 
 
-def display_sources_with_anchors(sources: list, message_id: str = None, expanded: bool = True):
+def display_sources_with_anchors(sources: List[Dict[str, Any]], message_id: Optional[str] = None, expanded: bool = True) -> None:
     """显示引用来源，每个来源都有唯一的锚点ID
     
     Args:
@@ -110,8 +113,8 @@ def display_sources_with_anchors(sources: list, message_id: str = None, expanded
     
     if sources:
         with st.expander("📚 查看引用来源", expanded=expanded):
-            for source in sources:
-                citation_num = source.get('index', 0)
+            for idx, source in enumerate(sources):
+                citation_num = source.get('index', idx + 1)  # 如果没有index，使用循环索引+1
                 citation_id = f"citation_{message_id}_{citation_num}"
                 
                 # 获取文件路径和标题
@@ -122,54 +125,67 @@ def display_sources_with_anchors(sources: list, message_id: str = None, expanded
                     metadata.get('source') or 
                     metadata.get('url') or
                     metadata.get('filename') or
+                    source.get('file_name') or  # 也检查source顶层
                     ''
+                )
+                
+                # 获取页码信息
+                page_number = (
+                    source.get('page_number') or
+                    metadata.get('page_number') or
+                    metadata.get('page') or
+                    None
                 )
                 
                 title = (
                     metadata.get('title') or 
                     metadata.get('file_name') or 
                     metadata.get('filename') or
-                    'Unknown'
+                    source.get('file_name') or
+                    Path(file_path).name if file_path else 'Unknown'
                 )
                 
                 if '/' in title or '\\' in title:
                     title = Path(title).name if title else 'Unknown'
                 
-                file_url = None
-                if file_path:
-                    file_url = get_file_viewer_url(file_path)
+                # 构建标题HTML（包含文件信息）
+                title_html = f'<div id="{citation_id}" style="padding-top: 0.5rem; padding-bottom: 0.5rem;">'
                 
-                # 构建标题HTML
-                if file_url:
-                    page_name = "2_📄_文件查看"
-                    encoded_path = urllib.parse.quote(str(file_path), safe='')
-                    full_url = f"/{page_name}?path={encoded_path}"
-                    title_html = (
-                        f'<div id="{citation_id}" style="padding-top: 0.5rem; padding-bottom: 0.5rem;">'
-                        f'<strong>'
-                        f'<a href="{full_url}" '
-                        f'style="color: var(--color-accent); text-decoration: underline; font-weight: 600; cursor: pointer;" '
-                        f'title="点击查看完整文件">'
-                        f'[{citation_num}] {title} 🔗'
-                        f'</a>'
-                        f'</strong>'
-                    )
-                    st.markdown(title_html, unsafe_allow_html=True)
+                # 如果有文件路径，显示文件信息和查看按钮
+                if file_path:
+                    # 文件信息区域（使用列布局）
+                    col1, col2 = st.columns([3, 1])
+                    with col1:
+                        title_html += (
+                            f'<div style="margin-bottom: 0.5rem; padding: 0.5rem; background-color: var(--color-bg-secondary); border-radius: 4px;">'
+                            f'<div style="font-weight: 600; font-size: 0.95rem; color: var(--color-accent);">'
+                            f'📄 来源文件: {title}'
+                            f'</div>'
+                        )
+                        if page_number:
+                            title_html += f'<div style="font-size: 0.85rem; color: var(--color-text-secondary);">📑 页码: {page_number}</div>'
+                        title_html += f'</div>'
+                        st.markdown(title_html, unsafe_allow_html=True)
+                    with col2:
+                        # 使用按钮触发弹窗
+                        dialog_key = f"file_viewer_anchor_{message_id}_{citation_num}"
+                        if st.button("📖 查看文件", key=dialog_key, use_container_width=True):
+                            st.session_state[f"show_file_{dialog_key}"] = file_path
                 else:
-                    st.markdown(f'<div id="{citation_id}"><strong>[{citation_num}] {title}</strong></div>', unsafe_allow_html=True)
+                    title_html += f'<strong>[{citation_num}]</strong></div>'
+                    st.markdown(title_html, unsafe_allow_html=True)
                 
                 # 显示元数据
                 metadata_parts = []
-                if source['score'] is not None:
+                if source.get('score') is not None:
                     metadata_parts.append(f"相似度: {source['score']:.2f}")
-                if 'file_name' in source['metadata']:
-                    metadata_parts.append(f"📁 {source['metadata']['file_name']}")
                 
                 if metadata_parts:
                     st.caption(" | ".join(metadata_parts))
                 
-                # 显示文本内容
-                text = source['text']
+                # 显示文本内容（被引用的具体文本）
+                st.markdown("**📝 引用文本块:**", unsafe_allow_html=True)
+                text = source.get('text', '')
                 if len(text) > 300:
                     with st.expander("查看完整内容", expanded=False):
                         st.text(text)
@@ -179,4 +195,16 @@ def display_sources_with_anchors(sources: list, message_id: str = None, expanded
                 
                 if source != sources[-1]:
                     st.divider()
+        
+        # 在expander外部检查并显示弹窗（避免嵌套问题）
+        for idx, source in enumerate(sources):
+            citation_num = source.get('index', idx + 1)
+            dialog_key = f"file_viewer_anchor_{message_id}_{citation_num}"
+            if st.session_state.get(f"show_file_{dialog_key}"):
+                show_file_viewer_dialog(st.session_state[f"show_file_{dialog_key}"])
+                # 检查是否需要关闭弹窗
+                if st.session_state.get(f"close_file_{dialog_key}", False):
+                    st.session_state[f"show_file_{dialog_key}"] = None
+                    st.session_state[f"close_file_{dialog_key}"] = False
+                    st.rerun()
 

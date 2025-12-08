@@ -1,86 +1,85 @@
 # 应用配置文件
-# 优先级：环境变量 > YAML 配置 > 默认值
-# 敏感信息（API keys、密码等）请使用 .env 文件
+# 注意：此文件仅包含静态非敏感配置
+# 敏感信息（API keys、tokens、密钥等）请使用 .env 文件
 
-# API 配置
+# ============================================================================
+# 1. 应用基础配置
+# ============================================================================
+app:
+  title: 系统科学知识库RAG
+  port: 8501
+  dev_mode: true
+
+logging:
+  level: DEBUG     # 控制台日志级别（改为 DEBUG 显示更多信息）
+  file_level: DEBUG  # 文件日志级别
+
+cache:
+  enable: true  # 已废弃：缓存管理器功能已移除，此配置不再使用
+
+# ============================================================================
+# 2. API 与外部服务配置
+# ============================================================================
 api:
   deepseek:
-    # API 密钥请在 .env 文件中设置 DEEPSEEK_API_KEY
     base: https://api.deepseek.com/v1
 
-# 模型配置
-model:
-  llm: deepseek-reasoner
-  embedding: Qwen/Qwen3-Embedding-0.6B
-
-# HuggingFace 配置
 huggingface:
   endpoint: https://hf-mirror.com
   offline_mode: false
 
-# 向量数据库配置（Chroma Cloud）
+github:
+  default_branch: main
+
+# ============================================================================
+# 3. 模型配置
+# ============================================================================
+model:
+  llm: deepseek-reasoner
+  embedding: BAAI/bge-base-zh-v1.5
+
+embedding:
+  type: hf-inference  # 使用 Hugging Face Inference API
+  api_url: http://localhost:8000  # 仅在使用 api 类型时有效
+  batch_size: 10
+  max_length: 512
+
+deepseek:
+  enable_reasoning_display: true  # 是否在 UI 中显示推理链（始终显示）
+  store_reasoning: true  # 是否存储推理链到会话历史（始终存储）
+  json_output_enabled: false  # 是否全局启用 JSON Output（默认 false，仅结构化场景启用）
+
+# ============================================================================
+# 4. 向量存储与索引配置
+# ============================================================================
 vector_store:
-  # Cloud 模式配置
-  cloud_api_key: ""  # 请在 .env 文件中设置 CHROMA_CLOUD_API_KEY
-  cloud_tenant: ""  # 请在 .env 文件中设置 CHROMA_CLOUD_TENANT
-  cloud_database: ""  # 请在 .env 文件中设置 CHROMA_CLOUD_DATABASE
   collection_name: default
 
-# 文档路径配置
 paths:
   raw_data: ./data/raw
   processed_data: ./data/processed
-  sessions: ./sessions
-  activity_log: ./logs/activity
+  vector_store: ./data/vector_store  # 向量存储路径（向后兼容，Chroma Cloud 模式不再使用）
+  sessions: ./data/sessions
+  activity_log: ./data/logs/activity
   github_repos: ./data/github_repos
   github_metadata: ./data/github_metadata.json
-  cache_state: ./data/cache_state.json
+  cache_state: ./data/cache_state.json  # 已废弃：缓存管理器功能已移除，此配置不再使用
 
-# 索引配置
 index:
   chunk_size: 512
   chunk_overlap: 50
   similarity_top_k: 3
   similarity_threshold: 0.4  # 最大化召回，宽松过滤
 
-# Embedding 配置
-embedding:
-  type: hf-inference  # 使用 Hugging Face Inference API
-  api_url: http://localhost:8000  # 仅在使用 api 类型时有效
-  # HF Token 请在 .env 文件中设置 HF_TOKEN
-  # 获取地址：https://huggingface.co/settings/tokens
-  batch_size: 10
-  max_length: 512
-
-# 可观测性配置
-observability:
-  phoenix:
-    enable: true
-    launch_app: false
-    host: 0.0.0.0
-    port: 6006
-  llama_debug:
-    enable: false
-    print_trace: true
-
-# RAGAS 评估器配置
-ragas:
-  enable: false
-  metrics:
-    - faithfulness
-    - context_precision
-    - context_recall
-    - answer_relevancy
-    - context_relevancy
-  batch_size: 10
-
-# 模块化 RAG 配置
+# ============================================================================
+# 5. RAG 核心配置
+# ============================================================================
 rag:
   retrieval_strategy: vector
   enable_rerank: false
   reranker:
     type: sentence-transformer
-    model: null  # 可在 .env 中设置 RERANK_MODEL
+    model: null
     top_n: 3
   similarity_cutoff: 0.4  # 最大化召回，宽松过滤（后处理器过滤 + 兜底检查）
   hybrid_alpha: 0.5
@@ -97,12 +96,10 @@ rag:
       grep: 0.6
     enable_deduplication: true
 
-# 模块注册中心配置
 module_registry:
-  config_path: null  # 可在 .env 中设置 MODULE_CONFIG_PATH
+  config_path: null
   auto_register_modules: true
 
-# 批处理与分组配置
 batch_processing:
   index_batch_mode: false
   index_group_by: directory
@@ -113,49 +110,34 @@ batch_processing:
   index_strategy: nodes
   index_max_batches: 0
 
-# 应用配置
-app:
-  title: 系统科学知识库RAG
-  port: 8501
-  dev_mode: true
+# ============================================================================
+# 6. 可观测性与评估配置
+# ============================================================================
+observability:
+  phoenix:
+    enable: true
+    launch_app: false
+    host: 0.0.0.0
+    port: 6006
+  llama_debug:
+    enable: false
+    print_trace: true
 
-# GitHub 数据源配置
-github:
-  default_branch: main
+ragas:
+  enable: false
+  metrics:
+    - faithfulness
+    - context_precision
+    - context_recall
+    - answer_relevancy
+    - context_relevancy
+  batch_size: 10
 
-# 维基百科配置
-wikipedia:
-  enable: true
-  auto_lang: true
-  threshold: 0.6
-  max_results: 2
-  preload_concepts:
-    - 系统科学
-    - 钱学森
-    - 系统工程
-    - 控制论
-    - 信息论
-    - 复杂系统
-
-# 缓存配置
-cache:
-  enable: true
-
-# DeepSeek 推理模型配置
-deepseek:
-  enable_reasoning_display: true  # 是否在 UI 中显示推理链（默认显示）
-  store_reasoning: false  # 是否存储推理链到会话历史（默认不存储，节省空间）
-  json_output_enabled: false  # 是否全局启用 JSON Output（默认 false，仅结构化场景启用）
-
-# 日志配置
-logging:
-  level: INFO      # 控制台日志级别
-  file_level: DEBUG  # 文件日志级别
-
-# 测试配置
+# ============================================================================
+# 7. 测试配置
+# ============================================================================
 test:
   github:
     owner: qiao-925
-    repo: Creating-Systematology
+    repo: Creating-Systematology-Test
     branch: main
-

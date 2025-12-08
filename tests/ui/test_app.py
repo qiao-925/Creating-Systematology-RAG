@@ -1,6 +1,6 @@
 """
 Streamlit应用UI测试
-测试主页、设置页面、文件查看页面和Chroma查看器
+测试主页、设置页面、文件查看页面
 """
 
 import pytest
@@ -30,7 +30,7 @@ class TestMainPageUI:
     
     def test_session_initialization(self, mock_streamlit):
         """测试会话初始化"""
-        from src.ui_components import init_session_state
+        from src.ui import init_session_state
         
         # Mock session_state
         mock_streamlit.session_state = {}
@@ -46,7 +46,7 @@ class TestMainPageUI:
     
     def test_rag_service_loading(self):
         """测试RAGService加载"""
-        from src.ui_components import load_rag_service
+        from src.ui import load_rag_service
         
         # 测试加载逻辑（不实际加载，避免依赖）
         try:
@@ -57,7 +57,7 @@ class TestMainPageUI:
     
     def test_index_loading(self):
         """测试索引加载"""
-        from src.ui_components import load_index
+        from src.ui import load_index
         
         # 验证函数存在
         try:
@@ -67,7 +67,7 @@ class TestMainPageUI:
     
     def test_chat_manager_loading(self):
         """测试ChatManager加载"""
-        from src.ui_components import load_chat_manager
+        from src.ui import load_chat_manager
         
         # 验证函数存在
         try:
@@ -77,7 +77,7 @@ class TestMainPageUI:
     
     def test_model_status_display(self):
         """测试模型状态显示"""
-        from src.ui_components import display_model_status
+        from src.ui import display_model_status
         
         # 验证函数存在
         try:
@@ -87,7 +87,7 @@ class TestMainPageUI:
     
     def test_sources_display(self):
         """测试来源显示"""
-        from src.ui_components import display_sources_with_anchors, display_sources_right_panel
+        from src.ui import display_sources_with_anchors, display_sources_right_panel
         
         # 验证函数存在
         try:
@@ -98,7 +98,7 @@ class TestMainPageUI:
     
     def test_answer_formatting(self):
         """测试答案格式化"""
-        from src.ui_components import format_answer_with_citation_links
+        from src.ui import format_answer_with_citation_links
         
         # 验证函数存在
         try:
@@ -164,7 +164,7 @@ class TestFileViewerPageUI:
         """测试文件查看页面结构"""
         try:
             # 验证页面文件存在
-            file_viewer_path = Path(__file__).parent.parent.parent / "pages" / "2_📄_文件查看.py"
+            file_viewer_path = Path(__file__).parent.parent.parent / "pages" / "2_文件查看.py"
             assert file_viewer_path.exists()
         except Exception as e:
             pytest.skip(f"文件查看页面检查失败: {e}")
@@ -175,7 +175,7 @@ class TestFileViewerPageUI:
             from pages import importlib
             import importlib.util
             
-            file_viewer_path = Path(__file__).parent.parent.parent / "pages" / "2_📄_文件查看.py"
+            file_viewer_path = Path(__file__).parent.parent.parent / "pages" / "2_文件查看.py"
             if file_viewer_path.exists():
                 spec = importlib.util.spec_from_file_location("file_viewer", file_viewer_path)
                 module = importlib.util.module_from_spec(spec)
@@ -190,7 +190,7 @@ class TestFileViewerPageUI:
     def test_markdown_file_display(self):
         """测试Markdown文件显示"""
         try:
-            file_viewer_path = Path(__file__).parent.parent.parent / "pages" / "2_📄_文件查看.py"
+            file_viewer_path = Path(__file__).parent.parent.parent / "pages" / "2_文件查看.py"
             if file_viewer_path.exists():
                 content = file_viewer_path.read_text(encoding='utf-8')
                 # 验证包含display_markdown_file函数
@@ -201,7 +201,7 @@ class TestFileViewerPageUI:
     def test_pdf_file_display(self):
         """测试PDF文件显示"""
         try:
-            file_viewer_path = Path(__file__).parent.parent.parent / "pages" / "2_📄_文件查看.py"
+            file_viewer_path = Path(__file__).parent.parent.parent / "pages" / "2_文件查看.py"
             if file_viewer_path.exists():
                 content = file_viewer_path.read_text(encoding='utf-8')
                 # 验证包含display_pdf_file函数
@@ -210,58 +210,13 @@ class TestFileViewerPageUI:
             pytest.skip(f"PDF文件显示测试失败: {e}")
 
 
-class TestChromaViewerPageUI:
-    """Chroma查看器页面UI测试"""
-    
-    def test_chroma_viewer_page_structure(self):
-        """测试Chroma查看器页面结构"""
-        try:
-            chroma_viewer_path = Path(__file__).parent.parent.parent / "pages" / "3_🔎_Chroma_Viewer.py"
-            assert chroma_viewer_path.exists()
-        except Exception as e:
-            pytest.skip(f"Chroma查看器页面检查失败: {e}")
-    
-    def test_chroma_client_initialization(self):
-        """测试Chroma客户端初始化"""
-        try:
-            chroma_viewer_path = Path(__file__).parent.parent.parent / "pages" / "3_🔎_Chroma_Viewer.py"
-            if chroma_viewer_path.exists():
-                content = chroma_viewer_path.read_text(encoding='utf-8')
-                # 验证包含get_chroma_client函数
-                assert 'get_chroma_client' in content
-        except Exception as e:
-            pytest.skip(f"Chroma客户端初始化测试失败: {e}")
-    
-    def test_collection_listing(self):
-        """测试集合列表功能"""
-        try:
-            chroma_viewer_path = Path(__file__).parent.parent.parent / "pages" / "3_🔎_Chroma_Viewer.py"
-            if chroma_viewer_path.exists():
-                content = chroma_viewer_path.read_text(encoding='utf-8')
-                # 验证包含list_collections函数
-                assert 'list_collections' in content
-        except Exception as e:
-            pytest.skip(f"集合列表测试失败: {e}")
-    
-    def test_collection_query(self):
-        """测试集合查询功能"""
-        try:
-            chroma_viewer_path = Path(__file__).parent.parent.parent / "pages" / "3_🔎_Chroma_Viewer.py"
-            if chroma_viewer_path.exists():
-                content = chroma_viewer_path.read_text(encoding='utf-8')
-                # 验证包含run_query函数
-                assert 'run_query' in content
-        except Exception as e:
-            pytest.skip(f"集合查询测试失败: {e}")
-
-
 class TestUIIntegration:
     """UI集成测试"""
     
     def test_ui_components_import(self):
         """测试UI组件导入"""
         try:
-            from src.ui_components import (
+            from src.ui import (
                 init_session_state,
                 load_rag_service,
                 load_index,
@@ -280,8 +235,7 @@ class TestUIIntegration:
         # 验证页面文件存在
         expected_pages = [
             "1_⚙️_设置.py",
-            "2_📄_文件查看.py",
-            "3_🔎_Chroma_Viewer.py",
+            "2_文件查看.py",
         ]
         
         for page_file in expected_pages:
@@ -312,7 +266,7 @@ class TestUIComponentFunctions:
     def test_format_sources_function(self):
         """测试来源格式化函数"""
         try:
-            from src.query_engine import format_sources
+            from src.business.rag_engine import format_sources
             
             # 测试格式化功能
             test_sources = [
@@ -331,7 +285,7 @@ class TestUIComponentFunctions:
     def test_hybrid_sources_display(self):
         """测试混合来源显示"""
         try:
-            from src.ui_components import display_hybrid_sources
+            from src.ui import display_hybrid_sources
             
             # 验证函数存在
             assert callable(display_hybrid_sources)
@@ -347,7 +301,7 @@ class TestUIErrorHandling:
         # UI组件应该能够处理各种错误情况
         # 这里主要验证组件存在且可以调用
         try:
-            from src.ui_components import (
+            from src.ui import (
                 init_session_state,
                 load_rag_service,
             )
@@ -390,21 +344,12 @@ class TestUIPageConfiguration:
     def test_file_viewer_page_config(self):
         """测试文件查看页面配置"""
         try:
-            file_viewer_path = Path(__file__).parent.parent.parent / "pages" / "2_📄_文件查看.py"
+            file_viewer_path = Path(__file__).parent.parent.parent / "pages" / "2_文件查看.py"
             if file_viewer_path.exists():
                 content = file_viewer_path.read_text(encoding='utf-8')
                 assert 'st.set_page_config' in content
         except Exception as e:
             pytest.skip(f"文件查看页面配置测试失败: {e}")
     
-    def test_chroma_viewer_page_config(self):
-        """测试Chroma查看器页面配置"""
-        try:
-            chroma_viewer_path = Path(__file__).parent.parent.parent / "pages" / "3_🔎_Chroma_Viewer.py"
-            if chroma_viewer_path.exists():
-                content = chroma_viewer_path.read_text(encoding='utf-8')
-                assert 'st.set_page_config' in content
-        except Exception as e:
-            pytest.skip(f"Chroma查看器页面配置测试失败: {e}")
 
 

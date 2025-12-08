@@ -9,8 +9,8 @@ from pathlib import Path
 import tempfile
 import json
 
-from src.api.main import app
-from src.user_manager import UserManager
+from src.business.rag_api.fastapi_app import app
+from src.infrastructure.user_manager import UserManager
 
 
 @pytest.fixture
@@ -23,7 +23,7 @@ def temp_users_file(tmp_path):
 def client(temp_users_file, monkeypatch):
     """创建测试客户端，使用临时用户文件"""
     # 清除可能存在的 UserManager 实例
-    from src.api.dependencies import get_user_manager
+    from src.business.rag_api.fastapi_dependencies import get_user_manager
     if hasattr(get_user_manager, '_instance'):
         delattr(get_user_manager, '_instance')
     
@@ -37,8 +37,8 @@ def client(temp_users_file, monkeypatch):
         return mock_get_user_manager._instance
     
     # 临时替换依赖
-    import src.api.dependencies
-    src.api.dependencies.get_user_manager = mock_get_user_manager
+    import src.business.rag_api.fastapi_dependencies
+    src.business.rag_api.fastapi_dependencies.get_user_manager = mock_get_user_manager
     
     # 设置测试环境变量
     monkeypatch.setenv("JWT_SECRET_KEY", "test-secret-key-for-testing-only-min-32-chars")
@@ -50,7 +50,7 @@ def client(temp_users_file, monkeypatch):
     yield test_client
     
     # 恢复原始函数
-    src.api.dependencies.get_user_manager = original_get_user_manager
+    src.business.rag_api.fastapi_dependencies.get_user_manager = original_get_user_manager
     # 清除实例
     if hasattr(mock_get_user_manager, '_instance'):
         delattr(mock_get_user_manager, '_instance')
@@ -253,7 +253,7 @@ class TestQueryEndpoints:
         """测试已认证的查询请求"""
         # Mock RAGService 以避免真实 API 调用
         from unittest.mock import Mock, patch, AsyncMock
-        from src.business.services.modules.models import RAGResponse
+        from src.business.rag_api.models import RAGResponse
         
         mock_response = RAGResponse(
             answer="系统科学是研究系统的一般规律和方法的学科。",
@@ -262,7 +262,7 @@ class TestQueryEndpoints:
         )
         
         # Mock asyncio.to_thread 来返回 mock 响应
-        with patch('src.api.routers.query.asyncio.to_thread') as mock_to_thread:
+        with patch('src.business.rag_api.fastapi_routers.query.asyncio.to_thread') as mock_to_thread:
             mock_to_thread.return_value = mock_response
             
             response = authenticated_client.post(
@@ -311,7 +311,7 @@ class TestChatEndpoints:
         """测试已认证的对话请求"""
         # Mock RAGService 以避免真实 API 调用
         from unittest.mock import Mock, patch
-        from src.business.services.modules.models import ChatResponse
+        from src.business.rag_api.models import ChatResponse
         
         mock_response = ChatResponse(
             answer="你好！有什么可以帮助你的吗？",
@@ -322,7 +322,7 @@ class TestChatEndpoints:
         )
         
         # Mock asyncio.to_thread 来返回 mock 响应
-        with patch('src.api.routers.chat.asyncio.to_thread') as mock_to_thread:
+        with patch('src.business.rag_api.fastapi_routers.chat.asyncio.to_thread') as mock_to_thread:
             mock_to_thread.return_value = mock_response
             
             response = authenticated_client.post(

@@ -7,7 +7,7 @@ from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
 import subprocess
 
-from src.git_repository_manager import GitRepositoryManager
+from src.infrastructure.git import GitRepositoryManager
 
 
 class TestGitRepositoryManager:

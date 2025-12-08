@@ -9,8 +9,8 @@ import tempfile
 import shutil
 from unittest.mock import patch
 
-from src.query.modular.engine import ModularQueryEngine
-from src.indexer import IndexManager
+from src.business.rag_engine.core.engine import ModularQueryEngine
+from src.infrastructure.indexer import IndexManager
 from llama_index.core.schema import Document as LlamaDocument
 
 
@@ -168,7 +168,7 @@ class TestRerankerWithMultiStrategyRetrieval:
     def test_reranker_with_multi_strategy(self, index_manager_with_docs):
         """测试重排序与多策略检索集成"""
         try:
-            with patch('src.config.config.ENABLED_RETRIEVAL_STRATEGIES', ['vector', 'grep']):
+            with patch('src.infrastructure.config.config.ENABLED_RETRIEVAL_STRATEGIES', ['vector', 'grep']):
                 # 启用重排序的多策略检索
                 engine = ModularQueryEngine(
                     index_manager=index_manager_with_docs,

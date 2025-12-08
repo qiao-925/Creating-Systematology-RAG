@@ -13,14 +13,14 @@ import os
 import sys
 from dotenv import load_dotenv
 
-from src.data_loader import load_documents_from_github
-from src.indexer import IndexManager
-from src.metadata_manager import MetadataManager
-from src.query_engine import QueryEngine
-from src.logger import setup_logger
+from src.infrastructure.data_loader import load_documents_from_github
+from src.infrastructure.indexer import IndexManager
+from src.infrastructure.data_loader.metadata.manager import MetadataManager
+from src.business.rag_engine import QueryEngine
+from src.infrastructure.logger import get_logger
 
 # 设置logger以便测试中使用
-logger = setup_logger('test_github_e2e')
+logger = get_logger('test_github_e2e')
 
 # 加载.env文件（如果存在）
 load_dotenv()

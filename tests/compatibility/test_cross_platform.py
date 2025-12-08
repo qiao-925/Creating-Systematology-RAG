@@ -101,7 +101,7 @@ class TestGrepCrossPlatform:
     def test_grep_retriever_windows_compatibility(self):
         """测试GrepRetriever在Windows上的兼容性"""
         try:
-            from src.retrievers.grep_retriever import GrepRetriever
+            from src.business.rag_engine.retrieval.strategies.grep import GrepRetriever
             
             # 验证GrepRetriever可以初始化
             # 注意：Windows上可能需要特殊的处理
@@ -129,7 +129,7 @@ class TestGrepCrossPlatform:
             pytest.skip("仅在Linux上运行此测试")
         
         try:
-            from src.retrievers.grep_retriever import GrepRetriever
+            from src.business.rag_engine.retrieval.strategies.grep import GrepRetriever
             
             retriever = GrepRetriever()
             assert retriever is not None
@@ -144,7 +144,7 @@ class TestGrepCrossPlatform:
             pytest.skip("仅在Mac上运行此测试")
         
         try:
-            from src.retrievers.grep_retriever import GrepRetriever
+            from src.business.rag_engine.retrieval.strategies.grep import GrepRetriever
             
             retriever = GrepRetriever()
             assert retriever is not None

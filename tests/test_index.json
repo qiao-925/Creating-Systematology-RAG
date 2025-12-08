@@ -243,37 +243,6 @@
       ]
     },
     {
-      "file_path": "tests\\integration\\test_pipeline.py",
-      "category": "integration",
-      "test_count": 32,
-      "description": "\nPipeline流水线集成测试\n",
-      "target_module": "src.business.protocols",
-      "target_class": "PipelineContext",
-      "target_functions": [],
-      "coverage": [],
-      "dependencies": [],
-      "tags": [
-        "integration",
-        "protocols"
-      ],
-      "pytest_markers": [],
-      "fixtures_used": [
-        "c",
-        "context",
-        "m",
-        "mock_index_manager",
-        "mock_query_engine",
-        "p",
-        "prompt",
-        "query",
-        "top_k"
-      ],
-      "related_tests": [],
-      "source_files": [
-        "src/business/protocols.py"
-      ]
-    },
-    {
       "file_path": "tests\\integration\\test_query_pipeline.py",
       "category": "integration",
       "test_count": 10,
@@ -929,61 +898,6 @@
       ]
     },
     {
-      "file_path": "tests\\unit\\test_pipeline_executor.py",
-      "category": "unit",
-      "test_count": 42,
-      "description": "\nPipelineExecutor模块单元测试\n测试流水线执行、钩子和错误处理\n",
-      "target_module": "src.business.pipeline.executor",
-      "target_class": "PipelineExecutor",
-      "target_functions": [],
-      "coverage": [],
-      "dependencies": [],
-      "tags": [
-        "executor",
-        "unit"
-      ],
-      "pytest_markers": [],
-      "fixtures_used": [
-        "answer",
-        "context",
-        "delay",
-        "error",
-        "module",
-        "name",
-        "order_list",
-        "pipeline",
-        "prompt",
-        "query",
-        "read_key",
-        "set_key",
-        "sources",
-        "top_k"
-      ],
-      "related_tests": [],
-      "source_files": [
-        "src/business/pipeline/executor.py"
-      ]
-    },
-    {
-      "file_path": "tests\\unit\\test_prompts.py",
-      "category": "unit",
-      "test_count": 36,
-      "description": "\n提示工程模块测试\n",
-      "target_module": "src.business.prompts",
-      "target_class": "PromptTemplateManager",
-      "target_functions": [],
-      "coverage": [],
-      "dependencies": [],
-      "tags": [
-        "prompts",
-        "unit"
-      ],
-      "pytest_markers": [],
-      "fixtures_used": [],
-      "related_tests": [],
-      "source_files": []
-    },
-    {
       "file_path": "tests\\unit\\test_query_engine.py",
       "category": "unit",
       "test_count": 16,
@@ -1085,30 +999,6 @@
       "source_files": []
     },
     {
-      "file_path": "tests\\unit\\test_registry.py",
-      "category": "unit",
-      "test_count": 32,
-      "description": "\n模块注册中心单元测试\n",
-      "target_module": "src.business.registry",
-      "target_class": "ModuleRegistry",
-      "target_functions": [],
-      "coverage": [],
-      "dependencies": [],
-      "tags": [
-        "registry",
-        "unit"
-      ],
-      "pytest_markers": [],
-      "fixtures_used": [
-        "context",
-        "name"
-      ],
-      "related_tests": [],
-      "source_files": [
-        "src/business/registry.py"
-      ]
-    },
-    {
       "file_path": "tests\\unit\\test_reranker.py",
       "category": "unit",
       "test_count": 24,
@@ -1171,27 +1061,6 @@
       "related_tests": [],
       "source_files": [
         "src/retrievers/result_merger.py"
-      ]
-    },
-    {
-      "file_path": "tests\\unit\\test_strategy_manager.py",
-      "category": "unit",
-      "test_count": 30,
-      "description": "\n策略管理器单元测试\n",
-      "target_module": "src.business.strategy_manager",
-      "target_class": "StrategyVariant",
-      "target_functions": [],
-      "coverage": [],
-      "dependencies": [],
-      "tags": [
-        "strategy_manager",
-        "unit"
-      ],
-      "pytest_markers": [],
-      "fixtures_used": [],
-      "related_tests": [],
-      "source_files": [
-        "src/business/strategy_manager.py"
       ]
     },
     {

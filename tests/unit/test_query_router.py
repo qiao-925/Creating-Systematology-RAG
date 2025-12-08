@@ -6,8 +6,8 @@ QueryRouter模块单元测试
 import pytest
 from unittest.mock import Mock, patch, MagicMock
 
-from src.routers.query_router import QueryRouter
-from src.indexer import IndexManager
+from src.business.rag_engine.routing.query_router import QueryRouter
+from src.infrastructure.indexer import IndexManager
 
 
 class TestQueryRouter:

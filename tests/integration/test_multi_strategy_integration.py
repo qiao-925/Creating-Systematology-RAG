@@ -9,10 +9,10 @@ import tempfile
 import shutil
 from unittest.mock import patch, Mock
 
-from src.business.services.rag_service import RAGService
-from src.business.services.modules.models import RAGResponse
-from src.indexer import IndexManager
-from src.query.modular.engine import ModularQueryEngine
+from src.business.rag_api.rag_service import RAGService
+from src.business.rag_api.models import RAGResponse
+from src.infrastructure.indexer import IndexManager
+from src.business.rag_engine.core.engine import ModularQueryEngine
 from llama_index.core.schema import Document as LlamaDocument
 
 
@@ -152,7 +152,7 @@ class TestVectorGrepIntegration:
         """测试Vector + Grep集成（通过multi策略）"""
         try:
             # 配置multi策略，包含vector和grep
-            with patch('src.config.config.ENABLED_RETRIEVAL_STRATEGIES', ['vector', 'grep']):
+            with patch('src.infrastructure.config.config.ENABLED_RETRIEVAL_STRATEGIES', ['vector', 'grep']):
                 engine = ModularQueryEngine(
                     index_manager=index_manager_with_docs,
                     retrieval_strategy="multi",
@@ -189,7 +189,7 @@ class TestAllStrategiesIntegration:
             # 添加grep
             enabled_strategies.append("grep")
             
-            with patch('src.config.config.ENABLED_RETRIEVAL_STRATEGIES', enabled_strategies):
+            with patch('src.infrastructure.config.config.ENABLED_RETRIEVAL_STRATEGIES', enabled_strategies):
                 engine = ModularQueryEngine(
                     index_manager=index_manager_with_docs,
                     retrieval_strategy="multi",
@@ -221,7 +221,7 @@ class TestAllStrategiesIntegration:
             )
             
             # 多策略（multi）
-            with patch('src.config.config.ENABLED_RETRIEVAL_STRATEGIES', ['vector', 'grep']):
+            with patch('src.infrastructure.config.config.ENABLED_RETRIEVAL_STRATEGIES', ['vector', 'grep']):
                 multi_engine = ModularQueryEngine(
                     index_manager=index_manager_with_docs,
                     retrieval_strategy="multi",
@@ -251,7 +251,7 @@ class TestMergeStrategySwitching:
     def test_merge_strategy_switching(self, index_manager_with_docs):
         """测试合并策略切换（RRF vs Weighted Score）"""
         try:
-            with patch('src.config.config.ENABLED_RETRIEVAL_STRATEGIES', ['vector', 'grep']):
+            with patch('src.infrastructure.config.config.ENABLED_RETRIEVAL_STRATEGIES', ['vector', 'grep']):
                 # RRF策略
                 rrf_engine = ModularQueryEngine(
                     index_manager=index_manager_with_docs,
@@ -273,8 +273,8 @@ class TestMergeStrategySwitching:
     def test_merge_strategy_with_weights(self, index_manager_with_docs):
         """测试带权重的合并策略"""
         try:
-            with patch('src.config.config.ENABLED_RETRIEVAL_STRATEGIES', ['vector', 'grep']), \
-                 patch('src.config.config.RETRIEVER_WEIGHTS', {'vector': 1.0, 'grep': 0.5}):
+            with patch('src.infrastructure.config.config.ENABLED_RETRIEVAL_STRATEGIES', ['vector', 'grep']), \
+                 patch('src.infrastructure.config.config.RETRIEVER_WEIGHTS', {'vector': 1.0, 'grep': 0.5}):
                 
                 engine = ModularQueryEngine(
                     index_manager=index_manager_with_docs,
@@ -297,7 +297,7 @@ class TestRetrieverFailureRecovery:
     def test_retriever_failure_recovery(self, index_manager_with_docs):
         """测试检索器失败恢复"""
         try:
-            with patch('src.config.config.ENABLED_RETRIEVAL_STRATEGIES', ['vector', 'grep']):
+            with patch('src.infrastructure.config.config.ENABLED_RETRIEVAL_STRATEGIES', ['vector', 'grep']):
                 engine = ModularQueryEngine(
                     index_manager=index_manager_with_docs,
                     retrieval_strategy="multi",
@@ -323,7 +323,7 @@ class TestRetrieverFailureRecovery:
     def test_retriever_partial_failure(self, index_manager_with_docs):
         """测试部分检索器失败的情况"""
         try:
-            with patch('src.config.config.ENABLED_RETRIEVAL_STRATEGIES', ['vector', 'grep']):
+            with patch('src.infrastructure.config.config.ENABLED_RETRIEVAL_STRATEGIES', ['vector', 'grep']):
                 engine = ModularQueryEngine(
                     index_manager=index_manager_with_docs,
                     retrieval_strategy="multi",
@@ -377,7 +377,7 @@ class TestMultiStrategyPerformance:
         import time
         
         try:
-            with patch('src.config.config.ENABLED_RETRIEVAL_STRATEGIES', ['vector', 'grep']):
+            with patch('src.infrastructure.config.config.ENABLED_RETRIEVAL_STRATEGIES', ['vector', 'grep']):
                 engine = ModularQueryEngine(
                     index_manager=index_manager_with_docs,
                     retrieval_strategy="multi",
@@ -406,7 +406,7 @@ class TestMultiStrategyPerformance:
             ]
             
             for strategies in strategies_list:
-                with patch('src.config.config.ENABLED_RETRIEVAL_STRATEGIES', strategies):
+                with patch('src.infrastructure.config.config.ENABLED_RETRIEVAL_STRATEGIES', strategies):
                     engine = ModularQueryEngine(
                         index_manager=index_manager_with_docs,
                         retrieval_strategy="multi",

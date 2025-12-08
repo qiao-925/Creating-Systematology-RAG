@@ -21,7 +21,7 @@ print(f"HF_HUB_OFFLINE: {os.getenv('HF_HUB_OFFLINE', 'Not set')}")
 print(f"TRANSFORMERS_OFFLINE: {os.getenv('TRANSFORMERS_OFFLINE', 'Not set')}")
 
 print("\n=== 配置信息 ===")
-from src.config import config
+from src.infrastructure.config import config
 print(f"config.HF_ENDPOINT: {config.HF_ENDPOINT}")
 print(f"config.HF_OFFLINE_MODE: {config.HF_OFFLINE_MODE}")
 

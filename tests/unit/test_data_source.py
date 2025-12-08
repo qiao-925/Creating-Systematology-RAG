@@ -8,10 +8,9 @@ import tempfile
 from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
 
-from src.data_source.base import DataSource, SourceFile
-from src.data_source.local_source import LocalFileSource
-from src.data_source.github_source import GitHubSource
-from src.data_source.web_source import WebSource
+from src.infrastructure.data_loader.source.base import DataSource, SourceFile
+from src.infrastructure.data_loader.source.local import LocalFileSource
+from src.infrastructure.data_loader.source.github import GitHubSource
 
 
 class TestDataSourceBase:

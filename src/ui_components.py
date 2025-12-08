@@ -1,9 +1,12 @@
 """
-UI共用组件模块 - 向后兼容层
-已模块化拆分，此文件保持向后兼容
+UI组件模块 - 向后兼容层（已废弃）
+此文件仅用于向后兼容，新代码请使用 src.ui 模块
+
+主要功能：
+- 从 src.ui 重新导出所有函数，保持向后兼容
 """
 
-# 从新模块导入所有公开接口
+# 从新模块导入并重新导出
 from src.ui import (
     init_session_state,
     preload_embedding_model,

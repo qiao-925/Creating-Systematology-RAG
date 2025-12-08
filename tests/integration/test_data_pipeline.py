@@ -5,8 +5,8 @@
 
 import pytest
 from pathlib import Path
-from src.data_loader import load_documents_from_directory, load_documents_from_github
-from src.indexer import IndexManager
+from src.infrastructure.data_loader import load_documents_from_directory, load_documents_from_github
+from src.infrastructure.indexer import IndexManager
 
 
 @pytest.mark.integration
@@ -90,25 +90,29 @@ class TestDataPipeline:
     
     def test_github_to_index_pipeline(self, mocker, temp_vector_store):
         """测试 GitHub → Indexer 完整流程（Mock）"""
-        # Mock GitHub Reader
+        # Mock GitHub 数据源
         from llama_index.core import Document
         
         mock_docs = [
             Document(
                 text="# GitHub Repository\nThis is from a GitHub repo.",
-                metadata={"file_path": "README.md"}
+                metadata={"file_path": "README.md", "source_type": "github", "repository": "test/test-repo"}
             ),
             Document(
                 text="# Documentation\nSome docs from GitHub.",
-                metadata={"file_path": "docs/guide.md"}
+                metadata={"file_path": "docs/guide.md", "source_type": "github", "repository": "test/test-repo"}
             )
         ]
         
-        mock_reader = mocker.Mock()
-        mock_reader.load_data.return_value = mock_docs
+        # Mock DataImportService 的 import_from_github 方法
+        from unittest.mock import MagicMock
+        mock_service = MagicMock()
+        mock_result = MagicMock()
+        mock_result.success = True
+        mock_result.documents = mock_docs
+        mock_service.import_from_github.return_value = mock_result
         
-        mocker.patch('src.data_loader.GithubRepositoryReader', return_value=mock_reader)
-        mocker.patch('src.data_loader.GithubClient')
+        mocker.patch('src.infrastructure.data_loader.service.DataImportService', return_value=mock_service)
         
         # 步骤1：从 GitHub 加载文档
         print("\n步骤1：从 GitHub 加载文档")
@@ -119,8 +123,8 @@ class TestDataPipeline:
         )
         
         assert len(documents) == 2, "应该加载2个文档"
-        assert all(doc.metadata['source_type'] == 'github' for doc in documents)
-        assert all(doc.metadata['repository'] == 'test/test-repo' for doc in documents)
+        assert all(doc.metadata.get('source_type') == 'github' for doc in documents)
+        assert all(doc.metadata.get('repository') == 'test/test-repo' for doc in documents)
         
         # 步骤2：构建索引
         print("步骤2：构建索引")

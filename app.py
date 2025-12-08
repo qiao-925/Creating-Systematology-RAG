@@ -1,6 +1,26 @@
 """
-Streamlit Web应用 - 主页
-系统科学知识库RAG应用的Web界面
+Streamlit Web应用 - 主页：系统科学知识库RAG应用的Web界面
+
+主要功能：
+- cleanup_resources()：清理应用资源，关闭Chroma客户端和后台线程
+- display_trace_info()：显示查询追踪信息
+- get_chat_title()：从第一个用户消息中提取标题
+- sidebar()：侧边栏，包含新对话按钮、历史会话列表和进入设置入口
+- main()：主界面，包含用户认证、对话显示、查询处理等
+
+执行流程：
+1. 初始化会话状态和资源
+2. 用户认证（登录/注册）
+3. 初始化RAG服务和对话管理器
+4. 显示对话历史和引用来源
+5. 处理用户查询并生成回答
+
+特性：
+- Claude风格UI设计
+- 支持推理链显示和存储
+- 支持引用来源展示
+- 支持会话历史管理
+- 支持Phoenix可观测性集成（在设置页面配置）
 """
 
 import streamlit as st
@@ -9,7 +29,6 @@ from typing import Optional
 import sys
 import time
 import atexit
-import signal
 import logging
 
 # 抑制OpenTelemetry导出器的错误日志（避免连接失败时的噪音）
@@ -23,15 +42,15 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 # 优先设置 UTF-8 编码（确保 emoji 正确显示）
 try:
-    from src.encoding import setup_utf8_encoding
+    from src.infrastructure.encoding import setup_utf8_encoding
     setup_utf8_encoding()
 except ImportError:
     # 如果 encoding 模块尚未加载，手动设置基础编码
     import os
     os.environ["PYTHONIOENCODING"] = "utf-8"
 
-from src.config import config
-from src.ui_components import (
+from src.infrastructure.config import config
+from src.ui import (
     init_session_state,
     load_rag_service,
     load_index,
@@ -39,20 +58,42 @@ from src.ui_components import (
     display_hybrid_sources,
     display_model_status,
     format_answer_with_citation_links,
-    display_sources_with_anchors,
-    display_sources_right_panel
+    display_sources_with_anchors
 )
-from src.phoenix_utils import (
-    is_phoenix_running,
-    start_phoenix_ui,
-    stop_phoenix_ui,
-    get_phoenix_url,
-)
-from src.query_engine import format_sources
+from src.ui.sources_panel import display_sources_below_message
+from src.ui.styles import CLAUDE_STYLE_CSS
 from llama_index.core import Document as LlamaDocument
-from src.logger import setup_logger
+from src.infrastructure.logger import get_logger
 
-logger = setup_logger('app')
+logger = get_logger('app')
+
+
+def convert_sources_to_dict(sources) -> list:
+    """将SourceModel对象列表转换为字典列表
+    
+    Args:
+        sources: SourceModel对象列表或字典列表
+        
+    Returns:
+        字典列表
+    """
+    if not sources:
+        return []
+    
+    result = []
+    for idx, source in enumerate(sources):
+        if isinstance(source, dict):
+            # 已经是字典，添加index字段
+            source_dict = source.copy()
+            source_dict['index'] = idx + 1
+            result.append(source_dict)
+        else:
+            # 是SourceModel对象，转换为字典
+            source_dict = source.model_dump() if hasattr(source, 'model_dump') else dict(source)
+            source_dict['index'] = idx + 1
+            result.append(source_dict)
+    
+    return result
 
 
 def cleanup_resources():
@@ -83,7 +124,7 @@ def cleanup_resources():
         # 尝试清理全局资源
         try:
             # 清理全局的 Embedding 模型（如果需要）
-            from src.indexer import clear_embedding_model_cache
+            from src.infrastructure.indexer import clear_embedding_model_cache
             clear_embedding_model_cache()
             log.debug("✅ 全局模型缓存已清理")
         except Exception as e:
@@ -95,26 +136,8 @@ def cleanup_resources():
         print(f"❌ 清理资源时发生错误: {e}")
 
 
-def signal_handler(signum, frame):
-    """信号处理器，用于处理 Ctrl+C 等中断信号"""
-    try:
-        logger.info(f"📡 收到信号 {signum}，开始清理资源...")
-    except:
-        print(f"📡 收到信号 {signum}，开始清理资源...")
-    cleanup_resources()
-    sys.exit(0)
-
-
 # 注册退出钩子（在所有情况下都会执行）
 atexit.register(cleanup_resources)
-
-# 注册信号处理器（Windows 和 Unix 都支持）
-try:
-    signal.signal(signal.SIGINT, signal_handler)  # Ctrl+C
-    signal.signal(signal.SIGTERM, signal_handler)  # 终止信号
-except (ValueError, OSError) as e:
-    # Windows 上可能不支持某些信号，忽略错误
-    logger.debug(f"无法注册信号处理器: {e}")
 
 
 # 页面配置
@@ -200,496 +223,40 @@ def sidebar():
         # ========== 新对话（顶部） ==========
         if st.button("💬 开启新对话", type="primary", use_container_width=True, key="new_chat_top"):
             if st.session_state.chat_manager:
+                # 创建新会话（只重置对话状态，不重新初始化服务）
                 st.session_state.chat_manager.start_session()
                 st.session_state.messages = []
                 # 清空引用来源映射，避免右侧显示上一个对话的引用来源
                 if 'current_sources_map' in st.session_state:
                     st.session_state.current_sources_map = {}
-                st.success("✅ 新会话已开始")
+                if 'current_reasoning_map' in st.session_state:
+                    st.session_state.current_reasoning_map = {}
+                # 仅刷新UI，不触发服务重新验证
                 st.rerun()
 
         # ========== 历史会话（紧随新对话按钮） ==========
         current_session_id = None
         if st.session_state.chat_manager and st.session_state.chat_manager.current_session:
             current_session_id = st.session_state.chat_manager.current_session.session_id
-        from src.ui_components import display_session_history
-        display_session_history(st.session_state.user_email, current_session_id)
+        from src.ui.history import display_session_history
+        display_session_history(user_email=None, current_session_id=current_session_id)
         
-        
-        # ========== 用户信息区域 ==========
-        col1, col2 = st.columns([3, 1])
-        with col1:
-            st.caption(f"👤 {st.session_state.user_email}")
-        with col2:
-            if st.button("🚪", key="logout_btn_sidebar", help="退出登录"):
-                st.session_state.logged_in = False
-                st.session_state.user_email = None
-                st.session_state.collection_name = None
-                st.session_state.index_manager = None
-                st.session_state.chat_manager = None
-                st.session_state.messages = []
-                st.session_state.index_built = False
-                st.rerun()
-        
-        
-        # ========== 推理链显示设置 ==========
+        # ========== 设置按钮 ==========
         st.divider()
-        with st.expander("🧠 推理链设置", expanded=False):
-            # 推理链显示开关
-            enable_reasoning_display = st.checkbox(
-                "显示推理链",
-                value=config.DEEPSEEK_ENABLE_REASONING_DISPLAY,
-                help="显示 AI 的推理过程（reasoning_content）"
-            )
-            # 更新 session_state（用于后续显示）
-            st.session_state.show_reasoning = enable_reasoning_display
-            
-            # 推理链存储开关
-            enable_reasoning_store = st.checkbox(
-                "存储推理链到会话历史",
-                value=config.DEEPSEEK_STORE_REASONING,
-                help="将推理链保存到会话历史记录中（会增加文件大小）"
-            )
-            # 更新配置（临时，不会持久化）
-            if enable_reasoning_store != config.DEEPSEEK_STORE_REASONING:
-                # 注意：这里只是 UI 状态，实际存储由 ChatManager 根据配置决定
-                st.session_state.store_reasoning = enable_reasoning_store
+        if st.button("⚙️ 设置", use_container_width=True, key="settings_button"):
+            st.session_state.show_settings_dialog = True
         
-        # ========== 系统状态（包含调试日志） ==========
-        st.divider()
-        with st.expander("🔧 系统状态", expanded=False):
-            # Embedding模型状态
-            display_model_status()
-            
-            st.divider()
-            
-            # 调试/日志（Phoenix）
-            st.markdown("#### 🐛 调试 / 日志")
-            if is_phoenix_running():
-                st.success("Phoenix 已运行")
-                url = get_phoenix_url()
-                st.markdown(f"**访问：** [{url}]({url})")
-            else:
-                if st.button("🚀 启动Phoenix", type="primary", use_container_width=True):
-                    start_phoenix_ui()
-                    st.rerun()
-        
-        # 保留其他功能区
-        
-        # 本地文档导入已移至 设置页 > 数据源管理 > 数据导入
-        
-        # 会话管理旧入口与更多功能入口已移除
+        # 检查是否需要显示设置弹窗
+        if st.session_state.get("show_settings_dialog", False):
+            from src.ui.settings_dialog import show_settings_dialog
+            show_settings_dialog()
+            # 注意：对话框的关闭由装饰器自动处理，不需要手动关闭
 
 
 def main():
     """主界面"""
     # ========== Claude风格CSS样式 ==========
-    st.markdown("""
-    <style>
-    /* ============================================================
-       Claude风格设计系统 - 极简优雅
-       ============================================================ */
-    
-    /* 全局字体和配色 */
-    :root {
-        --color-bg-primary: #FFFFFF;
-        --color-bg-sidebar: #FFFFFF;
-        --color-bg-card: #FFFFFF;
-        --color-bg-hover: #F5F5F5;
-        --color-text-primary: #2C2C2C;
-        --color-text-secondary: #6B6B6B;
-        --color-accent: #2563EB;
-        --color-accent-hover: #1D4ED8;
-        --color-border: #E5E5E0;
-        --color-border-light: #F0F0EB;
-    }
-    
-    /* 全局字体 - 衬线字体增强可读性 */
-    .stApp {
-        font-family: "Noto Serif SC", "Source Han Serif SC", "Georgia", "Times New Roman", serif;
-        background-color: var(--color-bg-primary);
-        color: var(--color-text-primary);
-    }
-    
-    /* 顶部区域 - 改为温暖米色 */
-    .stApp > header {
-        background-color: var(--color-bg-primary) !important;
-    }
-    
-    /* 底部区域 - 改为温暖米色 */
-    .stApp > footer {
-        background-color: var(--color-bg-primary) !important;
-    }
-    
-    /* 主内容区域背景 */
-    .main .block-container {
-        background-color: var(--color-bg-primary);
-    }
-    
-    /* 主内容区域 */
-    .main .block-container {
-        padding-top: 2.5rem;
-        padding-bottom: 3rem;
-        max-width: 100%;
-    }
-    
-    /* 正文字体大小和行高 */
-    p, div, span {
-        font-size: 16px;
-        line-height: 1.7;
-    }
-    
-    /* 标题层级 - 优雅的字重和间距 */
-    h1 {
-        font-size: 2rem;
-        font-weight: 600;
-        letter-spacing: -0.02em;
-        color: var(--color-text-primary);
-        margin-bottom: 0.75rem;
-    }
-    
-    h2 {
-        font-size: 1.5rem;
-        font-weight: 600;
-        letter-spacing: -0.01em;
-        color: var(--color-text-primary);
-        margin-bottom: 0.5rem;
-    }
-    
-    h3 {
-        font-size: 1.25rem;
-        font-weight: 600;
-        color: var(--color-text-primary);
-        margin-bottom: 0.5rem;
-    }
-    
-    /* 侧边栏 - 温暖的米色背景 */
-    [data-testid="stSidebar"] {
-        background-color: var(--color-bg-sidebar);
-        border-right: 1px solid var(--color-border);
-        width: 280px !important;
-    }
-    
-    [data-testid="stSidebar"] .stMarkdown {
-        font-size: 0.9rem;
-    }
-    
-    [data-testid="stSidebar"] h1, 
-    [data-testid="stSidebar"] h2, 
-    [data-testid="stSidebar"] h3 {
-        color: var(--color-text-primary);
-    }
-    
-    /* 消息容器 - 紧凑间距 */
-    .stChatMessage {
-        padding: 1.0rem 1.25rem;
-        border-radius: 12px;
-        margin-bottom: 0.9rem;
-        border: none;
-        box-shadow: none;
-        background-color: var(--color-bg-card);
-    }
-    
-    /* 用户消息 - 浅米色背景 */
-    .stChatMessage[data-testid="user-message"] {
-        background-color: var(--color-bg-hover);
-    }
-    
-    /* AI消息 - 温暖米色背景 */
-    .stChatMessage[data-testid="assistant-message"] {
-        background-color: var(--color-bg-primary);
-    }
-    
-    /* 消息内容文字 */
-    [data-testid="stChatMessageContent"] {
-        font-size: 16px;
-        line-height: 1.7;
-        color: var(--color-text-primary);
-    }
-    
-    /* 按钮 - 温暖的强调色 */
-    .stButton button {
-        border-radius: 8px;
-        font-weight: 500;
-        transition: all 0.2s ease;
-        border: none;
-        box-shadow: none;
-        font-family: inherit;
-    }
-    
-    /* 主要按钮 */
-    .stButton button[kind="primary"] {
-        background-color: var(--color-accent);
-        color: white;
-        border: none;
-    }
-    
-    .stButton button[kind="primary"]:hover {
-        background-color: var(--color-accent-hover);
-        transform: none;
-        box-shadow: none;
-    }
-    
-    /* 次要按钮 */
-    .stButton button[kind="secondary"] {
-        background-color: transparent;
-        border: 1px solid var(--color-border);
-        color: var(--color-text-primary);
-    }
-    
-    .stButton button[kind="secondary"]:hover {
-        background-color: var(--color-bg-hover);
-        border-color: var(--color-border);
-    }
-    
-    /* 侧边栏历史记录按钮：单行显示 + 超出省略 */
-    [data-testid="stSidebar"] .stButton button {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    /* 侧边栏历史记录按钮：去边框框线，紧凑间距 */
-    [data-testid="stSidebar"] .stButton button[kind="secondary"] {
-        border: none;
-        box-shadow: none;
-        background: transparent;
-        padding: 0.35rem 0.4rem;
-        margin: 0.1rem 0;
-    }
-
-    [data-testid="stSidebar"] .stButton button[kind="secondary"]:hover {
-        background-color: var(--color-bg-hover);
-        border: none;
-    }
-
-    /* 保持顶部主要按钮的可点击性和视觉权重 */
-    [data-testid="stSidebar"] .stButton button[kind="primary"] {
-        padding: 0.55rem 0.75rem;
-    }
-    
-    /* 输入框 - 简洁边框，使用温暖米色背景 */
-    .stTextInput input, 
-    .stTextArea textarea,
-    .stChatInput textarea {
-        border-radius: 10px;
-        border: 1px solid var(--color-border);
-        padding: 0.75rem 1rem;
-        background-color: var(--color-bg-primary);
-        font-size: 16px;
-        font-family: inherit;
-        color: var(--color-text-primary);
-        min-height: 48px;
-        resize: none;
-    }
-    
-    .stTextInput input:focus, 
-    .stTextArea textarea:focus,
-    .stChatInput textarea:focus {
-        border-color: var(--color-accent);
-        box-shadow: 0 0 0 1px var(--color-accent);
-        outline: none;
-    }
-    
-    /* 聊天输入框居中 + 提升观感 */
-    .stChatInput {
-        max-width: 900px !important;
-        margin: 0 auto !important;
-    }
-    
-    [data-testid="stChatInput"] {
-        max-width: 900px !important;
-        margin: 0 auto !important;
-        background: var(--color-bg-card);
-        border: 1px solid var(--color-border);
-        border-radius: 12px;
-        padding: 0.5rem 0.75rem;
-        box-shadow: 0 6px 24px rgba(0,0,0,0.06);
-        backdrop-filter: saturate(180%) blur(4px);
-    }
-    
-    /* 发送按钮样式 */
-    [data-testid="stChatInput"] button {
-        background-color: var(--color-accent) !important;
-        color: #fff !important;
-        border: none !important;
-        border-radius: 10px !important;
-        padding: 0.5rem 0.9rem !important;
-    }
-    
-    [data-testid="stChatInput"] button:hover {
-        background-color: var(--color-accent-hover) !important;
-    }
-    
-    /* 展开器 - 极简设计，使用温暖米色 */
-    .streamlit-expanderHeader {
-        background-color: var(--color-bg-primary);
-        border-radius: 8px;
-        padding: 0.75rem 1rem;
-        border: 1px solid var(--color-border-light);
-        transition: all 0.2s ease;
-    }
-    
-    .streamlit-expanderHeader:hover {
-        background-color: var(--color-bg-hover);
-        border-color: var(--color-border);
-    }
-    
-    .streamlit-expanderContent {
-        background-color: var(--color-bg-primary);
-        border: none;
-        padding: 1rem;
-    }
-    
-    /* 分隔线 */
-    hr {
-        margin: 1.5rem 0;
-        border: none;
-        border-top: 1px solid var(--color-border);
-    }
-    
-    /* 提示文字 */
-    .stCaption {
-        color: var(--color-text-secondary);
-        font-size: 0.875rem;
-        line-height: 1.5;
-    }
-    
-    /* 指标卡片 */
-    [data-testid="stMetric"] {
-        background-color: var(--color-bg-card);
-        padding: 1rem;
-        border-radius: 8px;
-        border: 1px solid var(--color-border-light);
-        box-shadow: none;
-    }
-    
-    [data-testid="stMetric"] label {
-        color: var(--color-text-secondary);
-        font-size: 0.875rem;
-    }
-    
-    [data-testid="stMetric"] [data-testid="stMetricValue"] {
-        color: var(--color-text-primary);
-        font-weight: 600;
-    }
-    
-    /* 提示消息 - 使用温暖米色背景 */
-    .stSuccess, .stError, .stInfo, .stWarning {
-        border-radius: 8px;
-        padding: 1rem;
-        border: 1px solid var(--color-border);
-    }
-    
-    .stInfo {
-        background-color: var(--color-bg-primary);
-        border-color: var(--color-border);
-    }
-    
-    /* 代码块 */
-    code {
-        font-family: "JetBrains Mono", "Fira Code", "Courier New", monospace;
-        background-color: var(--color-bg-hover);
-        padding: 0.2em 0.4em;
-        border-radius: 4px;
-        font-size: 0.9em;
-    }
-    
-    pre code {
-        padding: 1rem;
-        border-radius: 8px;
-    }
-    
-    /* 滚动条 - 柔和样式 */
-    ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
-    }
-    
-    ::-webkit-scrollbar-track {
-        background: var(--color-bg-primary);
-    }
-    
-    ::-webkit-scrollbar-thumb {
-        background: var(--color-border);
-        border-radius: 4px;
-    }
-    
-    ::-webkit-scrollbar-thumb:hover {
-        background: var(--color-text-secondary);
-    }
-    
-    /* 选项卡 */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 0.5rem;
-        border-bottom: 1px solid var(--color-border);
-    }
-    
-    .stTabs [data-baseweb="tab"] {
-        border-radius: 8px 8px 0 0;
-        padding: 0.75rem 1.5rem;
-        color: var(--color-text-secondary);
-        border: none;
-        background-color: transparent;
-    }
-    
-    .stTabs [data-baseweb="tab"]:hover {
-        background-color: var(--color-bg-hover);
-        color: var(--color-text-primary);
-    }
-    
-    .stTabs [aria-selected="true"] {
-        background-color: var(--color-bg-card);
-        color: var(--color-accent);
-        border-bottom: 2px solid var(--color-accent);
-    }
-    
-    /* 文件上传器 */
-    [data-testid="stFileUploader"] {
-        border: 1px dashed var(--color-border);
-        border-radius: 8px;
-        padding: 1.5rem;
-        background-color: var(--color-bg-card);
-    }
-    
-    /* 下拉选择框 */
-    .stSelectbox [data-baseweb="select"] {
-        border-radius: 8px;
-        border: 1px solid var(--color-border);
-    }
-    
-    /* Spinner加载动画 */
-    .stSpinner > div {
-        border-top-color: var(--color-accent) !important;
-    }
-    
-    /* 引用链接样式 */
-    a[href^="#citation_"] {
-        color: var(--color-accent) !important;
-        text-decoration: none !important;
-        font-weight: 500 !important;
-        cursor: pointer !important;
-        transition: all 0.2s ease !important;
-        padding: 0.1em 0.2em !important;
-        border-radius: 3px !important;
-        background-color: rgba(37, 99, 235, 0.1) !important;
-    }
-    
-    a[href^="#citation_"]:hover {
-        background-color: rgba(37, 99, 235, 0.2) !important;
-        color: var(--color-accent-hover) !important;
-        text-decoration: underline !important;
-    }
-    
-    /* 引用锚点高亮效果 */
-    [id^="citation_"] {
-        transition: background-color 0.3s ease !important;
-        border-radius: 4px !important;
-        padding: 0.25rem 0.5rem !important;
-        margin: -0.25rem -0.5rem !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+    st.markdown(CLAUDE_STYLE_CSS, unsafe_allow_html=True)
     
     # 初始化会话状态（需早于重型初始化，用于控制遮罩）
     init_session_state()
@@ -702,55 +269,7 @@ def main():
         st.rerun()
         return
     
-    # 用户认证界面
-    if not st.session_state.logged_in:
-        st.title("🔐 用户登录")
-        
-        tab1, tab2 = st.tabs(["登录", "注册"])
-        
-        with tab1:
-            st.subheader("登录")
-            email = st.text_input("邮箱", key="login_email")
-            password = st.text_input("密码", type="password", key="login_password")
-            
-            if st.button("登录", type="primary"):
-                if not email or not password:
-                    st.error("请填写邮箱和密码")
-                else:
-                    collection = st.session_state.user_manager.login(email, password)
-                    if collection:
-                        st.session_state.logged_in = True
-                        st.session_state.user_email = email
-                        st.session_state.collection_name = collection
-                        st.success("登录成功！")
-                        st.rerun()
-                    else:
-                        st.error("邮箱或密码错误")
-        
-        with tab2:
-            st.subheader("注册")
-            email = st.text_input("邮箱", key="register_email", placeholder="user@example.com")
-            password = st.text_input("密码", type="password", key="register_password")
-            password_confirm = st.text_input("确认密码", type="password", key="register_password_confirm")
-            
-            if st.button("注册", type="primary"):
-                if not email or not password:
-                    st.error("请填写邮箱和密码")
-                elif password != password_confirm:
-                    st.error("两次密码不一致")
-                elif len(password) < 6:
-                    st.error("密码长度至少6位")
-                else:
-                    if st.session_state.user_manager.register(email, password):
-                        st.success("注册成功！请登录")
-                    else:
-                        st.error("该邮箱已注册")
-        
-        st.divider()
-        
-        st.stop()  # 未登录则停止，不显示后续内容
-    
-    # 已登录，显示侧边栏
+    # 显示侧边栏
     sidebar()
     
     # 初始化RAG服务（新架构推荐）
@@ -770,31 +289,26 @@ def main():
         """使用RAGService执行查询
         
         Returns:
-            tuple: (answer, sources, wikipedia_sources)
+            tuple: (answer, sources)
                 - answer: 回答文本
-                - sources: 本地来源列表
-                - wikipedia_sources: Wikipedia来源列表（当前为空，待后续集成）
+                - sources: 来源列表
         """
         try:
             # 使用RAGService查询
             response = rag_service.query(
                 question=query,
-                user_id=user_id or st.session_state.user_email,
+                user_id=user_id,  # 单用户模式，user_id可为None
                 session_id=session_id or (chat_manager.current_session.session_id if chat_manager.current_session else None),
             )
             
-            # 返回兼容格式
-            # TODO: 如果未来需要Wikipedia增强，可以在这里集成
-            wikipedia_sources = []  # 暂不支持Wikipedia增强
-            
-            return response.answer, response.sources, wikipedia_sources
+            return response.answer, convert_sources_to_dict(response.sources)
         except Exception as e:
             logger.error(f"RAGService查询失败: {e}", exc_info=True)
             raise
     
     # ========== 处理历史会话加载 ==========
     if 'load_session_id' in st.session_state and st.session_state.load_session_id:
-        from src.chat_manager import load_session_from_file
+        from src.business.chat import load_session_from_file
         
         # 加载历史会话
         session_path = st.session_state.load_session_path
@@ -829,7 +343,11 @@ def main():
                 # 如果有引用来源，存储到current_sources_map
                 if turn.sources:
                     message_id = f"msg_{len(st.session_state.messages)-1}_{hash(str(assistant_msg))}"
-                    st.session_state.current_sources_map[message_id] = turn.sources
+                    # 确保sources是字典格式并包含index字段
+                    converted_sources = convert_sources_to_dict(turn.sources)
+                    st.session_state.current_sources_map[message_id] = converted_sources
+                    # 同时更新消息中的sources
+                    assistant_msg["sources"] = converted_sources
             
             st.success(f"✅ 已加载会话: {loaded_session.title}")
         else:
@@ -851,71 +369,63 @@ def main():
         st.session_state.current_sources_map = {}
     if 'current_reasoning_map' not in st.session_state:
         st.session_state.current_reasoning_map = {}
-    current_sources_map = st.session_state.current_sources_map
-    current_reasoning_map = st.session_state.current_reasoning_map
+    current_sources_map = st.session_state.current_sources_map.copy()  # 使用副本，避免直接修改
+    current_reasoning_map = st.session_state.current_reasoning_map.copy()
     
-    # 推理链显示开关（默认使用配置值）
-    show_reasoning = st.session_state.get('show_reasoning', config.DEEPSEEK_ENABLE_REASONING_DISPLAY)
-    
-    # 检查是否有引用来源（用于决定是否显示右侧面板）
-    def has_sources():
-        """检查是否有非空的引用来源"""
-        if not current_sources_map:
-            return False
-        for sources in current_sources_map.values():
-            if sources:  # 只要有一个非空的引用来源列表，就返回True
-                return True
-        return False
-    
-    # ========== 主内容区域：根据是否有引用来源决定布局 ==========
-    has_ref_sources = has_sources()
-    
-    if has_ref_sources:
-        # 有引用来源：左右分栏布局（左-对话，右-引用来源）
-        main_left, main_right = st.columns([3, 2])
-    else:
-        # 无引用来源：左侧全宽，不显示右侧面板
-        main_left = st.container()
-        main_right = None
-    
-    with main_left:
-        # 显示对话历史
-        for idx, message in enumerate(st.session_state.messages):
+    # 先填充current_sources_map（从历史消息中提取）
+    for idx, message in enumerate(st.session_state.messages):
+        if message["role"] == "assistant":
             message_id = f"msg_{idx}_{hash(str(message))}"
-            with st.chat_message(message["role"]):
-                # 如果是AI回答且包含引用，使用带链接的格式
-                if message["role"] == "assistant" and "sources" in message and message["sources"]:
-                    formatted_content = format_answer_with_citation_links(
-                        message["content"],
-                        message["sources"],
-                        message_id=message_id
-                    )
-                    st.markdown(formatted_content, unsafe_allow_html=True)
-                    # 存储引用来源用于右侧显示
-                    current_sources_map[message_id] = message["sources"]
-                else:
-                    st.markdown(message["content"])
-                    # 如果是AI回答但没有引用，存储空列表
-                    if message["role"] == "assistant":
-                        current_sources_map[message_id] = []
+            if "sources" in message and message["sources"]:
+                # 确保sources是字典格式
+                sources = message["sources"]
+                logger.debug(f"处理消息 {idx} 的sources: type={type(sources)}, len={len(sources) if sources else 0}")
                 
-                # 显示推理链（如果启用且存在）
-                if message["role"] == "assistant":
-                    reasoning_content = message.get("reasoning_content")
-                    if reasoning_content and show_reasoning:
-                        with st.expander("🧠 推理过程", expanded=False):
-                            st.markdown(f"```\n{reasoning_content}\n```")
-                            current_reasoning_map[message_id] = reasoning_content
-                    elif reasoning_content:
-                        # 即使不显示，也存储到映射中（用于后续显示）
-                        current_reasoning_map[message_id] = reasoning_content
-            
-            # 更新session_state中的映射
-            st.session_state.current_sources_map = current_sources_map
-            st.session_state.current_reasoning_map = current_reasoning_map
+                # 统一转换：无论什么格式，都转换为字典列表（确保格式一致）
+                if sources:
+                    # 检查第一个元素是否是字典
+                    if len(sources) > 0:
+                        first_item = sources[0]
+                        # 如果不是字典，或者有model_dump方法（Pydantic模型），都需要转换
+                        if not isinstance(first_item, dict) or hasattr(first_item, 'model_dump'):
+                            logger.debug(f"转换sources: 从 {type(first_item)} 转换为字典")
+                            sources = convert_sources_to_dict(sources)
+                            message["sources"] = sources  # 更新消息中的sources
+                    
+                    logger.debug(f"最终sources: len={len(sources)}, 第一个元素类型={type(sources[0]) if sources else 'empty'}")
+                    current_sources_map[message_id] = sources
+                else:
+                    current_sources_map[message_id] = []
+            else:
+                current_sources_map[message_id] = []
+                
+            # 处理推理链
+            if "reasoning_content" in message:
+                current_reasoning_map[message_id] = message["reasoning_content"]
+    
+    # ========== 主内容区域：统一布局，引用来源显示在消息下方 ==========
+    
+    # 如果无对话历史，将"快速开始"整块垂直居中
+    if not st.session_state.messages:
+        # 使用 flexbox 实现垂直居中
+        st.markdown("""
+        <style>
+        .quick-start-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 60vh;
+            padding: 2rem 0;
+        }
+        </style>
+        <div class="quick-start-container">
+        """, unsafe_allow_html=True)
         
-        # 默认问题快捷按钮（仅在无对话历史时显示）
-        if not st.session_state.messages:
+        # 使用 columns 实现水平居中
+        left_spacer, center_col, right_spacer = st.columns([1, 8, 1])
+        
+        with center_col:
             st.markdown("### 💡 快速开始")
             st.caption("点击下方问题快速体验")
             
@@ -932,232 +442,233 @@ def main():
                 col = col1 if idx % 2 == 0 else col2
                 with col:
                     if st.button(f"💬 {question}", key=f"default_q_{idx}", use_container_width=True):
-                        # 将问题设置为用户输入
+                        # 立即将用户消息添加到历史，避免rerun后再次显示"快速开始"
+                        st.session_state.messages.append({"role": "user", "content": question})
+                        # 将问题设置为用户输入（用于触发查询）
                         st.session_state.selected_question = question
                         st.rerun()
-            
-            st.divider()
         
-        # 处理默认问题的点击（在居中区域内处理）
-        if 'selected_question' in st.session_state and st.session_state.selected_question:
-            prompt = st.session_state.selected_question
-            st.session_state.selected_question = None  # 清除状态
+        st.markdown("</div>", unsafe_allow_html=True)
+        
+    # 显示对话历史
+    for idx, message in enumerate(st.session_state.messages):
+        message_id = f"msg_{idx}_{hash(str(message))}"
+        with st.chat_message(message["role"]):
+            # 如果是AI回答且包含引用，使用带链接的格式
+            if message["role"] == "assistant" and "sources" in message and message["sources"]:
+                formatted_content = format_answer_with_citation_links(
+                    message["content"],
+                    message["sources"],
+                    message_id=message_id
+                )
+                st.markdown(formatted_content, unsafe_allow_html=True)
+            else:
+                st.markdown(message["content"])
             
-            # 显示用户消息
-            st.session_state.messages.append({"role": "user", "content": prompt})
-            with st.chat_message("user"):
-                st.markdown(prompt)
-            
-            # 生成回答
-            with st.chat_message("assistant"):
+            # 显示推理链（始终显示，如果存在）
+            if message["role"] == "assistant":
+                reasoning_content = message.get("reasoning_content")
+                # 调试：检查推理链是否存在
+                if reasoning_content:
+                    with st.expander("🧠 推理过程", expanded=False):
+                        st.markdown(f"```\n{reasoning_content}\n```")
+                else:
+                    # 调试：显示为什么没有推理链
+                    if config.DEEPSEEK_ENABLE_REASONING_DISPLAY:
+                        # 只在启用显示时才显示调试信息
+                        logger.debug(f"消息 {message_id} 没有推理链内容")
+        
+        # 在消息下方显示引用来源（如果有）
+        if message["role"] == "assistant":
+            sources = current_sources_map.get(message_id, [])
+            if sources:
+                # 显示引用来源标题
+                st.markdown("#### 📚 引用来源")
+                # 显示引用来源详情
+                display_sources_below_message(sources, message_id=message_id)
+        
+        # 更新session_state中的映射（确保同步）
+        st.session_state.current_sources_map = current_sources_map
+        st.session_state.current_reasoning_map = current_reasoning_map
+    
+    # 处理默认问题的点击（在显示消息循环之后，避免重复显示）
+    if 'selected_question' in st.session_state and st.session_state.selected_question:
+        prompt = st.session_state.selected_question
+        st.session_state.selected_question = None  # 清除状态
+        
+        # 注意：用户消息已经在点击按钮时添加到历史了，这里只需要处理查询
+        # 显示思考中的提示（使用chat_message样式）
+        with st.chat_message("assistant"):
                 with st.spinner("🤔 思考中..."):
                     try:
-                        # 初始化变量，避免作用域问题
-                        message_id = None
-                        answer = ""
-                        sources = []
-                        
                         # 使用RAGService执行查询（新架构）
                         response = rag_service.query(
                             question=prompt,
-                            user_id=st.session_state.user_email,
+                            user_id=None,  # 单用户模式，不需要用户标识
                             session_id=chat_manager.current_session.session_id if chat_manager.current_session else None,
                         )
                         
                         answer = response.answer
-                        local_sources = response.sources
+                        local_sources = convert_sources_to_dict(response.sources)
                         reasoning_content = response.metadata.get('reasoning_content')
                         
                         # 生成消息ID
                         msg_idx = len(st.session_state.messages)
                         message_id = f"msg_{msg_idx}_{hash(str(answer))}"
                         
-                        # 合并本地和维基百科来源用于右侧显示
-                        wikipedia_sources = []  # 暂不支持Wikipedia增强
-                        all_sources_for_display = local_sources + [
-                            {**s, 'index': len(local_sources) + i + 1} 
-                            for i, s in enumerate(wikipedia_sources)
-                        ]
-                        
-                        # 如果有引用，使用带链接的格式
-                        if all_sources_for_display:
-                            formatted_answer = format_answer_with_citation_links(
-                                answer,
-                                all_sources_for_display,
-                                message_id=message_id
-                            )
-                            st.markdown(formatted_answer, unsafe_allow_html=True)
-                            # 存储引用来源用于右侧显示
-                            current_sources_map[message_id] = all_sources_for_display
-                        else:
-                            if answer:  # 只在有答案时显示
-                                st.markdown(answer)
-                            current_sources_map[message_id] = []
-                        
-                        # 显示推理链（如果启用且存在）
-                        if reasoning_content and show_reasoning:
-                            with st.expander("🧠 推理过程", expanded=False):
-                                st.markdown(f"```\n{reasoning_content}\n```")
-                            current_reasoning_map[message_id] = reasoning_content
-                        elif reasoning_content:
-                            current_reasoning_map[message_id] = reasoning_content
-                        
-                        # 更新session_state
-                        st.session_state.current_sources_map = current_sources_map
-                        st.session_state.current_reasoning_map = current_reasoning_map
-                        
                         # 保存到消息历史（UI显示用，包含推理链）
                         if answer:  # 只在有答案时保存
                             assistant_msg = {
                                 "role": "assistant",
                                 "content": answer,
-                                "sources": local_sources,
-                                "wikipedia_sources": wikipedia_sources
+                                "sources": local_sources
                             }
                             if reasoning_content:
                                 assistant_msg["reasoning_content"] = reasoning_content
                             st.session_state.messages.append(assistant_msg)
                         
+                        # 存储引用来源
+                        current_sources_map[message_id] = local_sources
+                        if reasoning_content:
+                            current_reasoning_map[message_id] = reasoning_content
+                        
+                        # 立即显示AI回答（避免白屏）
+                        if "sources" in assistant_msg and assistant_msg["sources"]:
+                            formatted_content = format_answer_with_citation_links(
+                                answer,
+                                assistant_msg["sources"],
+                                message_id=message_id
+                            )
+                            st.markdown(formatted_content, unsafe_allow_html=True)
+                        else:
+                            st.markdown(answer)
+                        
+                        # 显示推理链（如果存在）
+                        if reasoning_content:
+                            with st.expander("🧠 推理过程", expanded=False):
+                                st.markdown(f"```\n{reasoning_content}\n```")
+                        
+                        # 显示引用来源（如果有）
+                        if local_sources:
+                            st.markdown("#### 📚 引用来源")
+                            display_sources_below_message(local_sources, message_id=message_id)
+                        
                         # 同时保存到ChatManager会话（持久化）
                         if chat_manager and answer:
-                            # 合并所有来源用于保存
-                            all_sources = local_sources + [
-                                {**s, 'source_type': 'wikipedia'} 
-                                for s in wikipedia_sources
-                            ]
                             # 如果没有当前会话，先创建一个
                             if not chat_manager.current_session:
                                 chat_manager.start_session()
-                            # 保存对话（根据配置决定是否存储推理链）
-                            store_reasoning = st.session_state.get('store_reasoning', config.DEEPSEEK_STORE_REASONING)
-                            if store_reasoning and reasoning_content:
-                                chat_manager.current_session.add_turn(prompt, answer, all_sources, reasoning_content)
+                            # 保存对话（始终存储推理链，如果存在）
+                            if reasoning_content:
+                                chat_manager.current_session.add_turn(prompt, answer, local_sources, reasoning_content)
                             else:
-                                chat_manager.current_session.add_turn(prompt, answer, all_sources)
+                                chat_manager.current_session.add_turn(prompt, answer, local_sources)
                             # 自动保存
                             if chat_manager.auto_save:
                                 chat_manager.save_current_session()
                         
-                        st.rerun()  # 刷新页面显示新消息
-                        
+                        # 更新session_state
+                        st.session_state.current_sources_map = current_sources_map
+                        st.session_state.current_reasoning_map = current_reasoning_map
+                    
                     except Exception as e:
                         import traceback
                         st.error(f"❌ 查询失败: {e}")
                         st.error(traceback.format_exc())
+                        import traceback
+                        st.error(f"❌ 查询失败: {e}")
+                        st.error(traceback.format_exc())
     
-    # 右侧：引用来源展示区域（仅在存在引用来源时显示）
-    if main_right is not None:
-        with main_right:
-            st.markdown("#### 📚 引用来源")
-            
-            # 找到最新的有引用的消息
-            latest_message_id = None
-            latest_sources = []
-            for msg_id, sources in reversed(list(current_sources_map.items())):
-                if sources:
-                    latest_message_id = msg_id
-                    latest_sources = sources
-                    break
-            
-            if latest_sources:
-                # 在右侧显示引用来源
-                display_sources_right_panel(
-                    latest_sources,
-                    message_id=latest_message_id,
-                    container=main_right
-                )
-
-    # 用户输入（底部全宽，视觉居中）
-    prompt = st.chat_input("请输入您的问题...")
+    # 用户输入（DeepSeek风格，多行输入 + 圆形发送按钮）
+    from src.ui.chat_input import deepseek_style_chat_input
+    prompt = deepseek_style_chat_input("给系统发送消息", key="main_chat_input")
     if prompt:
-        # 显示用户消息
-        st.session_state.messages.append({"role": "user", "content": prompt})
+        # 立即显示用户消息（避免白屏）
         with st.chat_message("user"):
             st.markdown(prompt)
         
-        # 生成回答
+        # 添加用户消息到历史
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        
+        # 显示思考中的提示（使用chat_message样式，与默认问题一致）
         with st.chat_message("assistant"):
             with st.spinner("🤔 思考中..."):
                 try:
                     # 使用RAGService执行查询（新架构）
                     response = rag_service.query(
                         question=prompt,
-                        user_id=st.session_state.user_email,
+                        user_id=None,  # 单用户模式，不需要用户标识
                         session_id=chat_manager.current_session.session_id if chat_manager.current_session else None,
                     )
                     
                     answer = response.answer
-                    local_sources = response.sources
+                    local_sources = convert_sources_to_dict(response.sources)
                     reasoning_content = response.metadata.get('reasoning_content')
+                    
+                    # 调试：检查推理链提取情况
+                    logger.info(f"🔍 推理链提取检查: reasoning_content={reasoning_content is not None}, 长度={len(reasoning_content) if reasoning_content else 0}")
+                    if reasoning_content:
+                        logger.info(f"✅ 推理链内容预览（前100字符）: {reasoning_content[:100]}...")
+                    else:
+                        logger.warning("⚠️ 响应中没有推理链内容，检查：1) 是否使用 deepseek-reasoner 模型 2) API 是否返回了推理链")
                     
                     # 生成消息ID
                     msg_idx = len(st.session_state.messages)
                     message_id = f"msg_{msg_idx}_{hash(str(answer))}"
-                    
-                    # 合并本地和维基百科来源用于右侧显示
-                    wikipedia_sources = []  # 暂不支持Wikipedia增强
-                    all_sources_for_display = local_sources + [
-                        {**s, 'index': len(local_sources) + i + 1} 
-                        for i, s in enumerate(wikipedia_sources)
-                    ]
-                    
-                    # 如果有引用，使用带链接的格式
-                    if all_sources_for_display:
-                        formatted_answer = format_answer_with_citation_links(
-                            answer,
-                            all_sources_for_display,
-                            message_id=message_id
-                        )
-                        st.markdown(formatted_answer, unsafe_allow_html=True)
-                        # 存储引用来源用于右侧显示
-                        current_sources_map[message_id] = all_sources_for_display
-                    else:
-                        if answer:  # 只在有答案时显示
-                            st.markdown(answer)
-                        current_sources_map[message_id] = []
-                    
-                    # 显示推理链（如果启用且存在）
-                    if reasoning_content and show_reasoning:
-                        with st.expander("🧠 推理过程", expanded=False):
-                            st.markdown(f"```\n{reasoning_content}\n```")
-                        current_reasoning_map[message_id] = reasoning_content
-                    elif reasoning_content:
-                        current_reasoning_map[message_id] = reasoning_content
-                    
-                    # 更新session_state
-                    st.session_state.current_sources_map = current_sources_map
-                    st.session_state.current_reasoning_map = current_reasoning_map
                     
                     # 保存到消息历史（UI显示用，包含推理链）
                     if answer:  # 只在有答案时保存
                         assistant_msg = {
                             "role": "assistant",
                             "content": answer,
-                            "sources": local_sources,
-                            "wikipedia_sources": wikipedia_sources
+                            "sources": local_sources
                         }
                         if reasoning_content:
                             assistant_msg["reasoning_content"] = reasoning_content
                         st.session_state.messages.append(assistant_msg)
+                        
+                        # 存储引用来源
+                        current_sources_map[message_id] = local_sources
+                        if reasoning_content:
+                            current_reasoning_map[message_id] = reasoning_content
+                        
+                        # 立即显示AI回答（避免白屏）
+                        if "sources" in assistant_msg and assistant_msg["sources"]:
+                            formatted_content = format_answer_with_citation_links(
+                                answer,
+                                assistant_msg["sources"],
+                                message_id=message_id
+                            )
+                            st.markdown(formatted_content, unsafe_allow_html=True)
+                        else:
+                            st.markdown(answer)
+                        
+                        # 显示推理链（如果存在）
+                        if reasoning_content:
+                            with st.expander("🧠 推理过程", expanded=False):
+                                st.markdown(f"```\n{reasoning_content}\n```")
+                        
+                        # 显示引用来源（如果有）
+                        if local_sources:
+                            st.markdown("#### 📚 引用来源")
+                            display_sources_below_message(local_sources, message_id=message_id)
                     
                     # 同时保存到ChatManager会话（持久化）
                     if chat_manager and answer:
-                        all_sources = local_sources + [
-                            {**s, 'source_type': 'wikipedia'} 
-                            for s in wikipedia_sources
-                        ]
                         if not chat_manager.current_session:
                             chat_manager.start_session()
-                        # 保存对话（根据配置决定是否存储推理链）
-                        store_reasoning = st.session_state.get('store_reasoning', config.DEEPSEEK_STORE_REASONING)
-                        if store_reasoning and reasoning_content:
-                            chat_manager.current_session.add_turn(prompt, answer, all_sources, reasoning_content)
+                        # 保存对话（始终存储推理链，如果存在）
+                        if reasoning_content:
+                            chat_manager.current_session.add_turn(prompt, answer, local_sources, reasoning_content)
                         else:
-                            chat_manager.current_session.add_turn(prompt, answer, all_sources)
+                            chat_manager.current_session.add_turn(prompt, answer, local_sources)
                         if chat_manager.auto_save:
                             chat_manager.save_current_session()
                     
-                    st.rerun()  # 刷新页面显示新消息
+                    # 更新session_state
+                    st.session_state.current_sources_map = current_sources_map
+                    st.session_state.current_reasoning_map = current_reasoning_map
+                    
                 except Exception as e:
                     import traceback
                     st.error(f"❌ 查询失败: {e}")

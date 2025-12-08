@@ -4,6 +4,17 @@
 
 ---
 
+## 📑 目录
+
+- [快速开始](#速开始)
+- [测试结构](#测试结构)
+- [常用命令](#常用命令)
+- [快速场景](#快速场景)
+- [常见问题](#常见问题)
+- [子模块文档](#子模块文档)
+
+---
+
 ## 快速开始
 
 ### 最简单的方式
@@ -23,32 +34,35 @@ pytest --cov=src --cov-report=html          # 覆盖率
 
 ---
 
-## 测试结构概览
+## 测试结构
 
 ```
 tests/
 ├── README.md                # 本文件（总入口）
-├── conftest.py              # 共享fixtures
-├── test_index.json          # 测试元数据索引
-├── run_all_tests.py         # 批量执行所有测试脚本
-├── generate_test_report.py  # 生成测试报告脚本
-├── generate_coverage_report.py  # 生成覆盖率报告脚本
+├── conftest.py              # 核心共享fixtures
+├── fixtures/                # Fixtures 模块化目录
+│   ├── data.py              # 测试数据 fixtures
+│   ├── indexer.py           # 索引相关 fixtures
+│   ├── github.py            # GitHub 相关 fixtures
+│   ├── embeddings.py        # Embedding 相关 fixtures
+│   ├── llm.py               # LLM 相关 fixtures
+│   └── mocks.py             # Mock 工具 fixtures
 ├── unit/                    # 单元测试（~100+个）
-│   └── README.md               # 单元测试详细指南
+│   └── README.md
 ├── integration/             # 集成测试（~80+个）
-│   └── README.md               # 集成测试详细指南
+│   └── README.md
 ├── performance/             # 性能测试
 ├── tools/                   # 诊断工具和Agent工具
-│   └── README.md               # 工具使用说明
+│   └── README.md
 └── agent/                   # Agent测试体系
-    └── README.md               # Agent测试指南
+    └── README.md
 ```
 
 **测试覆盖**: ~92% | **测试总数**: 200+
 
 ---
 
-## 常用命令速查
+## 常用命令
 
 ### 运行测试
 
@@ -75,34 +89,6 @@ pytest -m "not slow"         # 跳过慢速测试
 pytest tests/unit            # 只运行单元测试
 pytest -n auto               # 并行运行（需安装pytest-xdist）
 ```
-
----
-
-## 子模块文档
-
-### 单元测试
-
-- **文档**: [tests/unit/README.md](unit/README.md)
-- **内容**: 单元测试文件列表、编写规范、最佳实践
-- **适用**: 日常开发、功能验证
-
-### 集成测试
-
-- **文档**: [tests/integration/README.md](integration/README.md)
-- **内容**: 集成测试文件列表、编写规范、注意事项
-- **适用**: 模块协作验证、端到端流程测试
-
-### Agent 测试体系
-
-- **文档**: [tests/agent/README.md](agent/README.md)
-- **内容**: Agent测试索引、源文件映射表、工具使用指南
-- **适用**: AI Agent、自动化测试选择
-
-### 诊断工具
-
-- **文档**: [tests/tools/README.md](tools/README.md)
-- **内容**: HuggingFace配置检查、环境验证、故障排查、Agent工具
-- **适用**: 模型加载问题、配置验证、Agent自动化测试
 
 ---
 
@@ -167,6 +153,17 @@ pytest tests/unit/test_xxx.py --pdb          # 进入调试器
 
 ---
 
+## 子模块文档
+
+| 模块 | 文档 | 说明 |
+|------|------|------|
+| **单元测试** | [unit/README.md](unit/README.md) | 单元测试文件列表、编写规范、最佳实践 |
+| **集成测试** | [integration/README.md](integration/README.md) | 集成测试文件列表、编写规范、注意事项 |
+| **Agent测试** | [agent/README.md](agent/README.md) | Agent测试索引、源文件映射表、工具使用指南 |
+| **诊断工具** | [tools/README.md](tools/README.md) | HuggingFace配置检查、环境验证、故障排查 |
+
+---
+
 ## 提交前检查清单
 
 - [ ] `make test` 全部通过
@@ -180,19 +177,14 @@ pytest tests/unit/test_xxx.py --pdb          # 进入调试器
 
 ## 相关文档
 
-- **单元测试**: [unit/README.md](unit/README.md) - 单元测试详细指南
-- **集成测试**: [integration/README.md](integration/README.md) - 集成测试详细指南
-- **Agent测试**: [agent/README.md](agent/README.md) - Agent测试体系指南
-- **诊断工具**: [tools/README.md](tools/README.md) - 工具使用说明
-- **覆盖率分析**: [TEST_COVERAGE_ANALYSIS.md](TEST_COVERAGE_ANALYSIS.md) - 测试覆盖率分析报告
 - **架构设计**: [../docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md) - 系统架构
 - **API参考**: [../docs/API.md](../docs/API.md) - 接口文档
 
 ---
 
 **提示**: 
-- 新手从"快速开始"和"常用命令"开始
-- 日常开发查看"快速场景"
-- 详细内容请查看对应的子模块文档
+- 🚀 新手从"快速开始"和"常用命令"开始
+- 💡 日常开发查看"快速场景"
+- 📚 详细内容请查看对应的子模块文档
 
 好的测试是代码质量的保障！🎯

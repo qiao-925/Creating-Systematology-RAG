@@ -5,9 +5,10 @@
 import pytest
 import json
 from pathlib import Path
-from src.chat_manager import ChatTurn, ChatSession, ChatManager
+from src.business.chat import ChatTurn, ChatSession, ChatManager
 
 
+@pytest.mark.fast
 class TestChatTurn:
     """ChatTurn数据类测试"""
     
@@ -56,6 +57,7 @@ class TestChatTurn:
         assert turn.answer == "答案"
 
 
+@pytest.mark.fast
 class TestChatSession:
     """ChatSession测试"""
     
@@ -157,13 +159,14 @@ class TestChatSession:
         assert len(new_session.history) == len(session.history)
 
 
+@pytest.mark.fast
 class TestChatManager:
     """对话管理器测试（使用Mock）"""
     
     @pytest.fixture
     def mock_chat_manager(self, temp_vector_store, sample_documents, mocker):
         """创建Mock的对话管理器"""
-        from src.indexer import IndexManager
+        from src.infrastructure.indexer import IndexManager
         
         # 创建索引
         index_manager = IndexManager(
@@ -276,7 +279,7 @@ class TestChatManagerWithRealAPI:
     
     def test_multi_turn_conversation(self, temp_vector_store, sample_documents):
         """测试多轮对话（需要真实API）"""
-        from src.indexer import IndexManager
+        from src.infrastructure.indexer import IndexManager
         
         index_manager = IndexManager(
             collection_name="real_chat_test",

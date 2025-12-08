@@ -4,8 +4,8 @@
 """
 
 import streamlit as st
-from src.config import config
-from src.ui_components import display_model_status
+from src.infrastructure.config import config
+from src.ui import display_model_status
 
 
 def render_system_status_tab():

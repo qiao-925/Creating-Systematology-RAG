@@ -5,7 +5,7 @@
 import pytest
 from llama_index.core.schema import NodeWithScore, TextNode
 
-from src.retrievers.result_merger import ResultMerger
+from src.business.rag_engine.retrieval.merger import ResultMerger
 
 
 class TestResultMerger:

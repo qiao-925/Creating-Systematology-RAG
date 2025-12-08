@@ -80,12 +80,12 @@ class TestFileViewerPageRegression:
     
     def test_file_viewer_page_exists(self):
         """测试文件查看页面存在"""
-        file_viewer_path = Path(__file__).parent.parent.parent / "pages" / "2_📄_文件查看.py"
+        file_viewer_path = Path(__file__).parent.parent.parent / "pages" / "2_文件查看.py"
         assert file_viewer_path.exists(), "文件查看页面应该存在"
     
     def test_file_viewer_functions_exist(self):
         """测试文件查看功能存在"""
-        file_viewer_path = Path(__file__).parent.parent.parent / "pages" / "2_📄_文件查看.py"
+        file_viewer_path = Path(__file__).parent.parent.parent / "pages" / "2_文件查看.py"
         
         if file_viewer_path.exists():
             content = file_viewer_path.read_text(encoding='utf-8')
@@ -95,32 +95,6 @@ class TestFileViewerPageRegression:
                 'resolve_file_path',
                 'display_markdown_file',
                 'display_pdf_file',
-            ]
-            
-            for func in expected_functions:
-                assert func in content or True, f"应该包含函数 {func}"
-
-
-class TestChromaViewerPageRegression:
-    """Chroma查看器页面功能回归测试"""
-    
-    def test_chroma_viewer_page_exists(self):
-        """测试Chroma查看器页面存在"""
-        chroma_viewer_path = Path(__file__).parent.parent.parent / "pages" / "3_🔎_Chroma_Viewer.py"
-        assert chroma_viewer_path.exists(), "Chroma查看器页面应该存在"
-    
-    def test_chroma_viewer_functions_exist(self):
-        """测试Chroma查看器功能存在"""
-        chroma_viewer_path = Path(__file__).parent.parent.parent / "pages" / "3_🔎_Chroma_Viewer.py"
-        
-        if chroma_viewer_path.exists():
-            content = chroma_viewer_path.read_text(encoding='utf-8')
-            
-            # 验证关键函数存在
-            expected_functions = [
-                'get_chroma_client',
-                'list_collections',
-                'run_query',
             ]
             
             for func in expected_functions:
@@ -138,8 +112,7 @@ class TestUIIntegrationRegression:
             # 验证主要页面文件存在
             expected_pages = [
                 "1_⚙️_设置.py",
-                "2_📄_文件查看.py",
-                "3_🔎_Chroma_Viewer.py",
+                "2_文件查看.py",
             ]
             
             for page in expected_pages:
@@ -167,8 +140,7 @@ class TestUIResponsiveLayoutRegression:
         pages = [
             Path(__file__).parent.parent.parent / "app.py",
             Path(__file__).parent.parent.parent / "pages" / "1_⚙️_设置.py",
-            Path(__file__).parent.parent.parent / "pages" / "2_📄_文件查看.py",
-            Path(__file__).parent.parent.parent / "pages" / "3_🔎_Chroma_Viewer.py",
+            Path(__file__).parent.parent.parent / "pages" / "2_文件查看.py",
         ]
         
         for page_path in pages:

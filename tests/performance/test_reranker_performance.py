@@ -8,8 +8,8 @@ import time
 import statistics
 from llama_index.core.schema import Document as LlamaDocument
 
-from src.indexer import IndexManager
-from src.query.modular.engine import ModularQueryEngine
+from src.infrastructure.indexer import IndexManager
+from src.business.rag_engine.core.engine import ModularQueryEngine
 
 
 @pytest.fixture
@@ -114,7 +114,7 @@ class TestRerankerLatency:
         
         query = "系统科学的应用领域"
         
-        with patch('src.config.config.ENABLED_RETRIEVAL_STRATEGIES', ['vector', 'bm25']):
+        with patch('src.infrastructure.config.config.ENABLED_RETRIEVAL_STRATEGIES', ['vector', 'bm25']):
             # 不带重排序
             engine_no_rerank = ModularQueryEngine(
                 index_manager=performance_index_manager,

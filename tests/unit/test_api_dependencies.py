@@ -8,9 +8,9 @@ from pathlib import Path
 import tempfile
 from unittest.mock import Mock, patch
 
-from src.api.dependencies import get_user_manager, get_current_user, get_rag_service
-from src.user_manager import UserManager
-from src.business.services.rag_service import RAGService
+from src.business.rag_api.fastapi_dependencies import get_user_manager, get_current_user, get_rag_service
+from src.infrastructure.user_manager import UserManager
+from src.business.rag_api.rag_service import RAGService
 
 
 class TestGetUserManager:
@@ -53,7 +53,7 @@ class TestGetCurrentUser:
     def mock_credentials(self):
         """Mock HTTP Bearer Token"""
         from fastapi.security import HTTPAuthorizationCredentials
-        from src.api.auth import create_access_token
+        from src.business.rag_api.auth import create_access_token
         
         token = create_access_token(data={"sub": "test@example.com"})
         credentials = HTTPAuthorizationCredentials(

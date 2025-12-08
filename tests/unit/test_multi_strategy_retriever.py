@@ -6,11 +6,11 @@ import pytest
 from unittest.mock import Mock, patch
 from typing import List
 
-from src.retrievers.multi_strategy_retriever import (
+from src.business.rag_engine.retrieval.strategies.multi_strategy import (
     MultiStrategyRetriever,
     BaseRetriever,
 )
-from src.retrievers.result_merger import ResultMerger
+from src.business.rag_engine.retrieval.merger import ResultMerger
 from llama_index.core.schema import NodeWithScore, TextNode
 
 

@@ -9,11 +9,11 @@ import tempfile
 import shutil
 from unittest.mock import patch, Mock
 
-from src.query.modular.engine import ModularQueryEngine
-from src.indexer import IndexManager
-from src.observers.manager import ObserverManager
-from src.observers.phoenix_observer import PhoenixObserver
-from src.observers.ragas_evaluator import RAGASEvaluator
+from src.business.rag_engine.core.engine import ModularQueryEngine
+from src.infrastructure.indexer import IndexManager
+from src.infrastructure.observers.manager import ObserverManager
+from src.infrastructure.observers.phoenix_observer import PhoenixObserver
+from src.infrastructure.observers.ragas_evaluator import RAGASEvaluator
 from llama_index.core.schema import Document as LlamaDocument
 
 
@@ -362,7 +362,7 @@ class TestObservabilityWithRAGService:
     def test_observability_with_rag_service(self, index_manager_with_docs):
         """测试可观测性与RAGService集成"""
         try:
-            from src.business.services.rag_service import RAGService
+            from src.business.rag_api.rag_service import RAGService
             
             # 创建观察器管理器
             observer_manager = ObserverManager()

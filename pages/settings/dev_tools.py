@@ -4,7 +4,7 @@ Phoenix可视化、调试工具、追踪信息
 """
 
 import streamlit as st
-from src.phoenix_utils import (
+from src.infrastructure.phoenix_utils import (
     start_phoenix_ui, 
     stop_phoenix_ui, 
     is_phoenix_running, 

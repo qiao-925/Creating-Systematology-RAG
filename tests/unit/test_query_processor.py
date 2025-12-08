@@ -6,7 +6,7 @@ import pytest
 from unittest.mock import Mock, patch, MagicMock
 import json
 
-from src.query.modular.query_processor import QueryProcessor, reset_query_processor
+from src.business.rag_engine.processing.query_processor import QueryProcessor, reset_query_processor
 
 
 @pytest.fixture
@@ -231,7 +231,7 @@ class TestQueryProcessorIntegration:
         """测试全局查询处理器单例"""
         reset_query_processor()
         
-        from src.query.modular.query_processor import get_query_processor
+        from src.business.rag_engine.processing.query_processor import get_query_processor
         
         processor1 = get_query_processor()
         processor2 = get_query_processor()
@@ -240,7 +240,7 @@ class TestQueryProcessorIntegration:
     
     def test_reset_query_processor(self):
         """测试重置查询处理器"""
-        from src.query.modular.query_processor import (
+        from src.business.rag_engine.processing.query_processor import (
             get_query_processor,
             reset_query_processor
         )

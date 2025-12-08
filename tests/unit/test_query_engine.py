@@ -3,7 +3,7 @@
 """
 
 import pytest
-from src.query_engine import (
+from src.business.rag_engine import (
     QueryEngine,
     SimpleQueryEngine,
     format_sources
@@ -16,7 +16,7 @@ class TestQueryEngine:
     @pytest.fixture
     def mock_query_engine(self, temp_vector_store, sample_documents, mocker, monkeypatch):
         """创建Mock的查询引擎"""
-        from src.indexer import IndexManager
+        from src.infrastructure.indexer import IndexManager
         from unittest.mock import MagicMock
         
         # 设置假的 API 密钥，避免真实 API 调用
@@ -99,7 +99,7 @@ class TestSimpleQueryEngine:
     @pytest.fixture
     def mock_simple_engine(self, temp_vector_store, sample_documents, mocker, monkeypatch):
         """创建Mock的简单查询引擎"""
-        from src.indexer import IndexManager
+        from src.infrastructure.indexer import IndexManager
         from unittest.mock import MagicMock
         
         # 设置假的 API 密钥
@@ -205,7 +205,7 @@ class TestQueryEngineWithRealAPI:
     @pytest.fixture
     def real_query_engine(self, temp_vector_store, sample_documents):
         """创建真实的查询引擎（需要API密钥）"""
-        from src.indexer import IndexManager
+        from src.infrastructure.indexer import IndexManager
         
         index_manager = IndexManager(
             collection_name="real_api_test",

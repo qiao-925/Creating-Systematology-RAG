@@ -5,8 +5,8 @@
 import pytest
 from llama_index.core.schema import Document as LlamaDocument
 
-from src.modular_query_engine import ModularQueryEngine, create_modular_query_engine
-from src.indexer import IndexManager
+from src.business.rag_engine import ModularQueryEngine
+from src.infrastructure.indexer import IndexManager
 
 
 @pytest.fixture
@@ -119,9 +119,9 @@ class TestModularQueryEngine:
     
     def test_create_modular_query_engine_factory(self, index_manager):
         """测试工厂函数"""
-        engine = create_modular_query_engine(
-            index_manager,
-            strategy="vector"
+        engine = ModularQueryEngine(
+            index_manager=index_manager,
+            retrieval_strategy="vector"
         )
         
         assert isinstance(engine, ModularQueryEngine)

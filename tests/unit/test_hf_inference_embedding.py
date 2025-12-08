@@ -8,8 +8,8 @@ from unittest.mock import Mock, patch, MagicMock
 from typing import List
 import os
 
-from src.embeddings.base import BaseEmbedding
-from src.embeddings.hf_inference_embedding import HFInferenceEmbedding
+from src.infrastructure.embeddings.base import BaseEmbedding
+from src.infrastructure.embeddings.hf_inference_embedding import HFInferenceEmbedding
 
 
 class TestHFInferenceEmbedding:
@@ -18,7 +18,7 @@ class TestHFInferenceEmbedding:
     def test_hf_inference_embedding_init_without_token(self):
         """测试初始化时缺少 Token 的情况"""
         with patch.dict(os.environ, {}, clear=True):
-            with patch('src.embeddings.hf_inference_embedding.config') as mock_config:
+            with patch('src.infrastructure.embeddings.hf_inference_embedding.config') as mock_config:
                 mock_config.HF_TOKEN = None
                 
                 with pytest.raises(ValueError, match="HF_TOKEN 未设置"):
@@ -27,7 +27,7 @@ class TestHFInferenceEmbedding:
                         api_key=None
                     )
     
-    @patch('src.embeddings.hf_inference_embedding.InferenceClient')
+    @patch('src.infrastructure.embeddings.hf_inference_embedding.InferenceClient')
     def test_hf_inference_embedding_init_with_token(self, mock_client_class):
         """测试使用 Token 初始化"""
         # Mock InferenceClient
@@ -52,7 +52,7 @@ class TestHFInferenceEmbedding:
                 api_key="hf_test_token_123"
             )
     
-    @patch('src.embeddings.hf_inference_embedding.InferenceClient')
+    @patch('src.infrastructure.embeddings.hf_inference_embedding.InferenceClient')
     def test_hf_inference_embedding_get_query_embedding(self, mock_client_class):
         """测试查询向量化"""
         # Mock InferenceClient
@@ -82,7 +82,7 @@ class TestHFInferenceEmbedding:
         assert call_args[0][0] == "测试查询"  # 第一个参数是文本
         assert call_args[1]['model'] == "Qwen/Qwen3-Embedding-0.6B"
     
-    @patch('src.embeddings.hf_inference_embedding.InferenceClient')
+    @patch('src.infrastructure.embeddings.hf_inference_embedding.InferenceClient')
     def test_hf_inference_embedding_get_text_embeddings_batch(self, mock_client_class):
         """测试批量向量化"""
         # Mock InferenceClient
@@ -115,7 +115,7 @@ class TestHFInferenceEmbedding:
         # 验证 API 调用（每个文本调用一次）
         assert mock_client.feature_extraction.call_count == 3
     
-    @patch('src.embeddings.hf_inference_embedding.InferenceClient')
+    @patch('src.infrastructure.embeddings.hf_inference_embedding.InferenceClient')
     def test_hf_inference_embedding_batch_splitting(self, mock_client_class):
         """测试大批量自动分批处理"""
         # Mock InferenceClient
@@ -142,7 +142,7 @@ class TestHFInferenceEmbedding:
         # 验证被调用了 250 次（每个文本一次）
         assert mock_client.feature_extraction.call_count == 250
     
-    @patch('src.embeddings.hf_inference_embedding.InferenceClient')
+    @patch('src.infrastructure.embeddings.hf_inference_embedding.InferenceClient')
     def test_hf_inference_embedding_503_retry(self, mock_client_class):
         """测试 503 状态（模型加载中）的重试机制"""
         # Mock InferenceClient
@@ -167,14 +167,14 @@ class TestHFInferenceEmbedding:
             [0.1] * 1024
         ]
         
-        with patch('src.embeddings.hf_inference_embedding.time.sleep'):  # Mock sleep 避免实际等待
+        with patch('src.infrastructure.embeddings.hf_inference_embedding.time.sleep'):  # Mock sleep 避免实际等待
             vector = embedding.get_query_embedding("test")
         
         assert len(vector) == 1024
         # 验证被调用了 2 次（503 + 成功）
         assert mock_client.feature_extraction.call_count == 2
     
-    @patch('src.embeddings.hf_inference_embedding.InferenceClient')
+    @patch('src.infrastructure.embeddings.hf_inference_embedding.InferenceClient')
     def test_hf_inference_embedding_network_error_retry(self, mock_client_class):
         """测试网络错误的重试机制"""
         # Mock InferenceClient
@@ -202,14 +202,14 @@ class TestHFInferenceEmbedding:
             [0.1] * 1024
         ]
         
-        with patch('src.embeddings.hf_inference_embedding.time.sleep'):  # Mock sleep
+        with patch('src.infrastructure.embeddings.hf_inference_embedding.time.sleep'):  # Mock sleep
             vector = embedding.get_query_embedding("test")
         
         assert len(vector) == 1024
         # 验证被调用了 3 次（2 次失败 + 1 次成功）
         assert mock_client.feature_extraction.call_count == 3
     
-    @patch('src.embeddings.hf_inference_embedding.InferenceClient')
+    @patch('src.infrastructure.embeddings.hf_inference_embedding.InferenceClient')
     def test_hf_inference_embedding_max_retries_exceeded(self, mock_client_class):
         """测试超过最大重试次数后抛出异常"""
         # Mock InferenceClient
@@ -228,14 +228,14 @@ class TestHFInferenceEmbedding:
         mock_client.feature_extraction.reset_mock()
         mock_client.feature_extraction.side_effect = Exception("Network error")
         
-        with patch('src.embeddings.hf_inference_embedding.time.sleep'):  # Mock sleep
+        with patch('src.infrastructure.embeddings.hf_inference_embedding.time.sleep'):  # Mock sleep
             with pytest.raises(RuntimeError, match="Hugging Face Inference API 调用失败"):
                 embedding.get_query_embedding("test")
         
         # 验证被调用了 max_retries + 1 次（初始 + 重试）
         assert mock_client.feature_extraction.call_count == 3  # 1 次初始 + 2 次重试
     
-    @patch('src.embeddings.hf_inference_embedding.InferenceClient')
+    @patch('src.infrastructure.embeddings.hf_inference_embedding.InferenceClient')
     def test_hf_inference_embedding_empty_texts(self, mock_client_class):
         """测试空文本列表"""
         # Mock InferenceClient
@@ -258,7 +258,7 @@ class TestHFInferenceEmbedding:
         # 验证没有调用 API（空列表直接返回）
         assert mock_client.feature_extraction.call_count == 0
     
-    @patch('src.embeddings.hf_inference_embedding.InferenceClient')
+    @patch('src.infrastructure.embeddings.hf_inference_embedding.InferenceClient')
     def test_hf_inference_embedding_single_text_response_format(self, mock_client_class):
         """测试单个文本时 API 返回单个向量的格式"""
         # Mock InferenceClient
@@ -278,7 +278,7 @@ class TestHFInferenceEmbedding:
         assert len(vectors) == 1
         assert len(vectors[0]) == 1024
     
-    @patch('src.embeddings.hf_inference_embedding.InferenceClient')
+    @patch('src.infrastructure.embeddings.hf_inference_embedding.InferenceClient')
     def test_hf_inference_embedding_dimension_detection(self, mock_client_class):
         """测试自动维度检测"""
         # Mock InferenceClient
@@ -294,7 +294,7 @@ class TestHFInferenceEmbedding:
         
         assert embedding.get_embedding_dimension() == 1024
     
-    @patch('src.embeddings.hf_inference_embedding.InferenceClient')
+    @patch('src.infrastructure.embeddings.hf_inference_embedding.InferenceClient')
     def test_hf_inference_embedding_dimension_fallback(self, mock_client_class):
         """测试维度检测失败时的默认值"""
         # Mock InferenceClient - 验证时失败
@@ -302,7 +302,7 @@ class TestHFInferenceEmbedding:
         mock_client.feature_extraction.side_effect = Exception("API error")
         mock_client_class.return_value = mock_client
         
-        with patch('src.embeddings.hf_inference_embedding.logger'):
+        with patch('src.infrastructure.embeddings.hf_inference_embedding.logger'):
             embedding = HFInferenceEmbedding(
                 model_name="Qwen/Qwen3-Embedding-0.6B",
                 api_key="hf_test_token_123"
@@ -312,7 +312,7 @@ class TestHFInferenceEmbedding:
             # Qwen3-Embedding-0.6B 应该使用 1024 作为默认值
             assert embedding.get_embedding_dimension() == 1024
     
-    @patch('src.embeddings.hf_inference_embedding.InferenceClient')
+    @patch('src.infrastructure.embeddings.hf_inference_embedding.InferenceClient')
     def test_hf_inference_embedding_custom_timeout(self, mock_client_class):
         """测试自定义超时时间（SDK 可能不支持，但保留参数）"""
         # Mock InferenceClient
@@ -334,7 +334,7 @@ class TestHFInferenceEmbedding:
     
     def test_hf_inference_embedding_get_model_name(self):
         """测试获取模型名称"""
-        with patch('src.embeddings.hf_inference_embedding.InferenceClient'):
+        with patch('src.infrastructure.embeddings.hf_inference_embedding.InferenceClient'):
             embedding = HFInferenceEmbedding(
                 model_name="custom-model",
                 api_key="hf_test_token_123",
@@ -343,7 +343,7 @@ class TestHFInferenceEmbedding:
             
             assert embedding.get_model_name() == "custom-model"
     
-    @patch('src.embeddings.hf_inference_embedding.InferenceClient')
+    @patch('src.infrastructure.embeddings.hf_inference_embedding.InferenceClient')
     def test_hf_inference_embedding_invalid_response_format(self, mock_client_class):
         """测试无效的 API 响应格式"""
         # Mock InferenceClient - 返回无效格式
@@ -379,15 +379,15 @@ class TestHFInferenceEmbeddingFactory:
         sys.modules['llama_index.embeddings.huggingface'] = MagicMock()
         
         try:
-            import src.embeddings.factory as factory_module
-            from src.embeddings.factory import create_embedding, clear_embedding_cache
+            import src.infrastructure.embeddings.factory as factory_module
+            from src.infrastructure.embeddings.factory import create_embedding, clear_embedding_cache
             clear_embedding_cache()
             
             # Mock HFInferenceEmbedding
             mock_instance = Mock(spec=BaseEmbedding)
             mock_instance.get_model_name.return_value = "Qwen/Qwen3-Embedding-0.6B"
             
-            with patch('src.embeddings.hf_inference_embedding.HFInferenceEmbedding') as mock_hf_class:
+            with patch('src.infrastructure.embeddings.hf_inference_embedding.HFInferenceEmbedding') as mock_hf_class:
                 mock_hf_class.return_value = mock_instance
                 
                 # Mock config
@@ -428,8 +428,8 @@ class TestHFInferenceEmbeddingFactory:
         sys.modules['llama_index.embeddings.huggingface'] = MagicMock()
         
         try:
-            import src.embeddings.factory as factory_module
-            from src.embeddings.factory import create_embedding, clear_embedding_cache
+            import src.infrastructure.embeddings.factory as factory_module
+            from src.infrastructure.embeddings.factory import create_embedding, clear_embedding_cache
             clear_embedding_cache()
             
             # Mock config
@@ -462,13 +462,13 @@ class TestHFInferenceEmbeddingFactory:
         sys.modules['llama_index.embeddings.huggingface'] = MagicMock()
         
         try:
-            import src.embeddings.factory as factory_module
-            from src.embeddings.factory import create_embedding, clear_embedding_cache
+            import src.infrastructure.embeddings.factory as factory_module
+            from src.infrastructure.embeddings.factory import create_embedding, clear_embedding_cache
             clear_embedding_cache()
             
             mock_instance = Mock(spec=BaseEmbedding)
             
-            with patch('src.embeddings.hf_inference_embedding.HFInferenceEmbedding') as mock_hf_class:
+            with patch('src.infrastructure.embeddings.hf_inference_embedding.HFInferenceEmbedding') as mock_hf_class:
                 mock_hf_class.return_value = mock_instance
                 
                 # Mock config

@@ -207,9 +207,6 @@ def main():
             "paths": [
                 "tests/test_rag_service.py",
                 "tests/test_modular_query_engine.py",
-                "tests/unit/test_pipeline_executor.py",
-                "tests/unit/test_registry.py",
-                "tests/unit/test_strategy_manager.py",
             ],
         },
         {
@@ -246,7 +243,6 @@ def main():
         {
             "name": "阶段8: 兼容性测试",
             "paths": [
-                "tests/compatibility/test_backward_compatibility.py",
                 "tests/compatibility/test_cross_platform.py",
             ],
         },

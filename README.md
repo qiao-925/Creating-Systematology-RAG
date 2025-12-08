@@ -1,47 +1,8 @@
 # 创建系统学知识库RAG应用 (Creating Systematology RAG Application)
 
-> 面向系统科学领域的智能知识问答系统，整合 LlamaIndex、DeepSeek API 和 Chroma 向量数据库，提供引用溯源、多轮对话、知识增强等功能。
+> 基于多策略检索增强生成的智能问答系统，通过并行融合向量、BM25、Grep 检索策略和智能路由，从知识库精准检索并生成带引用来源的答案。
 
-## 1. 功能描述 (Features)
-
-### 核心特性 (Core Features)
-
-**基础功能**
-- 🎯 **引用溯源**：每个回答都标注具体的来源文档和段落
-- 💬 **多轮对话**：支持上下文追问，智能理解对话历史
-- 🚀 **简洁界面**：基于 Streamlit 的现代化 Web 界面
-
-**数据能力**
-- 📚 **多数据源**：支持 Markdown 文件、网页内容和 GitHub 仓库
-- 🌐 **维基百科增强**：自动补充背景知识，智能触发，分区展示来源
-
-**用户体验**
-- 💾 **自动持久化**：会话自动保存，刷新页面后恢复对话历史
-- 📜 **历史会话**：侧边栏显示历史会话列表，一键加载恢复
-- 👤 **用户隔离**：每个用户独立的知识库和会话数据
-
-**开发调试**
-- 📊 **行为追踪**：记录用户操作日志，支持数据分析
-- 🔍 **RAG可观测性**：集成Phoenix和LlamaDebugHandler，实时追踪检索和生成流程
-- 🔧 **灵活配置**：支持本地 embedding 模型和 API 切换
-
-### 技术栈 (Tech Stack)
-
-- **Python 3.12+** - 编程语言
-- **uv** - 依赖管理和包管理
-- **LlamaIndex** - RAG 核心框架
-- **LangChain** - 文档加载器（GitHub集成）
-- **DeepSeek API** - 大语言模型
-- **Chroma Cloud** - 向量数据库（云端托管）
-- **Streamlit** - Web 界面
-- **HuggingFace Embeddings** - 本地向量模型（支持镜像和离线）
-- **Git** - GitHub仓库本地克隆和增量更新
-- **pytest** - 测试框架（158个测试用例）
-- **Phoenix** - RAG可观测性平台
-
----
-
-## 2. 🚀 快速开始 (Quick Start)
+## 1. 🚀 快速开始 (Quick Start)
 
 ### 环境准备 (Environment Setup)
 
@@ -125,50 +86,572 @@ uv run --no-sync python -c "import torch; print(f'版本: {torch.__version__}');
 
 ---
 
-## 3. 📁 项目结构 (Project Structure)
+## 2. 技术栈 (Tech Stack)
+
+- **Python 3.12+** - 编程语言
+- **uv** - 依赖管理和包管理
+- **LlamaIndex** - RAG 核心框架
+- **LangChain** - 文档加载器（GitHub集成）
+- **DeepSeek API** - 大语言模型（支持推理链和JSON输出）
+- **Chroma Cloud** - 向量数据库（云端托管）
+- **Streamlit** - Web 界面
+- **HuggingFace Embeddings** - 本地向量模型（支持镜像和离线）
+- **Git** - GitHub仓库本地克隆和增量更新
+- **pytest** - 测试框架（158个测试用例）
+- **Phoenix** - RAG可观测性平台
+- **OpenTelemetry** - 分布式追踪
+- **RAGAS** - RAG评估框架
+
+---
+I
+---
+
+## 4. 📐 架构设计
+
+### 核心设计原则
+
+1. **模块化优先**：三层架构（前端层、业务层、基础设施层），职责清晰，低耦合高内聚
+2. **可插拔设计**：所有核心组件（Embedding、DataSource、Observer、Reranker、Retriever）支持可插拔替换
+3. **配置驱动**：集中管理配置，支持运行时切换，无需修改代码
+4. **渐进式迁移**：新旧架构并存，向后兼容，平滑升级
+5. **可观测性优先**：集成 Phoenix、LlamaDebugHandler、RAGAS，行为透明可追踪
+
+### 模块化三层架构
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    前端层（Presentation）                      │
+│  ┌──────────────┐  ┌──────────────┐                      │
+│  │  app.py      │  │  pages/      │                      │
+│  │ (Streamlit)  │  │ (设置页)     │                      │
+│  └──────┬───────┘  └──────┬───────┘                      │
+│         └─────────────────┘                              │
+│                    只调用 RAGService                         │
+└───────────────────────────┼────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   业务层（Business）                          │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │          RAGService (统一服务接口)                    │  │
+│  │  query(question) -> RAGResponse                      │  │
+│  └───────────────────┬──────────────────────────────────┘  │
+│                      │                                      │
+│         ┌────────────┼────────────┐                        │
+│         ▼            ▼            ▼                        │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐                │
+│  │Pipeline  │  │Strategy  │  │Context   │                │
+│  │Executor  │  │Manager   │  │Manager   │                │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘                │
+│       │             │             │                        │
+│  ┌────┴─────────────┴─────────────┴────┐                  │
+│  │    能力模块（通过协议协作）            │                  │
+│  │  Retriever → Generator → Formatter   │                  │
+│  │  → FallbackStrategy                  │                  │
+│  └──────────────────────────────────────┘                  │
+│                                                             │
+│  通过依赖注入获取基础设施层资源                               │
+└───────────────────────────┬────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│               基础设施层（Infrastructure）                    │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  │
+│  │ Config   │  │ Logger   │  │ Phoenix  │  │ Chroma   │  │
+│  │ Embedding│  │ Observer │  │DataSource│  │ LLM      │  │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘  │
+│  ┌──────────────────────────────────────┐                  │
+│  │  ModuleRegistry (模块注册中心)        │                  │
+│  │  - 模块元数据管理                     │                  │
+│  │  - 工厂函数创建实例                   │                  │
+│  └──────────────────────────────────────┘                  │
+│                                                             │
+│  向上提供统一服务接口，无业务逻辑                            │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**三层职责**：
+
+| 层次 | 职责 | 特点 |
+|------|------|------|
+| **前端层** | 用户交互与展示 | 只调用RAGService，不持有业务模块 |
+| **业务层** | 核心业务逻辑与编排 | 能力模块通过协议协作，流水线编排 |
+| **基础设施层** | 技术基础设施 | 无业务逻辑，提供资源和框架能力 |
+
+### 主要工作流程
+
+```
+开始（用户操作：Web界面）
+
+  │
+  ├─→ [阶段1] 数据加载阶段
+  │     │
+  │     ├─→ [1.1] 数据源识别与Git仓库处理
+  │     │     │
+  │     │     ├─ SourceLoader.load() [src/data_loader/source_loader.py]
+  │     │     │   ├─ 识别数据源类型（GitHub/本地/网页）
+  │     │     │   └─ 调用对应的 DataSource.load()
+  │     │     │
+  │     │     └─ GitRepositoryManager [src/git/manager.py]（如果是 GitHub 源）
+  │     │         ├─ 初始化：创建本地存储目录（data/github_repos/）
+  │     │         ├─ 检查仓库是否存在，判断首次克隆或增量更新
+  │     │         ├─ 首次克隆：
+  │     │         │   ├─ 执行 git clone --branch {branch} --single-branch --depth 1
+  │     │         │   ├─ 浅克隆优化（只获取最新提交）
+  │     │         │   ├─ 重试机制（最多3次）
+  │     │         │   └─ 网络错误时使用指数退避
+  │     │         ├─ 增量更新：
+  │     │         │   ├─ 执行 git pull origin {branch}
+  │     │         │   └─ 检查分支是否匹配
+  │     │         ├─ 获取 Commit SHA（git rev-parse HEAD）
+  │     │         └─ 缓存管理：检查缓存有效性，记录仓库路径和commit信息
+  │     │
+  │     ├─→ [1.2] 文件路径获取与过滤
+  │     │     └─ GitHubSource/LocalSource/WebSource [src/data_source/]
+  │     │         ├─ 递归遍历目录结构
+  │     │         ├─ 排除特定目录：.git, __pycache__, node_modules, .venv, venv, .pytest_cache
+  │     │         ├─ 排除特定文件：.pyc, .pyo, .lock, .log
+  │     │         ├─ 只包含真实文件（排除符号链接等）
+  │     │         ├─ 应用过滤器：
+  │     │         │   ├─ 目录过滤（filter_directories，可选）
+  │     │         │   └─ 扩展名过滤（filter_file_extensions，可选）
+  │     │         └─ 构建 SourceFile 对象（包含路径、仓库信息、commit SHA、GitHub链接）
+  │     │
+  │     └─→ [1.3] 文档解析
+  │           └─ DocumentParser.parse_files() [src/data_parser/document_parser.py]
+  │               ├─ 解析文件为文档对象
+  │               │   └─ 缓存有效则直接返回，跳过解析
+  │               ├─ 验证文件：检查存在性、可读性，过滤无效文件
+  │               ├─ 按目录分组（批量处理优化）：相同目录文件批量解析
+  │               ├─ 解析文件：
+  │               │   ├─ 单个文件：使用 SimpleDirectoryReader 解析
+  │               │   ├─ 目录批量：批量解析同一目录的文件
+  │               │   └─ 支持格式：.md, .txt, .py, .js, .json, .yaml, .yml, .html, .pdf 等
+  │               ├─ 构建 LlamaDocument 对象：
+  │               │   ├─ 文档文本内容
+  │               │   ├─ 文件元数据（路径、来源、URL等）
+  │               │   └─ 文档唯一标识
+  │               ├─ 文本清理（可选）：清理多余空白、规范化换行符
+  │               └─ 返回解析后的文档列表
+  │
+  ├─→ [阶段2] 索引构建阶段
+  │     │
+  │     ├─→ [2.1] 文档分块（Chunking）
+  │     │     └─ IndexManager.build_index() [src/indexer/index_manager_build.py]
+  │     │         ├─ 检查断点续传：
+  │     │         │   ├─ 检查哪些文档已经向量化
+  │     │         │   └─ 跳过已处理文档，只处理新文档或更新的文档
+  │     │         ├─ 选择构建模式：
+  │     │         │   ├─ 批处理模式（INDEX_BATCH_MODE=True）：按目录分组，分批处理
+  │     │         │   └─ 正常模式（默认）：直接处理所有文档
+  │     │         ├─ 初始化分块器：SentenceSplitter
+  │     │         │   ├─ chunk_size：分块大小（默认512）
+  │     │         │   └─ chunk_overlap：块重叠大小（默认20）
+  │     │         ├─ 执行分块：
+  │     │         │   ├─ 按句子边界分割
+  │     │         │   ├─ 使用滑动窗口（overlap）保持上下文连续性
+  │     │         │   ├─ 智能处理代码块、列表等特殊结构
+  │     │         │   └─ 每个文档被分割成多个 Node 对象
+  │     │         └─ 批处理模式特殊处理：
+  │     │             ├─ 按目录深度分组（GROUP_DEPTH）
+  │     │             ├─ 控制每批文档数量（DOCS_PER_BATCH）
+  │     │             └─ 支持 checkpoint，可以中断后继续
+  │     │
+  │     ├─→ [2.2] 向量化（Embedding）
+  │     │     └─ Embedding 工厂 [src/embeddings/factory.py]
+  │     │         ├─ 获取 Embedding 模型：
+  │     │         │   ├─ 本地模型：LocalEmbedding（HuggingFace模型）
+  │     │         │   ├─ API 模型：APIEmbedding（远程API调用）
+  │     │         │   └─ 通过 config.EMBEDDING_TYPE 选择（local 或 api）
+  │     │         ├─ 向量化节点：
+  │     │         │   ├─ 对每个 Node 的文本调用 Embedding 模型
+  │     │         │   ├─ 生成固定维度的向量（如768维、1024维）
+  │     │         │   └─ 批处理优化：EMBED_BATCH_SIZE 控制批量大小
+  │     │         └─ 向量维度检查：
+  │     │             ├─ 检查新向量维度是否与现有索引匹配
+  │     │             └─ 维度不匹配时给出警告或错误提示
+  │     │
+  │     └─→ [2.3] 存储到向量数据库
+  │           └─ IndexManager [src/indexer/index_manager.py]
+  │               ├─ 初始化向量存储：
+  │               │   ├─ 使用 Chroma Cloud 作为向量存储后端
+  │               │   ├─ Collection 名称：可自定义（默认 default）
+  │               │   └─ 连接到云端数据库
+  │               ├─ 创建或加载索引：
+  │               │   ├─ 新索引：VectorStoreIndex.from_documents()
+  │               │   └─ 增量添加：index.insert_ref_docs() 或 index.insert_nodes()
+  │               ├─ 存储向量：
+  │               │   ├─ 向量数据：每个节点的 embedding 向量
+  │               │   ├─ 元数据：节点元数据（文件路径、来源等）
+  │               │   └─ 文本内容：原始文本（用于展示和引用）
+  │               ├─ 构建向量 ID 映射：
+  │               │   └─ 记录文件路径到向量 ID 的映射（用于增量更新和删除）
+  │               └─ 更新缓存状态（如果启用）：
+  │                   ├─ 标记向量化步骤完成
+  │                   └─ 记录向量数量、文档 hash 等信息
+  │
+  ├─→ [阶段3] 查询阶段（使用索引）
+  │     │
+  │     ├─→ [3.1] 接收用户查询
+  │     │     └─ RAGService.query() [src/business/services/rag_service.py]
+  │     │         └─ Web界面：app.py → RAGService
+  │     │
+  │     ├─→ [3.2] 查询引擎初始化与策略选择
+  │     │     └─ ModularQueryEngine [src/query/modular/engine.py]
+  │     │         │
+  │     │         ├─ 固定策略模式（默认）：
+  │     │         │   ├─ 策略验证：检查策略是否在 SUPPORTED_STRATEGIES 中
+  │     │         │   ├─ 创建检索器：通过 create_retriever() 工厂方法创建
+  │     │         │   ├─ 创建查询引擎：使用检索器创建 RetrieverQueryEngine
+  │     │         │   └─ 记录日志：记录初始化的策略配置
+  │     │         │
+  │     │         └─ 自动路由模式（可选）：
+  │     │             ├─ 延迟创建：不在初始化时创建检索器
+  │     │             ├─ 创建路由器：初始化 QueryRouter 实例
+  │     │             └─ 准备策略：准备多种检索策略的创建逻辑（延迟加载）
+  │     │
+  │     ├─→ [3.3] 检索策略执行
+  │     │     │
+  │     │     ├─ 固定策略模式：
+  │     │     │   └─ 使用预创建的 query_engine 直接执行检索
+  │     │     │
+  │     │     ├─ 自动路由模式：
+  │     │     │   ├─ QueryRouter.route() [src/routers/query_router.py]
+  │     │     │   │   ├─ 查询分析：_analyze_query() 分析查询文本
+  │     │     │   │   ├─ 规则匹配：
+  │     │     │   │   │   ├─ 文件名关键词 → files_via_metadata 模式
+  │     │     │   │   │   ├─ 宽泛主题词 → files_via_content 模式
+  │     │     │   │   │   └─ 默认 → chunk 模式
+  │     │     │   │   ├─ 动态创建检索器：根据决策创建对应检索器
+  │     │     │   │   └─ 记录路由决策日志
+  │     │     │   └─ 执行查询：使用选定的检索器执行查询
+  │     │     │
+  │     │     └─ 多策略检索（retrieval_strategy="multi"）：
+  │     │         └─ MultiStrategyRetriever [src/retrievers/multi_strategy_retriever.py]
+  │     │             ├─ 并行执行多个检索器：
+  │     │             │   ├─ VectorRetriever（语义相似度）
+  │     │             │   ├─ BM25Retriever（关键词匹配）
+  │     │             │   └─ GrepRetriever（正则表达式）
+  │     │             ├─ ResultMerger.merge() [src/retrievers/result_merger.py]
+  │     │             │   ├─ RRF 融合：倒数排名融合（Reciprocal Rank Fusion）
+  │     │             │   ├─ 加权融合：支持自定义权重
+  │     │             │   ├─ 去重：基于内容哈希去重
+  │     │             │   └─ 记录合并结果数量
+  │     │             └─ 返回合并后的结果
+  │     │
+  │     ├─→ [3.4] 后处理（Post-processing）
+  │     │     └─ PostprocessorFactory [src/query/modular/postprocessor_factory.py]
+  │     │         ├─ 相似度阈值过滤：
+  │     │         │   ├─ 过滤低相似度结果
+  │     │         │   └─ 可配置阈值（similarity_cutoff）
+  │     │         └─ 重排序（Reranker，可选）：
+  │     │             ├─ SentenceTransformer 重排序
+  │     │             ├─ BGE 重排序（BAAI/bge-reranker-base）
+  │     │             ├─ Top-N 重排序：可配置重排序后保留的结果数量
+  │     │             └─ 批量重排序优化
+  │     │
+  │     ├─→ [3.5] 生成（Generation）
+  │     │     └─ QueryExecutor [src/query/modular/query_executor.py]
+  │     │         ├─ 构建 Prompt：
+  │     │         │   ├─ 包含检索到的上下文
+  │     │         │   ├─ 包含用户查询
+  │     │         │   └─ 包含对话历史（多轮对话）
+  │     │         ├─ 调用 DeepSeek LLM（deepseek-reasoner）：
+  │     │         │   ├─ 使用 LLM 工厂创建实例
+  │     │         │   └─ 支持推理链输出
+  │     │         ├─ 获取响应：
+  │     │         │   ├─ 推理链（reasoning_content）
+  │     │         │   └─ 答案内容（content）
+  │     │         └─ 多轮对话优化：
+  │     │             └─ 自动过滤推理链，确保不传入下一轮对话
+  │     │
+  │     └─→ [3.6] 响应格式化
+  │           └─ ResponseFormatter [src/response_formatter/formatter.py]
+  │               ├─ 提取引用来源（source_nodes）：
+  │               │   ├─ 提取文本内容
+  │               │   ├─ 提取相似度分数
+  │               │   └─ 提取元数据（文件路径、来源等）
+  │               ├─ 格式化答案和元数据：
+  │               │   ├─ 格式化答案文本
+  │               │   ├─ 格式化引用来源
+  │               │   └─ 包含推理链（如果启用）
+  │               └─ 返回 RAGResponse：
+  │                   ├─ 答案文本
+  │                   ├─ 引用来源列表
+  │                   └─ 元数据（推理链、查询信息等）
+  │
+  └─→ [阶段4] 会话管理（多轮对话）
+        └─ ChatManager [src/chat/manager.py]
+            ├─ 维护会话历史
+            ├─ 自动持久化到 sessions/ 目录
+            └─ 支持会话切换和历史恢复
+```
+
+### 目录结构
 
 ```
 Creating-Systematology-RAG/
 │
 ├── app.py                          # 🖥️ Streamlit Web应用主页（聊天界面）
-├── main.py                         # ⌨️ CLI命令行工具（批量操作、管理）
 ├── pages/                          # 📄 Streamlit多页面应用
 │   └── 1_⚙️_设置.py               # ⚙️ 设置页面（详细配置）
 │
-├── docs/                          # 📚 文档中心
-│   ├── README.md                  # 📖 文档中心首页（整合导航）
-│   ├── ARCHITECTURE.md            # 🏗️ 架构设计文档
-│   ├── API.md                     # 📚 API参考文档
-│   ├── DECISIONS.md               # 💡 技术决策记录
-│   └── PROJECT_STRUCTURE.md       # 📁 项目结构说明
+├── src/                            # 💻 源代码（核心业务逻辑）
+│   │
+│   ├── ui/                         # 前端层（Presentation Layer）
+│   │   ├── loading.py             # 索引和组件加载
+│   │   ├── session.py             # 会话管理 UI
+│   │   ├── history.py             # 历史会话 UI
+│   │   └── sources.py             # 引用来源展示
+│   │
+│   ├── business/                   # 业务层（Business Layer）
+│   │   ├── services/               # 统一服务接口
+│   │   │   ├── rag_service.py     # RAGService 主服务
+│   │   │   └── modules/            # 服务模块
+│   │   │       ├── query.py        # 查询处理
+│   │   │       ├── index.py        # 索引构建
+│   │   │       └── chat.py         # 对话处理
+│   │   ├── pipeline/              # 流水线编排器
+│   │   ├── strategy_manager.py    # 策略管理器
+│   │   └── protocols.py            # 协议定义
+│   │
+│   ├── data_loader/                # 数据加载
+│   │   ├── source_loader.py       # 统一数据加载入口
+│   │   ├── github_loader.py       # GitHub 数据加载
+│   │   └── directory_loader.py     # 本地目录加载
+│   │
+│   ├── data_source/                # 数据源（可插拔）
+│   │   ├── base.py                # 数据源基类
+│   │   ├── github_source.py       # GitHub 数据源
+│   │   └── local_source.py         # 本地文件数据源
+│   │
+│   ├── data_parser/                # 文档解析
+│   │   ├── document_parser.py     # 文档解析器
+│   │   └── modules/               # 解析工具模块（缓存、文件工具等）
+│   │
+│   ├── git/                        # Git 操作
+│   │   ├── manager.py             # Git 仓库管理器
+│   │   ├── clone.py               # 克隆操作
+│   │   └── update.py              # 更新操作
+│   │
+│   ├── indexer/                    # 索引构建
+│   │   ├── index_manager.py       # 索引管理器
+│   │   ├── index_builder.py       # 索引构建器
+│   │   └── index_core.py          # 核心索引操作
+│   │
+│   ├── query/                      # 查询引擎
+│   │   ├── modular/               # 模块化查询引擎
+│   │   │   ├── engine.py          # ModularQueryEngine
+│   │   │   ├── retriever_factory.py # 检索器工厂
+│   │   │   └── query_executor.py  # 查询执行器
+│   │   └── engine.py              # 传统查询引擎（向后兼容）
+│   │
+│   ├── retrievers/                 # 检索器（可插拔）
+│   │   ├── multi_strategy_retriever.py # 多策略检索
+│   │   ├── grep_retriever.py      # Grep 检索
+│   │   └── result_merger.py       # 结果融合（RRF、加权融合）
+│   │
+│   ├── rerankers/                  # 重排序（可插拔）
+│   │   ├── base.py                # 重排序基类
+│   │   ├── sentence_transformer_reranker.py # ST 重排序
+│   │   └── bge_reranker.py        # BGE 重排序
+│   │
+│   ├── embeddings/                 # 向量化（可插拔）
+│   │   ├── factory.py             # Embedding 工厂
+│   │   ├── local_embedding.py     # 本地模型（HuggingFace）
+│   │   └── api_embedding.py       # API 模型（HuggingFace Inference）
+│   │
+│   ├── llms/                       # 大语言模型
+│   │   ├── factory.py             # LLM 工厂
+│   │   └── reasoning.py            # 推理链处理
+│   │
+│   ├── observers/                 # 可观测性（可插拔）
+│   │   ├── factory.py             # Observer 工厂
+│   │   ├── phoenix_observer.py     # Phoenix 集成
+│   │   └── ragas_evaluator.py     # RAGAS 评估
+│   │
+│   ├── response_formatter/        # 响应格式化
+│   │   └── formatter.py           # 格式化器
+│   │
+│   ├── chat/                       # 对话管理
+│   │   ├── manager.py             # ChatManager
+│   │   └── session.py             # 会话管理
+│   │
+│   ├── config/                     # 配置管理
+│   │   ├── settings.py            # 配置设置
+│   │   └── device.py              # 设备管理
+│   │
+│   └── logger.py                   # 日志系统
 │
-├── src/                           # 💻 源代码（核心业务逻辑）
-│   ├── config.py                  # ⚙️ 配置管理
-│   ├── data_loader.py             # 📥 数据加载（Markdown、网页、GitHub）
-│   ├── indexer.py                 # 🗂️ 索引构建（向量化、存储）
-│   ├── query_engine.py            # 🔍 查询引擎（问答、引用溯源）
-│   ├── chat_manager.py            # 💬 对话管理（多轮对话、会话）
-│   ├── user_manager.py            # 👤 用户管理（注册、登录）
-│   ├── phoenix_utils.py           # 🔍 Phoenix工具（RAG可观测性）
-│   └── ui_components.py           # 🎨 UI共用组件
+├── docs/                           # 📚 文档中心
+│   ├── ARCHITECTURE.md            # 架构设计文档
+│   ├── API.md                     # API参考文档
+│   └── RUNNING_FLOW.md            # 运行流程详解
 │
-├── data/                          # 📁 数据目录
-│   ├── processed/                 # 📊 处理后的数据
-│   └── github_repos/               # 📦 GitHub仓库
+├── data/                           # 📁 数据目录
+│   └── github_repos/               # GitHub仓库（本地克隆）
 │
-├── sessions/                      # 💾 对话会话记录
-├── logs/                          # 📋 日志目录
-├── agent-task-log/                # 📝 AI Agent任务记录
-│   └── README.md                  # 📖 任务归档
-│
-└── Makefile                       # 🛠️ 构建脚本
+├── sessions/                       # 💾 对话会话记录（按用户隔离）
+├── logs/                           # 📋 日志目录
+├── agent-task-log/                 # 📝 AI Agent任务记录
+└── Makefile                        # 🛠️ 构建脚本
 ```
 
-> 📖 详细结构 → [项目结构](docs/PROJECT_STRUCTURE.md)
+**模块依赖关系**：
+```
+config → logger → data_loader → indexer → query → chat
+  ↓        ↓         ↓            ↓         ↓       ↓
+ui ← business ← pipeline ← strategy ← retriever ← reranker
+```
+
+**核心函数**：
+- `SourceLoader.load()`: 统一数据加载入口，自动识别数据源类型
+- `DocumentParser.parse_files()`: 文档解析，支持缓存和批量处理
+- `IndexManager.build_index()`: 索引构建，分块→向量化→存储
+- `ModularQueryEngine.query()`: 模块化查询，支持多种检索策略
+- `RAGService.query()`: 统一服务接口，协调各模块执行
+- `ChatManager.query()`: 对话管理，维护会话历史
+
+> 📖 详细结构 → [架构设计](docs/ARCHITECTURE.md) | [运行流程](docs/RUNNING_FLOW.md)
 
 ---
 
-## 4. 📚 相关文档 (Related Documents)
+## 5. 💾 缓存机制 (Cache System)
+
+项目实现了多层次的缓存机制，用于提升性能和减少重复计算。了解缓存机制有助于调试和性能优化。
+
+### 5.1 内存缓存（运行时缓存）
+
+**Embedding 模型缓存**
+- **位置**: `src/indexer/embedding_utils.py`
+- **机制**: 全局变量 `_global_embed_model` 存储模型实例，单例模式避免重复加载
+- **清理**: `clear_embedding_model_cache()` 或模型名称变更时自动清除
+- **用途**: Embedding 模型加载成本高（数GB大小、GPU内存占用），全局缓存避免重复加载
+
+**Reranker 模型缓存**
+- **位置**: `src/rerankers/factory.py`
+- **机制**: 全局字典 `_reranker_cache` 存储重排序器实例，Key: `"{reranker_type}:{model}:{top_n}"`
+- **清理**: `clear_reranker_cache()`
+- **用途**: 避免重复加载重排序模型
+
+**Embedding 实例缓存**
+- **位置**: `src/embeddings/factory.py`
+- **机制**: 全局变量 `_global_embedding_instance` 存储 BaseEmbedding 实例
+- **清理**: `clear_embedding_cache()`
+- **用途**: 统一管理 Embedding 实例，支持可插拔设计
+
+**Streamlit Session State 缓存**
+- **位置**: `app.py`, `pages/`
+- **机制**: Streamlit 的 `st.session_state` 存储会话状态
+- **清理**: 程序退出时自动清除，或通过 `st.session_state.clear()` 手动清除
+- **主要缓存项**: `embed_model`, `index_manager`, `chat_manager`, `rag_service`, `boot_ready`
+
+### 5.2 文件缓存（持久化缓存）
+
+**GitHub 仓库本地缓存**
+- **位置**: `data/github_repos/{owner}/{repo}_{branch}/`
+- **机制**: Git 仓库本地克隆，支持增量更新（git pull）
+- **配置**: `GITHUB_REPOS_PATH`（默认: `data/github_repos`）
+- **清理**: 直接删除对应目录，或通过 `GitRepositoryManager` 管理
+- **用途**: 避免重复克隆，支持增量拉取变更
+
+**向量数据库（Chroma Cloud）**
+- **位置**: Chroma Cloud（云端托管）
+- **机制**: 云端向量数据库，数据存储在云端，无需本地存储目录
+- **配置**: `CHROMA_CLOUD_API_KEY`, `CHROMA_CLOUD_TENANT`, `CHROMA_CLOUD_DATABASE`
+- **清理**: 通过 Chroma Cloud 控制台或 `IndexManager.clear_index()` 清除集合
+- **用途**: 持久化存储向量索引，支持大规模数据
+
+**会话记录缓存**
+- **位置**: `sessions/{user_email}/{session_id}.json`
+- **机制**: JSON 文件存储对话会话，按用户隔离
+- **配置**: `SESSIONS_PATH`（默认: `sessions`）
+- **清理**: 删除对应会话文件，或通过 `ChatManager` 管理
+- **用途**: 持久化对话历史，支持会话恢复
+
+**用户数据缓存**
+- **位置**: `data/users.json`
+- **机制**: JSON 文件存储用户信息（邮箱、密码哈希等）
+- **清理**: 删除文件会清除所有用户数据
+- **用途**: 用户认证和隔离
+
+**GitHub 元数据缓存**
+- **位置**: `data/github_metadata.json`
+- **机制**: JSON 文件存储 GitHub 仓库元数据（最后同步的 commit SHA、文件哈希等）
+- **清理**: 删除文件会清除所有元数据
+- **用途**: 追踪仓库变更，支持增量更新
+
+**活动日志缓存**
+- **位置**: `logs/activity/{date}.log`
+- **机制**: 日志文件记录用户操作，按日期组织
+- **配置**: `ACTIVITY_LOG_PATH`（默认: `logs/activity`）
+- **清理**: 删除对应日志文件
+- **用途**: 行为追踪和数据分析
+
+### 5.3 外部缓存（第三方库自动管理）
+
+**HuggingFace 模型缓存**
+- **位置**: `~/.cache/huggingface/`（系统默认）
+- **机制**: HuggingFace Transformers 自动管理，下载的模型文件缓存在此目录
+- **配置**: `HF_ENDPOINT`（默认: `https://hf-mirror.com`），`HF_OFFLINE_MODE`（默认: `false`）
+- **清理**: 删除 `~/.cache/huggingface/` 目录，或通过环境变量 `HF_HOME` 指定其他路径
+- **用途**: 模型文件缓存，支持离线模式
+
+**Python 字节码缓存**
+- **位置**: `__pycache__/`（各目录下）
+- **机制**: Python 自动生成 `.pyc` 文件，加速模块导入
+- **清理**: 删除所有 `__pycache__/` 目录
+- **用途**: 加速 Python 模块导入
+
+**pytest 测试缓存**
+- **位置**: `.pytest_cache/`
+- **机制**: pytest 测试框架缓存测试结果
+- **清理**: 删除 `.pytest_cache/` 目录
+- **用途**: 加速测试执行
+
+**Streamlit 缓存装饰器**
+- **位置**: `pages/`（使用 `@st.cache_resource` 装饰器的页面）
+- **机制**: Streamlit 自动管理资源缓存
+- **清理**: Streamlit 自动管理，或通过 UI 清除
+- **用途**: 缓存昂贵的资源加载操作
+
+### 5.4 缓存重要性分类
+
+**高重要性**（不建议删除）:
+- 向量数据库（Chroma Cloud 云端存储）
+- 用户数据 (`data/users.json`)
+- 会话记录 (`sessions/`)
+
+**中等重要性**（可选择性清理）:
+- GitHub 仓库本地缓存 (`data/github_repos/`)
+- GitHub 仓库缓存 (`data/github_repos/`)
+- GitHub 元数据 (`data/github_metadata.json`)
+
+**低重要性**（可安全清理）:
+- HuggingFace 模型缓存 (`~/.cache/huggingface/`)
+- Python 字节码缓存 (`__pycache__/`)
+- 测试缓存 (`.pytest_cache/`)
+- 活动日志 (`logs/`)
+
+### 5.5 调试注意事项
+
+**缓存可能导致的问题**：
+1. **文档更新不生效**：检查元数据管理器状态，可能需要重新同步仓库
+2. **模型切换不生效**：检查 Embedding 模型缓存，调用 `clear_embedding_model_cache()` 清理
+3. **索引维度不匹配**：检查 Embedding 模型缓存，确保使用正确的模型
+4. **会话状态异常**：清理 Streamlit Session State 或重启应用
+5. **GitHub 仓库未更新**：检查 `data/github_repos/` 目录，手动删除后重新克隆
+
+**推荐清理策略**：
+- **日常清理**：Python 字节码缓存、pytest 测试缓存、旧的活动日志
+- **定期清理**：GitHub 仓库本地缓存（如需要）
+- **谨慎清理**：向量数据库、用户数据、会话记录、GitHub 仓库缓存（需确认）
+
+> 📖 详细缓存分析 → [缓存机制分析](docs/CACHE_ANALYSIS.md)
+
+---
+
+## 6. 📚 相关文档 (Related Documents)
 
 ### 核心文档
 

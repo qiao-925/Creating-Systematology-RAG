@@ -1,17 +1,16 @@
 """
 设置页面数据源管理模块
-GitHub仓库、本地文件、网页URL、维基百科管理
+GitHub仓库、本地文件管理
 """
 
 import streamlit as st
 
-from src.data_loader import (
-    load_documents_from_urls,
-    load_documents_from_github,
+from src.infrastructure.data_loader import (
+    DataImportService,
     parse_github_url,
     sync_github_repository
 )
-from src.ui_components import load_index
+from src.ui import load_index
 
 
 def render_data_source_tab():
@@ -52,14 +51,6 @@ def render_data_source_tab():
     _render_local_file_upload()
     
     st.divider()
-    
-    # 网页URL导入
-    _render_web_url_import()
-    
-    st.divider()
-    
-    # 维基百科预索引
-    _render_wikipedia_preload()
 
 
 def _handle_add_github_repo(github_url: str):
@@ -84,7 +75,7 @@ def _handle_add_github_repo(github_url: str):
         if index_manager:
             with st.spinner(f"正在索引 {github_owner}/{github_repo}..."):
                 try:
-                    documents, changes, commit_sha, cache_manager, task_id = sync_github_repository(
+                    documents, changes, commit_sha = sync_github_repository(
                         owner=github_owner,
                         repo=github_repo,
                         branch=github_branch,
@@ -95,9 +86,7 @@ def _handle_add_github_repo(github_url: str):
                     if documents:
                         index, vector_ids_map = index_manager.build_index(
                             documents, 
-                            show_progress=True,
-                            cache_manager=cache_manager,
-                            task_id=task_id
+                            show_progress=True
                         )
                         st.session_state.metadata_manager.update_repository_metadata(
                             owner=github_owner,
@@ -156,7 +145,7 @@ def _handle_sync_repo(repo: dict):
                 branch = parts[1] if len(parts) > 1 else 'main'
                 owner, repo_name = repo_part.split('/')
                 
-                documents, changes, commit_sha, cache_manager, task_id = sync_github_repository(
+                documents, changes, commit_sha = sync_github_repository(
                     owner=owner,
                     repo=repo_name,
                     branch=branch,
@@ -171,9 +160,7 @@ def _handle_sync_repo(repo: dict):
                     if added_docs or modified_docs:
                         index_manager.build_index(
                             added_docs + modified_docs,
-                            show_progress=True,
-                            cache_manager=cache_manager,
-                            task_id=task_id
+                            show_progress=True
                         )
                     index_manager.incremental_update(
                         added_docs=added_docs,
@@ -235,97 +222,26 @@ def _render_local_file_upload():
         if index_manager:
             with st.spinner(f"正在处理 {len(uploaded_files)} 个文件..."):
                 try:
-                    from src.data_source import LocalFileSource
-                    from src.data_loader import load_documents_from_source
+                    from src.infrastructure.data_loader.source import LocalFileSource
+                    from src.infrastructure.data_loader import DataImportService
                     
+                    service = DataImportService(show_progress=False)
                     source = LocalFileSource(source=list(uploaded_files))
-                    documents = load_documents_from_source(source, clean=True, show_progress=False)
+                    result = service.import_from_source(source, clean=True)
                     source.cleanup()
                     
-                    if documents:
-                        _, _ = index_manager.build_index(documents)
+                    if result.success and result.documents:
+                        _, _ = index_manager.build_index(result.documents)
                         st.session_state.index_built = True
-                        st.success(f"✅ 成功导入 {len(documents)} 个文档")
+                        st.success(f"✅ 成功导入 {len(result.documents)} 个文档")
                         st.rerun()
                     else:
-                        st.error("❌ 未能解析任何文档，请检查文件格式")
+                        error_msg = "❌ 未能解析任何文档，请检查文件格式"
+                        if result.errors:
+                            error_msg += f"\n错误: {', '.join(result.errors)}"
+                        st.error(error_msg)
                 except Exception as e:
                     st.error(f"❌ 导入失败: {e}")
 
 
-def _render_web_url_import():
-    """渲染网页URL导入"""
-    st.subheader("🌐 从网页加载")
-    url_input = st.text_area(
-        "输入URL（每行一个）",
-        height=100,
-        placeholder="https://example.com/article1\nhttps://example.com/article2"
-    )
-    
-    if st.button("🌍 加载网页", type="primary") and url_input:
-        urls = [url.strip() for url in url_input.split('\n') if url.strip()]
-        if urls:
-            index_manager = load_index()
-            if index_manager:
-                with st.spinner(f"正在加载 {len(urls)} 个网页..."):
-                    try:
-                        documents = load_documents_from_urls(urls)
-                        if documents:
-                            _, _ = index_manager.build_index(documents)
-                            st.session_state.index_built = True
-                            st.success(f"✅ 成功加载 {len(documents)} 个网页")
-                            st.rerun()
-                        else:
-                            st.warning("⚠️ 没有成功加载任何网页")
-                    except Exception as e:
-                        st.error(f"❌ 加载失败: {e}")
-
-
-def _render_wikipedia_preload():
-    """渲染维基百科预索引"""
-    st.subheader("🌐 维基百科预索引")
-    st.caption("将维基百科页面添加到索引中，提升查询速度")
-    
-    from src.config import config
-    
-    wiki_concepts_input = st.text_area(
-        "概念列表（每行一个）",
-        value="\n".join(config.WIKIPEDIA_PRELOAD_CONCEPTS),
-        height=100,
-        help="输入维基百科页面标题"
-    )
-    
-    col1, col2 = st.columns([3, 1])
-    
-    with col1:
-        wiki_lang = st.selectbox(
-            "语言",
-            options=["zh", "en"],
-            format_func=lambda x: "中文" if x == "zh" else "English",
-            help="维基百科语言版本"
-        )
-    
-    with col2:
-        if st.button("📖 预索引", type="primary", use_container_width=True):
-            concepts = [c.strip() for c in wiki_concepts_input.split('\n') if c.strip()]
-            if concepts:
-                index_manager = load_index()
-                if index_manager:
-                    with st.spinner(f"正在加载 {len(concepts)} 个维基百科页面..."):
-                        try:
-                            count = index_manager.preload_wikipedia_concepts(
-                                concepts,
-                                lang=wiki_lang,
-                                show_progress=False
-                            )
-                            if count > 0:
-                                st.session_state.index_built = True
-                                st.success(f"✅ 成功索引 {count} 个维基百科页面！")
-                                st.rerun()
-                            else:
-                                st.warning("⚠️ 未能加载任何维基百科页面")
-                        except Exception as e:
-                            st.error(f"❌ 加载失败: {e}")
-            else:
-                st.warning("请输入至少一个概念")
 

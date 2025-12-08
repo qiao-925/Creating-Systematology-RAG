@@ -8,10 +8,10 @@ import pytest
 from unittest.mock import Mock, patch, MagicMock
 from typing import Optional
 
-from src.embeddings.base import BaseEmbedding
-from src.embeddings.local_embedding import LocalEmbedding
-from src.embeddings.api_embedding import APIEmbedding
-from src.embeddings.factory import (
+from src.infrastructure.embeddings.base import BaseEmbedding
+from src.infrastructure.embeddings.local_embedding import LocalEmbedding
+from src.infrastructure.embeddings.hf_inference_embedding import HFInferenceEmbedding
+from src.infrastructure.embeddings.factory import (
     create_embedding,
     get_embedding_instance,
     clear_embedding_cache,
@@ -29,13 +29,13 @@ class TestCreateEmbeddingLocal:
         mock_config.EMBEDDING_TYPE = "local"
         mock_config.EMBEDDING_MODEL = "test-model"
         
-        monkeypatch.setattr("src.embeddings.factory.config", mock_config)
+        monkeypatch.setattr("src.infrastructure.embeddings.factory.config", mock_config)
         
         # 清除缓存
         clear_embedding_cache()
         
         # Mock LocalEmbedding 以避免真实加载模型
-        with patch("src.embeddings.factory.LocalEmbedding") as mock_local:
+        with patch("src.infrastructure.embeddings.factory.LocalEmbedding") as mock_local:
             mock_instance = Mock(spec=BaseEmbedding)
             mock_instance.get_model_name.return_value = "test-model"
             mock_local.return_value = mock_instance
@@ -51,10 +51,10 @@ class TestCreateEmbeddingLocal:
         mock_config.EMBEDDING_TYPE = "local"
         mock_config.EMBEDDING_MODEL = "default-model"
         
-        monkeypatch.setattr("src.embeddings.factory.config", mock_config)
+        monkeypatch.setattr("src.infrastructure.embeddings.factory.config", mock_config)
         clear_embedding_cache()
         
-        with patch("src.embeddings.factory.LocalEmbedding") as mock_local:
+        with patch("src.infrastructure.embeddings.factory.LocalEmbedding") as mock_local:
             mock_instance = Mock(spec=BaseEmbedding)
             mock_instance.get_model_name.return_value = "custom-model"
             mock_local.return_value = mock_instance
@@ -70,10 +70,10 @@ class TestCreateEmbeddingLocal:
         mock_config.EMBEDDING_TYPE = "local"
         mock_config.EMBEDDING_MODEL = "test-model"
         
-        monkeypatch.setattr("src.embeddings.factory.config", mock_config)
+        monkeypatch.setattr("src.infrastructure.embeddings.factory.config", mock_config)
         clear_embedding_cache()
         
-        with patch("src.embeddings.factory.LocalEmbedding") as mock_local:
+        with patch("src.infrastructure.embeddings.factory.LocalEmbedding") as mock_local:
             mock_instance = Mock(spec=BaseEmbedding)
             mock_local.return_value = mock_instance
             
@@ -99,10 +99,10 @@ class TestCreateEmbeddingAPI:
         mock_config.EMBEDDING_TYPE = "api"
         mock_config.EMBEDDING_MODEL = "api-model"
         
-        monkeypatch.setattr("src.embeddings.factory.config", mock_config)
+        monkeypatch.setattr("src.infrastructure.embeddings.factory.config", mock_config)
         clear_embedding_cache()
         
-        with patch("src.embeddings.factory.APIEmbedding") as mock_api:
+        with patch("src.infrastructure.embeddings.factory.HFInferenceEmbedding") as mock_api:
             mock_instance = Mock(spec=BaseEmbedding)
             mock_instance.get_model_name.return_value = "api-model"
             mock_api.return_value = mock_instance
@@ -126,10 +126,10 @@ class TestCreateEmbeddingAPI:
         mock_config.EMBEDDING_MODEL = "api-model"
         mock_config.EMBEDDING_API_URL = "http://config-api.com/api"
         
-        monkeypatch.setattr("src.embeddings.factory.config", mock_config)
+        monkeypatch.setattr("src.infrastructure.embeddings.factory.config", mock_config)
         clear_embedding_cache()
         
-        with patch("src.embeddings.factory.APIEmbedding") as mock_api:
+        with patch("src.infrastructure.embeddings.factory.HFInferenceEmbedding") as mock_api:
             mock_instance = Mock(spec=BaseEmbedding)
             mock_api.return_value = mock_instance
             
@@ -149,7 +149,7 @@ class TestCreateEmbeddingAPI:
         mock_config.EMBEDDING_MODEL = "api-model"
         # 不设置 EMBEDDING_API_URL，getattr 会触发 AttributeError，然后返回默认值 None
         
-        monkeypatch.setattr("src.embeddings.factory.config", mock_config)
+        monkeypatch.setattr("src.infrastructure.embeddings.factory.config", mock_config)
         clear_embedding_cache()
         
         with pytest.raises(ValueError, match="API类型需要提供api_url"):
@@ -163,7 +163,7 @@ class TestCreateEmbeddingAPI:
         mock_config.EMBEDDING_MODEL = "api-model"
         # 不设置 EMBEDDING_API_URL
         
-        monkeypatch.setattr("src.embeddings.factory.config", mock_config)
+        monkeypatch.setattr("src.infrastructure.embeddings.factory.config", mock_config)
         clear_embedding_cache()
         
         with pytest.raises(ValueError, match="API类型需要提供api_url"):
@@ -173,7 +173,7 @@ class TestCreateEmbeddingAPI:
 class TestCreateEmbeddingHFInference:
     """测试创建 HF Inference API Embedding"""
 
-    @patch('src.embeddings.factory.HFInferenceEmbedding')
+    @patch('src.infrastructure.embeddings.factory.HFInferenceEmbedding')
     def test_create_hf_inference_embedding(self, mock_hf_class, monkeypatch):
         """测试创建 HF Inference API Embedding"""
         mock_config = Mock()
@@ -181,7 +181,7 @@ class TestCreateEmbeddingHFInference:
         mock_config.EMBEDDING_MODEL = "Qwen/Qwen3-Embedding-0.6B"
         mock_config.HF_TOKEN = "hf_test_token_123"
         
-        monkeypatch.setattr("src.embeddings.factory.config", mock_config)
+        monkeypatch.setattr("src.infrastructure.embeddings.factory.config", mock_config)
         clear_embedding_cache()
         
         mock_instance = Mock(spec=BaseEmbedding)
@@ -203,14 +203,14 @@ class TestCreateEmbeddingHFInference:
         mock_config.EMBEDDING_MODEL = "Qwen/Qwen3-Embedding-0.6B"
         mock_config.HF_TOKEN = None
         
-        monkeypatch.setattr("src.embeddings.factory.config", mock_config)
+        monkeypatch.setattr("src.infrastructure.embeddings.factory.config", mock_config)
         clear_embedding_cache()
         
         with patch.dict(os.environ, {}, clear=True):
             with pytest.raises(ValueError, match="HF Inference API 需要设置 HF_TOKEN"):
                 create_embedding(embedding_type="hf-inference")
 
-    @patch('src.embeddings.factory.HFInferenceEmbedding')
+    @patch('src.infrastructure.embeddings.factory.HFInferenceEmbedding')
     def test_create_hf_inference_embedding_with_custom_model(self, mock_hf_class, monkeypatch):
         """测试使用自定义模型名称创建 HF Inference Embedding"""
         mock_config = Mock()
@@ -218,7 +218,7 @@ class TestCreateEmbeddingHFInference:
         mock_config.EMBEDDING_MODEL = "default-model"
         mock_config.HF_TOKEN = "hf_test_token_123"
         
-        monkeypatch.setattr("src.embeddings.factory.config", mock_config)
+        monkeypatch.setattr("src.infrastructure.embeddings.factory.config", mock_config)
         clear_embedding_cache()
         
         mock_instance = Mock(spec=BaseEmbedding)
@@ -250,7 +250,7 @@ class TestCreateEmbeddingErrors:
         mock_config.EMBEDDING_TYPE = None
         mock_config.EMBEDDING_MODEL = "test-model"
         
-        monkeypatch.setattr("src.embeddings.factory.config", mock_config)
+        monkeypatch.setattr("src.infrastructure.embeddings.factory.config", mock_config)
         clear_embedding_cache()
         
         with pytest.raises(ValueError):
@@ -266,10 +266,10 @@ class TestEmbeddingCache:
         mock_config.EMBEDDING_TYPE = "local"
         mock_config.EMBEDDING_MODEL = "test-model"
         
-        monkeypatch.setattr("src.embeddings.factory.config", mock_config)
+        monkeypatch.setattr("src.infrastructure.embeddings.factory.config", mock_config)
         clear_embedding_cache()
         
-        with patch("src.embeddings.factory.LocalEmbedding") as mock_local:
+        with patch("src.infrastructure.embeddings.factory.LocalEmbedding") as mock_local:
             mock_instance = Mock(spec=BaseEmbedding)
             mock_instance.get_model_name.return_value = "test-model"
             mock_local.return_value = mock_instance
@@ -290,10 +290,10 @@ class TestEmbeddingCache:
         mock_config.EMBEDDING_TYPE = "local"
         mock_config.EMBEDDING_MODEL = "test-model"
         
-        monkeypatch.setattr("src.embeddings.factory.config", mock_config)
+        monkeypatch.setattr("src.infrastructure.embeddings.factory.config", mock_config)
         clear_embedding_cache()
         
-        with patch("src.embeddings.factory.LocalEmbedding") as mock_local:
+        with patch("src.infrastructure.embeddings.factory.LocalEmbedding") as mock_local:
             mock_instance1 = Mock(spec=BaseEmbedding)
             mock_instance1.get_model_name.return_value = "test-model"
             mock_instance2 = Mock(spec=BaseEmbedding)
@@ -317,10 +317,10 @@ class TestEmbeddingCache:
         mock_config.EMBEDDING_TYPE = "local"
         mock_config.EMBEDDING_MODEL = "model1"
         
-        monkeypatch.setattr("src.embeddings.factory.config", mock_config)
+        monkeypatch.setattr("src.infrastructure.embeddings.factory.config", mock_config)
         clear_embedding_cache()
         
-        with patch("src.embeddings.factory.LocalEmbedding") as mock_local:
+        with patch("src.infrastructure.embeddings.factory.LocalEmbedding") as mock_local:
             mock_instance1 = Mock(spec=BaseEmbedding)
             mock_instance1.get_model_name.return_value = "model1"
             mock_instance2 = Mock(spec=BaseEmbedding)
@@ -357,10 +357,10 @@ class TestGetEmbeddingInstance:
         mock_config.EMBEDDING_TYPE = "local"
         mock_config.EMBEDDING_MODEL = "test-model"
         
-        monkeypatch.setattr("src.embeddings.factory.config", mock_config)
+        monkeypatch.setattr("src.infrastructure.embeddings.factory.config", mock_config)
         clear_embedding_cache()
         
-        with patch("src.embeddings.factory.LocalEmbedding") as mock_local:
+        with patch("src.infrastructure.embeddings.factory.LocalEmbedding") as mock_local:
             mock_instance = Mock(spec=BaseEmbedding)
             mock_instance.get_model_name.return_value = "test-model"
             mock_local.return_value = mock_instance
@@ -387,10 +387,10 @@ class TestClearEmbeddingCache:
         mock_config.EMBEDDING_TYPE = "local"
         mock_config.EMBEDDING_MODEL = "test-model"
         
-        monkeypatch.setattr("src.embeddings.factory.config", mock_config)
+        monkeypatch.setattr("src.infrastructure.embeddings.factory.config", mock_config)
         clear_embedding_cache()
         
-        with patch("src.embeddings.factory.LocalEmbedding") as mock_local:
+        with patch("src.infrastructure.embeddings.factory.LocalEmbedding") as mock_local:
             mock_instance = Mock(spec=BaseEmbedding)
             mock_instance.get_model_name.return_value = "test-model"
             mock_local.return_value = mock_instance
@@ -413,10 +413,10 @@ class TestReloadEmbedding:
         mock_config.EMBEDDING_TYPE = "local"
         mock_config.EMBEDDING_MODEL = "test-model"
         
-        monkeypatch.setattr("src.embeddings.factory.config", mock_config)
+        monkeypatch.setattr("src.infrastructure.embeddings.factory.config", mock_config)
         clear_embedding_cache()
         
-        with patch("src.embeddings.factory.LocalEmbedding") as mock_local:
+        with patch("src.infrastructure.embeddings.factory.LocalEmbedding") as mock_local:
             mock_instance1 = Mock(spec=BaseEmbedding)
             mock_instance1.get_model_name.return_value = "test-model"
             mock_instance2 = Mock(spec=BaseEmbedding)
@@ -440,10 +440,10 @@ class TestReloadEmbedding:
         mock_config.EMBEDDING_TYPE = "local"
         mock_config.EMBEDDING_MODEL = "old-model"
         
-        monkeypatch.setattr("src.embeddings.factory.config", mock_config)
+        monkeypatch.setattr("src.infrastructure.embeddings.factory.config", mock_config)
         clear_embedding_cache()
         
-        with patch("src.embeddings.factory.LocalEmbedding") as mock_local:
+        with patch("src.infrastructure.embeddings.factory.LocalEmbedding") as mock_local:
             mock_instance = Mock(spec=BaseEmbedding)
             mock_instance.get_model_name.return_value = "new-model"
             mock_local.return_value = mock_instance
@@ -466,11 +466,11 @@ class TestEmbeddingFactoryIntegration:
         mock_config.EMBEDDING_MODEL = "test-model"
         mock_config.EMBEDDING_API_URL = "http://example.com/api"
         
-        monkeypatch.setattr("src.embeddings.factory.config", mock_config)
+        monkeypatch.setattr("src.infrastructure.embeddings.factory.config", mock_config)
         clear_embedding_cache()
         
-        with patch("src.embeddings.factory.LocalEmbedding") as mock_local, \
-             patch("src.embeddings.factory.APIEmbedding") as mock_api:
+        with patch("src.infrastructure.embeddings.factory.LocalEmbedding") as mock_local, \
+             patch("src.infrastructure.embeddings.factory.HFInferenceEmbedding") as mock_api:
             
             local_instance = Mock(spec=BaseEmbedding)
             local_instance.get_model_name.return_value = "test-model"

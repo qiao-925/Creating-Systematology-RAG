@@ -6,10 +6,10 @@ import pytest
 from unittest.mock import Mock, patch, MagicMock
 from llama_index.core.schema import NodeWithScore, TextNode, QueryBundle
 
-from src.rerankers.base import BaseReranker
-from src.rerankers.factory import create_reranker
-from src.rerankers.sentence_transformer_reranker import SentenceTransformerReranker
-from src.rerankers.bge_reranker import BGEReranker
+from src.business.rag_engine.reranking.base import BaseReranker
+from src.business.rag_engine.reranking.factory import create_reranker
+from src.business.rag_engine.reranking.strategies.sentence_transformer import SentenceTransformerReranker
+from src.business.rag_engine.reranking.strategies.bge import BGEReranker
 
 
 class TestBaseReranker:

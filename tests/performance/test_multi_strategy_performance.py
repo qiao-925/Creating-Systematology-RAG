@@ -9,8 +9,8 @@ import statistics
 from typing import List
 from unittest.mock import patch
 
-from src.indexer import IndexManager
-from src.query.modular.engine import ModularQueryEngine
+from src.infrastructure.indexer import IndexManager
+from src.business.rag_engine.core.engine import ModularQueryEngine
 from llama_index.core.schema import Document as LlamaDocument
 
 
@@ -48,7 +48,7 @@ class TestParallelRetrievalPerformance:
         query = "什么是系统科学？"
         
         # 测试并行检索（multi策略）
-        with patch('src.config.config.ENABLED_RETRIEVAL_STRATEGIES', ['vector', 'bm25']):
+        with patch('src.infrastructure.config.config.ENABLED_RETRIEVAL_STRATEGIES', ['vector', 'bm25']):
             multi_engine = ModularQueryEngine(
                 index_manager=performance_index_manager,
                 retrieval_strategy="multi",
@@ -109,7 +109,7 @@ class TestParallelRetrievalPerformance:
         """测试多策略检索性能"""
         query = "系统科学的应用领域"
         
-        with patch('src.config.config.ENABLED_RETRIEVAL_STRATEGIES', ['vector', 'bm25', 'hybrid']):
+        with patch('src.infrastructure.config.config.ENABLED_RETRIEVAL_STRATEGIES', ['vector', 'bm25', 'hybrid']):
             engine = ModularQueryEngine(
                 index_manager=performance_index_manager,
                 retrieval_strategy="multi",
@@ -154,7 +154,7 @@ class TestMergeStrategyPerformance:
         """测试RRF vs 加权合并的性能对比"""
         query = "控制论的基本概念"
         
-        with patch('src.config.config.ENABLED_RETRIEVAL_STRATEGIES', ['vector', 'bm25']):
+        with patch('src.infrastructure.config.config.ENABLED_RETRIEVAL_STRATEGIES', ['vector', 'bm25']):
             # RRF合并策略
             rrf_engine = ModularQueryEngine(
                 index_manager=performance_index_manager,
@@ -199,7 +199,7 @@ class TestMergeStrategyPerformance:
         ]
         
         for strategies in strategy_combinations:
-            with patch('src.config.config.ENABLED_RETRIEVAL_STRATEGIES', strategies):
+            with patch('src.infrastructure.config.config.ENABLED_RETRIEVAL_STRATEGIES', strategies):
                 try:
                     engine = ModularQueryEngine(
                         index_manager=performance_index_manager,
@@ -241,7 +241,7 @@ class TestMultiStrategyResourceUsage:
             
             query = "系统科学的应用"
             
-            with patch('src.config.config.ENABLED_RETRIEVAL_STRATEGIES', ['vector', 'bm25']):
+            with patch('src.infrastructure.config.config.ENABLED_RETRIEVAL_STRATEGIES', ['vector', 'bm25']):
                 engine = ModularQueryEngine(
                     index_manager=performance_index_manager,
                     retrieval_strategy="multi",
@@ -289,7 +289,7 @@ class TestMultiStrategyPerformanceBenchmarks:
             "控制论的基本概念",
         ]
         
-        with patch('src.config.config.ENABLED_RETRIEVAL_STRATEGIES', ['vector', 'bm25']):
+        with patch('src.infrastructure.config.config.ENABLED_RETRIEVAL_STRATEGIES', ['vector', 'bm25']):
             engine = ModularQueryEngine(
                 index_manager=performance_index_manager,
                 retrieval_strategy="multi",

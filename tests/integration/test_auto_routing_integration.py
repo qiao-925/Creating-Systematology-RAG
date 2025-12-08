@@ -8,10 +8,10 @@ from pathlib import Path
 import tempfile
 import shutil
 
-from src.business.services.rag_service import RAGService
-from src.query.modular.engine import ModularQueryEngine
-from src.indexer import IndexManager
-from src.routers.query_router import QueryRouter
+from src.business.rag_api.rag_service import RAGService
+from src.business.rag_engine.core.engine import ModularQueryEngine
+from src.infrastructure.indexer import IndexManager
+from src.business.rag_engine.routing.query_router import QueryRouter
 from llama_index.core.schema import Document as LlamaDocument
 
 
@@ -363,7 +363,7 @@ class TestAutoRoutingWithRAGService:
     
     def test_rag_service_with_auto_routing(self, index_manager_with_docs):
         """测试RAGService使用自动路由"""
-        from src.business.services.rag_service import RAGService
+        from src.business.rag_api.rag_service import RAGService
         
         service = RAGService(
             collection_name=index_manager_with_docs.collection_name,

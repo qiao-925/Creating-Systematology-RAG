@@ -64,11 +64,7 @@ Agent 应优先查阅本文档来：
 | `test_result_merger.py` | `src.retrievers` | `ResultMerger` | 结果合并逻辑 |
 | `test_reranker.py` | `src.rerankers` | 重排序器 | 重排序功能 |
 | `test_observers.py` | `src.observers` | 可观测性 | Phoenix、Debug 观察者 |
-| `test_registry.py` | `src.business.registry` | 模块注册表 | 模块注册和发现 |
-| `test_strategy_manager.py` | `src.business.strategy_manager` | 策略管理 | 策略配置和管理 |
-| `test_pipeline_executor.py` | `src.business.pipeline` | 流水线执行器 | 流水线执行逻辑 |
-| `test_rag_service.py` | `src.business.services` | RAG服务 | RAG服务单元测试 |
-| `test_prompts.py` | `src.business.prompts` | 提示工程 | 提示模板管理 |
+| `test_rag_service.py` | `src.business.rag_api` | RAG服务 | RAG服务单元测试 |
 | `test_response_formatter.py` | `src.response_formatter` | 响应格式化 | 响应格式化和验证 |
 | `test_github_link.py` | `src.github_link` | GitHub链接 | GitHub链接生成器 |
 | `test_user_manager.py` | `src.user_manager` | 用户管理 | 用户注册、登录、隔离 |
@@ -93,7 +89,6 @@ Agent 应优先查阅本文档来：
 | `test_observability_integration.py` | 可观测性集成 | Phoenix 集成和追踪 |
 | `test_query_pipeline.py` | 查询流水线 | 完整查询处理流程 |
 | `test_query_processing_integration.py` | 查询处理集成 | 查询处理完整流程 |
-| `test_pipeline.py` | Pipeline流水线 | 流水线执行和模块协作 |
 | `test_data_pipeline.py` | 数据处理流水线 | 数据加载和处理流程 |
 | `test_phoenix_integration.py` | Phoenix 集成 | Phoenix 可观测性平台 |
 | `test_github_e2e.py` | GitHub 端到端 | GitHub 仓库完整流程 |
@@ -128,14 +123,9 @@ Agent 应优先查阅本文档来：
 | 源文件路径 | 主要测试文件 | 集成测试 | 说明 |
 |-----------|-------------|---------|------|
 | `src/business/services/rag_service.py` | `tests/unit/test_rag_service.py` | `tests/integration/test_rag_service_integration.py` | RAG 服务 |
-| `src/business.prompts` | `tests/unit/test_prompts.py` | - | 提示工程 |
 | `src.github_link` | `tests/unit/test_github_link.py` | - | GitHub链接生成 |
 | `src.modular_query_engine` | - | `tests/integration/test_modular_query_engine.py` | 模块化查询引擎 |
-| `src.business.pipeline` | `tests/unit/test_pipeline_executor.py` | `tests/integration/test_pipeline.py` | Pipeline流水线 |
-| `src/business/strategy_manager.py` | `tests/unit/test_strategy_manager.py` | `tests/integration/test_multi_strategy_integration.py` | 策略管理 |
-| `src/business/registry.py` | `tests/unit/test_registry.py` | - | 模块注册表 |
 | `src/business/modular_query_engine.py` | - | `tests/integration/test_query_pipeline.py` | 模块化查询引擎 |
-| `src/business/pipeline/executor.py` | `tests/unit/test_pipeline_executor.py` | `tests/integration/test_query_pipeline.py` | 流水线执行器 |
 
 ### 检索和路由模块映射
 

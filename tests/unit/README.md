@@ -82,11 +82,7 @@ pytest -m unit -v
 
 | 测试文件 | 目标模块 | 测试数量 | 说明 |
 |---------|---------|---------|------|
-| `test_registry.py` | `src.business.registry` | ~8 | 模块注册表 |
-| `test_strategy_manager.py` | `src.business.strategy_manager` | ~10 | 策略配置和管理 |
-| `test_pipeline_executor.py` | `src.business.pipeline` | ~8 | 流水线执行逻辑 |
-| `test_rag_service.py` | `src.business.services` | ~15 | RAG服务单元测试 |
-| `test_prompts.py` | `src.business.prompts` | ~20 | 提示工程模块测试 |
+| `test_rag_service.py` | `src.business.rag_api` | ~15 | RAG服务单元测试 |
 
 ### 工具和格式化
 

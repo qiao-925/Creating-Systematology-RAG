@@ -27,6 +27,8 @@ dependencies = [
     "python-multipart>=0.0.9",
     "passlib[bcrypt]>=1.7.4",
     "huggingface-hub>=0.20.0",
+    "pydantic-settings>=2.0.0",
+    "structlog>=24.1.0",
 ]
 
 [project.optional-dependencies]

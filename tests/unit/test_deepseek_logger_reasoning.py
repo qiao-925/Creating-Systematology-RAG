@@ -7,13 +7,13 @@ DeepSeekLogger 推理链记录单元测试
 import pytest
 from unittest.mock import Mock, patch, MagicMock
 
-from src.llms.deepseek_logger import DeepSeekLogger
+from src.infrastructure.llms.deepseek_logger import DeepSeekLogger
 
 
 class TestDeepSeekLoggerReasoningContent:
     """测试 DeepSeekLogger 的推理链记录"""
     
-    @patch('src.llms.deepseek_logger.logger')
+    @patch('src.infrastructure.llms.deepseek_logger.logger')
     def test_chat_logs_reasoning_content(self, mock_logger):
         """测试非流式 chat 方法记录推理链内容"""
         # 创建模拟的 DeepSeek 实例
@@ -43,7 +43,7 @@ class TestDeepSeekLoggerReasoningContent:
         assert reasoning_logged, "推理链内容应该被记录到日志"
         assert result == mock_response
     
-    @patch('src.llms.deepseek_logger.logger')
+    @patch('src.infrastructure.llms.deepseek_logger.logger')
     def test_chat_handles_no_reasoning_content(self, mock_logger):
         """测试没有推理链内容时的处理"""
         mock_deepseek = Mock()
@@ -64,7 +64,7 @@ class TestDeepSeekLoggerReasoningContent:
         # 验证没有推理链时不会记录推理链日志
         assert result == mock_response
     
-    @patch('src.llms.deepseek_logger.logger')
+    @patch('src.infrastructure.llms.deepseek_logger.logger')
     def test_stream_chat_logs_reasoning_content(self, mock_logger):
         """测试流式 chat 方法记录推理链内容"""
         mock_deepseek = Mock()
@@ -97,7 +97,7 @@ class TestDeepSeekLoggerReasoningContent:
         
         assert reasoning_logged, "流式推理链内容应该被记录到日志"
     
-    @patch('src.llms.deepseek_logger.clean_messages_for_api')
+    @patch('src.infrastructure.llms.deepseek_logger.clean_messages_for_api')
     def test_chat_cleans_messages(self, mock_clean):
         """测试 chat 方法清理消息"""
         mock_deepseek = Mock()
@@ -118,7 +118,7 @@ class TestDeepSeekLoggerReasoningContent:
         # 验证 clean_messages_for_api 被调用
         mock_clean.assert_called_once()
     
-    @patch('src.llms.deepseek_logger.clean_messages_for_api')
+    @patch('src.infrastructure.llms.deepseek_logger.clean_messages_for_api')
     def test_stream_chat_cleans_messages(self, mock_clean):
         """测试 stream_chat 方法清理消息"""
         mock_deepseek = Mock()

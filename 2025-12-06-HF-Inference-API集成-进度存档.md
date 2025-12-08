@@ -83,7 +83,7 @@
 
 ### 3.1 架构设计
 
-```
+```text
 BaseEmbedding (抽象基类)
     ↓
 HFInferenceEmbedding (实现类)

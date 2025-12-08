@@ -7,19 +7,19 @@ DeepSeek LLM 工厂函数单元测试
 import pytest
 from unittest.mock import Mock, patch, MagicMock
 
-from src.llms.factory import (
+from src.infrastructure.llms.factory import (
     create_deepseek_llm,
     create_deepseek_llm_for_query,
     create_deepseek_llm_for_structure,
 )
-from src.config import config
+from src.infrastructure.config import config
 
 
 class TestCreateDeepSeekLLM:
     """测试 create_deepseek_llm 函数"""
     
-    @patch('src.llms.factory.DeepSeek')
-    @patch('src.llms.factory.wrap_deepseek')
+    @patch('src.infrastructure.llms.factory.DeepSeek')
+    @patch('src.infrastructure.llms.factory.wrap_deepseek')
     def test_create_with_default_config(self, mock_wrap, mock_deepseek):
         """测试使用默认配置创建 LLM"""
         mock_instance = Mock()
@@ -43,8 +43,8 @@ class TestCreateDeepSeekLLM:
         # 验证被包装
         mock_wrap.assert_called_once_with(mock_instance)
     
-    @patch('src.llms.factory.DeepSeek')
-    @patch('src.llms.factory.wrap_deepseek')
+    @patch('src.infrastructure.llms.factory.DeepSeek')
+    @patch('src.infrastructure.llms.factory.wrap_deepseek')
     def test_create_with_json_output(self, mock_wrap, mock_deepseek):
         """测试启用 JSON Output"""
         mock_instance = Mock()
@@ -59,8 +59,8 @@ class TestCreateDeepSeekLLM:
         assert 'response_format' in call_kwargs
         assert call_kwargs['response_format'] == {"type": "json_object"}
     
-    @patch('src.llms.factory.DeepSeek')
-    @patch('src.llms.factory.wrap_deepseek')
+    @patch('src.infrastructure.llms.factory.DeepSeek')
+    @patch('src.infrastructure.llms.factory.wrap_deepseek')
     def test_create_with_custom_parameters(self, mock_wrap, mock_deepseek):
         """测试使用自定义参数创建 LLM"""
         mock_instance = Mock()
@@ -79,11 +79,11 @@ class TestCreateDeepSeekLLM:
         assert call_kwargs['model'] == "test-model"
         assert call_kwargs['max_tokens'] == 1000
     
-    @patch('src.llms.factory.DeepSeek')
-    @patch('src.llms.factory.wrap_deepseek')
+    @patch('src.infrastructure.llms.factory.DeepSeek')
+    @patch('src.infrastructure.llms.factory.wrap_deepseek')
     def test_create_without_api_key_raises_error(self, mock_wrap, mock_deepseek):
         """测试没有 API 密钥时抛出错误"""
-        with patch('src.llms.factory.config') as mock_config:
+        with patch('src.infrastructure.llms.factory.config') as mock_config:
             mock_config.DEEPSEEK_API_KEY = ""
             
             with pytest.raises(ValueError, match="未设置 DEEPSEEK_API_KEY"):
@@ -93,7 +93,7 @@ class TestCreateDeepSeekLLM:
 class TestCreateDeepSeekLLMForQuery:
     """测试 create_deepseek_llm_for_query 函数"""
     
-    @patch('src.llms.factory.create_deepseek_llm')
+    @patch('src.infrastructure.llms.factory.create_deepseek_llm')
     def test_create_for_query_no_json_output(self, mock_create):
         """测试创建用于查询的 LLM（不使用 JSON Output）"""
         mock_llm = Mock()
@@ -110,7 +110,7 @@ class TestCreateDeepSeekLLMForQuery:
 class TestCreateDeepSeekLLMForStructure:
     """测试 create_deepseek_llm_for_structure 函数"""
     
-    @patch('src.llms.factory.create_deepseek_llm')
+    @patch('src.infrastructure.llms.factory.create_deepseek_llm')
     def test_create_for_structure_with_json_output(self, mock_create):
         """测试创建用于结构化输出的 LLM（使用 JSON Output）"""
         mock_llm = Mock()
@@ -127,9 +127,9 @@ class TestCreateDeepSeekLLMForStructure:
 class TestModelConfiguration:
     """测试模型配置"""
     
-    @patch('src.llms.factory.DeepSeek')
-    @patch('src.llms.factory.wrap_deepseek')
-    @patch('src.llms.factory.logger')
+    @patch('src.infrastructure.llms.factory.DeepSeek')
+    @patch('src.infrastructure.llms.factory.wrap_deepseek')
+    @patch('src.infrastructure.llms.factory.logger')
     def test_warning_for_non_reasoner_model(self, mock_logger, mock_wrap, mock_deepseek):
         """测试使用非推理模型时发出警告"""
         mock_instance = Mock()

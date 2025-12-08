@@ -63,7 +63,6 @@ pytest tests/integration -m "not github_e2e" -v
 |---------|---------|---------|------|
 | `test_query_pipeline.py` | 查询流水线 | ~7 | 完整查询处理流程 |
 | `test_query_processing_integration.py` | 查询处理集成 | ~10 | 查询处理完整流程 |
-| `test_pipeline.py` | Pipeline流水线 | ~15 | 流水线执行和模块协作 |
 
 ### 检索策略集成
 

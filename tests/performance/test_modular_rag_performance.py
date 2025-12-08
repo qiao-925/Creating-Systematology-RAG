@@ -10,20 +10,17 @@ import statistics
 from typing import Dict, List
 from pathlib import Path
 
-from src.indexer import IndexManager
-from src.query.modular.engine import ModularQueryEngine
+from src.infrastructure.indexer import IndexManager
+from src.business.rag_engine.core.engine import ModularQueryEngine
 # QueryEngine可能在不同的路径，需要根据实际情况调整
 try:
-    from src.query_engine import QueryEngine
+    from src.business.rag_engine import QueryEngine
 except ImportError:
     try:
-        from src.query.modular.engine import ModularQueryEngine as QueryEngine
+        from src.business.rag_engine.core.engine import ModularQueryEngine as QueryEngine
     except ImportError:
         QueryEngine = None
-from src.business.services.rag_service import RAGService
-from src.business.pipeline.adapter_factory import create_modular_rag_pipeline
-from src.business.pipeline.executor import PipelineExecutor
-from src.business.protocols import PipelineContext
+from src.business.rag_api.rag_service import RAGService
 from llama_index.core.schema import Document as LlamaDocument
 
 
@@ -208,74 +205,6 @@ class TestQueryEnginePerformance:
         
         # 新引擎不应该比旧引擎慢太多（允许20%的性能下降）
         assert new_avg <= old_avg * 1.2, "新引擎性能下降超过20%"
-
-
-class TestPipelinePerformance:
-    """PipelineExecutor性能测试"""
-    
-    def test_pipeline_executor_performance(self, benchmark_index_manager):
-        """测试PipelineExecutor性能"""
-        pipeline = create_modular_rag_pipeline(
-            index_manager=benchmark_index_manager,
-            enable_reranking=False,
-            enable_formatting=True,
-        )
-        
-        executor = PipelineExecutor()
-        context = PipelineContext(query="系统科学是什么？")
-        
-        # 预热
-        executor.execute(pipeline, context)
-        
-        # 性能测试
-        times = []
-        for _ in range(5):
-            context = PipelineContext(query="系统科学是什么？")
-            start = time.time()
-            result = executor.execute(pipeline, context)
-            elapsed = time.time() - start
-            times.append(elapsed)
-        
-        avg_time = statistics.mean(times)
-        
-        print(f"\nPipelineExecutor性能:")
-        print(f"  平均耗时: {avg_time:.3f}s")
-        
-        assert avg_time < 10.0
-    
-    def test_pipeline_vs_direct_query(self, benchmark_index_manager):
-        """Pipeline vs 直接查询性能对比"""
-        query = "系统科学是什么？"
-        
-        # Pipeline方式
-        pipeline = create_modular_rag_pipeline(
-            index_manager=benchmark_index_manager,
-            enable_reranking=False,
-        )
-        executor = PipelineExecutor()
-        
-        pipeline_times = []
-        for _ in range(5):
-            context = PipelineContext(query=query)
-            start = time.time()
-            executor.execute(pipeline, context)
-            pipeline_times.append(time.time() - start)
-        
-        # 直接查询方式
-        engine = ModularQueryEngine(index_manager=benchmark_index_manager)
-        direct_times = []
-        for _ in range(5):
-            start = time.time()
-            engine.query(query)
-            direct_times.append(time.time() - start)
-        
-        pipeline_avg = statistics.mean(pipeline_times)
-        direct_avg = statistics.mean(direct_times)
-        
-        print(f"\nPipeline vs 直接查询:")
-        print(f"  Pipeline: {pipeline_avg:.3f}s")
-        print(f"  直接查询: {direct_avg:.3f}s")
-        print(f"  开销: {((pipeline_avg - direct_avg) / direct_avg * 100):+.1f}%")
 
 
 class TestRAGServicePerformance:

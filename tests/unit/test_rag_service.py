@@ -6,28 +6,33 @@ import pytest
 from unittest.mock import Mock, patch, MagicMock
 from pathlib import Path
 
-from src.business.services import RAGService, RAGResponse, IndexResult, ChatResponse
+from src.business.rag_api.rag_service import RAGService
+from src.business.rag_api.models import RAGResponse, IndexResult, ChatResponse
 
 
+@pytest.mark.fast
+
+
+@pytest.mark.fast
 class TestRAGService:
     """RAGService单元测试"""
     
     @pytest.fixture
     def mock_index_manager(self):
         """Mock IndexManager"""
-        with patch('src.business.services.rag_service.IndexManager') as mock:
+        with patch('src.business.rag_api.rag_service.IndexManager') as mock:
             yield mock
     
     @pytest.fixture
     def mock_query_engine(self):
         """Mock QueryEngine"""
-        with patch('src.business.services.rag_service.QueryEngine') as mock:
+        with patch('src.business.rag_api.rag_service.ModularQueryEngine') as mock:
             yield mock
     
     @pytest.fixture
     def mock_chat_manager(self):
         """Mock ChatManager"""
-        with patch('src.business.services.rag_service.ChatManager') as mock:
+        with patch('src.business.rag_api.rag_service.ChatManager') as mock:
             yield mock
     
     def test_rag_service_init(self):
@@ -42,16 +47,18 @@ class TestRAGService:
         assert service.similarity_top_k == 5
         assert service.enable_debug is True
         assert service._index_manager is None  # 延迟加载
-        assert service._query_engine is None
+        assert service._modular_query_engine is None
         assert service._chat_manager is None
     
     def test_query_success(self, mock_index_manager, mock_query_engine):
         """测试查询成功"""
-        # Mock QueryEngine.query返回值
+        # Mock ModularQueryEngine.query返回值
         mock_query_instance = mock_query_engine.return_value
         mock_query_instance.query.return_value = (
             "这是测试答案",
-            [{"file_name": "test.md", "content": "测试内容"}]
+            [{"file_name": "test.md", "content": "测试内容"}],
+            None,  # reasoning_content
+            {}  # metadata
         )
         
         service = RAGService(collection_name="test")
@@ -68,7 +75,7 @@ class TestRAGService:
     def test_query_no_sources(self, mock_index_manager, mock_query_engine):
         """测试查询无来源"""
         mock_query_instance = mock_query_engine.return_value
-        mock_query_instance.query.return_value = ("答案", [])
+        mock_query_instance.query.return_value = ("答案", [], None, {})
         
         service = RAGService()
         response = service.query("问题")
@@ -81,12 +88,15 @@ class TestRAGService:
         # Mock IndexManager
         mock_instance = mock_index_manager.return_value
         
-        # Mock DataSource
-        with patch('src.business.services.rag_service.LocalDataSource') as mock_ds:
-            mock_ds_instance = mock_ds.return_value
-            mock_ds_instance.load_documents.return_value = [
+        # Mock DataImportService
+        with patch('src.business.rag_api.rag_service.DataImportService') as mock_service:
+            mock_service_instance = mock_service.return_value
+            mock_result = Mock()
+            mock_result.success = True
+            mock_result.documents = [
                 Mock(text="doc1"), Mock(text="doc2"), Mock(text="doc3")
             ]
+            mock_service_instance.import_from_directory.return_value = mock_result
             
             service = RAGService(collection_name="test")
             result = service.build_index("./test_data")
@@ -99,9 +109,12 @@ class TestRAGService:
     
     def test_build_index_no_documents(self, mock_index_manager):
         """测试索引构建无文档"""
-        with patch('src.business.services.rag_service.LocalDataSource') as mock_ds:
-            mock_ds_instance = mock_ds.return_value
-            mock_ds_instance.load_documents.return_value = []
+        with patch('src.business.rag_api.rag_service.DataImportService') as mock_service:
+            mock_service_instance = mock_service.return_value
+            mock_result = Mock()
+            mock_result.success = True
+            mock_result.documents = []
+            mock_service_instance.import_from_directory.return_value = mock_result
             
             service = RAGService()
             result = service.build_index("./empty_dir")
@@ -112,15 +125,18 @@ class TestRAGService:
     
     def test_build_index_github_url(self, mock_index_manager):
         """测试GitHub仓库索引"""
-        with patch('src.business.services.rag_service.GitHubDataSource') as mock_gh:
-            mock_gh_instance = mock_gh.return_value
-            mock_gh_instance.load_documents.return_value = [Mock(text="doc")]
+        with patch('src.business.rag_api.rag_service.DataImportService') as mock_service:
+            mock_service_instance = mock_service.return_value
+            mock_result = Mock()
+            mock_result.success = True
+            mock_result.documents = [Mock(text="doc")]
+            mock_service_instance.import_from_github.return_value = mock_result
             
             service = RAGService()
             result = service.build_index("https://github.com/user/repo")
             
             assert result.success is True
-            mock_gh.assert_called_once()
+            mock_service_instance.import_from_github.assert_called_once()
     
     def test_chat_new_session(self, mock_index_manager, mock_chat_manager):
         """测试新对话会话"""
@@ -168,7 +184,7 @@ class TestRAGService:
         
         # 初始状态
         assert service._index_manager is None
-        assert service._query_engine is None
+        assert service._modular_query_engine is None
         assert service._chat_manager is None
         
         # 访问index_manager触发加载
@@ -206,7 +222,7 @@ class TestRAGService:
         
         # 验证内部引用被清空
         assert service._index_manager is None
-        assert service._query_engine is None
+        assert service._modular_query_engine is None
         assert service._chat_manager is None
     
     def test_list_collections(self, mock_index_manager):
@@ -245,7 +261,7 @@ class TestRAGService:
         """测试使用模块化查询引擎"""
         from unittest.mock import Mock, patch
         
-        with patch('src.business.services.rag_service.ModularQueryEngine') as mock_modular:
+        with patch('src.business.rag_api.rag_service.ModularQueryEngine') as mock_modular:
             mock_modular_instance = mock_modular.return_value
             mock_modular_instance.query.return_value = (
                 "模块化引擎答案",
@@ -253,7 +269,7 @@ class TestRAGService:
                 {}
             )
             
-            service = RAGService(use_modular_engine=True)
+            service = RAGService()
             response = service.query("测试问题")
             
             assert isinstance(response, RAGResponse)
@@ -265,21 +281,24 @@ class TestRAGService:
         mock_query_instance = mock_query_engine.return_value
         mock_query_instance.query.side_effect = Exception("查询失败")
         
-        service = RAGService(use_modular_engine=False)
+        service = RAGService()
         
         with pytest.raises(Exception, match="查询失败"):
             service.query("测试问题")
     
     def test_build_index_error_handling(self, mock_index_manager):
         """测试索引构建错误处理"""
-        with patch('src.business.services.rag_service.load_documents_from_directory') as mock_load:
-            mock_load.side_effect = Exception("加载文档失败")
+        with patch('src.business.rag_api.rag_service.DataImportService') as mock_service:
+            mock_service_instance = mock_service.return_value
+            mock_result = Mock()
+            mock_result.success = False
+            mock_result.documents = []
+            mock_service_instance.import_from_directory.return_value = mock_result
             
             service = RAGService()
             result = service.build_index("./test_data")
             
             assert result.success is False
-            assert "索引构建失败" in result.message
             assert result.doc_count == 0
     
     def test_chat_error_handling(self, mock_index_manager, mock_chat_manager):
@@ -294,23 +313,23 @@ class TestRAGService:
     
     def test_lazy_loading_query_engine(self, mock_index_manager):
         """测试查询引擎懒加载"""
-        service = RAGService(use_modular_engine=False)
+        service = RAGService()
         
         # 初始状态
-        assert service._query_engine is None
+        assert service._modular_query_engine is None
         
-        # 访问query_engine触发加载
-        _ = service.query_engine
-        assert service._query_engine is not None
+        # 访问modular_query_engine触发加载
+        _ = service.modular_query_engine
+        assert service._modular_query_engine is not None
         
         # 第二次访问不会重新创建
-        _ = service.query_engine
+        _ = service.modular_query_engine
         # 验证IndexManager只初始化一次（通过mock验证）
     
     def test_lazy_loading_modular_engine(self, mock_index_manager):
         """测试模块化查询引擎懒加载"""
-        with patch('src.business.services.rag_service.ModularQueryEngine') as mock_modular:
-            service = RAGService(use_modular_engine=True)
+        with patch('src.business.rag_api.rag_service.ModularQueryEngine') as mock_modular:
+            service = RAGService()
             
             # 初始状态
             assert service._modular_query_engine is None
@@ -325,7 +344,7 @@ class TestRAGService:
     
     def test_lazy_loading_chat_manager(self, mock_index_manager):
         """测试对话管理器懒加载"""
-        with patch('src.business.services.rag_service.ChatManager') as mock_chat:
+        with patch('src.business.rag_api.rag_service.ChatManager') as mock_chat:
             service = RAGService()
             
             # 初始状态
@@ -340,33 +359,28 @@ class TestRAGService:
             assert mock_chat.call_count == 1
     
     def test_query_with_modular_engine_fallback(self, mock_index_manager):
-        """测试模块化引擎降级到普通引擎"""
+        """测试模块化引擎错误处理"""
         from unittest.mock import Mock, patch
         
-        # 模拟modular_engine不可用的情况
-        with patch('src.business.services.rag_service.ModularQueryEngine', side_effect=Exception("不可用")):
-            with patch('src.business.services.rag_service.QueryEngine') as mock_query:
-                mock_query_instance = mock_query.return_value
-                mock_query_instance.query.return_value = (
-                    "降级答案",
-                    [{"file": "test.md"}],
-                    {}
-                )
-                
-                service = RAGService(use_modular_engine=True)
-                # 如果modular_engine初始化失败，应该能降级
-                # 注意：实际实现中可能需要错误处理
-                try:
-                    response = service.query("测试问题")
-                    assert isinstance(response, RAGResponse)
-                except Exception:
-                    # 如果抛出异常也是合理的
-                    pass
+        # 模拟modular_engine查询失败的情况
+        with patch('src.business.rag_api.rag_service.ModularQueryEngine') as mock_query:
+            mock_query_instance = mock_query.return_value
+            mock_query_instance.query.side_effect = Exception("查询失败")
+            
+            service = RAGService()
+            
+            # 如果查询失败，应该抛出异常
+            with pytest.raises(Exception):
+                service.query("测试问题")
     
     def test_build_index_with_collection_name(self, mock_index_manager):
         """测试使用指定集合名称构建索引"""
-        with patch('src.business.services.rag_service.load_documents_from_directory') as mock_load:
-            mock_load.return_value = [Mock(text="doc1"), Mock(text="doc2")]
+        with patch('src.business.rag_api.rag_service.DataImportService') as mock_service:
+            mock_service_instance = mock_service.return_value
+            mock_result = Mock()
+            mock_result.success = True
+            mock_result.documents = [Mock(text="doc1"), Mock(text="doc2")]
+            mock_service_instance.import_from_directory.return_value = mock_result
             
             mock_instance = mock_index_manager.return_value
             service = RAGService(collection_name="default_collection")
@@ -412,7 +426,7 @@ class TestRAGService:
         service.close()
         
         assert service._index_manager is None
-        assert service._query_engine is None
+        assert service._modular_query_engine is None
         assert service._chat_manager is None
     
     def test_list_collections_error_handling(self, mock_index_manager):
@@ -439,6 +453,7 @@ class TestRAGService:
         assert result is False
 
 
+@pytest.mark.fast
 class TestRAGResponse:
     """RAGResponse数据类测试"""
     
@@ -461,6 +476,7 @@ class TestRAGResponse:
         assert response.has_sources is False
 
 
+@pytest.mark.fast
 class TestIndexResult:
     """IndexResult数据类测试"""
     
@@ -491,6 +507,7 @@ class TestIndexResult:
         assert result.doc_count == 0
 
 
+@pytest.mark.fast
 class TestChatResponse:
     """ChatResponse数据类测试"""
     

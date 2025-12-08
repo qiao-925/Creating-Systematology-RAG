@@ -5,9 +5,10 @@
 import pytest
 from pathlib import Path
 from llama_index.core import Document
-from src.indexer import IndexManager
+from src.infrastructure.indexer import IndexManager
 
 
+@pytest.mark.fast
 class TestIndexManager:
     """索引管理器测试"""
     
@@ -125,6 +126,7 @@ class TestIndexManager:
         assert count2 > count1
 
 
+@pytest.mark.fast
 @pytest.mark.parametrize("chunk_size,chunk_overlap", [
     (512, 50),
     (1024, 100),

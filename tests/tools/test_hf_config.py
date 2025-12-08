@@ -10,8 +10,9 @@ from pathlib import Path
 # 添加项目根目录到路径
 sys.path.insert(0, str(Path(__file__).parent))
 
-from src.config import config
-from src.indexer import get_embedding_model_status, load_embedding_model
+from src.infrastructure.config import config
+# 注意：get_embedding_model_status 和 load_embedding_model 函数已移除
+# 这些功能现在由 Embedding 工厂管理
 
 
 def test_config():
@@ -34,14 +35,17 @@ def test_model_status():
     print("🔍 模型状态检查")
     print("=" * 60)
     
-    status = get_embedding_model_status()
+    # 注意：get_embedding_model_status 函数已移除
+    # 现在通过 Embedding 工厂获取实例状态
+    from src.infrastructure.embeddings.factory import get_embedding_instance
     
-    print(f"\n模型名称: {status['model_name']}")
-    print(f"已加载: {'✅ 是' if status['loaded'] else '❌ 否'}")
-    print(f"本地缓存: {'✅ 存在' if status['cache_exists'] else '⚠️  不存在'}")
-    print(f"离线模式: {'📴 是' if status['offline_mode'] else '🌐 否'}")
-    print(f"镜像地址: {status['mirror']}")
-    print(f"缓存路径: {status['cache_dir']}")
+    instance = get_embedding_instance()
+    if instance:
+        print(f"\n模型名称: {instance.get_model_name()}")
+        print(f"已加载: ✅ 是")
+        print(f"向量维度: {instance.get_embedding_dimension()}")
+    else:
+        print("\n模型未加载")
 
 
 def test_model_loading():
@@ -55,7 +59,8 @@ def test_model_loading():
     if response.lower() == 'y':
         print("\n开始加载模型...")
         try:
-            model = load_embedding_model()
+            from src.infrastructure.embeddings.factory import create_embedding
+            model = create_embedding(embedding_type="local")
             print("✅ 模型加载成功！")
             
             # 再次检查状态
