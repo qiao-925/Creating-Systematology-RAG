@@ -30,73 +30,75 @@ def create_retriever(index: VectorStoreIndex, retrieval_strategy: str, similarit
     Returns:
         检索器实例（LlamaIndex检索器或MultiStrategyRetriever）
     """
-    # 多策略检索
-    if retrieval_strategy == "multi":
-        logger.info("创建多策略检索器", strategy=retrieval_strategy)
-        return _create_multi_strategy_retriever(index, similarity_top_k)
-    
-    # Grep检索
-    elif retrieval_strategy == "grep":
-        logger.info("创建Grep检索器", strategy=retrieval_strategy)
-        grep_retriever = _create_grep_retriever()
-        return GrepRetrieverAdapter(grep_retriever)
-    
-    # 传统检索策略
-    elif retrieval_strategy == "vector":
-        logger.info("创建向量检索器", strategy=retrieval_strategy, top_k=similarity_top_k)
-        return VectorIndexRetriever(
-            index=index,
-            similarity_top_k=similarity_top_k,
-        )
-    
-    elif retrieval_strategy == "bm25":
-        logger.info("创建BM25检索器", strategy=retrieval_strategy, top_k=similarity_top_k)
-        try:
-            from llama_index.retrievers.bm25 import BM25Retriever
-        except ImportError:
-            logger.error("BM25Retriever未安装", error="请运行: pip install llama-index-retrievers-bm25")
-            raise ImportError(
-                "BM25Retriever未安装。请运行: pip install llama-index-retrievers-bm25"
-            )
+    match retrieval_strategy:
+        case "multi":
+            # 多策略检索
+            logger.info("创建多策略检索器", strategy=retrieval_strategy)
+            return _create_multi_strategy_retriever(index, similarity_top_k)
         
-        nodes = list(index.docstore.docs.values())
+        case "grep":
+            # Grep检索
+            logger.info("创建Grep检索器", strategy=retrieval_strategy)
+            grep_retriever = _create_grep_retriever()
+            return GrepRetrieverAdapter(grep_retriever)
         
-        return BM25Retriever.from_defaults(
-            nodes=nodes,
-            similarity_top_k=similarity_top_k,
-        )
-    
-    elif retrieval_strategy == "hybrid":
-        logger.info("创建混合检索器", strategy=retrieval_strategy, top_k=similarity_top_k)
-        try:
-            from llama_index.retrievers.bm25 import BM25Retriever
-        except ImportError:
-            logger.warning("BM25未安装，降级为纯向量检索", strategy=retrieval_strategy)
+        case "vector":
+            # 传统检索策略
+            logger.info("创建向量检索器", strategy=retrieval_strategy, top_k=similarity_top_k)
             return VectorIndexRetriever(
                 index=index,
                 similarity_top_k=similarity_top_k,
             )
         
-        vector_retriever = VectorIndexRetriever(
-            index=index,
-            similarity_top_k=similarity_top_k,
-        )
+        case "bm25":
+            logger.info("创建BM25检索器", strategy=retrieval_strategy, top_k=similarity_top_k)
+            try:
+                from llama_index.retrievers.bm25 import BM25Retriever
+            except ImportError:
+                logger.error("BM25Retriever未安装", error="请运行: pip install llama-index-retrievers-bm25")
+                raise ImportError(
+                    "BM25Retriever未安装。请运行: pip install llama-index-retrievers-bm25"
+                )
+            
+            nodes = list(index.docstore.docs.values())
+            
+            return BM25Retriever.from_defaults(
+                nodes=nodes,
+                similarity_top_k=similarity_top_k,
+            )
         
-        nodes = list(index.docstore.docs.values())
-        bm25_retriever = BM25Retriever.from_defaults(
-            nodes=nodes,
-            similarity_top_k=similarity_top_k,
-        )
+        case "hybrid":
+            logger.info("创建混合检索器", strategy=retrieval_strategy, top_k=similarity_top_k)
+            try:
+                from llama_index.retrievers.bm25 import BM25Retriever
+            except ImportError:
+                logger.warning("BM25未安装，降级为纯向量检索", strategy=retrieval_strategy)
+                return VectorIndexRetriever(
+                    index=index,
+                    similarity_top_k=similarity_top_k,
+                )
+            
+            vector_retriever = VectorIndexRetriever(
+                index=index,
+                similarity_top_k=similarity_top_k,
+            )
+            
+            nodes = list(index.docstore.docs.values())
+            bm25_retriever = BM25Retriever.from_defaults(
+                nodes=nodes,
+                similarity_top_k=similarity_top_k,
+            )
+            
+            return QueryFusionRetriever(
+                retrievers=[vector_retriever, bm25_retriever],
+                similarity_top_k=similarity_top_k,
+                num_queries=1,
+                mode="reciprocal_rerank",
+                use_async=False,
+            )
         
-        return QueryFusionRetriever(
-            retrievers=[vector_retriever, bm25_retriever],
-            similarity_top_k=similarity_top_k,
-            num_queries=1,
-            mode="reciprocal_rerank",
-            use_async=False,
-        )
-    else:
-        raise ValueError(f"不支持的检索策略: {retrieval_strategy}")
+        case _:
+            raise ValueError(f"不支持的检索策略: {retrieval_strategy}")
 
 
 def _create_grep_retriever() -> GrepRetriever:

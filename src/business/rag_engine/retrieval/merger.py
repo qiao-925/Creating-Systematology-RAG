@@ -81,12 +81,13 @@ class ResultMerger:
             return []
         
         # 根据策略合并
-        if self.strategy == "reciprocal_rank_fusion":
-            merged = self._reciprocal_rank_fusion(results_dict, top_k)
-        elif self.strategy == "weighted_score":
-            merged = self._weighted_score_fusion(results_dict, top_k)
-        else:
-            merged = self._simple_concatenation(results_dict, top_k)
+        match self.strategy:
+            case "reciprocal_rank_fusion":
+                merged = self._reciprocal_rank_fusion(results_dict, top_k)
+            case "weighted_score":
+                merged = self._weighted_score_fusion(results_dict, top_k)
+            case _:
+                merged = self._simple_concatenation(results_dict, top_k)
         
         # 去重
         if self.enable_deduplication:

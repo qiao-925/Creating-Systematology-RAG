@@ -114,12 +114,13 @@ class QueryRouter:
         )
         
         # 根据决策返回对应检索器
-        if routing_decision == "files_via_metadata":
-            return self._get_files_via_metadata_retriever(top_k), "files_via_metadata"
-        elif routing_decision == "files_via_content":
-            return self._get_files_via_content_retriever(top_k), "files_via_content"
-        else:
-            return self._get_chunk_retriever(top_k), "chunk"
+        match routing_decision:
+            case "files_via_metadata":
+                return self._get_files_via_metadata_retriever(top_k), "files_via_metadata"
+            case "files_via_content":
+                return self._get_files_via_content_retriever(top_k), "files_via_content"
+            case _:
+                return self._get_chunk_retriever(top_k), "chunk"
     
     def _analyze_with_understanding(
         self, 
@@ -139,29 +140,30 @@ class QueryRouter:
         complexity = understanding.get("complexity", "medium")
         
         # 基于查询类型选择策略
-        if query_type == "specific":
-            # 特定查询（精确匹配、文件名）
-            reason = (
-                f"基于意图理解（类型={query_type}）, "
-                f"判断为文件级别元数据查询"
-            )
-            return "files_via_metadata", reason
-        
-        elif query_type == "exploratory":
-            # 探索性查询（概述、介绍）
-            reason = (
-                f"基于意图理解（类型={query_type}）, "
-                f"判断为文件级别内容查询"
-            )
-            return "files_via_content", reason
-        
-        else:
-            # 其他类型（factual/comparative/explanatory）使用chunk
-            reason = (
-                f"基于意图理解（类型={query_type}, 复杂度={complexity}）, "
-                f"使用chunk检索模式进行精确信息查询"
-            )
-            return "chunk", reason
+        match query_type:
+            case "specific":
+                # 特定查询（精确匹配、文件名）
+                reason = (
+                    f"基于意图理解（类型={query_type}）, "
+                    f"判断为文件级别元数据查询"
+                )
+                return "files_via_metadata", reason
+            
+            case "exploratory":
+                # 探索性查询（概述、介绍）
+                reason = (
+                    f"基于意图理解（类型={query_type}）, "
+                    f"判断为文件级别内容查询"
+                )
+                return "files_via_content", reason
+            
+            case _:
+                # 其他类型（factual/comparative/explanatory）使用chunk
+                reason = (
+                    f"基于意图理解（类型={query_type}, 复杂度={complexity}）, "
+                    f"使用chunk检索模式进行精确信息查询"
+                )
+                return "chunk", reason
     
     def _analyze_query(self, query: str) -> tuple:
         """分析查询，返回检索模式决策和决策原因

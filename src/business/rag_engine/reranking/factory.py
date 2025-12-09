@@ -64,26 +64,27 @@ def create_reranker(
     # 创建重排序器
     reranker = None
     
-    if reranker_type == "sentence-transformer":
-        logger.info(f"创建SentenceTransformer重排序器")
-        reranker = SentenceTransformerReranker(
-            model=model,
-            top_n=top_n,
-        )
-    
-    elif reranker_type == "bge":
-        logger.info(f"创建BGE重排序器")
-        reranker = BGEReranker(
-            model=model,
-            top_n=top_n,
-        )
-    
-    else:
-        logger.warning(f"未知的重排序器类型: {reranker_type}，使用默认SentenceTransformer")
-        reranker = SentenceTransformerReranker(
-            model=model,
-            top_n=top_n,
-        )
+    match reranker_type:
+        case "sentence-transformer":
+            logger.info(f"创建SentenceTransformer重排序器")
+            reranker = SentenceTransformerReranker(
+                model=model,
+                top_n=top_n,
+            )
+        
+        case "bge":
+            logger.info(f"创建BGE重排序器")
+            reranker = BGEReranker(
+                model=model,
+                top_n=top_n,
+            )
+        
+        case _:
+            logger.warning(f"未知的重排序器类型: {reranker_type}，使用默认SentenceTransformer")
+            reranker = SentenceTransformerReranker(
+                model=model,
+                top_n=top_n,
+            )
     
     # 缓存
     if use_cache and reranker:

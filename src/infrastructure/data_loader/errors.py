@@ -128,16 +128,17 @@ def handle_import_error(
         error_str = error_str.encode('ascii', 'replace').decode('ascii')
     
     # 构建错误消息
-    if error_class == NetworkError:
-        error_message = f"网络错误: {error_str}"
-    elif error_class == AuthenticationError:
-        error_message = f"认证错误: {error_str}"
-    elif error_class == NotFoundError:
-        error_message = f"资源不存在: {error_str}"
-    elif error_class == ParseError:
-        error_message = f"解析错误: {error_str}"
-    else:
-        error_message = f"未知错误: {error_str}"
+    match error_class:
+        case cls if cls is NetworkError:
+            error_message = f"网络错误: {error_str}"
+        case cls if cls is AuthenticationError:
+            error_message = f"认证错误: {error_str}"
+        case cls if cls is NotFoundError:
+            error_message = f"资源不存在: {error_str}"
+        case cls if cls is ParseError:
+            error_message = f"解析错误: {error_str}"
+        case _:
+            error_message = f"未知错误: {error_str}"
     
     # 判断是否应该重试
     if should_retry and attempt < max_retries:
