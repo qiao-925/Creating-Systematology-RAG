@@ -130,6 +130,14 @@ def cleanup_resources():
         except Exception as e:
             log.debug(f"清理全局模型缓存时出错: {e}")
         
+        # 清理 Hugging Face Embedding 资源（线程池和正在进行的请求）
+        try:
+            from src.infrastructure.embeddings.hf_inference_embedding import cleanup_hf_embedding_resources
+            cleanup_hf_embedding_resources()
+            log.debug("✅ Hugging Face Embedding 资源已清理")
+        except Exception as e:
+            log.debug(f"清理 Hugging Face Embedding 资源时出错: {e}")
+        
         log.info("✅ 应用资源清理完成")
     except Exception as e:
         # 使用 print 作为最后的备选方案
@@ -761,109 +769,44 @@ def main():
             left_spacer, center_col, right_spacer = st.columns([2, 6, 2])
             with center_col:
                 with st.chat_message("assistant"):
-                    with st.spinner("🤔 思考中..."):
-                        try:
-                            # 使用RAGService执行查询（新架构）
-                            response = rag_service.query(
-                                question=prompt,
-                                user_id=None,  # 单用户模式，不需要用户标识
-                                session_id=chat_manager.current_session.session_id if chat_manager.current_session else None,
-                            )
-                            
-                            answer = response.answer
-                            local_sources = convert_sources_to_dict(response.sources)
-                            reasoning_content = response.metadata.get('reasoning_content')
-                            
-                            # 调试：检查推理链提取情况
-                            logger.info(f"🔍 推理链提取检查: reasoning_content={reasoning_content is not None}, 长度={len(reasoning_content) if reasoning_content else 0}")
-                            if reasoning_content:
-                                logger.info(f"✅ 推理链内容预览（前100字符）: {reasoning_content[:100]}...")
-                            else:
-                                logger.warning("⚠️ 响应中没有推理链内容，检查：1) 是否使用 deepseek-reasoner 模型 2) API 是否返回了推理链")
-                            
-                            # 生成消息ID
-                            msg_idx = len(st.session_state.messages)
-                            message_id = f"msg_{msg_idx}_{hash(str(answer))}"
-                            
-                            # 保存到消息历史（UI显示用，包含推理链）
-                            if answer:  # 只在有答案时保存
-                                assistant_msg = {
-                                    "role": "assistant",
-                                    "content": answer,
-                                    "sources": local_sources
-                                }
-                                if reasoning_content:
-                                    assistant_msg["reasoning_content"] = reasoning_content
-                                st.session_state.messages.append(assistant_msg)
-                            
-                            # 存储引用来源
-                            current_sources_map[message_id] = local_sources
-                            if reasoning_content:
-                                current_reasoning_map[message_id] = reasoning_content
-                            
-                            # 立即显示AI回答（避免白屏）
-                            if "sources" in assistant_msg and assistant_msg["sources"]:
-                                formatted_content = format_answer_with_citation_links(
-                                    answer,
-                                    assistant_msg["sources"],
-                                    message_id=message_id
-                                )
-                                st.markdown(formatted_content, unsafe_allow_html=True)
-                            else:
-                                st.markdown(answer)
-                            
-                            # 显示推理链（如果存在）
-                            if reasoning_content:
-                                with st.expander("🧠 推理过程", expanded=False):
-                                    st.markdown(f"```\n{reasoning_content}\n```")
-                            
-                            # 显示引用来源（如果有）
-                            if local_sources:
-                                st.markdown("#### 📚 引用来源")
-                                display_sources_below_message(local_sources, message_id=message_id)
-                            
-                            # 同时保存到ChatManager会话（持久化）
-                            if chat_manager and answer:
-                                if not chat_manager.current_session:
-                                    chat_manager.start_session()
-                                # 保存对话（始终存储推理链，如果存在）
-                                if reasoning_content:
-                                    chat_manager.current_session.add_turn(prompt, answer, local_sources, reasoning_content)
-                                else:
-                                    chat_manager.current_session.add_turn(prompt, answer, local_sources)
-                                if chat_manager.auto_save:
-                                    chat_manager.save_current_session()
-                            
-                            # 更新session_state
-                            st.session_state.current_sources_map = current_sources_map
-                            st.session_state.current_reasoning_map = current_reasoning_map
-                            
-                            # 清除思考中标志
-                            st.session_state.is_thinking = False
-                            
-                        except Exception as e:
-                            import traceback
-                            st.error(f"❌ 查询失败: {e}")
-                            st.error(traceback.format_exc())
-                            # 即使出错也要清除思考中标志
-                            st.session_state.is_thinking = False
-        else:
-            # 如果没有对话历史，直接显示
-            # 设置思考中标志
-            st.session_state.is_thinking = True
-            with st.chat_message("assistant"):
-                with st.spinner("🤔 思考中..."):
+                    # 创建消息占位符用于流式更新
+                    message_placeholder = st.empty()
+                    
                     try:
-                        # 使用RAGService执行查询（新架构）
-                        response = rag_service.query(
-                            question=prompt,
-                            user_id=None,  # 单用户模式，不需要用户标识
-                            session_id=chat_manager.current_session.session_id if chat_manager.current_session else None,
-                        )
+                        # 使用流式对话API
+                        full_answer = ""
+                        local_sources = []
+                        reasoning_content = None
                         
-                        answer = response.answer
-                        local_sources = convert_sources_to_dict(response.sources)
-                        reasoning_content = response.metadata.get('reasoning_content')
+                        # 异步流式处理
+                        async def process_stream():
+                            nonlocal full_answer, local_sources, reasoning_content
+                            async for chunk in chat_manager.stream_chat(prompt):
+                                if chunk['type'] == 'token':
+                                    full_answer += chunk['data']
+                                    # 实时更新显示（带光标效果）
+                                    message_placeholder.markdown(full_answer + "▌")
+                                elif chunk['type'] == 'sources':
+                                    local_sources = chunk['data']
+                                elif chunk['type'] == 'reasoning':
+                                    reasoning_content = chunk['data']
+                                elif chunk['type'] == 'done':
+                                    # 流式完成，移除光标
+                                    message_placeholder.markdown(full_answer)
+                                elif chunk['type'] == 'error':
+                                    st.error(f"❌ 流式对话失败: {chunk['data'].get('message', 'Unknown error')}")
+                                    return
+                        
+                        # 运行异步流式处理
+                        import asyncio
+                        asyncio.run(process_stream())
+                        
+                        # 生成消息ID
+                        msg_idx = len(st.session_state.messages)
+                        message_id = f"msg_{msg_idx}_{hash(str(full_answer))}"
+                        
+                        # 转换引用来源格式
+                        local_sources = convert_sources_to_dict(local_sources)
                         
                         # 调试：检查推理链提取情况
                         logger.info(f"🔍 推理链提取检查: reasoning_content={reasoning_content is not None}, 长度={len(reasoning_content) if reasoning_content else 0}")
@@ -872,15 +815,11 @@ def main():
                         else:
                             logger.warning("⚠️ 响应中没有推理链内容，检查：1) 是否使用 deepseek-reasoner 模型 2) API 是否返回了推理链")
                         
-                        # 生成消息ID
-                        msg_idx = len(st.session_state.messages)
-                        message_id = f"msg_{msg_idx}_{hash(str(answer))}"
-                        
                         # 保存到消息历史（UI显示用，包含推理链）
-                        if answer:  # 只在有答案时保存
+                        if full_answer:  # 只在有答案时保存
                             assistant_msg = {
                                 "role": "assistant",
-                                "content": answer,
+                                "content": full_answer,
                                 "sources": local_sources
                             }
                             if reasoning_content:
@@ -892,16 +831,14 @@ def main():
                         if reasoning_content:
                             current_reasoning_map[message_id] = reasoning_content
                         
-                        # 立即显示AI回答（避免白屏）
-                        if "sources" in assistant_msg and assistant_msg["sources"]:
+                        # 显示带引用的格式化内容（如果有来源）
+                        if local_sources:
                             formatted_content = format_answer_with_citation_links(
-                                answer,
-                                assistant_msg["sources"],
+                                full_answer,
+                                local_sources,
                                 message_id=message_id
                             )
-                            st.markdown(formatted_content, unsafe_allow_html=True)
-                        else:
-                            st.markdown(answer)
+                            message_placeholder.markdown(formatted_content, unsafe_allow_html=True)
                         
                         # 显示推理链（如果存在）
                         if reasoning_content:
@@ -914,14 +851,14 @@ def main():
                             display_sources_below_message(local_sources, message_id=message_id)
                         
                         # 同时保存到ChatManager会话（持久化）
-                        if chat_manager and answer:
+                        if chat_manager and full_answer:
                             if not chat_manager.current_session:
                                 chat_manager.start_session()
                             # 保存对话（始终存储推理链，如果存在）
                             if reasoning_content:
-                                chat_manager.current_session.add_turn(prompt, answer, local_sources, reasoning_content)
+                                chat_manager.current_session.add_turn(prompt, full_answer, local_sources, reasoning_content)
                             else:
-                                chat_manager.current_session.add_turn(prompt, answer, local_sources)
+                                chat_manager.current_session.add_turn(prompt, full_answer, local_sources)
                             if chat_manager.auto_save:
                                 chat_manager.save_current_session()
                         
@@ -938,6 +875,117 @@ def main():
                         st.error(traceback.format_exc())
                         # 即使出错也要清除思考中标志
                         st.session_state.is_thinking = False
+        else:
+            # 如果没有对话历史，直接显示
+            # 设置思考中标志
+            st.session_state.is_thinking = True
+            with st.chat_message("assistant"):
+                # 创建消息占位符用于流式更新
+                message_placeholder = st.empty()
+                
+                try:
+                    # 使用流式对话API
+                    full_answer = ""
+                    local_sources = []
+                    reasoning_content = None
+                    
+                    # 异步流式处理
+                    async def process_stream():
+                        nonlocal full_answer, local_sources, reasoning_content
+                        async for chunk in chat_manager.stream_chat(prompt):
+                            if chunk['type'] == 'token':
+                                full_answer += chunk['data']
+                                # 实时更新显示（带光标效果）
+                                message_placeholder.markdown(full_answer + "▌")
+                            elif chunk['type'] == 'sources':
+                                local_sources = chunk['data']
+                            elif chunk['type'] == 'reasoning':
+                                reasoning_content = chunk['data']
+                            elif chunk['type'] == 'done':
+                                # 流式完成，移除光标
+                                message_placeholder.markdown(full_answer)
+                            elif chunk['type'] == 'error':
+                                st.error(f"❌ 流式对话失败: {chunk['data'].get('message', 'Unknown error')}")
+                                return
+                    
+                    # 运行异步流式处理
+                    import asyncio
+                    asyncio.run(process_stream())
+                    
+                    # 生成消息ID
+                    msg_idx = len(st.session_state.messages)
+                    message_id = f"msg_{msg_idx}_{hash(str(full_answer))}"
+                    
+                    # 转换引用来源格式
+                    local_sources = convert_sources_to_dict(local_sources)
+                    
+                    # 调试：检查推理链提取情况
+                    logger.info(f"🔍 推理链提取检查: reasoning_content={reasoning_content is not None}, 长度={len(reasoning_content) if reasoning_content else 0}")
+                    if reasoning_content:
+                        logger.info(f"✅ 推理链内容预览（前100字符）: {reasoning_content[:100]}...")
+                    else:
+                        logger.warning("⚠️ 响应中没有推理链内容，检查：1) 是否使用 deepseek-reasoner 模型 2) API 是否返回了推理链")
+                    
+                    # 保存到消息历史（UI显示用，包含推理链）
+                    if full_answer:  # 只在有答案时保存
+                        assistant_msg = {
+                            "role": "assistant",
+                            "content": full_answer,
+                            "sources": local_sources
+                        }
+                        if reasoning_content:
+                            assistant_msg["reasoning_content"] = reasoning_content
+                        st.session_state.messages.append(assistant_msg)
+                    
+                    # 存储引用来源
+                    current_sources_map[message_id] = local_sources
+                    if reasoning_content:
+                        current_reasoning_map[message_id] = reasoning_content
+                    
+                    # 显示带引用的格式化内容（如果有来源）
+                    if local_sources:
+                        formatted_content = format_answer_with_citation_links(
+                            full_answer,
+                            local_sources,
+                            message_id=message_id
+                        )
+                        message_placeholder.markdown(formatted_content, unsafe_allow_html=True)
+                    
+                    # 显示推理链（如果存在）
+                    if reasoning_content:
+                        with st.expander("🧠 推理过程", expanded=False):
+                            st.markdown(f"```\n{reasoning_content}\n```")
+                    
+                    # 显示引用来源（如果有）
+                    if local_sources:
+                        st.markdown("#### 📚 引用来源")
+                        display_sources_below_message(local_sources, message_id=message_id)
+                    
+                    # 同时保存到ChatManager会话（持久化）
+                    if chat_manager and full_answer:
+                        if not chat_manager.current_session:
+                            chat_manager.start_session()
+                        # 保存对话（始终存储推理链，如果存在）
+                        if reasoning_content:
+                            chat_manager.current_session.add_turn(prompt, full_answer, local_sources, reasoning_content)
+                        else:
+                            chat_manager.current_session.add_turn(prompt, full_answer, local_sources)
+                        if chat_manager.auto_save:
+                            chat_manager.save_current_session()
+                    
+                    # 更新session_state
+                    st.session_state.current_sources_map = current_sources_map
+                    st.session_state.current_reasoning_map = current_reasoning_map
+                    
+                    # 清除思考中标志
+                    st.session_state.is_thinking = False
+                    
+                except Exception as e:
+                    import traceback
+                    st.error(f"❌ 查询失败: {e}")
+                    st.error(traceback.format_exc())
+                    # 即使出错也要清除思考中标志
+                    st.session_state.is_thinking = False
 
 
 if __name__ == "__main__":

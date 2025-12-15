@@ -29,6 +29,7 @@ dependencies = [
     "huggingface-hub>=0.20.0",
     "pydantic-settings>=2.0.0",
     "structlog>=24.1.0",
+    "requests>=2.31.0",
 ]
 
 [project.optional-dependencies]
@@ -40,6 +41,16 @@ test = [
     "pytest-benchmark>=4.0.0",
     "pytest-asyncio>=0.21.0",
 ]
+
+# ==================== 国内镜像源配置 ====================
+# 配置国内 PyPI 镜像源，加速包下载
+# 推荐使用清华大学镜像源（稳定、速度快）
+
+[[tool.uv.index]]
+name = "tsinghua"
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+default = true
+explicit = false
 
 # ==================== PyTorch CUDA 配置 ====================
 # 配置从 PyTorch 官方 CUDA 索引安装，确保使用 GPU 版本

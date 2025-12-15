@@ -53,7 +53,7 @@ def deepseek_style_chat_input(placeholder: str = "给系统发送消息", key: s
                 with input_wrapper:
                     # 多行文本输入
                     user_input = st.text_area(
-                        "",
+                        "输入消息",
                         value=st.session_state[f'{key}_input'],
                         placeholder="",  # 占位符通过 CSS 实现
                         height=56,  # Material Design 标准高度
@@ -99,7 +99,7 @@ def deepseek_style_chat_input(placeholder: str = "给系统发送消息", key: s
                     with input_wrapper:
                         # 多行文本输入
                         user_input = st.text_area(
-                            "",
+                            "输入消息",
                             value=st.session_state[f'{key}_input'],
                             placeholder="",  # 占位符通过 CSS 实现
                             height=56,  # Material Design 标准高度

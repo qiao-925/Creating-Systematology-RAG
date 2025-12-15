@@ -4,10 +4,11 @@ RAG引擎核心模块：ModularQueryEngine类实现
 主要功能：
 - ModularQueryEngine类：模块化查询引擎，支持vector、bm25、hybrid、grep、multi等策略
 - query()：执行查询，返回格式化的回答和引用来源
+- stream_query()：流式查询，实时返回答案token（用于Web应用）
 
 执行流程：
 1. 初始化查询引擎（创建检索器、后处理器等）
-2. 执行查询
+2. 执行查询（非流式或流式）
 3. 处理检索结果
 4. 应用后处理（重排序等）
 5. 生成回答并格式化
@@ -18,11 +19,13 @@ RAG引擎核心模块：ModularQueryEngine类实现
 - 支持多种检索策略
 - 可插拔的后处理器
 - 完整的错误处理和兜底机制
+- 真正的流式输出支持（使用DeepSeek原生流式API）
 """
 
 from typing import List, Optional, Tuple, Dict, Any
 from llama_index.core import Settings
 from llama_index.core.query_engine import RetrieverQueryEngine
+from llama_index.core import get_response_synthesizer
 from src.infrastructure.config import config
 from src.infrastructure.indexer import IndexManager
 from src.infrastructure.logger import get_logger
@@ -180,31 +183,46 @@ class ModularQueryEngine:
             auto_routing=self.enable_auto_routing
         )
     
-    def _create_query_engine_from_retriever(self, retriever) -> RetrieverQueryEngine:
+    def _create_query_engine_from_retriever(self, retriever, streaming: bool = False) -> RetrieverQueryEngine:
         """从检索器创建查询引擎
         
         Args:
             retriever: 检索器实例
+            streaming: 是否启用流式输出
             
         Returns:
             RetrieverQueryEngine实例
         """
-        return RetrieverQueryEngine.from_args(
-            retriever=retriever,
-            llm=self.llm,
-            node_postprocessors=self.postprocessors,
-        )
+        if streaming:
+            # 创建流式响应合成器
+            response_synthesizer = get_response_synthesizer(
+                streaming=True,
+                llm=self.llm
+            )
+            return RetrieverQueryEngine(
+                retriever=retriever,
+                response_synthesizer=response_synthesizer,
+                node_postprocessors=self.postprocessors,
+            )
+        else:
+            return RetrieverQueryEngine.from_args(
+                retriever=retriever,
+                llm=self.llm,
+                node_postprocessors=self.postprocessors,
+            )
     
     def _get_or_create_query_engine(
         self,
         final_query: str,
-        understanding: Optional[Dict[str, Any]] = None
+        understanding: Optional[Dict[str, Any]] = None,
+        streaming: bool = False
     ) -> Tuple[RetrieverQueryEngine, str]:
         """获取或创建查询引擎（支持自动路由）
         
         Args:
             final_query: 处理后的查询
             understanding: 查询理解结果（可选）
+            streaming: 是否启用流式输出
             
         Returns:
             (查询引擎实例, 路由决策/策略名称)
@@ -223,11 +241,19 @@ class ModularQueryEngine:
                     top_k=self.similarity_top_k
                 )
             
-            query_engine = self._create_query_engine_from_retriever(retriever)
+            query_engine = self._create_query_engine_from_retriever(retriever, streaming=streaming)
             strategy_info = f"策略={routing_decision}, 原因=自动路由模式，根据查询意图动态选择"
             return query_engine, strategy_info
         else:
             # 固定模式：使用初始化时创建的查询引擎
+            # 如果是流式模式，需要重新创建流式查询引擎
+            if streaming:
+                # 获取当前查询引擎的检索器
+                current_retriever = self.retriever
+                if current_retriever:
+                    query_engine = self._create_query_engine_from_retriever(current_retriever, streaming=True)
+                    strategy_info = f"策略={self.retrieval_strategy}, 原因=固定检索模式（流式）"
+                    return query_engine, strategy_info
             strategy_info = f"策略={self.retrieval_strategy}, 原因=固定检索模式（初始化时配置）"
             return self.query_engine, strategy_info
     
@@ -382,7 +408,201 @@ class ModularQueryEngine:
         return result
     
     async def stream_query(self, question: str):
-        """异步流式查询（用于Web应用）"""
-        raise NotImplementedError("流式查询暂未实现")
+        """异步流式查询（用于Web应用）- 优化版本：直接使用 DeepSeek 流式输出
+        
+        绕过 LlamaIndex 的 StreamingResponse 缓冲，直接使用 DeepSeek 的 stream_chat，
+        实现真正的实时流式输出。
+        
+        Args:
+            question: 用户问题
+            
+        Yields:
+            dict: 流式响应字典，包含以下类型：
+                - 'type': 'token', 'data': token文本
+                - 'type': 'sources', 'data': 引用来源列表
+                - 'type': 'reasoning', 'data': 推理链内容
+                - 'type': 'done', 'data': 完整答案和元数据
+        """
+        # Step 1: 查询处理（标准化流程：意图理解+改写）
+        processed = self.query_processor.process(question)
+        final_query = processed["final_query"]
+        understanding = processed.get("understanding")
+        
+        logger.info(
+            "流式查询处理完成（直接流式模式）",
+            original_query=question[:50] if len(question) > 50 else question,
+            processed_query=final_query[:50] if len(final_query) > 50 else final_query,
+            processing_method=processed['processing_method']
+        )
+        
+        # Step 2: 获取检索器和检索节点
+        retriever = None
+        strategy_info = ""
+        
+        if self.enable_auto_routing and self.query_router:
+            # 自动路由模式
+            if understanding:
+                retriever, routing_decision = self.query_router.route_with_understanding(
+                    final_query,
+                    understanding=understanding,
+                    top_k=self.similarity_top_k
+                )
+            else:
+                retriever, routing_decision = self.query_router.route(
+                    final_query,
+                    top_k=self.similarity_top_k
+                )
+            strategy_info = f"策略={routing_decision}, 原因=自动路由模式"
+        else:
+            # 固定模式：使用初始化时创建的检索器
+            retriever = self.retriever
+            strategy_info = f"策略={self.retrieval_strategy}, 原因=固定检索模式"
+        
+        logger.info("使用检索策略（直接流式）", strategy_info=strategy_info)
+        
+        # Step 3: 检索节点
+        nodes_with_scores = []
+        sources = []
+        full_answer = ""
+        reasoning_content = ""
+        
+        try:
+            if retriever:
+                # 执行检索
+                nodes_with_scores = retriever.retrieve(final_query)
+                
+                # 应用后处理
+                if self.postprocessors:
+                    for postprocessor in self.postprocessors:
+                        nodes_with_scores = postprocessor.postprocess_nodes(
+                            nodes_with_scores,
+                            query_str=final_query
+                        )
+                
+                # 转换为引用来源格式
+                for i, node_with_score in enumerate(nodes_with_scores, 1):
+                    node = node_with_score.node if hasattr(node_with_score, 'node') else node_with_score
+                    score = node_with_score.score if hasattr(node_with_score, 'score') else None
+                    
+                    source = {
+                        'index': i,
+                        'text': node.text if hasattr(node, 'text') else str(node),
+                        'score': score,
+                        'metadata': node.metadata if hasattr(node, 'metadata') else {},
+                    }
+                    sources.append(source)
+                
+                logger.info(f"检索到 {len(nodes_with_scores)} 个文档片段")
+            
+            # Step 4: 构建 prompt
+            from src.business.rag_engine.formatting.templates import CHAT_MARKDOWN_TEMPLATE
+            
+            # 构建上下文字符串
+            context_str = ""
+            if nodes_with_scores:
+                context_parts = []
+                for i, node_with_score in enumerate(nodes_with_scores, 1):
+                    node = node_with_score.node if hasattr(node_with_score, 'node') else node_with_score
+                    text = node.text if hasattr(node, 'text') else str(node)
+                    context_parts.append(f"[{i}] {text}")
+                context_str = "\n\n".join(context_parts)
+            else:
+                context_str = "（知识库中未找到相关信息）"
+            
+            # 构建完整 prompt
+            # CHAT_MARKDOWN_TEMPLATE 只包含 context_str，需要手动添加查询
+            prompt = CHAT_MARKDOWN_TEMPLATE.format(context_str=context_str)
+            prompt += f"\n\n用户问题：{final_query}\n\n请用中文回答问题。"
+            
+            # Step 5: 直接使用 DeepSeek 流式输出
+            import time
+            from src.infrastructure.llms.reasoning import extract_reasoning_from_stream_chunk
+            from llama_index.core.llms import ChatMessage, MessageRole
+            
+            # 创建 ChatMessage 对象（LlamaIndex 要求）
+            chat_message = ChatMessage(
+                role=MessageRole.USER,
+                content=prompt
+            )
+            messages = [chat_message]
+            
+            last_token_time = time.time()
+            token_count = 0
+            last_chunk = None
+            
+            logger.debug("🚀 开始直接流式调用 DeepSeek API")
+            
+            # 直接调用 DeepSeek 的 stream_chat（绕过 LlamaIndex 缓冲）
+            for chunk in self.llm.stream_chat(messages):
+                # 提取推理链内容（流式）
+                chunk_reasoning = extract_reasoning_from_stream_chunk(chunk)
+                if chunk_reasoning:
+                    reasoning_content += chunk_reasoning
+                
+                # 提取 token 内容
+                chunk_text = ""
+                if hasattr(chunk, 'message'):
+                    message = chunk.message
+                    if hasattr(message, 'content') and message.content:
+                        chunk_text = str(message.content)
+                elif hasattr(chunk, 'delta'):
+                    delta = chunk.delta
+                    if hasattr(delta, 'content') and delta.content:
+                        chunk_text = str(delta.content)
+                
+                if chunk_text:
+                    token_count += 1
+                    current_time = time.time()
+                    time_since_last = current_time - last_token_time
+                    last_token_time = current_time
+                    
+                    # 记录每个 token 的到达时间（仅在前几个和间隔较长时记录）
+                    if token_count <= 5 or time_since_last > 0.1:
+                        logger.debug(f"🔤 Token #{token_count} '{chunk_text[:20]}...' 到达，间隔: {time_since_last*1000:.1f}ms")
+                    
+                    full_answer += chunk_text
+                    # 立即 yield token（无缓冲）
+                    yield {'type': 'token', 'data': chunk_text}
+                
+                last_chunk = chunk
+            
+            logger.debug(f"✅ 流式生成完成，共 {token_count} 个 token")
+            
+            # Step 6: 格式化答案
+            full_answer = self.formatter.format(full_answer, None)
+            
+            # Step 7: 提取最终推理链（从最后一个 chunk）
+            if last_chunk:
+                from src.infrastructure.llms import extract_reasoning_content
+                final_reasoning = extract_reasoning_content(last_chunk)
+                if final_reasoning:
+                    reasoning_content = final_reasoning
+            
+            # 返回引用来源
+            if sources:
+                yield {'type': 'sources', 'data': sources}
+            
+            # 返回推理链（答案完成后，非流式）
+            if reasoning_content:
+                yield {'type': 'reasoning', 'data': reasoning_content}
+            
+            # 返回完成事件
+            yield {
+                'type': 'done',
+                'data': {
+                    'answer': full_answer,
+                    'sources': sources,
+                    'reasoning_content': reasoning_content if reasoning_content else None,
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"流式查询失败: {e}", exc_info=True)
+            # 发送错误事件
+            yield {
+                'type': 'error',
+                'data': {'message': str(e)}
+            }
+            raise
 
 

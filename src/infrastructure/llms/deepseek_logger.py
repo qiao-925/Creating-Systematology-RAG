@@ -4,6 +4,7 @@ DeepSeek LLM 日志包装器
 """
 
 import json
+import time
 from typing import Any, Optional, Dict, List
 from llama_index.core.llms import CompletionResponse, ChatResponse, LLMMetadata
 from llama_index.llms.deepseek import DeepSeek
@@ -287,7 +288,17 @@ class DeepSeekLogger:
             # 调用原始方法并收集响应（使用清理后的消息）
             full_response = ""
             full_reasoning = ""
+            last_chunk_time = time.time()
+            chunk_count = 0
             for chunk in self._llm.stream_chat(cleaned_messages, **kwargs):
+                chunk_count += 1
+                current_time = time.time()
+                time_since_last = current_time - last_chunk_time
+                last_chunk_time = current_time
+                
+                # 记录每个 chunk 的到达时间（仅在前几个和间隔较长时记录）
+                if chunk_count <= 5 or time_since_last > 0.1:
+                    logger.debug(f"📦 Chunk #{chunk_count} 到达，间隔: {time_since_last*1000:.1f}ms")
                 chunk_message = chunk.message if hasattr(chunk, 'message') else None
                 if chunk_message:
                     # 处理推理链内容（流式）

@@ -163,39 +163,78 @@ def extract_reasoning_from_stream_chunk(chunk: Any) -> Optional[str]:
         return None
 
 
-def clean_messages_for_api(messages: List[Any]) -> List[Dict[str, str]]:
+def clean_messages_for_api(messages: List[Any]) -> List[Any]:
     """清理消息列表，确保不包含 reasoning_content
     
     根据 DeepSeek API 文档，如果 messages 中包含 reasoning_content，
     API 会返回 400 错误。此函数确保只传递 role 和 content。
     
+    注意：此函数保持 ChatMessage 对象格式，不转换为字典，
+    因为 LlamaIndex 的 stream_chat 需要 ChatMessage 对象。
+    
     Args:
         messages: 消息列表（ChatMessage 对象或字典）
         
     Returns:
-        清理后的消息列表（字典格式，只包含 role 和 content）
+        清理后的消息列表（ChatMessage 对象格式，不包含 reasoning_content）
     """
+    from llama_index.core.llms import ChatMessage, MessageRole
+    
     cleaned = []
     
     for msg in messages:
         try:
             # 处理 ChatMessage 对象
             if hasattr(msg, 'role') and hasattr(msg, 'content'):
-                role = msg.role.value if hasattr(msg.role, 'value') else str(msg.role)
+                # 如果已经是 ChatMessage 对象，直接使用 role（可能是 MessageRole 枚举）
+                role = msg.role
+                
+                # 如果 role 已经是 MessageRole 类型，直接使用
+                if isinstance(role, MessageRole):
+                    message_role = role
+                else:
+                    # 否则尝试转换
+                    role_str = str(role).lower()
+                    if 'user' in role_str:
+                        message_role = MessageRole.USER
+                    elif 'assistant' in role_str:
+                        message_role = MessageRole.ASSISTANT
+                    elif 'system' in role_str:
+                        message_role = MessageRole.SYSTEM
+                    else:
+                        message_role = MessageRole.USER  # 默认
+                
+                # 获取 content（确保是字符串）
                 content = msg.content
-                cleaned.append({
-                    'role': role,
-                    'content': content
-                })
+                if not isinstance(content, str):
+                    content = str(content) if content else ""
+                
+                # 创建新的 ChatMessage（不包含 reasoning_content）
+                cleaned_msg = ChatMessage(
+                    role=message_role,
+                    content=content
+                )
+                cleaned.append(cleaned_msg)
             # 处理字典格式
             elif isinstance(msg, dict):
-                cleaned_msg = {
-                    'role': msg.get('role', 'user'),
-                    'content': msg.get('content', '')
-                }
-                # 确保不包含 reasoning_content
-                if 'reasoning_content' in msg:
-                    logger.debug("移除消息中的 reasoning_content 字段")
+                role_str = msg.get('role', 'user')
+                content = msg.get('content', '')
+                
+                # 转换为 MessageRole
+                if role_str == 'user':
+                    message_role = MessageRole.USER
+                elif role_str == 'assistant':
+                    message_role = MessageRole.ASSISTANT
+                elif role_str == 'system':
+                    message_role = MessageRole.SYSTEM
+                else:
+                    message_role = MessageRole.USER  # 默认
+                
+                # 创建 ChatMessage 对象
+                cleaned_msg = ChatMessage(
+                    role=message_role,
+                    content=str(content) if content else ""
+                )
                 cleaned.append(cleaned_msg)
             else:
                 logger.warning(f"无法处理消息类型: {type(msg)}")

@@ -14,34 +14,38 @@ from src.infrastructure.embeddings.hf_inference_embedding import HFInferenceEmbe
 class TestAPIEmbedding:
     """APIEmbedding测试"""
     
-    def test_api_embedding_init(self):
+    @patch('requests.post')
+    def test_api_embedding_init(self, mock_post):
         """测试HFInferenceEmbedding初始化"""
+        # Mock requests.post 返回测试向量
+        mock_response = Mock()
+        mock_response.json.return_value = [0.1] * 768
+        mock_response.raise_for_status = Mock()
+        mock_post.return_value = mock_response
+        
         model_name = "test-model"
-        dimension = 768
         api_key = "test-token-123"
         
         embedding = HFInferenceEmbedding(
             model_name=model_name,
-            dimension=dimension,
             api_key=api_key
         )
         
         assert isinstance(embedding, BaseEmbedding)
         assert isinstance(embedding, HFInferenceEmbedding)
-        assert embedding.model_name == model_name
-        assert embedding.get_embedding_dimension() == dimension
         assert embedding.get_model_name() == model_name
+        assert embedding.get_embedding_dimension() == 768
     
-    @patch('src.infrastructure.embeddings.hf_inference_embedding.InferenceClient')
-    def test_api_embedding_get_query_embedding(self, mock_client_class):
+    @patch('requests.post')
+    def test_api_embedding_get_query_embedding(self, mock_post):
         """测试API查询向量化（Mock）"""
-        mock_client = Mock()
-        mock_client.feature_extraction.return_value = [[0.1] * 768]
-        mock_client_class.return_value = mock_client
+        mock_response = Mock()
+        mock_response.json.return_value = [0.1] * 768
+        mock_response.raise_for_status = Mock()
+        mock_post.return_value = mock_response
         
         embedding = HFInferenceEmbedding(
             model_name="test-model",
-            dimension=768,
             api_key="test-token"
         )
         
@@ -51,18 +55,22 @@ class TestAPIEmbedding:
         assert len(vector) == 768
         assert all(isinstance(x, float) for x in vector)
         
-        mock_client.feature_extraction.assert_called_once()
+        assert mock_post.call_count == 1
     
-    @patch('src.infrastructure.embeddings.hf_inference_embedding.InferenceClient')
-    def test_api_embedding_get_text_embeddings_batch(self, mock_client_class):
+    @patch('requests.post')
+    def test_api_embedding_get_text_embeddings_batch(self, mock_post):
         """测试API批量向量化（Mock）"""
-        mock_client = Mock()
-        mock_client.feature_extraction.return_value = [[0.1] * 768, [0.2] * 768, [0.3] * 768]
-        mock_client_class.return_value = mock_client
+        # 为每个文本返回不同的向量
+        mock_responses = []
+        for i in range(3):
+            mock_response = Mock()
+            mock_response.json.return_value = [float(i+1) * 0.1] * 768
+            mock_response.raise_for_status = Mock()
+            mock_responses.append(mock_response)
+        mock_post.side_effect = mock_responses
         
         embedding = HFInferenceEmbedding(
             model_name="test-model",
-            dimension=768,
             api_key="test-token"
         )
         
@@ -73,38 +81,41 @@ class TestAPIEmbedding:
         assert len(vectors) == len(texts)
         assert all(len(v) == 768 for v in vectors)
     
-    @patch('src.infrastructure.embeddings.hf_inference_embedding.InferenceClient')
-    def test_api_embedding_with_api_key(self, mock_client_class):
+    @patch('requests.post')
+    def test_api_embedding_with_api_key(self, mock_post):
         """测试带API密钥的API调用"""
-        mock_client = Mock()
-        mock_client.feature_extraction.return_value = [[0.1] * 768]
-        mock_client_class.return_value = mock_client
+        mock_response = Mock()
+        mock_response.json.return_value = [0.1] * 768
+        mock_response.raise_for_status = Mock()
+        mock_post.return_value = mock_response
         
         embedding = HFInferenceEmbedding(
             model_name="test-model",
-            api_key="test-key-123",
-            dimension=768
+            api_key="test-key-123"
         )
         
         embedding.get_query_embedding("test")
         
-        # 验证 InferenceClient 使用正确的 api_key
-        mock_client_class.assert_called_once()
-        call_kwargs = mock_client_class.call_args[1]
-        assert call_kwargs.get("api_key") == "test-key-123"
+        # 验证 requests.post 使用正确的 headers（包含 API key）
+        assert mock_post.call_count == 1
+        call_kwargs = mock_post.call_args[1]
+        assert 'headers' in call_kwargs
+        assert 'Authorization' in call_kwargs['headers']
+        assert 'Bearer test-key-123' in call_kwargs['headers']['Authorization']
     
-    @patch('src.infrastructure.embeddings.hf_inference_embedding.InferenceClient')
-    def test_api_embedding_error_handling(self, mock_client_class):
+    @patch('requests.post')
+    def test_api_embedding_error_handling(self, mock_post):
         """测试API错误处理"""
-        mock_client = Mock()
-        mock_client.feature_extraction.side_effect = Exception("Network error")
-        mock_client_class.return_value = mock_client
+        from requests.exceptions import ConnectionError
+        
+        # Mock requests.post 抛出网络错误
+        mock_post.side_effect = ConnectionError("Network error")
         
         embedding = HFInferenceEmbedding(
             model_name="test-model",
-            api_key="test-token",
-            dimension=768
+            api_key="test-token"
         )
         
-        with pytest.raises(RuntimeError):
-            embedding.get_query_embedding("test")
+        with patch('src.infrastructure.embeddings.hf_inference_embedding.time.sleep'):  # Mock sleep
+            with pytest.raises(RuntimeError):
+                embedding.get_query_embedding("test")

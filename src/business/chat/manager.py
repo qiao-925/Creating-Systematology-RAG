@@ -4,7 +4,8 @@
 主要功能：
 - ChatManager类：对话管理器，管理对话会话和历史记录
 - start_session()：开始新会话
-- add_turn()：添加对话轮次
+- chat()：非流式对话（同步）
+- stream_chat()：流式对话（异步，使用真正的流式API）
 - save_current_session()：保存当前会话
 - load_session()：加载历史会话
 
@@ -20,6 +21,7 @@
 - 推理链支持
 - 自动保存机制
 - 复用ModularQueryEngine的丰富检索策略
+- 真正的流式输出支持（实时token输出，无模拟延迟）
 """
 
 import asyncio
@@ -413,9 +415,17 @@ class ChatManager:
     
     
     async def stream_chat(self, message: str):
-        """异步流式对话（暂未实现，使用非流式方式）
+        """异步流式对话（使用真正的流式API）
         
-        注意：ModularQueryEngine的流式查询暂未实现，当前使用非流式方式
+        Args:
+            message: 用户消息
+            
+        Yields:
+            dict: 流式响应字典，包含以下类型：
+                - 'type': 'token', 'data': token文本
+                - 'type': 'sources', 'data': 引用来源列表
+                - 'type': 'reasoning', 'data': 推理链内容
+                - 'type': 'done', 'data': 完整答案和会话信息
         """
         if self.current_session is None:
             self.start_session()
@@ -423,25 +433,63 @@ class ChatManager:
         try:
             logger.info(f"用户消息（流式）: {message}")
             
-            # 暂时使用非流式方式（ModularQueryEngine的流式查询暂未实现）
-            # TODO: 实现真正的流式对话
-            answer, sources, reasoning_content = self.chat(message)
+            full_answer = ""
+            sources = []
+            reasoning_content = None
             
-            # 模拟流式输出（逐字符输出）
-            for i, char in enumerate(answer):
-                yield {'type': 'token', 'data': char}
-                if i % 10 == 0:  # 每10个字符暂停一下
-                    await asyncio.sleep(0.01)
+            # 执行流式查询
+            if self.query_engine:
+                # RAG模式：使用流式查询
+                condensed_query = self._condense_query_with_history(message)
+                
+                async for chunk in self.query_engine.stream_query(condensed_query):
+                    if chunk['type'] == 'token':
+                        full_answer += chunk['data']
+                        yield chunk
+                    elif chunk['type'] == 'sources':
+                        sources = chunk['data']
+                        yield chunk
+                    elif chunk['type'] == 'reasoning':
+                        reasoning_content = chunk['data']
+                        yield chunk
+                    elif chunk['type'] == 'done':
+                        # 从 done 事件中获取最终答案（如果流式过程中有格式化）
+                        if 'answer' in chunk['data']:
+                            full_answer = chunk['data']['answer']
+                        if 'sources' in chunk['data']:
+                            sources = chunk['data']['sources']
+                        if 'reasoning_content' in chunk['data']:
+                            reasoning_content = chunk['data']['reasoning_content']
+                    elif chunk['type'] == 'error':
+                        logger.error(f"流式查询错误: {chunk['data'].get('message', 'Unknown error')}")
+                        yield chunk
+                        return
+            else:
+                # 纯LLM模式：使用流式完成
+                prompt = self._build_llm_prompt(message)
+                
+                # 使用 stream_complete 进行流式输出
+                for chunk in self.llm.stream_complete(prompt):
+                    chunk_text = chunk.text if hasattr(chunk, 'text') else str(chunk)
+                    if chunk_text:
+                        full_answer += chunk_text
+                        yield {'type': 'token', 'data': chunk_text}
+                
+                # 格式化答案
+                full_answer = self.formatter.format(full_answer, None)
             
-            # 返回引用来源、推理链和完整答案
-            yield {'type': 'sources', 'data': sources}
-            if reasoning_content:
-                yield {'type': 'reasoning', 'data': reasoning_content}
-            # done 事件包含完整答案和会话信息
+            # 更新对话记忆和会话历史
+            self._update_memory_and_session(message, full_answer, sources, reasoning_content)
+            
+            # 自动保存会话
+            if self.auto_save:
+                self.save_current_session()
+            
+            # 返回完成事件
             yield {
                 'type': 'done',
                 'data': {
-                    'answer': answer,
+                    'answer': full_answer,
                     'session_id': self.current_session.session_id if self.current_session else None,
                     'turn_count': len(self.current_session.history) if self.current_session else 0,
                 }
@@ -449,6 +497,10 @@ class ChatManager:
             
         except Exception as e:
             logger.error(f"流式对话失败: {e}", exc_info=True)
+            yield {
+                'type': 'error',
+                'data': {'message': str(e)}
+            }
             raise
     
     def get_current_session(self) -> Optional[ChatSession]:
