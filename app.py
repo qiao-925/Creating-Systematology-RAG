@@ -778,7 +778,7 @@ def main():
                         local_sources = []
                         reasoning_content = None
                         
-                        # 异步流式处理
+                        # 异步流式处理（使用 nest_asyncio 支持嵌套事件循环）
                         async def process_stream():
                             nonlocal full_answer, local_sources, reasoning_content
                             async for chunk in chat_manager.stream_chat(prompt):
@@ -792,14 +792,44 @@ def main():
                                     reasoning_content = chunk['data']
                                 elif chunk['type'] == 'done':
                                     # 流式完成，移除光标
+                                    if 'answer' in chunk['data']:
+                                        full_answer = chunk['data']['answer']
+                                    if 'sources' in chunk['data']:
+                                        local_sources = chunk['data']['sources']
+                                    if 'reasoning_content' in chunk['data']:
+                                        reasoning_content = chunk['data']['reasoning_content']
                                     message_placeholder.markdown(full_answer)
                                 elif chunk['type'] == 'error':
                                     st.error(f"❌ 流式对话失败: {chunk['data'].get('message', 'Unknown error')}")
                                     return
                         
-                        # 运行异步流式处理
+                        # 运行异步流式处理（支持嵌套事件循环）
                         import asyncio
-                        asyncio.run(process_stream())
+                        try:
+                            # 尝试使用 nest_asyncio（如果已安装）
+                            import nest_asyncio
+                            nest_asyncio.apply()
+                            # 使用当前事件循环
+                            loop = asyncio.get_event_loop()
+                            if loop.is_running():
+                                # 如果事件循环正在运行，创建任务
+                                import concurrent.futures
+                                with concurrent.futures.ThreadPoolExecutor() as executor:
+                                    future = executor.submit(asyncio.run, process_stream())
+                                    future.result()
+                            else:
+                                asyncio.run(process_stream())
+                        except ImportError:
+                            # 如果没有 nest_asyncio，直接运行
+                            asyncio.run(process_stream())
+                        except RuntimeError:
+                            # 如果事件循环已存在，创建新的事件循环
+                            loop = asyncio.new_event_loop()
+                            asyncio.set_event_loop(loop)
+                            try:
+                                loop.run_until_complete(process_stream())
+                            finally:
+                                loop.close()
                         
                         # 生成消息ID
                         msg_idx = len(st.session_state.messages)
@@ -889,7 +919,7 @@ def main():
                     local_sources = []
                     reasoning_content = None
                     
-                    # 异步流式处理
+                    # 异步流式处理（使用 nest_asyncio 支持嵌套事件循环）
                     async def process_stream():
                         nonlocal full_answer, local_sources, reasoning_content
                         async for chunk in chat_manager.stream_chat(prompt):
@@ -903,14 +933,44 @@ def main():
                                 reasoning_content = chunk['data']
                             elif chunk['type'] == 'done':
                                 # 流式完成，移除光标
+                                if 'answer' in chunk['data']:
+                                    full_answer = chunk['data']['answer']
+                                if 'sources' in chunk['data']:
+                                    local_sources = chunk['data']['sources']
+                                if 'reasoning_content' in chunk['data']:
+                                    reasoning_content = chunk['data']['reasoning_content']
                                 message_placeholder.markdown(full_answer)
                             elif chunk['type'] == 'error':
                                 st.error(f"❌ 流式对话失败: {chunk['data'].get('message', 'Unknown error')}")
                                 return
                     
-                    # 运行异步流式处理
+                    # 运行异步流式处理（支持嵌套事件循环）
                     import asyncio
-                    asyncio.run(process_stream())
+                    try:
+                        # 尝试使用 nest_asyncio（如果已安装）
+                        import nest_asyncio
+                        nest_asyncio.apply()
+                        # 使用当前事件循环
+                        loop = asyncio.get_event_loop()
+                        if loop.is_running():
+                            # 如果事件循环正在运行，创建任务
+                            import concurrent.futures
+                            with concurrent.futures.ThreadPoolExecutor() as executor:
+                                future = executor.submit(asyncio.run, process_stream())
+                                future.result()
+                        else:
+                            asyncio.run(process_stream())
+                    except ImportError:
+                        # 如果没有 nest_asyncio，直接运行
+                        asyncio.run(process_stream())
+                    except RuntimeError:
+                        # 如果事件循环已存在，创建新的事件循环
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                        try:
+                            loop.run_until_complete(process_stream())
+                        finally:
+                            loop.close()
                     
                     # 生成消息ID
                     msg_idx = len(st.session_state.messages)

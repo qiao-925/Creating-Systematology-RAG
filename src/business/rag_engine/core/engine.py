@@ -539,16 +539,74 @@ class ModularQueryEngine:
                 if chunk_reasoning:
                     reasoning_content += chunk_reasoning
                 
-                # 提取 token 内容
+                # 提取 token 内容（增量）
+                # DeepSeek 流式返回应该是增量的，检查实际返回格式
                 chunk_text = ""
-                if hasattr(chunk, 'message'):
-                    message = chunk.message
-                    if hasattr(message, 'content') and message.content:
-                        chunk_text = str(message.content)
-                elif hasattr(chunk, 'delta'):
+                
+                # 调试：记录 chunk 的结构
+                if token_count == 0:
+                    logger.debug(f"🔍 Chunk 结构检查: hasattr(chunk, 'delta')={hasattr(chunk, 'delta')}, hasattr(chunk, 'message')={hasattr(chunk, 'message')}")
+                    if hasattr(chunk, 'delta'):
+                        delta = chunk.delta
+                        logger.debug(f"🔍 Delta 结构: {dir(delta)}")
+                        if hasattr(delta, 'content'):
+                            logger.debug(f"🔍 Delta.content 类型: {type(delta.content)}, 值: {repr(delta.content)}")
+                    if hasattr(chunk, 'message'):
+                        message = chunk.message
+                        logger.debug(f"🔍 Message 结构: {dir(message)}")
+                        if hasattr(message, 'content'):
+                            logger.debug(f"🔍 Message.content 类型: {type(message.content)}, 值长度: {len(str(message.content)) if message.content else 0}")
+                
+                # 提取增量 token（DeepSeek 流式返回应该是增量的）
+                # 关键：message.content 是累加的，delta.content 是增量的
+                
+                # 方法1：优先使用 delta.content（增量）
+                if hasattr(chunk, 'delta'):
                     delta = chunk.delta
                     if hasattr(delta, 'content') and delta.content:
                         chunk_text = str(delta.content)
+                        # 验证：delta.content 应该是增量（很短）
+                        if len(chunk_text) > 50:
+                            logger.warning(f"⚠️ Delta.content 长度异常: {len(chunk_text)} 字符，可能是累加的！内容: {chunk_text[:50]}...")
+                
+                # 方法2：如果没有 delta，从 message.content 计算增量
+                elif hasattr(chunk, 'message'):
+                    message = chunk.message
+                    if hasattr(message, 'content') and message.content:
+                        current_content = str(message.content)
+                        # message.content 是累加的，计算增量：当前 - 之前
+                        if full_answer and current_content.startswith(full_answer):
+                            # 正常情况：当前内容包含之前的内容，提取增量
+                            chunk_text = current_content[len(full_answer):]
+                            if not chunk_text:
+                                # 增量为空，可能是重复的 chunk，跳过
+                                continue
+                        elif not full_answer:
+                            # 第一次：使用整个内容
+                            chunk_text = current_content
+                        else:
+                            # 异常情况：当前内容不包含之前的内容
+                            logger.warning(f"⚠️ Message.content 格式异常: 当前长度={len(current_content)}, 之前长度={len(full_answer)}")
+                            # 尝试计算增量（取差值部分）
+                            if len(current_content) > len(full_answer):
+                                chunk_text = current_content[len(full_answer):]
+                            else:
+                                # 如果当前内容更短，可能是新的开始，使用整个内容
+                                chunk_text = current_content
+                                full_answer = ""  # 重置
+                
+                # 方法3：检查 raw 响应（OpenAI 格式）
+                if not chunk_text and hasattr(chunk, 'raw'):
+                    raw = chunk.raw
+                    if isinstance(raw, dict):
+                        choices = raw.get('choices', [])
+                        if choices and len(choices) > 0:
+                            choice = choices[0]
+                            delta = choice.get('delta', {})
+                            if isinstance(delta, dict):
+                                chunk_text = delta.get('content', '')
+                                if chunk_text:
+                                    chunk_text = str(chunk_text)
                 
                 if chunk_text:
                     token_count += 1
@@ -561,7 +619,8 @@ class ModularQueryEngine:
                         logger.debug(f"🔤 Token #{token_count} '{chunk_text[:20]}...' 到达，间隔: {time_since_last*1000:.1f}ms")
                     
                     full_answer += chunk_text
-                    # 立即 yield token（无缓冲）
+                    # 立即 yield token（无缓冲）- 每个 token 单独返回，不累计
+                    # 注意：这里 yield 的是单个 token，不是累计的 full_answer
                     yield {'type': 'token', 'data': chunk_text}
                 
                 last_chunk = chunk
