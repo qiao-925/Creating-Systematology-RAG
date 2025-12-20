@@ -167,11 +167,89 @@ def _format_answer(full_answer: str, sources: list, query_engine) -> str:
     return formatted_answer
 
 
+def _log_timing_report(
+    timing_stats: dict,
+    request: ChatRequest,
+    token_count: int,
+    source_count: int,
+) -> None:
+    """输出耗时统计报告
+    
+    Args:
+        timing_stats: 耗时统计字典
+        request: 用户请求对象
+        token_count: 生成的 token 数量
+        source_count: 检索到的来源数量
+    """
+    # 格式化耗时（保留3位小数，单位：秒）
+    def fmt_time(t: float) -> str:
+        return f"{t:.3f}s"
+    
+    # 计算百分比
+    total = timing_stats['total']
+    def fmt_percent(t: float) -> str:
+        if total > 0:
+            return f"({t/total*100:.1f}%)"
+        return ""
+    
+    # 构建报告
+    report_lines = [
+        "=" * 60,
+        "📊 接口运行时长统计报告",
+        "=" * 60,
+        f"请求消息: {request.message[:50]}{'...' if len(request.message) > 50 else ''}",
+        f"会话ID: {request.session_id or 'N/A'}",
+        f"生成Token数: {token_count}",
+        f"检索来源数: {source_count}",
+        "-" * 60,
+        "各阶段耗时统计:",
+        f"  1. 组件初始化:     {fmt_time(timing_stats['component_init'])} {fmt_percent(timing_stats['component_init'])}",
+        f"  2. 文档检索:       {fmt_time(timing_stats['retrieval'])} {fmt_percent(timing_stats['retrieval'])}",
+        f"  3. Prompt构建:    {fmt_time(timing_stats['prompt_build'])} {fmt_percent(timing_stats['prompt_build'])}",
+    ]
+    
+    # LLM 相关统计
+    if timing_stats['llm_first_token'] > 0:
+        report_lines.append(
+            f"  4. LLM首次响应:   {fmt_time(timing_stats['llm_first_token'])} {fmt_percent(timing_stats['llm_first_token'])}"
+        )
+    report_lines.append(
+        f"  5. LLM流式生成:   {fmt_time(timing_stats['llm_streaming'])} {fmt_percent(timing_stats['llm_streaming'])}"
+    )
+    
+    report_lines.extend([
+        f"  6. 答案格式化:     {fmt_time(timing_stats['formatting'])} {fmt_percent(timing_stats['formatting'])}",
+        "-" * 60,
+        f"⏱️  总耗时:          {fmt_time(timing_stats['total'])}",
+        "=" * 60,
+    ])
+    
+    # 输出报告
+    report = "\n".join(report_lines)
+    logger.info(
+        "接口运行时长统计报告",
+        message_preview=request.message[:50] if len(request.message) > 50 else request.message,
+        session_id=request.session_id,
+        token_count=token_count,
+        source_count=source_count,
+        timing_stats={
+            'component_init': timing_stats['component_init'],
+            'retrieval': timing_stats['retrieval'],
+            'prompt_build': timing_stats['prompt_build'],
+            'llm_first_token': timing_stats['llm_first_token'],
+            'llm_streaming': timing_stats['llm_streaming'],
+            'formatting': timing_stats['formatting'],
+            'total': timing_stats['total'],
+        },
+        report=report  # 同时输出格式化报告，便于阅读
+    )
+
+
 async def _generate_stream(
     request: ChatRequest,  # 用户请求对象，包含消息和会话ID
     rag_service: RAGService,  # RAG 服务实例，提供索引管理和查询引擎
 ):
-    """生成 SSE 流的主方法
+    """生成 SSE 流的主方法（带耗时统计）
     
     这是流式对话的核心方法，负责：
     1. 检索相关文档节点
@@ -187,22 +265,56 @@ async def _generate_stream(
     Yields:
         str: SSE 格式的数据流，包含 token、sources、reasoning、done 等事件
     """
+    # 初始化耗时统计字典
+    timing_stats = {
+        'total_start': time.time(),
+        'component_init': 0.0,
+        'retrieval': 0.0,
+        'prompt_build': 0.0,
+        'llm_first_token': 0.0,  # 首次 token 响应时间
+        'llm_streaming': 0.0,     # 流式生成总耗时
+        'formatting': 0.0,
+        'total': 0.0,
+    }
+    
     try:
-        # Step 1: 获取必要的组件
+        # Step 1: 获取必要的组件（计时，细粒度拆分）
+        step_start = time.time()
+        index_manager_start = time.time()
         index_manager = rag_service.index_manager  # 索引管理器
-        query_engine = rag_service.modular_query_engine  # 查询引擎
+        index_manager_time = time.time() - index_manager_start
         
-        # Step 2: 检索节点和来源
+        query_engine_start = time.time()
+        query_engine = rag_service.modular_query_engine  # 查询引擎
+        query_engine_time = time.time() - query_engine_start
+        
+        timing_stats['component_init'] = time.time() - step_start
+        
+        # 记录细粒度耗时（用于调试）
+        if index_manager_time > 0.1 or query_engine_time > 0.1:
+            logger.debug(
+                "组件初始化耗时详情",
+                index_manager_time=f"{index_manager_time:.3f}s",
+                query_engine_time=f"{query_engine_time:.3f}s",
+                total_time=f"{timing_stats['component_init']:.3f}s"
+            )
+        
+        # Step 2: 检索节点和来源（计时）
+        step_start = time.time()
         nodes_with_scores, sources = _retrieve_nodes_and_sources(
             request.message,
             index_manager,
             query_engine
         )
+        timing_stats['retrieval'] = time.time() - step_start
         
-        # Step 3: 构建 prompt
+        # Step 3: 构建 prompt（计时）
+        step_start = time.time()
         prompt = _build_prompt(request.message, nodes_with_scores)
+        timing_stats['prompt_build'] = time.time() - step_start
         
-        # Step 4: 流式处理 LLM 响应
+        # Step 4: 流式处理 LLM 响应（计时）
+        llm_start = time.time()
         llm = create_deepseek_llm_for_query()  # 创建 DeepSeek LLM 实例
         chat_message = ChatMessage(role=MessageRole.USER, content=prompt)
         messages = [chat_message]  # 消息列表
@@ -211,10 +323,16 @@ async def _generate_stream(
         reasoning_content = ""  # 累积的推理链内容
         token_count = 0  # 已处理的 token 数量
         last_chunk = None  # 最后一个 chunk，用于提取最终推理链
+        first_token_time = None  # 首次 token 时间
         
         logger.debug("🚀 开始直接流式调用 DeepSeek API（绕过中间层）")
         
         for chunk in llm.stream_chat(messages):
+            # 记录首次 token 时间
+            if first_token_time is None and _extract_token_from_chunk(chunk, full_answer):
+                first_token_time = time.time()
+                timing_stats['llm_first_token'] = first_token_time - llm_start
+            
             # 提取推理链内容（流式）
             chunk_reasoning = extract_reasoning_from_stream_chunk(chunk)
             if chunk_reasoning:
@@ -230,6 +348,8 @@ async def _generate_stream(
             
             last_chunk = chunk
         
+        timing_stats['llm_streaming'] = time.time() - llm_start
+        
         # 提取最终推理链（从最后一个 chunk）
         if last_chunk:
             final_reasoning = extract_reasoning_content(last_chunk)
@@ -238,8 +358,10 @@ async def _generate_stream(
         
         logger.debug(f"✅ 直接流式生成完成，共 {token_count} 个 token")
         
-        # Step 5: 格式化答案
+        # Step 5: 格式化答案（计时）
+        step_start = time.time()
         formatted_answer = _format_answer(full_answer, sources, query_engine)
+        timing_stats['formatting'] = time.time() - step_start
         
         # Step 6-8: 返回引用来源、推理链和完成事件
         if sources:
@@ -247,9 +369,22 @@ async def _generate_stream(
         if reasoning_content:
             yield f"data: {json.dumps({'type': 'reasoning', 'data': reasoning_content}, ensure_ascii=False)}\n\n"
         yield f"data: {json.dumps({'type': 'done', 'data': {'answer': formatted_answer, 'sources': sources, 'reasoning_content': reasoning_content if reasoning_content else None}}, ensure_ascii=False)}\n\n"
+        
+        # 计算总耗时
+        timing_stats['total'] = time.time() - timing_stats['total_start']
+        
+        # 输出耗时统计报告
+        _log_timing_report(timing_stats, request, token_count, len(sources))
     
     except Exception as e:
-        logger.error("直接流式对话失败", error=str(e), exc_info=True)
+        # 即使出错也记录已统计的耗时
+        timing_stats['total'] = time.time() - timing_stats['total_start']
+        logger.error(
+            "直接流式对话失败",
+            error=str(e),
+            timing_stats=timing_stats,
+            exc_info=True
+        )
         error_chunk = {"type": "error", "data": {"message": str(e)}}
         data = json.dumps(error_chunk, ensure_ascii=False)
         yield f"data: {data}\n\n"

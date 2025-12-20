@@ -296,6 +296,10 @@ class DeepSeekLogger:
                 time_since_last = current_time - last_chunk_time
                 last_chunk_time = current_time
                 
+                # 立即 yield chunk，确保前端尽快收到数据
+                yield chunk
+                
+                # 在 yield 之后处理日志和内容累积（不阻塞前端接收）
                 # 记录每个 chunk 的到达时间（仅在前几个和间隔较长时记录）
                 if chunk_count <= 5 or time_since_last > 0.1:
                     logger.debug(f"📦 Chunk #{chunk_count} 到达，间隔: {time_since_last*1000:.1f}ms")
@@ -327,7 +331,6 @@ class DeepSeekLogger:
                         # 降级处理
                         chunk_text = str(chunk)
                         full_response += chunk_text
-                yield chunk
             
             # 记录完整响应
             logger.info(f"📥 响应体（流式）:")
