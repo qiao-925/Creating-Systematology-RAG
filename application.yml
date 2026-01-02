@@ -6,7 +6,7 @@
 # 1. 应用基础配置
 # ============================================================================
 app:
-  title: 系统科学知识库RAG
+  title: Creating Systematology RAG
   port: 8501
   dev_mode: true
 
@@ -62,7 +62,7 @@ paths:
   sessions: ./data/sessions
   activity_log: ./data/logs/activity
   github_repos: ./data/github_repos
-  github_metadata: ./data/github_metadata.json
+  github_sync_state: ./data/github_sync_state.json
   cache_state: ./data/cache_state.json  # 已废弃：缓存管理器功能已移除，此配置不再使用
 
 index:

@@ -45,35 +45,35 @@ class TestMainPageUI:
             pytest.skip(f"会话初始化测试失败: {e}")
     
     def test_rag_service_loading(self):
-        """测试RAGService加载"""
-        from frontend.utils.services import load_rag_service
+        """测试RAGService加载（使用统一初始化系统）"""
+        from src.infrastructure.initialization.bootstrap import initialize_app
         
-        # 测试加载逻辑（不实际加载，避免依赖）
+        # 测试初始化逻辑（不实际初始化，避免依赖）
         try:
             # 验证函数存在且可调用
-            assert callable(load_rag_service)
+            assert callable(initialize_app)
         except ImportError:
-            pytest.skip("ui_components模块未找到")
+            pytest.skip("初始化模块未找到")
     
     def test_index_loading(self):
-        """测试索引加载"""
-        from frontend.utils.services import load_index
+        """测试索引加载（使用统一初始化系统）"""
+        from src.infrastructure.initialization.bootstrap import initialize_app
         
         # 验证函数存在
         try:
-            assert callable(load_index)
+            assert callable(initialize_app)
         except ImportError:
-            pytest.skip("ui_components模块未找到")
+            pytest.skip("初始化模块未找到")
     
     def test_chat_manager_loading(self):
-        """测试ChatManager加载"""
-        from frontend.utils.services import load_chat_manager
+        """测试ChatManager加载（使用统一初始化系统）"""
+        from src.infrastructure.initialization.bootstrap import initialize_app
         
         # 验证函数存在
         try:
-            assert callable(load_chat_manager)
+            assert callable(initialize_app)
         except ImportError:
-            pytest.skip("ui_components模块未找到")
+            pytest.skip("初始化模块未找到")
     
     def test_model_status_display(self):
         """测试模型状态显示"""
@@ -218,10 +218,11 @@ class TestUIIntegration:
         """测试UI组件导入"""
         try:
             from frontend.utils.state import init_session_state
-            from frontend.utils.services import load_rag_service, load_index, load_chat_manager
+            from src.infrastructure.initialization.bootstrap import initialize_app
             from frontend.components.history import display_model_status
             # 验证所有组件都可以导入
             assert callable(init_session_state)
+            assert callable(initialize_app)
         except ImportError as e:
             pytest.skip(f"UI组件导入失败: {e}")
     
@@ -299,12 +300,12 @@ class TestUIErrorHandling:
         # 这里主要验证组件存在且可以调用
         try:
             from frontend.utils.state import init_session_state
-            from frontend.utils.services import load_rag_service
+            from src.infrastructure.initialization.bootstrap import initialize_app
             
             # 验证函数可以处理None或空参数
             # 注意：实际测试可能需要Mock Streamlit
             assert callable(init_session_state)
-            assert callable(load_rag_service)
+            assert callable(initialize_app)
             
         except ImportError:
             pytest.skip("UI组件未找到")

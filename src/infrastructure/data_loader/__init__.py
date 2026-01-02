@@ -54,8 +54,8 @@ from src.infrastructure.data_loader.errors import (
 from src.infrastructure.data_loader.source import DataSource, SourceFile, GitHubSource, LocalFileSource
 from src.infrastructure.data_loader.parser import DocumentParser
 
-# 导出元数据管理
-from src.infrastructure.data_loader.metadata import FileChange, MetadataManager
+# 导出GitHub同步管理
+from src.infrastructure.data_loader.github_sync import FileChange, GitHubSyncManager
 
 # 便捷函数（使用统一服务）
 def load_documents_from_directory(
@@ -170,9 +170,9 @@ __all__ = [
     'GitHubSource',
     'LocalFileSource',
     'DocumentParser',
-    # 元数据管理
+    # GitHub同步管理
     'FileChange',
-    'MetadataManager',
+    'GitHubSyncManager',
 ]
 
 # 导出为 _handle_github_error（别名）

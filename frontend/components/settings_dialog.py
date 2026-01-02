@@ -9,7 +9,6 @@
 import streamlit as st
 from src.infrastructure.config import config
 from frontend.utils.state import init_session_state
-from frontend.utils.services import preload_embedding_model
 from frontend.utils.styles import CLAUDE_STYLE_CSS
 from frontend.settings.data_source import render_data_source_tab
 from frontend.settings.dev_tools import render_dev_tools_tab
@@ -24,11 +23,6 @@ def show_settings_dialog() -> None:
     
     # 初始化状态（模型延迟加载，首次使用时自动加载）
     init_session_state()
-    
-    # 弹窗标题
-    st.title("⚙️ 设置")
-    
-    st.divider()
     
     # 创建标签页
     tab1, tab2, tab3, tab4 = st.tabs([

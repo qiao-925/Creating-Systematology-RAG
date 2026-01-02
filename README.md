@@ -542,10 +542,10 @@ app.py   RAGService   Config/Logger/Embedding/LLM
 - **清理**: 删除文件会清除所有用户数据
 - **用途**: 用户认证和隔离
 
-**GitHub 元数据缓存**
-- **位置**: `data/github_metadata.json`
-- **机制**: JSON 文件存储 GitHub 仓库元数据（最后同步的 commit SHA、文件哈希等）
-- **清理**: 删除文件会清除所有元数据
+**GitHub 同步状态缓存**
+- **位置**: `data/github_sync_state.json`
+- **机制**: JSON 文件存储 GitHub 仓库同步状态（最后同步的 commit SHA、文件哈希等）
+- **清理**: 删除文件会清除所有同步状态
 - **用途**: 追踪仓库变更，支持增量更新
 
 **活动日志缓存**
@@ -592,7 +592,7 @@ app.py   RAGService   Config/Logger/Embedding/LLM
 **中等重要性**（可选择性清理）:
 - GitHub 仓库本地缓存 (`data/github_repos/`)
 - GitHub 仓库缓存 (`data/github_repos/`)
-- GitHub 元数据 (`data/github_metadata.json`)
+- GitHub 同步状态 (`data/github_sync_state.json`)
 
 **低重要性**（可安全清理）:
 - HuggingFace 模型缓存 (`~/.cache/huggingface/`)

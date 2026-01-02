@@ -15,31 +15,20 @@ CLAUDE_STYLE_CSS = """
 <style>
 /* ============================================================
    Claude风格设计系统 - 极简优雅
+   
+   目录索引：
+   1. 全局基础样式（变量、重置、字体、标题）
+   2. 布局样式（侧边栏、主内容区、弹窗）
+   3. 组件样式（按钮、输入框、消息、选项卡等）
+   4. 工具样式（滚动条、代码块、引用链接等）
+   5. 特殊样式（底部工具栏）
    ============================================================ */
 
-/* 弹窗大小优化 - 至少占页面的一半，并居中显示 */
-div[data-testid="stDialog"] {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-    z-index: 999 !important;
-}
+/* ============================================================
+   1. 全局基础样式
+   ============================================================ */
 
-div[data-testid="stDialog"] div[role="dialog"] {
-    width: 50vw !important;
-    min-width: 600px !important;
-    max-width: 90vw !important;
-    margin: auto !important;
-    position: relative !important;
-    transform: none !important;
-}
-
-/* 全局字体和配色 */
+/* 1.1 CSS变量定义 */
 :root {
     --color-bg-primary: #FFFFFF;
     --color-bg-sidebar: #FFFFFF;
@@ -51,41 +40,68 @@ div[data-testid="stDialog"] div[role="dialog"] {
     --color-accent-hover: #1D4ED8;
     --color-border: #E5E5E0;
     --color-border-light: #F0F0EB;
+    
+    /* Manus 风格配色 */
+    --manus-bg-sidebar: #F8F9FA;
+    --manus-bg-hover: #F0F1F2;
+    --manus-bg-active: #E8E9EA;
+    --manus-text-secondary: #6B7280;
+    --manus-text-tertiary: #9CA3AF;
 }
 
-/* 全局字体 - 衬线字体增强可读性 */
+/* 1.2 全局重置 - 去除所有红色边框 */
+*,
+*::before,
+*::after {
+    --baseweb-error-color: var(--color-border) !important;
+    --baseweb-focus-color: var(--color-accent) !important;
+}
+
+/* 1.3 全局focus状态处理 */
+*:focus,
+*:focus-visible,
+*:focus-within,
+*:active {
+    outline: none !important;
+    outline-color: transparent !important;
+    box-shadow: none !important;
+    border-color: var(--color-border) !important;
+}
+
+/* 特别覆盖Streamlit BaseWeb组件的红色边框 */
+[data-baseweb] *:focus,
+[data-baseweb] *:focus-visible,
+[data-baseweb] *:focus-within {
+    border-color: var(--color-border) !important;
+}
+
+/* 覆盖所有可能的红色边框（包括伪元素） */
+*::before,
+*::after {
+    border-color: transparent !important;
+}
+
+/* 特别覆盖红色边框值 */
+*[style*="border-color: red"],
+*[style*="border-color: #ff0000"],
+*[style*="border-color: #f00"],
+*[style*="border-color: rgb(255, 0, 0)"],
+*[style*="border-color: rgba(255, 0, 0"] {
+    border-color: var(--color-border) !important;
+}
+
+/* 1.4 全局字体设置 */
 .stApp {
-    font-family: "Noto Serif SC", "Source Han Serif SC", "Georgia", "Times New Roman", serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif;
     background-color: var(--color-bg-primary);
     color: var(--color-text-primary);
     /* 优化rerun时的过渡效果，减少白屏感 */
     transition: opacity 0.2s ease-in-out;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
-/* 顶部区域 */
-.stApp > header {
-    background-color: var(--color-bg-primary) !important;
-}
-
-/* 底部区域 */
-.stApp > footer {
-    background-color: var(--color-bg-primary) !important;
-}
-
-/* 主内容区域背景 */
-.main .block-container {
-    background-color: var(--color-bg-primary);
-}
-
-/* 主内容区域 */
-.main .block-container {
-    padding-top: 2.5rem;
-    max-width: 1200px !important;
-    padding-bottom: 3rem;
-    max-width: 100%;
-}
-
-/* 正文字体大小和行高 */
+/* 1.5 基础元素样式 */
 p, div, span {
     font-size: 16px;
     line-height: 1.7;
@@ -115,70 +131,293 @@ h3 {
     margin-bottom: 0.5rem;
 }
 
-/* 侧边栏中的标题间距更紧凑 */
-[data-testid="stSidebar"] h2,
-[data-testid="stSidebar"] h3 {
-    margin-top: 0.125rem;
-    margin-bottom: 0.0625rem;
+/* 分隔线 */
+hr {
+    margin: 1.5rem 0;
+    border: none;
+    border-top: 1px solid var(--color-border);
 }
 
-/* 侧边栏中的markdown间距更紧凑 */
-[data-testid="stSidebar"] .stMarkdown {
-    margin-top: 0.0625rem;
-    margin-bottom: 0.0625rem;
+/* ============================================================
+   2. 布局样式
+   ============================================================ */
+
+/* 2.1 应用布局区域 */
+.stApp > header {
+    background-color: var(--color-bg-primary) !important;
 }
 
-/* 侧边栏中的div间距更紧凑 */
-[data-testid="stSidebar"] div {
-    margin-top: 0.0625rem;
-    margin-bottom: 0.0625rem;
+.stApp > footer {
+    background-color: var(--color-bg-primary) !important;
 }
 
-/* 侧边栏 - 温暖的米色背景 */
+/* 2.2 主内容区域 */
+.main .block-container {
+    background-color: var(--color-bg-primary);
+    padding-top: 2.5rem;
+    max-width: 1200px !important;
+    padding-bottom: 3rem;
+    max-width: 100%;
+}
+
+/* 2.3 弹窗布局 */
+div[data-testid="stDialog"] {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    z-index: 999 !important;
+}
+
+div[data-testid="stDialog"] div[role="dialog"] {
+    width: 50vw !important;
+    min-width: 600px !important;
+    max-width: 90vw !important;
+    margin: auto !important;
+    position: relative !important;
+    transform: none !important;
+}
+
+/* 2.4 侧边栏布局 */
 [data-testid="stSidebar"] {
-    background-color: var(--color-bg-sidebar);
+    background-color: var(--manus-bg-sidebar) !important;
     border-right: 1px solid var(--color-border);
-    width: 280px !important;
+    min-width: 280px !important;
+    max-width: 600px !important;
+    width: 373px !important;
+    position: relative !important;
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100vh !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
 }
 
+/* 侧边栏内容区域（可滚动） */
+[data-testid="stSidebar"] > div:first-child {
+    flex: 1 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding-bottom: 60px !important;
+}
+
+/* 侧边栏字体和间距 */
 [data-testid="stSidebar"] .stMarkdown {
-    font-size: 0.9rem;
+    font-size: 0.85rem !important;
+    margin-top: 0.0625rem;
+    margin-bottom: 0.0625rem;
+    text-align: left !important;
 }
 
 [data-testid="stSidebar"] h1, 
 [data-testid="stSidebar"] h2, 
 [data-testid="stSidebar"] h3 {
     color: var(--color-text-primary);
+    margin-top: 0.125rem;
+    margin-bottom: 0.0625rem;
 }
 
-/* 消息容器 - 紧凑间距 */
+/* Manus 风格历史会话分组标题 */
+.manus-group-title {
+    font-size: 0.7rem !important;
+    font-weight: 600 !important;
+    color: var(--manus-text-tertiary) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    margin-top: 1rem !important;
+    margin-bottom: 0.5rem !important;
+    padding: 0 0.75rem !important;
+    text-align: left !important;
+}
+
+.manus-group-title:first-child {
+    margin-top: 0.5rem !important;
+}
+
+/* 历史会话按钮：统一简洁样式 */
+[data-testid="stSidebar"] .stButton button[kind="secondary"] {
+    /* 基础样式 */
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    padding: 0.5rem 0.75rem !important;
+    margin: 0 !important;
+    min-height: auto !important;
+    height: auto !important;
+    line-height: 1.4 !important;
+    font-size: 0.8rem !important;
+    text-align: left !important;
+    justify-content: flex-start !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    border-radius: 8px !important;
+    transition: all 0.15s ease !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    color: var(--color-text-primary) !important;
+    font-weight: 400 !important;
+}
+
+/* 历史会话按钮内部的 markdown 容器：完全去除间距 */
+[data-testid="stSidebar"] .stButton button[kind="secondary"] [data-testid="stMarkdownContainer"],
+[data-testid="stSidebar"] .stButton button[kind="secondary"] [data-testid="stMarkdownContainer"] *,
+[data-testid="stSidebar"] .stButton button[kind="secondary"] p,
+[data-testid="stSidebar"] .stButton button[kind="secondary"] div,
+[data-testid="stSidebar"] .stButton button[kind="secondary"] .st-emotion-cache-17k2yau,
+[data-testid="stSidebar"] .stButton button[kind="secondary"] .st-emotion-cache-17k2yau * {
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1.4 !important;
+}
+
+/* 未选中状态：悬停效果 */
+[data-testid="stSidebar"] .stButton button[kind="secondary"]:not(:disabled):hover {
+    background-color: var(--manus-bg-hover) !important;
+}
+
+/* 选中状态：使用disabled按钮显示选中样式 */
+[data-testid="stSidebar"] .stButton button[kind="secondary"]:disabled {
+    background-color: var(--manus-bg-active) !important;
+    color: var(--manus-text-secondary) !important;
+    font-weight: 500 !important;
+    cursor: default !important;
+    opacity: 1 !important;
+}
+
+/* 侧边栏历史会话区域间距控制 */
+[data-testid="stSidebar"] .element-container div {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+[data-testid="stSidebar"] .element-container {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+[data-testid="stSidebar"] .element-container > div,
+[data-testid="stSidebar"] .element-container > div > div,
+[data-testid="stSidebar"] .element-container .stButton,
+[data-testid="stSidebar"] .element-container .stButton > * {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+[data-testid="stSidebar"] .element-container + .element-container {
+    margin-top: 0 !important;
+}
+
+[data-testid="stSidebar"] .element-container .stButton + .stButton,
+[data-testid="stSidebar"] .element-container .stButton ~ .stButton {
+    margin-top: 0 !important;
+}
+
+[data-testid="stSidebar"] .element-container * {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+/* ============================================================
+   3. 组件样式
+   ============================================================ */
+
+/* 3.1 聊天消息组件 */
 .stChatMessage {
     padding: 1.0rem 1.25rem;
     border-radius: 12px;
     margin-bottom: 0.9rem;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    max-width: 100% !important;
+    width: 100% !important;
     border: none;
     box-shadow: none;
     background-color: var(--color-bg-card);
+    flex-direction: row !important;
+    align-items: flex-start !important;
 }
 
-/* 用户消息 - 浅米色背景 */
+/* 用户消息 */
 .stChatMessage[data-testid="user-message"] {
     background-color: var(--color-bg-hover);
 }
 
-/* AI消息 - 温暖米色背景 */
+/* AI消息 */
 .stChatMessage[data-testid="assistant-message"] {
     background-color: var(--color-bg-primary);
 }
 
-/* 消息内容文字 */
+/* 消息头像和内容区域布局 */
+.stChatMessage > div:first-child {
+    width: auto !important;
+    max-width: 3rem !important;
+    min-width: 3rem !important;
+    flex-shrink: 0 !important;
+    flex-grow: 0 !important;
+}
+
+.stChatMessage img,
+.stChatMessage svg,
+.stChatMessage [data-testid="stAvatar"],
+.stChatMessage > div:first-child img,
+.stChatMessage > div:first-child svg {
+    width: 2.5rem !important;
+    height: 2.5rem !important;
+    max-width: 2.5rem !important;
+    max-height: 2.5rem !important;
+    min-width: 2.5rem !important;
+    min-height: 2.5rem !important;
+    flex-shrink: 0 !important;
+}
+
+.stChatMessage > div:not(:first-child) {
+    flex: 1 !important;
+    width: auto !important;
+    max-width: 100% !important;
+}
+
+.stChatMessage > div[data-testid="stChatMessageContent"],
+.stChatMessage > div > div[data-testid="stChatMessageContent"] {
+    flex: 1 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+/* 消息内容文字样式 */
 [data-testid="stChatMessageContent"] {
     font-size: 16px;
     line-height: 1.7;
     color: var(--color-text-primary);
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
 }
 
-/* 按钮 - 温暖的强调色 */
+/* 列布局中的消息对齐 */
+[data-testid="column"] .stChatMessage,
+[data-testid="column"] .stChatMessage[data-testid="user-message"],
+[data-testid="column"] .stChatMessage[data-testid="assistant-message"] {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+/* 3.2 按钮组件 */
 .stButton button {
     border-radius: 8px;
     font-weight: 500;
@@ -213,51 +452,20 @@ h3 {
     border-color: var(--color-border);
 }
 
-/* 侧边栏历史记录按钮容器：彻底去除所有间距 */
-[data-testid="stSidebar"] .stButton,
-[data-testid="stSidebar"] .stButton *,
-[data-testid="stSidebar"] > div > div > .stButton,
-[data-testid="stSidebar"] > div > div > div > .stButton {
+/* 侧边栏中的按钮样式 */
+[data-testid="stSidebar"] .stButton {
     margin-top: 0 !important;
     margin-bottom: 0 !important;
     padding-top: 0 !important;
     padding-bottom: 0 !important;
-    line-height: 1.2 !important;
 }
 
-/* 侧边栏历史记录按钮：单行显示 + 超出省略 + 紧凑样式（仅针对secondary按钮） */
-[data-testid="stSidebar"] .stButton button[kind="secondary"] {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin: 0 !important;
-    padding: 0.15rem 0.4rem !important;
-    min-height: auto !important;
-    height: auto !important;
-    line-height: 1.3 !important;
+[data-testid="stSidebar"] .element-container .stButton button {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
 }
 
-/* 侧边栏历史记录按钮（secondary）：去边框框线，紧凑间距，所有状态一致 */
-[data-testid="stSidebar"] .stButton button[kind="secondary"],
-[data-testid="stSidebar"] .stButton button[kind="secondary"]:hover,
-[data-testid="stSidebar"] .stButton button[kind="secondary"]:active,
-[data-testid="stSidebar"] .stButton button[kind="secondary"]:focus,
-[data-testid="stSidebar"] .stButton button[kind="secondary"]:focus-visible {
-    border: none !important;
-    box-shadow: none !important;
-    background: transparent !important;
-    padding: 0.15rem 0.4rem !important;
-    margin: 0.0625rem 0 !important;
-    min-height: auto !important;
-    height: auto !important;
-    line-height: 1.3 !important;
-}
-
-[data-testid="stSidebar"] .stButton button[kind="secondary"]:hover {
-    background-color: var(--color-bg-hover) !important;
-}
-
-/* 保持顶部主要按钮的可点击性和视觉权重 - 确保足够大 */
+/* 侧边栏主要按钮 */
 [data-testid="stSidebar"] .stButton button[kind="primary"],
 [data-testid="stSidebar"] .stButton button[kind="primary"]:hover,
 [data-testid="stSidebar"] .stButton button[kind="primary"]:active,
@@ -265,7 +473,7 @@ h3 {
     padding: 0.65rem 1rem !important;
     margin: 0.25rem 0 !important;
     min-height: 2.5rem !important;
-    font-size: 0.95rem !important;
+    font-size: 0.875rem !important;
     font-weight: 600 !important;
     line-height: 1.4 !important;
     white-space: nowrap !important;
@@ -273,10 +481,74 @@ h3 {
     text-overflow: clip !important;
 }
 
-/* 输入框 - 简洁边框 */
+/* 历史会话按钮 */
+[data-testid="stSidebar"] .stButton button[kind="secondary"] {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    padding: 0.5rem 0.75rem !important;
+    margin: 0 !important;
+    min-height: auto !important;
+    height: auto !important;
+    line-height: 1.4 !important;
+    font-size: 0.8rem !important;
+    text-align: left !important;
+    justify-content: flex-start !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    border-radius: 8px !important;
+    transition: all 0.15s ease !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    color: var(--color-text-primary) !important;
+    font-weight: 400 !important;
+}
+
+[data-testid="stSidebar"] .stButton button[kind="secondary"] [data-testid="stMarkdownContainer"],
+[data-testid="stSidebar"] .stButton button[kind="secondary"] [data-testid="stMarkdownContainer"] *,
+[data-testid="stSidebar"] .stButton button[kind="secondary"] p,
+[data-testid="stSidebar"] .stButton button[kind="secondary"] div,
+[data-testid="stSidebar"] .stButton button[kind="secondary"] .st-emotion-cache-17k2yau,
+[data-testid="stSidebar"] .stButton button[kind="secondary"] .st-emotion-cache-17k2yau * {
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1.4 !important;
+}
+
+[data-testid="stSidebar"] .stButton button[kind="secondary"]:not(:disabled):hover {
+    background-color: var(--manus-bg-hover) !important;
+}
+
+[data-testid="stSidebar"] .stButton button[kind="secondary"]:disabled {
+    background-color: var(--manus-bg-active) !important;
+    color: var(--manus-text-secondary) !important;
+    font-weight: 500 !important;
+    cursor: default !important;
+    opacity: 1 !important;
+}
+
+/* Manus 风格历史会话分组标题 */
+.manus-group-title {
+    font-size: 0.7rem !important;
+    font-weight: 600 !important;
+    color: var(--manus-text-tertiary) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    margin-top: 1rem !important;
+    margin-bottom: 0.5rem !important;
+    padding: 0 0.75rem !important;
+    text-align: left !important;
+}
+
+.manus-group-title:first-child {
+    margin-top: 0.5rem !important;
+}
+
+/* 3.3 输入框组件 */
 .stTextInput input, 
-.stTextArea textarea,
-.stChatInput textarea {
+.stTextArea textarea {
     border-radius: 8px;
     border: 1px solid var(--color-border) !important;
     padding: 0.75rem 1rem;
@@ -288,52 +560,25 @@ h3 {
     resize: none;
 }
 
-/* 去除所有focus状态的红色和蓝色边框 */
 .stTextInput input:focus, 
 .stTextArea textarea:focus,
-.stChatInput textarea:focus,
 .stTextInput input:focus-visible,
 .stTextArea textarea:focus-visible,
-.stChatInput textarea:focus-visible,
 .stTextInput input:active,
 .stTextArea textarea:active,
-.stChatInput textarea:active {
+.stTextInput input:focus-within,
+.stTextArea textarea:focus-within {
     border-color: var(--color-border) !important;
-    box-shadow: none !important;
-    outline: none !important;
 }
 
-/* 去除所有invalid/valid状态的红色边框 */
 .stTextInput input:invalid,
 .stTextArea textarea:invalid,
-.stChatInput textarea:invalid,
 .stTextInput input:valid,
-.stTextArea textarea:valid,
-.stChatInput textarea:valid {
+.stTextArea textarea:valid {
     border-color: var(--color-border) !important;
-    box-shadow: none !important;
-    outline: none !important;
 }
 
-/* 聊天输入框 - 简化样式，去除多余装饰 */
-.stChatInput {
-    max-width: 900px !important;
-    margin: 0 auto !important;
-}
-
-[data-testid="stChatInput"] {
-    max-width: 900px !important;
-    margin: 0 auto !important;
-    background: var(--color-bg-primary) !important;
-    border: 1px solid var(--color-border) !important;
-    border-radius: 8px !important;
-    padding: 0.5rem !important;
-}
-
-/* Material Design 输入框样式 - 由 chat_input.py 组件内部注入 */
-/* 这里保留通用的输入框样式，Material Design 特定样式在组件中定义 */
-
-/* 展开器 - 极简设计，使用温暖米色 */
+/* 3.4 展开器组件 */
 .streamlit-expanderHeader {
     background-color: var(--color-bg-primary);
     border-radius: 8px;
@@ -353,134 +598,74 @@ h3 {
     padding: 1rem;
 }
 
-/* 分隔线 */
-hr {
-    margin: 1.5rem 0;
-    border: none;
-    border-top: 1px solid var(--color-border);
-}
-
-/* 提示文字 */
-.stCaption {
-    color: var(--color-text-secondary);
-    font-size: 0.875rem;
-    line-height: 1.5;
-}
-
-/* 指标卡片 */
-[data-testid="stMetric"] {
-    background-color: var(--color-bg-card);
-    padding: 1rem;
-    border-radius: 8px;
-    border: 1px solid var(--color-border-light);
-    box-shadow: none;
-}
-
-[data-testid="stMetric"] label {
-    color: var(--color-text-secondary);
-    font-size: 0.875rem;
-}
-
-[data-testid="stMetric"] [data-testid="stMetricValue"] {
-    color: var(--color-text-primary);
-    font-weight: 600;
-}
-
-/* 提示消息 - 统一灰色系配色，去除红蓝黄绿 */
-.stSuccess, .stError, .stInfo, .stWarning {
-    border-radius: 8px;
-    padding: 1rem;
-    border: 1px solid var(--color-border) !important;
-    background-color: var(--color-bg-primary) !important;
-    color: var(--color-text-primary) !important;
-}
-
-/* 去除Streamlit默认的彩色图标和背景 */
-.stSuccess [data-testid="stMarkdownContainer"] p,
-.stError [data-testid="stMarkdownContainer"] p,
-.stInfo [data-testid="stMarkdownContainer"] p,
-.stWarning [data-testid="stMarkdownContainer"] p {
-    color: var(--color-text-primary) !important;
-}
-
-/* 去除彩色图标 */
-.stSuccess [data-testid="stIcon"],
-.stError [data-testid="stIcon"],
-.stInfo [data-testid="stIcon"],
-.stWarning [data-testid="stIcon"] {
-    color: var(--color-text-secondary) !important;
-}
-
-/* 去除所有彩色背景和边框 */
-.stSuccess > div,
-.stError > div,
-.stInfo > div,
-.stWarning > div {
-    background-color: transparent !important;
-}
-
-/* 代码块 */
-code {
-    font-family: "JetBrains Mono", "Fira Code", "Courier New", monospace;
-    background-color: var(--color-bg-hover);
-    padding: 0.2em 0.4em;
-    border-radius: 4px;
-    font-size: 0.9em;
-}
-
-pre code {
-    padding: 1rem;
-    border-radius: 8px;
-}
-
-/* 滚动条 - 柔和样式 */
-::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: var(--color-bg-primary);
-}
-
-::-webkit-scrollbar-thumb {
-    background: var(--color-border);
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: var(--color-text-secondary);
-}
-
-/* 选项卡 */
+/* 3.5 选项卡组件 */
 .stTabs [data-baseweb="tab-list"] {
     gap: 0.5rem;
-    border-bottom: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border) !important;
+    border-top: none !important;
+    border-left: none !important;
+    border-right: none !important;
+}
+
+/* 标签页基础样式 - 移除所有边框 */
+.stTabs [data-baseweb="tab"],
+.stTabs [data-baseweb="tab"] *,
+.stTabs [data-baseweb="tab"]::before,
+.stTabs [data-baseweb="tab"]::after {
+    border: none !important;
+    background-color: transparent;
 }
 
 .stTabs [data-baseweb="tab"] {
     border-radius: 8px 8px 0 0;
     padding: 0.75rem 1.5rem;
     color: var(--color-text-secondary);
-    border: none;
-    background-color: transparent;
 }
 
 .stTabs [data-baseweb="tab"]:hover {
     background-color: var(--color-bg-hover);
     color: var(--color-text-primary);
+    border: none !important;
+    border-bottom: none !important;
 }
 
+/* 选中状态的标签页 - 只保留一条蓝色下划线 */
 .stTabs [aria-selected="true"] {
     background-color: var(--color-bg-card);
     color: var(--color-text-primary);
-    border-bottom: 2px solid var(--color-text-primary);
+    border: none !important;
+    border-top: none !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-bottom: 2px solid var(--color-accent) !important;
 }
 
-/* 去除选项卡的focus状态颜色 */
-.stTabs [data-baseweb="tab"]:focus {
-    outline: none !important;
-    box-shadow: none !important;
+/* 选中标签页的内部元素和伪元素也移除边框 */
+.stTabs [aria-selected="true"] *,
+.stTabs [aria-selected="true"]::before,
+.stTabs [aria-selected="true"]::after {
+    border: none !important;
+}
+
+/* 选项卡focus状态 - 继承全局focus规则 */
+.stTabs [data-baseweb="tab"]:focus::before,
+.stTabs [data-baseweb="tab"]:focus::after,
+.stTabs [data-baseweb="tab"]:focus-visible::before,
+.stTabs [data-baseweb="tab"]:focus-visible::after {
+    border: none !important;
+}
+
+/* 确保选中状态的标签页只有蓝色下划线 */
+.stTabs [aria-selected="true"]:focus,
+.stTabs [aria-selected="true"]:focus-visible,
+.stTabs [aria-selected="true"]:focus-within,
+.stTabs [aria-selected="true"]:active,
+.stTabs [data-baseweb="tab"][aria-selected="true"]:focus,
+.stTabs [data-baseweb="tab"][aria-selected="true"]:focus-visible,
+.stTabs [data-baseweb="tab"][aria-selected="true"]:focus-within,
+.stTabs [data-baseweb="tab"][aria-selected="true"]:active {
+    border: none !important;
+    border-bottom: 2px solid var(--color-accent) !important;
 }
 
 /* 文件上传器 */
@@ -538,6 +723,66 @@ a[href^="#citation_"]:hover {
     padding: 0.25rem 0.5rem !important;
     margin: -0.25rem -0.5rem !important;
 }
+
+/* ============================================================
+   Manus 风格底部固定工具栏
+   ============================================================ */
+
+/* 底部固定工具栏 - 宽度跟随侧边栏 */
+.manus-sidebar-footer {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: 373px !important;
+    height: 48px !important;
+    background-color: var(--manus-bg-sidebar) !important;
+    border-top: 1px solid var(--color-border) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    padding: 0 8px !important;
+    gap: 4px !important;
+    z-index: 100 !important;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* 底部工具栏中的按钮 */
+.manus-sidebar-footer .stButton {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.manus-sidebar-footer .stButton button {
+    width: 32px !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    background-color: transparent !important;
+    border-radius: 6px !important;
+    color: var(--manus-text-secondary) !important;
+    font-size: 18px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.2s ease !important;
+}
+
+.manus-sidebar-footer .stButton button:hover {
+    background-color: var(--manus-bg-hover) !important;
+    color: var(--color-text-primary) !important;
+}
+
+.manus-sidebar-footer .stButton button:active {
+    transform: scale(0.95) !important;
+}
+
+.manus-sidebar-footer .stButton button:disabled {
+    opacity: 0.4 !important;
+    cursor: not-allowed !important;
+}
+
 </style>
 """
 

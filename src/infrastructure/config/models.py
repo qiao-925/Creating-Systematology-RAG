@@ -88,7 +88,7 @@ class PathsConfig(BaseModel):
     sessions: str
     activity_log: str
     github_repos: str
-    github_metadata: str
+    github_sync_state: str
     cache_state: str
 
 

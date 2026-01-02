@@ -264,10 +264,10 @@ class IndexManager:
         added_docs: List[LlamaDocument],
         modified_docs: List[LlamaDocument],
         deleted_file_paths: List[str],
-        metadata_manager=None
+        github_sync_manager=None
     ) -> dict:
         """执行增量更新"""
-        return incremental_update(self, added_docs, modified_docs, deleted_file_paths, metadata_manager)
+        return incremental_update(self, added_docs, modified_docs, deleted_file_paths, github_sync_manager)
     
     def close(self):
         """关闭索引管理器，释放资源"""

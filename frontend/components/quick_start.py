@@ -4,6 +4,7 @@
 
 import streamlit as st
 from frontend.components.chat_input import deepseek_style_chat_input
+from frontend.config import DEFAULT_QUESTIONS
 
 
 def render_quick_start() -> None:
@@ -23,22 +24,16 @@ def render_quick_start() -> None:
     """, unsafe_allow_html=True)
     
     # 使用 columns 实现水平居中（缩小宽度）
-    left_spacer, center_col, right_spacer = st.columns([2, 6, 2])
+    from frontend.utils.helpers import create_centered_columns
+    left_spacer, center_col, right_spacer = create_centered_columns()
     
     with center_col:
         st.markdown("### 💡 快速开始")
         st.caption("点击下方问题快速体验")
         
-        default_questions = [
-            "什么是系统科学？它的核心思想是什么？",
-            "钱学森对系统科学有哪些贡献？",
-            "从定性到定量的综合集成法如何与马克思主义哲学结合起来理解？",
-            "系统工程在现代科学中的应用有哪些？"
-        ]
-        
         # 使用两列布局展示问题按钮
         col1, col2 = st.columns(2)
-        for idx, question in enumerate(default_questions):
+        for idx, question in enumerate(DEFAULT_QUESTIONS):
             col = col1 if idx % 2 == 0 else col2
             with col:
                 if st.button(f"💬 {question}", key=f"default_q_{idx}", use_container_width=True):

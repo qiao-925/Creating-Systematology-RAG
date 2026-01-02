@@ -8,7 +8,7 @@ from typing import Optional
 from frontend.utils.sources import convert_sources_to_dict
 from frontend.utils.state import save_message_to_history
 from frontend.utils.sources import format_answer_with_citation_links
-from frontend.components.sources_panel import display_sources_below_message
+from frontend.components.query_handler.common import display_reasoning, display_sources, save_to_chat_manager
 from src.infrastructure.logger import get_logger
 
 logger = get_logger('app')
@@ -21,7 +21,8 @@ def handle_streaming_query(chat_manager, prompt: str) -> None:
         chat_manager: 对话管理器实例
         prompt: 用户查询
     """
-    left_spacer, center_col, right_spacer = st.columns([2, 6, 2])
+    from frontend.utils.helpers import create_centered_columns
+    left_spacer, center_col, right_spacer = create_centered_columns()
     
     with center_col:
         with st.chat_message("assistant"):
@@ -76,8 +77,9 @@ def handle_streaming_query(chat_manager, prompt: str) -> None:
                     save_message_to_history(full_answer, local_sources, reasoning_content)
                 
                 # 显示带引用的格式化内容（如果有来源）
+                from frontend.utils.helpers import generate_message_id
                 msg_idx = len(st.session_state.messages)
-                message_id = f"msg_{msg_idx}_{hash(str(full_answer))}"
+                message_id = generate_message_id(msg_idx, full_answer)
                 
                 if local_sources:
                     formatted_content = format_answer_with_citation_links(
@@ -87,27 +89,12 @@ def handle_streaming_query(chat_manager, prompt: str) -> None:
                     )
                     message_placeholder.markdown(formatted_content, unsafe_allow_html=True)
                 
-                # 显示推理链（如果存在）
-                if reasoning_content:
-                    with st.expander("🧠 推理过程", expanded=False):
-                        st.markdown(f"```\n{reasoning_content}\n```")
+                # 显示推理链和引用来源
+                display_reasoning(reasoning_content)
+                display_sources(local_sources, message_id)
                 
-                # 显示引用来源（如果有）
-                if local_sources:
-                    st.markdown("#### 📚 引用来源")
-                    display_sources_below_message(local_sources, message_id=message_id)
-                
-                # 同时保存到ChatManager会话（持久化）
-                if chat_manager and full_answer:
-                    if not chat_manager.current_session:
-                        chat_manager.start_session()
-                    # 保存对话（始终存储推理链，如果存在）
-                    if reasoning_content:
-                        chat_manager.current_session.add_turn(prompt, full_answer, local_sources, reasoning_content)
-                    else:
-                        chat_manager.current_session.add_turn(prompt, full_answer, local_sources)
-                    if chat_manager.auto_save:
-                        chat_manager.save_current_session()
+                # 保存到ChatManager会话
+                save_to_chat_manager(chat_manager, prompt, full_answer, local_sources, reasoning_content)
                 
             except Exception as e:
                 import traceback
@@ -117,7 +104,7 @@ def handle_streaming_query(chat_manager, prompt: str) -> None:
                 st.session_state.is_thinking = False
 
 
-def _run_async_stream(coro):
+def _run_async_stream(coro) -> None:
     """运行异步流式处理（处理事件循环冲突）
     
     Args:

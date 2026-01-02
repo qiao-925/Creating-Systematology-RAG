@@ -1,5 +1,5 @@
 """
-元数据管理 - 工具函数模块：哈希计算等工具函数
+GitHub同步管理 - 工具函数模块：哈希计算等工具函数
 
 主要功能：
 - compute_hash()：计算文本内容的MD5哈希值
@@ -28,3 +28,4 @@ def compute_hash(content: str) -> str:
         MD5 哈希值（十六进制字符串）
     """
     return hashlib.md5(content.encode('utf-8')).hexdigest()
+

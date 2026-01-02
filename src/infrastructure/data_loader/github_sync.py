@@ -29,7 +29,7 @@ def sync_github_repository(
     owner: str,
     repo: str,
     branch: str,
-    metadata_manager,
+    github_sync_manager,
     show_progress: bool = True,
     filter_directories: Optional[List[str]] = None,
     filter_file_extensions: Optional[List[str]] = None
@@ -44,7 +44,7 @@ def sync_github_repository(
         owner: 仓库所有者
         repo: 仓库名称
         branch: 分支名称
-        metadata_manager: 元数据管理器实例
+        github_sync_manager: GitHub同步管理器实例
         show_progress: 是否显示进度
         filter_directories: 只加载指定目录（可选）
         filter_file_extensions: 只加载指定扩展名（可选）
@@ -58,7 +58,7 @@ def sync_github_repository(
         owner=owner,
         repo=repo,
         branch=branch,
-        metadata_manager=metadata_manager,
+        github_sync_manager=github_sync_manager,
         filter_directories=filter_directories,
         filter_file_extensions=filter_file_extensions
     )

@@ -18,7 +18,7 @@ __all__ = [
     # GitHub fixtures
     'github_test_repo',
     'github_test_repo_path',
-    'github_test_metadata_manager',
+    'github_test_sync_manager',
     'github_test_index_manager',
     'github_prepared_index_manager',
     # Embedding fixtures

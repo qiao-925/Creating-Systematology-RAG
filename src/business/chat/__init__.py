@@ -22,13 +22,18 @@
 
 from src.business.chat.session import ChatTurn, ChatSession
 from src.business.chat.manager import ChatManager
-from src.business.chat.utils import get_user_sessions_metadata, load_session_from_file
+from src.business.chat.utils import (
+    get_user_sessions_metadata,
+    get_user_sessions_metadata_lazy,
+    load_session_from_file
+)
 
 __all__ = [
     'ChatTurn',
     'ChatSession',
     'ChatManager',
     'get_user_sessions_metadata',
+    'get_user_sessions_metadata_lazy',
     'load_session_from_file',
 ]
 

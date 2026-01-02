@@ -36,7 +36,8 @@ def handle_user_queries(rag_service, chat_manager) -> None:
         if prompt:
             st.session_state.is_thinking = True
             # 显示用户消息
-            left_spacer, center_col, right_spacer = st.columns([2, 6, 2])
+            from frontend.utils.helpers import create_centered_columns
+            left_spacer, center_col, right_spacer = create_centered_columns()
             with center_col:
                 with st.chat_message("user"):
                     st.markdown(prompt)

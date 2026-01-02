@@ -18,7 +18,7 @@ def incremental_update(
     added_docs: List[LlamaDocument],
     modified_docs: List[LlamaDocument],
     deleted_file_paths: List[str],
-    metadata_manager=None
+    github_sync_manager=None
 ) -> dict:
     """执行增量更新
     
@@ -26,7 +26,7 @@ def incremental_update(
         added_docs: 新增的文档列表
         modified_docs: 修改的文档列表
         deleted_file_paths: 删除的文件路径列表
-        metadata_manager: 元数据管理器实例（用于查询向量ID）
+        github_sync_manager: GitHub同步管理器实例（用于查询向量ID）
         
     Returns:
         更新统计信息
@@ -49,8 +49,8 @@ def incremental_update(
             stats["added"] = added_count
             logger.info(f"✅ 新增 {added_count} 个文档")
             
-            # 更新元数据的向量ID
-            if metadata_manager and added_docs:
+            # 更新同步状态的向量ID
+            if github_sync_manager and added_docs:
                 for doc in added_docs:
                     file_path = doc.metadata.get("file_path", "")
                     if file_path and file_path in added_vector_ids:
@@ -59,7 +59,7 @@ def incremental_update(
                         branch = doc.metadata.get("branch", "main")
                         
                         if owner and repo:
-                            metadata_manager.update_file_vector_ids(
+                            github_sync_manager.update_file_vector_ids(
                                 owner, repo, branch, file_path,
                                 added_vector_ids[file_path]
                             )
@@ -75,12 +75,12 @@ def incremental_update(
             all_vector_ids_to_delete = []
             for doc in modified_docs:
                 file_path = doc.metadata.get("file_path", "")
-                if file_path and metadata_manager:
+                if file_path and github_sync_manager:
                     owner = doc.metadata.get("repository", "").split("/")[0] if "/" in doc.metadata.get("repository", "") else ""
                     repo = doc.metadata.get("repository", "").split("/")[1] if "/" in doc.metadata.get("repository", "") else ""
                     branch = doc.metadata.get("branch", "main")
                     
-                    vector_ids = metadata_manager.get_file_vector_ids(owner, repo, branch, file_path)
+                    vector_ids = github_sync_manager.get_file_vector_ids(owner, repo, branch, file_path)
                     if vector_ids:
                         all_vector_ids_to_delete.extend(vector_ids)
             
@@ -99,8 +99,8 @@ def incremental_update(
             stats["modified"] = modified_count
             logger.info(f"✅ 更新 {modified_count} 个文档（批量删除 {deleted_vector_count} 个旧向量）")
             
-            # 更新元数据的向量ID
-            if metadata_manager and modified_docs:
+            # 更新同步状态的向量ID
+            if github_sync_manager and modified_docs:
                 for doc in modified_docs:
                     file_path = doc.metadata.get("file_path", "")
                     if file_path and file_path in modified_vector_ids:
@@ -109,7 +109,7 @@ def incremental_update(
                         branch = doc.metadata.get("branch", "main")
                         
                         if owner and repo:
-                            metadata_manager.update_file_vector_ids(
+                            github_sync_manager.update_file_vector_ids(
                                 owner, repo, branch, file_path,
                                 modified_vector_ids[file_path]
                             )
@@ -119,11 +119,11 @@ def incremental_update(
             stats["errors"].append(error_msg)
     
     # 3. 处理删除
-    if deleted_file_paths and metadata_manager:
+    if deleted_file_paths and github_sync_manager:
         try:
-            # 从元数据获取向量ID并删除
+            # 从同步状态获取向量ID并删除
             deleted_count = 0
-            # 这里需要metadata_manager提供向量ID信息
+            # 这里需要github_sync_manager提供向量ID信息
             # 暂时跳过具体实现
             stats["deleted"] = deleted_count
             logger.info(f"✅ 删除 {deleted_count} 个文档")

@@ -28,19 +28,19 @@ def github_test_repo_path(tmp_path):
 
 
 @pytest.fixture(scope="function")
-def github_test_metadata_manager(tmp_path):
-    """测试用的MetadataManager"""
-    from src.infrastructure.data_loader.metadata.manager import MetadataManager
+def github_test_sync_manager(tmp_path):
+    """测试用的GitHubSyncManager"""
+    from src.infrastructure.data_loader.github_sync.manager import GitHubSyncManager
     
-    metadata_path = tmp_path / "test_metadata.json"
-    manager = MetadataManager(metadata_path)
+    sync_state_path = tmp_path / "test_sync_state.json"
+    manager = GitHubSyncManager(sync_state_path)
     
     yield manager
     
-    # 清理：删除测试元数据文件
+    # 清理：删除测试同步状态文件
     try:
-        if metadata_path.exists():
-            metadata_path.unlink()
+        if sync_state_path.exists():
+            sync_state_path.unlink()
     except Exception:
         pass
 
@@ -70,7 +70,7 @@ def github_test_index_manager(tmp_path_factory):
 @pytest.fixture(scope="function")
 def github_prepared_index_manager(
     github_test_index_manager,
-    github_test_metadata_manager
+    github_test_sync_manager
 ):
     """准备好的GitHub索引管理器（已构建索引）"""
     from src.infrastructure.data_loader import load_documents_from_github

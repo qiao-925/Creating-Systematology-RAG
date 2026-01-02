@@ -15,6 +15,12 @@ from datetime import datetime
 import traceback
 
 from src.infrastructure.logger import get_logger
+from src.infrastructure.initialization.categories import (
+    InitCategory,
+    CATEGORY_DISPLAY_NAMES,
+    CATEGORY_ICONS,
+    CATEGORY_INIT_ORDER
+)
 
 logger = get_logger('initialization')
 
@@ -48,6 +54,8 @@ class InitializationManager:
         """初始化管理器"""
         self.modules: Dict[str, ModuleStatus] = {}
         self.check_functions: Dict[str, Callable[[], bool]] = {}
+        self.init_functions: Dict[str, Callable[[], Any]] = {}  # 初始化函数字典
+        self.instances: Dict[str, Any] = {}  # 存储初始化后的实例
         self.init_time = datetime.now()
         logger.info("初始化管理器已创建")
     
@@ -56,6 +64,7 @@ class InitializationManager:
         name: str,
         category: str,
         check_func: Optional[Callable[[], bool]] = None,
+        init_func: Optional[Callable[[], Any]] = None,
         dependencies: Optional[List[str]] = None,
         is_required: bool = True,
         description: Optional[str] = None
@@ -64,8 +73,9 @@ class InitializationManager:
         
         Args:
             name: 模块名称
-            category: 模块分类（infrastructure/business/ui/observability）
+            category: 模块分类（foundation/core/optional）
             check_func: 检查函数，返回True表示初始化成功
+            init_func: 初始化函数，返回初始化后的实例（可选）
             dependencies: 依赖的其他模块名称列表
             is_required: 是否为必需模块
             description: 模块描述
@@ -83,6 +93,9 @@ class InitializationManager:
         
         if check_func:
             self.check_functions[name] = check_func
+        
+        if init_func:
+            self.init_functions[name] = init_func
         
         logger.debug(f"注册模块: {name} (分类: {category}, 必需: {is_required})")
     
@@ -145,6 +158,151 @@ class InitializationManager:
             logger.debug(f"⏭️  模块 {module_name} 跳过初始化检查（无检查函数）")
         
         return module.status == InitStatus.SUCCESS
+    
+    def execute_init(self, module_name: str) -> bool:
+        """执行模块初始化
+        
+        Args:
+            module_name: 模块名称
+            
+        Returns:
+            bool: True表示初始化成功，False表示失败
+        """
+        if module_name not in self.modules:
+            logger.warning(f"模块 {module_name} 未注册")
+            return False
+        
+        module = self.modules[module_name]
+        
+        # 如果已经成功初始化，直接返回
+        if module.status == InitStatus.SUCCESS and module_name in self.instances:
+            logger.debug(f"模块 {module_name} 已初始化，跳过")
+            return True
+        
+        # 检查依赖
+        for dep in module.dependencies:
+            if dep not in self.modules:
+                logger.warning(f"模块 {module_name} 的依赖 {dep} 未注册")
+                continue
+            
+            dep_status = self.modules[dep]
+            if dep_status.status != InitStatus.SUCCESS:
+                error_msg = f"依赖模块 {dep} 未成功初始化"
+                logger.warning(f"模块 {module_name}: {error_msg}")
+                if module.is_required:
+                    module.status = InitStatus.FAILED
+                    module.error = error_msg
+                    return False
+                else:
+                    # 可选模块的依赖失败，标记为跳过
+                    module.status = InitStatus.SKIPPED
+                    module.error = error_msg
+                    return False
+        
+        # 执行初始化函数
+        if module_name in self.init_functions:
+            start_time = datetime.now()
+            try:
+                init_func = self.init_functions[module_name]
+                instance = init_func()
+                elapsed = (datetime.now() - start_time).total_seconds()
+                
+                # 存储实例
+                if instance is not None:
+                    self.instances[module_name] = instance
+                
+                module.status = InitStatus.SUCCESS
+                module.init_time = elapsed
+                logger.info(f"✅ 模块 {module_name} 初始化成功 (耗时: {elapsed:.2f}s)")
+                return True
+            except Exception as e:
+                elapsed = (datetime.now() - start_time).total_seconds()
+                module.status = InitStatus.FAILED
+                module.error = str(e)
+                module.error_traceback = traceback.format_exc()
+                module.init_time = elapsed
+                logger.error(f"❌ 模块 {module_name} 初始化失败: {e}", exc_info=True)
+                return False
+        else:
+            # 没有初始化函数，尝试使用检查函数
+            if module_name in self.check_functions:
+                return self.check_initialization(module_name)
+            else:
+                # 既没有初始化函数也没有检查函数，标记为跳过
+                module.status = InitStatus.SKIPPED
+                logger.debug(f"⏭️  模块 {module_name} 跳过初始化（无初始化函数）")
+                return False
+    
+    def execute_by_category(self, category: InitCategory) -> Dict[str, bool]:
+        """按分类执行初始化
+        
+        Args:
+            category: 分类枚举
+            
+        Returns:
+            Dict[str, bool]: 模块名称到初始化状态的映射
+        """
+        results = {}
+        
+        # 获取该分类下的所有模块
+        category_modules = [
+            name for name, module in self.modules.items()
+            if module.category == category.value
+        ]
+        
+        # 按依赖顺序排序
+        sorted_modules = self._topological_sort()
+        category_modules = [m for m in sorted_modules if m in category_modules]
+        
+        logger.info(f"开始初始化 {category.value} 分类的 {len(category_modules)} 个模块...")
+        
+        for module_name in category_modules:
+            results[module_name] = self.execute_init(module_name)
+            
+            # 如果必需模块失败，停止初始化
+            module = self.modules[module_name]
+            if module.is_required and module.status == InitStatus.FAILED:
+                logger.error(f"必需模块 {module_name} 初始化失败，停止 {category.value} 分类的初始化")
+                break
+        
+        return results
+    
+    def execute_all(
+        self,
+        categories: Optional[List[InitCategory]] = None
+    ) -> Dict[str, bool]:
+        """执行所有或指定分类的初始化
+        
+        Args:
+            categories: 要初始化的分类列表，None表示所有分类
+            
+        Returns:
+            Dict[str, bool]: 模块名称到初始化状态的映射
+        """
+        results = {}
+        
+        # 确定要初始化的分类
+        if categories is None:
+            categories = CATEGORY_INIT_ORDER
+        
+        logger.info(f"开始执行初始化，分类顺序: {[c.value for c in categories]}")
+        
+        # 按分类顺序执行
+        for category in categories:
+            category_results = self.execute_by_category(category)
+            results.update(category_results)
+            
+            # 检查是否有必需模块失败
+            failed_required = [
+                name for name, success in category_results.items()
+                if not success and self.modules[name].is_required
+            ]
+            
+            if failed_required:
+                logger.error(f"分类 {category.value} 中有 {len(failed_required)} 个必需模块失败: {failed_required}")
+                # 继续执行其他分类，但记录错误
+        
+        return results
     
     def check_all(self) -> Dict[str, bool]:
         """检查所有模块的初始化状态
@@ -227,17 +385,16 @@ class InitializationManager:
         report_lines.append(f"  ⏳ 待检查: {pending}")
         report_lines.append("")
         
-        # 按分类详细报告
-        category_names = {
-            "infrastructure": "🏗️  基础设施层",
-            "business": "💼 业务层",
-            "ui": "🎨 UI层",
-            "observability": "📊 可观测性"
-        }
-        
-        for category, modules in sorted(by_category.items()):
-            category_display = category_names.get(category, f"📦 {category}")
-            report_lines.append(f"{category_display} ({len(modules)} 个模块):")
+        # 按分类详细报告（使用新的分类系统）
+        for category in CATEGORY_INIT_ORDER:
+            category_value = category.value
+            if category_value not in by_category:
+                continue
+            
+            modules = by_category[category_value]
+            category_display = CATEGORY_DISPLAY_NAMES.get(category_value, category_value)
+            category_icon = CATEGORY_ICONS.get(category_value, "📦")
+            report_lines.append(f"{category_icon} {category_display} ({len(modules)} 个模块):")
             
             for module in sorted(modules, key=lambda m: m.name):
                 status_icon = {

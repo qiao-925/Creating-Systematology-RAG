@@ -37,15 +37,16 @@ def deepseek_style_chat_input(placeholder: str = "给系统发送消息", key: s
     _inject_chat_input_assets(key, placeholder, fixed)
     
     # 根据是否固定定位选择不同的布局
+    from frontend.utils.helpers import create_centered_columns
     if fixed:
         # 固定定位时，使用全宽容器，通过CSS固定到底部
         st.markdown(f'<div class="fixed-input-container-{key}">', unsafe_allow_html=True)
-        left_spacer, center_col, right_spacer = st.columns([2, 6, 2])
+        left_spacer, center_col, right_spacer = create_centered_columns()
         with center_col:
             user_input, send_button = _render_input_area(key, placeholder)
         st.markdown('</div>', unsafe_allow_html=True)
     else:
-        left_spacer, center_col, right_spacer = st.columns([2, 6, 2])
+        left_spacer, center_col, right_spacer = create_centered_columns()
         with center_col:
             with st.container():
                 user_input, send_button = _render_input_area(key, placeholder)
@@ -79,31 +80,39 @@ def _render_input_area(key: str, placeholder: str) -> Tuple[str, bool]:
     Returns:
         (user_input, send_button_clicked) 元组
     """
-    # 输入框和按钮在同一行
-    col_input, col_button = st.columns([11, 1])
+    # 使用更协调的布局比例，按钮宽度适中
+    col_input, col_button = st.columns([10, 1.2], gap="small")
     
     with col_input:
-        user_input = st.text_area(
-            "输入消息",
-            value=st.session_state.get(f'{key}_input', ""),
-            placeholder=placeholder,
-            height=60,
-            key=f'{key}_textarea',
-            label_visibility="collapsed"
-        )
-        # 字符计数
-        char_count = len(user_input)
-        max_chars = 2000
-        count_color = "#6B6B6B" if char_count <= max_chars else "#EF4444"
-        st.markdown(
-            f'<div class="chat-char-count" style="color: {count_color}; font-size: 12px; text-align: right; padding-right: 8px; margin-top: -8px;">'
-            f'{char_count}/{max_chars}</div>',
-            unsafe_allow_html=True
-        )
+        # 使用容器包裹输入框，便于精确对齐
+        input_container = st.container()
+        with input_container:
+            user_input = st.text_area(
+                "输入消息",
+                value=st.session_state.get(f'{key}_input', ""),
+                placeholder=placeholder,
+                height=60,
+                key=f'{key}_textarea',
+                label_visibility="collapsed"
+            )
+            # 字符计数
+            char_count = len(user_input)
+            max_chars = 2000
+            count_color = "#6B6B6B" if char_count <= max_chars else "#EF4444"
+            st.markdown(
+                f'<div class="chat-char-count" style="color: {count_color}; font-size: 12px; text-align: right; padding-right: 8px; margin-top: -8px;">'
+                f'{char_count}/{max_chars}</div>',
+                unsafe_allow_html=True
+            )
     
     with col_button:
-        st.markdown('<div style="height: 28px;"></div>', unsafe_allow_html=True)  # 垂直对齐
+        # 使用flexbox精确对齐，确保按钮与输入框顶部对齐
+        st.markdown(
+            '<div class="send-button-wrapper" style="display: flex; align-items: flex-start; height: 100%; padding-top: 0;">',
+            unsafe_allow_html=True
+        )
         send_button = st.button("发送", key=f'{key}_send_btn', use_container_width=True, type="primary")
+        st.markdown('</div>', unsafe_allow_html=True)
     
     return user_input, send_button
 
@@ -151,9 +160,30 @@ def _inject_chat_input_assets(key: str, placeholder: str, fixed: bool = False) -
     
     # 输入框和按钮样式
     input_html = f"""<style>{fixed_style}
+/* 输入框和按钮容器协调样式 */
+div[data-testid*="column"]:has(textarea[data-testid*="{key}_textarea"]) {{
+    display: flex !important;
+    flex-direction: column !important;
+}}
+div[data-testid*="column"]:has(button[data-testid*="{key}_send_btn"]) {{
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+}}
+.send-button-wrapper {{
+    display: flex !important;
+    align-items: flex-start !important;
+    width: 100% !important;
+    height: 100% !important;
+}}
+.send-button-wrapper button {{
+    margin-top: 0 !important;
+    align-self: flex-start !important;
+}}
+
 /* 输入框样式 - 现代简洁风格 */
 div[data-testid*="{key}_textarea"] {{
-    margin-bottom: 0;
+    margin-bottom: 0 !important;
 }}
 textarea[data-testid*="{key}_textarea"] {{
     background-color: #FFFFFF !important;
@@ -169,8 +199,12 @@ textarea[data-testid*="{key}_textarea"] {{
     overflow-y: auto !important;
     transition: all 0.2s ease !important;
     font-family: "Noto Serif SC", "Source Han Serif SC", "Georgia", "Times New Roman", serif !important;
+    box-sizing: border-box !important;
 }}
-textarea[data-testid*="{key}_textarea"]:focus {{
+textarea[data-testid*="{key}_textarea"]:focus,
+textarea[data-testid*="{key}_textarea"]:focus-visible,
+textarea[data-testid*="{key}_textarea"]:focus-within,
+textarea[data-testid*="{key}_textarea"]:active {{
     outline: none !important;
     border-color: #2563EB !important;
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
@@ -180,10 +214,11 @@ textarea[data-testid*="{key}_textarea"]::placeholder {{
     opacity: 1 !important;
 }}
 
-/* 发送按钮样式 - 圆角矩形 */
+/* 发送按钮样式 - 与输入框协调统一 */
 button[data-testid*="{key}_send_btn"] {{
     height: 60px !important;
     min-height: 60px !important;
+    max-height: 60px !important;
     border-radius: 12px !important;
     background-color: #2563EB !important;
     color: white !important;
@@ -193,6 +228,10 @@ button[data-testid*="{key}_send_btn"] {{
     transition: all 0.2s ease !important;
     font-family: "Noto Serif SC", "Source Han Serif SC", sans-serif !important;
     box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    flex-shrink: 0 !important;
 }}
 button[data-testid*="{key}_send_btn"]:hover {{
     background-color: #1D4ED8 !important;

@@ -17,6 +17,7 @@ import streamlit as st
 from pathlib import Path
 from typing import Optional
 from src.infrastructure.config import config
+from frontend.config import get_file_search_paths
 
 
 def resolve_file_path(file_path_str: str) -> Optional[Path]:
@@ -41,16 +42,8 @@ def resolve_file_path(file_path_str: str) -> Optional[Path]:
         return None
     
     # 如果是相对路径，尝试多个可能的根目录
-    possible_roots = [
-        config.PROJECT_ROOT,
-        config.RAW_DATA_PATH,
-        config.PROCESSED_DATA_PATH,
-        config.PROJECT_ROOT / "data" / "github_repos",
-        config.PROJECT_ROOT / "data" / "raw",
-        config.GITHUB_REPOS_PATH,
-    ]
-    
     # 首先尝试直接路径匹配
+    possible_roots = get_file_search_paths()
     for root in possible_roots:
         if not root.exists():
             continue
@@ -193,15 +186,7 @@ def show_file_viewer_dialog(file_path_str: str) -> None:
         # 显示搜索路径信息（帮助调试）
         with st.expander("🔍 搜索路径信息", expanded=False):
             st.text("已搜索以下目录：")
-            search_roots = [
-                config.PROJECT_ROOT,
-                config.RAW_DATA_PATH,
-                config.PROCESSED_DATA_PATH,
-                config.PROJECT_ROOT / "data" / "github_repos",
-                config.PROJECT_ROOT / "data" / "raw",
-                config.GITHUB_REPOS_PATH,
-            ]
-            for root in search_roots:
+            for root in get_file_search_paths():
                 exists = "✅" if root.exists() else "❌"
                 st.text(f"  {exists} {root}")
         return

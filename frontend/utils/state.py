@@ -4,9 +4,9 @@
 
 主要功能：
 - init_session_state()：初始化Streamlit会话状态，包括索引管理、对话管理等
-- initialize_app_state()：初始化应用级状态
 - initialize_sources_map()：初始化来源映射
 - save_message_to_history()：保存消息到历史
+- invalidate_service_cache()：使服务缓存失效
 
 特性：
 - 完整的会话状态初始化
@@ -43,13 +43,13 @@ def init_session_state() -> None:
         st.session_state.hybrid_query_engine = None
     
     # GitHub 增量更新相关
-    if 'metadata_manager' not in st.session_state:
-        from src.infrastructure.data_loader.metadata import MetadataManager
-        st.session_state.metadata_manager = MetadataManager(config.GITHUB_METADATA_PATH)
+    if 'github_sync_manager' not in st.session_state:
+        from src.infrastructure.data_loader.github_sync import GitHubSyncManager
+        st.session_state.github_sync_manager = GitHubSyncManager(config.GITHUB_SYNC_STATE_PATH)
     
     if 'github_repos' not in st.session_state:
-        # 从元数据中加载已存在的仓库列表
-        st.session_state.github_repos = st.session_state.metadata_manager.list_repositories()
+        # 从同步状态中加载已存在的仓库列表
+        st.session_state.github_repos = st.session_state.github_sync_manager.list_repositories()
     
     # 调试模式与可观测性（默认开启）
     if 'debug_mode_enabled' not in st.session_state:
@@ -88,13 +88,6 @@ def init_session_state() -> None:
         st.session_state.force_validate_services = False
 
 
-def initialize_app_state() -> None:
-    """初始化应用级状态"""
-    if 'boot_ready' not in st.session_state:
-        st.session_state.boot_ready = False
-    
-    if 'messages' not in st.session_state:
-        st.session_state.messages = []
 
 
 def initialize_sources_map() -> None:
@@ -108,9 +101,10 @@ def initialize_sources_map() -> None:
     current_reasoning_map = st.session_state.current_reasoning_map.copy()
     
     # 先填充current_sources_map（从历史消息中提取）
+    from frontend.utils.helpers import generate_message_id
     for idx, message in enumerate(st.session_state.messages):
         if message["role"] == "assistant":
-            message_id = f"msg_{idx}_{hash(str(message))}"
+            message_id = generate_message_id(idx, message)
             if "sources" in message and message["sources"]:
                 # 确保sources是字典格式
                 sources = message["sources"]
@@ -148,8 +142,9 @@ def save_message_to_history(answer: str, sources: List[Dict[str, Any]], reasonin
         sources: 来源列表
         reasoning_content: 推理链内容（可选）
     """
+    from frontend.utils.helpers import generate_message_id
     msg_idx = len(st.session_state.messages)
-    message_id = f"msg_{msg_idx}_{hash(str(answer))}"
+    message_id = generate_message_id(msg_idx, answer)
     
     assistant_msg = {
         "role": "assistant",
@@ -163,4 +158,25 @@ def save_message_to_history(answer: str, sources: List[Dict[str, Any]], reasonin
     st.session_state.current_sources_map[message_id] = sources
     if reasoning_content:
         st.session_state.current_reasoning_map[message_id] = reasoning_content
+
+
+def invalidate_service_cache() -> None:
+    """使服务缓存失效，下次加载时会重新验证
+    
+    在以下场景调用：
+    - 集合名称变更
+    - 配置变更
+    - 手动触发验证
+    
+    注意：此函数主要用于配置变更场景，统一初始化系统的实例
+    存储在 init_result.instances 中，不会自动失效。
+    如需重新初始化，应重新调用 initialize_app()。
+    """
+    from src.infrastructure.logger import get_logger
+    logger = get_logger('frontend.services')
+    
+    st.session_state.rag_service_validated = False
+    st.session_state.index_manager_validated = False
+    st.session_state.force_validate_services = True
+    logger.info("🔄 服务缓存已失效，下次加载时将重新验证")
 

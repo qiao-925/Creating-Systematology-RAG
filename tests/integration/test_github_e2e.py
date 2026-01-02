@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 
 from src.infrastructure.data_loader import load_documents_from_github
 from src.infrastructure.indexer import IndexManager
-from src.infrastructure.data_loader.metadata.manager import MetadataManager
+from src.infrastructure.data_loader.github_sync.manager import GitHubSyncManager
 from src.business.rag_engine import QueryEngine
 from src.infrastructure.logger import get_logger
 

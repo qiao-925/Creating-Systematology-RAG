@@ -2,45 +2,63 @@
 辅助函数模块
 """
 
+from typing import Optional, List, Dict, Any, Tuple
 import streamlit as st
-from typing import Optional, Dict, Any, List
+from streamlit.delta_generator import DeltaGenerator
 
 
-def display_trace_info(trace_info: Dict[str, Any]) -> None:
-    """显示查询追踪信息
+def generate_message_id(message_idx: int, content: str) -> str:
+    """生成消息唯一ID
     
     Args:
-        trace_info: 追踪信息字典
+        message_idx: 消息索引
+        content: 消息内容（用于生成hash）
+        
+    Returns:
+        消息唯一ID字符串，格式：msg_{idx}_{hash}
     """
-    if not trace_info:
-        return
+    return f"msg_{message_idx}_{hash(str(content))}"
+
+
+def generate_default_message_id() -> str:
+    """生成默认消息ID（当没有提供消息索引和内容时使用）
     
-    with st.expander("📊 查询追踪信息", expanded=True):
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            st.metric("总耗时", f"{trace_info.get('total_time', 0)}s")
-        
-        with col2:
-            retrieval_info = trace_info.get('retrieval', {})
-            st.metric("检索耗时", f"{retrieval_info.get('time_cost', 0)}s")
-        
-        with col3:
-            st.metric("召回数量", retrieval_info.get('chunks_retrieved', 0))
-        
-        st.divider()
-        
-        # 检索详情
-        st.markdown("**🔍 检索详情**")
-        col1, col2 = st.columns(2)
-        with col1:
-            st.text(f"Top K: {retrieval_info.get('top_k', 0)}")
-            st.text(f"平均相似度: {retrieval_info.get('avg_score', 0)}")
-        
-        with col2:
-            llm_info = trace_info.get('llm_generation', {})
-            st.text(f"LLM模型: {llm_info.get('model', 'N/A')}")
-            st.text(f"回答长度: {llm_info.get('response_length', 0)} 字符")
+    Returns:
+        默认消息唯一ID字符串
+    """
+    import time
+    return f"msg_0_{hash(str(time.time()))}"
+
+
+def create_centered_columns() -> Tuple[DeltaGenerator, DeltaGenerator, DeltaGenerator]:
+    """创建居中的列布局（左右留白，中间内容区域）
+    
+    Returns:
+        三元组 (left_spacer, center_col, right_spacer)
+    """
+    left_spacer, center_col, right_spacer = st.columns([2, 6, 2])
+    return left_spacer, center_col, right_spacer
+
+
+def handle_error(error: Exception, context: str = "", show_to_user: bool = True, log_error: bool = True) -> None:
+    """统一错误处理函数
+    
+    Args:
+        error: 异常对象
+        context: 错误上下文描述
+        show_to_user: 是否在UI中显示错误（使用 st.error）
+        log_error: 是否记录日志（使用 logger.error）
+    """
+    error_message = str(error)
+    full_message = f"{context}: {error_message}" if context else error_message
+    
+    if show_to_user:
+        st.error(f"❌ {full_message}")
+    
+    if log_error:
+        from src.infrastructure.logger import get_logger
+        logger = get_logger('frontend.error_handler')
+        logger.error(full_message, exc_info=True)
 
 
 def get_chat_title(messages: List[Dict[str, Any]]) -> Optional[str]:

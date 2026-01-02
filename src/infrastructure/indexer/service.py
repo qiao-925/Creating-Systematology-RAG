@@ -121,7 +121,7 @@ class IndexService:
         added_docs: List[LlamaDocument],
         modified_docs: List[LlamaDocument],
         deleted_file_paths: List[str],
-        metadata_manager=None
+        github_sync_manager=None
     ) -> dict:
         """执行增量更新
         
@@ -129,13 +129,13 @@ class IndexService:
             added_docs: 新增的文档列表
             modified_docs: 修改的文档列表
             deleted_file_paths: 删除的文件路径列表
-            metadata_manager: 元数据管理器实例
+            github_sync_manager: GitHub同步管理器实例
             
         Returns:
             更新统计信息
         """
         return self.manager.incremental_update(
-            added_docs, modified_docs, deleted_file_paths, metadata_manager
+            added_docs, modified_docs, deleted_file_paths, github_sync_manager
         )
     
     def close(self):

@@ -1,5 +1,5 @@
 """
-元数据管理 - FileChange数据模型模块：文件变更记录类
+GitHub同步管理 - FileChange数据模型模块：文件变更记录类
 
 主要功能：
 - FileChange类：文件变更记录，包含新增、修改、删除的文件列表
@@ -46,3 +46,4 @@ class FileChange:
     def total_count(self) -> int:
         """总变更数"""
         return len(self.added) + len(self.modified) + len(self.deleted)
+

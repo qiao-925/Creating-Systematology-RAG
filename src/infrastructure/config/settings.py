@@ -135,7 +135,7 @@ class Config:
             'SESSIONS_PATH': 'sessions',
             'ACTIVITY_LOG_PATH': 'activity_log',
             'GITHUB_REPOS_PATH': 'github_repos',
-            'GITHUB_METADATA_PATH': 'github_metadata',
+            'GITHUB_SYNC_STATE_PATH': 'github_sync_state',
             'CACHE_STATE_PATH': 'cache_state',  # 已废弃：缓存管理器功能已移除，此配置不再使用
         }
         

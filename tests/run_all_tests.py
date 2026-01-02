@@ -226,12 +226,6 @@ def main():
             ],
         },
         {
-            "name": "阶段6: 前端测试",
-            "paths": [
-                "frontend/tests/",
-            ],
-        },
-        {
             "name": "阶段7: 性能测试",
             "paths": [
                 "tests/performance/test_query_performance.py",

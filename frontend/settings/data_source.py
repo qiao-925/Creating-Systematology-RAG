@@ -10,7 +10,7 @@ from src.infrastructure.data_loader import (
     parse_github_url,
     sync_github_repository
 )
-from frontend.utils.services import load_index
+# 使用统一初始化系统获取实例
 
 
 def render_data_source_tab():
@@ -68,10 +68,15 @@ def _handle_add_github_repo(github_url: str):
     github_repo = repo_info['repo']
     github_branch = repo_info.get('branch', 'main')
     
-    if st.session_state.metadata_manager.has_repository(github_owner, github_repo, github_branch):
+    if st.session_state.github_sync_manager.has_repository(github_owner, github_repo, github_branch):
         st.warning(f"⚠️ 仓库已存在")
     else:
-        index_manager = load_index()
+        # 从统一初始化系统获取 IndexManager
+        init_result = st.session_state.get('init_result')
+        if not init_result:
+            st.error("❌ 应用未初始化，请刷新页面")
+            return
+        index_manager = init_result.instances.get('index_manager')
         if index_manager:
             with st.spinner(f"正在索引 {github_owner}/{github_repo}..."):
                 try:
@@ -79,7 +84,7 @@ def _handle_add_github_repo(github_url: str):
                         owner=github_owner,
                         repo=github_repo,
                         branch=github_branch,
-                        metadata_manager=st.session_state.metadata_manager,
+                        github_sync_manager=st.session_state.github_sync_manager,
                         show_progress=True
                     )
                     
@@ -88,7 +93,7 @@ def _handle_add_github_repo(github_url: str):
                             documents, 
                             show_progress=True
                         )
-                        st.session_state.metadata_manager.update_repository_metadata(
+                        st.session_state.github_sync_manager.update_repository_sync_state(
                             owner=github_owner,
                             repo=github_repo,
                             branch=github_branch,
@@ -96,7 +101,7 @@ def _handle_add_github_repo(github_url: str):
                             vector_ids_map=vector_ids_map,
                             commit_sha=commit_sha
                         )
-                        st.session_state.github_repos = st.session_state.metadata_manager.list_repositories()
+                        st.session_state.github_repos = st.session_state.github_sync_manager.list_repositories()
                         st.session_state.index_built = True
                         st.success(f"✅ 成功添加 {len(documents)} 个文件！")
                         st.rerun()
@@ -136,7 +141,12 @@ def _render_github_repos_list():
 
 def _handle_sync_repo(repo: dict):
     """处理仓库同步"""
-    index_manager = load_index()
+    # 从统一初始化系统获取 IndexManager
+    init_result = st.session_state.get('init_result')
+    if not init_result:
+        st.error("❌ 应用未初始化，请刷新页面")
+        return
+    index_manager = init_result.instances.get('index_manager')
     if index_manager:
         with st.spinner(f"正在同步 {repo['key']}..."):
             try:
@@ -149,12 +159,12 @@ def _handle_sync_repo(repo: dict):
                     owner=owner,
                     repo=repo_name,
                     branch=branch,
-                    metadata_manager=st.session_state.metadata_manager,
+                    github_sync_manager=st.session_state.github_sync_manager,
                     show_progress=True
                 )
                 
                 if changes.has_changes():
-                    added_docs, modified_docs, deleted_paths = st.session_state.metadata_manager.get_documents_by_change(
+                    added_docs, modified_docs, deleted_paths = st.session_state.github_sync_manager.get_documents_by_change(
                         documents, changes
                     )
                     if added_docs or modified_docs:
@@ -166,19 +176,19 @@ def _handle_sync_repo(repo: dict):
                         added_docs=added_docs,
                         modified_docs=modified_docs,
                         deleted_file_paths=deleted_paths,
-                        metadata_manager=st.session_state.metadata_manager
+                        github_sync_manager=st.session_state.github_sync_manager
                     )
                     
                     vector_ids_map = {}
                     for doc in documents:
                         file_path = doc.metadata.get("file_path", "")
                         if file_path:
-                            vector_ids = st.session_state.metadata_manager.get_file_vector_ids(
+                            vector_ids = st.session_state.github_sync_manager.get_file_vector_ids(
                                 owner, repo_name, branch, file_path
                             )
                             vector_ids_map[file_path] = vector_ids
                     
-                    st.session_state.metadata_manager.update_repository_metadata(
+                    st.session_state.github_sync_manager.update_repository_sync_state(
                         owner=owner,
                         repo=repo_name,
                         branch=branch,
@@ -186,7 +196,7 @@ def _handle_sync_repo(repo: dict):
                         vector_ids_map=vector_ids_map,
                         commit_sha=commit_sha
                     )
-                    st.session_state.github_repos = st.session_state.metadata_manager.list_repositories()
+                    st.session_state.github_repos = st.session_state.github_sync_manager.list_repositories()
                     st.success("✅ 仓库已同步")
                 else:
                     st.success("✅ 已是最新")
@@ -201,8 +211,8 @@ def _handle_delete_repo(repo: dict):
     repo_part = parts[0]
     branch = parts[1] if len(parts) > 1 else 'main'
     owner, repo_name = repo_part.split('/')
-    st.session_state.metadata_manager.remove_repository(owner, repo_name, branch)
-    st.session_state.github_repos = st.session_state.metadata_manager.list_repositories()
+    st.session_state.github_sync_manager.remove_repository(owner, repo_name, branch)
+    st.session_state.github_repos = st.session_state.github_sync_manager.list_repositories()
     st.success(f"已删除 {repo['key']}")
     st.rerun()
 
@@ -218,7 +228,12 @@ def _render_local_file_upload():
         help="支持多种格式：Markdown、文本、PDF、Word、代码等"
     )
     if uploaded_files and st.button("📥 导入", type="primary", use_container_width=True):
-        index_manager = load_index()
+        # 从统一初始化系统获取 IndexManager
+        init_result = st.session_state.get('init_result')
+        if not init_result:
+            st.error("❌ 应用未初始化，请刷新页面")
+            return
+        index_manager = init_result.instances.get('index_manager')
         if index_manager:
             with st.spinner(f"正在处理 {len(uploaded_files)} 个文件..."):
                 try:

@@ -8,6 +8,65 @@ from frontend.components.history import display_session_history
 from frontend.components.settings_dialog import show_settings_dialog
 
 
+def _render_sidebar_footer() -> None:
+    """渲染侧边栏底部固定工具栏（Manus风格）
+    
+    在侧边栏底部固定显示设置等工具按钮
+    """
+    # 使用 markdown 创建工具栏容器
+    st.markdown('<div class="manus-sidebar-footer" id="manus-sidebar-footer">', unsafe_allow_html=True)
+    
+    # 使用 columns 创建按钮布局
+    col1, col2, col3 = st.columns([1, 1, 1])
+    
+    with col1:
+        # 设置按钮（最左侧）
+        if st.button("⚙️", key="settings_button", help="设置", use_container_width=True):
+            st.session_state.show_settings_dialog = True
+    
+    with col2:
+        # 预留位置（帮助按钮，暂时禁用）
+        st.button("💡", key="help_button", help="帮助", use_container_width=True, disabled=True)
+    
+    with col3:
+        # 预留位置（反馈按钮，暂时禁用）
+        st.button("📱", key="feedback_button", help="反馈", use_container_width=True, disabled=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # JavaScript: 动态同步底部工具栏宽度
+    st.markdown("""
+    <script>
+    (function() {
+        function updateFooterWidth() {
+            const sidebar = document.querySelector('[data-testid="stSidebar"]');
+            const footer = document.getElementById('manus-sidebar-footer');
+            if (sidebar && footer) {
+                const sidebarWidth = sidebar.offsetWidth || sidebar.clientWidth;
+                footer.style.width = sidebarWidth + 'px';
+            }
+        }
+        
+        // 初始更新
+        updateFooterWidth();
+        
+        // 监听侧边栏宽度变化
+        const observer = new ResizeObserver(function(entries) {
+            updateFooterWidth();
+        });
+        
+        const sidebar = document.querySelector('[data-testid="stSidebar"]');
+        if (sidebar) {
+            observer.observe(sidebar);
+        }
+        
+        // 定期检查（作为备用方案）
+        setInterval(updateFooterWidth, 500);
+    })();
+    </script>
+    """, unsafe_allow_html=True)
+
+
 def render_sidebar(chat_manager) -> None:
     """渲染侧边栏
     
@@ -17,7 +76,6 @@ def render_sidebar(chat_manager) -> None:
     with st.sidebar:
         # ========== 应用标题区域 ==========
         st.title("📚 " + config.APP_TITLE)
-        st.caption("基于LlamaIndex和DeepSeek的系统科学知识问答系统")
         
         # ========== 新对话（顶部） ==========
         if st.button("💬 开启新对话", type="primary", use_container_width=True, key="new_chat_top"):
@@ -33,16 +91,16 @@ def render_sidebar(chat_manager) -> None:
                 # 仅刷新UI，不触发服务重新验证
                 st.rerun()
 
-        # ========== 历史会话（紧随新对话按钮） ==========
-        current_session_id = None
-        if chat_manager and chat_manager.current_session:
-            current_session_id = chat_manager.current_session.session_id
-        display_session_history(user_email=None, current_session_id=current_session_id)
+        # ========== 历史会话（可滚动区域） ==========
+        # 使用容器包裹，确保历史会话可以滚动
+        with st.container():
+            current_session_id = None
+            if chat_manager and chat_manager.current_session:
+                current_session_id = chat_manager.current_session.session_id
+            display_session_history(user_email=None, current_session_id=current_session_id)
         
-        # ========== 设置按钮 ==========
-        st.divider()
-        if st.button("⚙️ 设置", use_container_width=True, key="settings_button"):
-            st.session_state.show_settings_dialog = True
+        # ========== 底部固定工具栏（Manus风格） ==========
+        _render_sidebar_footer()
         
         # 检查是否需要显示设置弹窗
         if st.session_state.get("show_settings_dialog", False):

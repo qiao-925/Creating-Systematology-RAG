@@ -368,7 +368,7 @@ class DataImportService:
         owner: str,
         repo: str,
         branch: str,
-        metadata_manager,
+        github_sync_manager,
         filter_directories: Optional[List[str]] = None,
         filter_file_extensions: Optional[List[str]] = None
     ) -> tuple:
@@ -378,14 +378,14 @@ class DataImportService:
             owner: 仓库所有者
             repo: 仓库名称
             branch: 分支名称
-            metadata_manager: 元数据管理器
+            github_sync_manager: GitHub同步管理器
             filter_directories: 只加载指定目录（可选）
             filter_file_extensions: 只加载指定扩展名（可选）
             
         Returns:
             (所有文档列表, FileChange对象, commit_sha)
         """
-        from src.infrastructure.data_loader.metadata import FileChange
+        from src.infrastructure.data_loader.github_sync import FileChange
         from src.infrastructure.config import config
         
         # 步骤 1: 克隆/更新仓库，获取最新 commit SHA
@@ -414,10 +414,10 @@ class DataImportService:
             return [], FileChange(), None
         
         # 步骤 2: 快速检测 - 检查 commit SHA 是否变化
-        old_metadata = metadata_manager.get_repository_metadata(owner, repo, branch)
+        old_sync_state = github_sync_manager.get_repository_sync_state(owner, repo, branch)
         
-        if old_metadata:
-            old_commit_sha = old_metadata.get('last_commit_sha', '')
+        if old_sync_state:
+            old_commit_sha = old_sync_state.get('last_commit_sha', '')
             if old_commit_sha == commit_sha:
                 # Commit 未变化，跳过加载
                 self.progress_reporter.report_success("仓库无新提交，跳过加载")
@@ -445,7 +445,7 @@ class DataImportService:
         # 步骤 4: 精细检测 - 文件级变更
         self.progress_reporter.report_stage("🔍", "正在检测文件变更...")
         
-        changes = metadata_manager.detect_changes(owner, repo, branch, documents)
+        changes = github_sync_manager.detect_changes(owner, repo, branch, documents)
         
         if changes.has_changes():
             self.progress_reporter.report_success(f"检测结果: {changes.summary()}")

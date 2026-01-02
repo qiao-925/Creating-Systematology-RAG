@@ -19,7 +19,8 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
 
 from src.infrastructure.indexer import get_embedding_model_status
-from src.business.chat import get_user_sessions_metadata
+from src.business.chat import get_user_sessions_metadata_lazy
+from src.infrastructure.config import config
 from src.infrastructure.logger import get_logger
 
 logger = get_logger('frontend.history')
@@ -70,6 +71,19 @@ def display_model_status() -> None:
         st.error(f"获取模型状态失败: {e}")
 
 
+def _get_session_icon_emoji(title: str, session_id: Optional[str] = None) -> str:
+    """获取会话图标（统一使用灯泡图标）
+    
+    Args:
+        title: 会话标题（保留参数以保持接口一致）
+        session_id: 会话ID（保留参数以保持接口一致）
+        
+    Returns:
+        Emoji图标字符串（统一返回 💡）
+    """
+    return '💡'
+
+
 def group_sessions_by_time(sessions_metadata: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
     """按时间分组会话
     
@@ -114,12 +128,15 @@ def group_sessions_by_time(sessions_metadata: List[Dict[str, Any]]) -> Dict[str,
 def display_session_history(user_email: Optional[str] = None, current_session_id: Optional[str] = None) -> None:
     """显示历史会话列表（按时间分组）
     
+    使用懒加载优化：只读取最小必要信息，切换时根据session_id动态构建文件路径。
+    移除rerun，由render_chat_interface统一处理。
+    
     Args:
         user_email: 用户邮箱（单用户模式下可忽略）
         current_session_id: 当前会话ID（用于高亮显示）
     """
-    # 获取所有会话元数据（单用户模式下user_email为None）
-    sessions_metadata = get_user_sessions_metadata(user_email)
+    # 使用懒加载版本获取会话元数据（只读取最小必要信息）
+    sessions_metadata = get_user_sessions_metadata_lazy(user_email)
     
     if not sessions_metadata:
         st.info("💡 还没有历史会话")
@@ -131,28 +148,41 @@ def display_session_history(user_email: Optional[str] = None, current_session_id
     # 显示分组后的会话
     for group_name, sessions in grouped.items():
         if sessions:
-            # 分组标题样式（类似DeepSeek：小字体，灰色，加粗）
+            # 分组标题样式（Manus风格：小号大写字母，淡色）
             st.markdown(
-                f"<div class='session-group-title' style='margin-top: 0.5rem; margin-bottom: 0.25rem; font-size: 0.8rem; font-weight: 600; color: var(--color-text-secondary);'><strong>{group_name}</strong></div>",
+                f"<div class='manus-group-title'>{group_name}</div>",
                 unsafe_allow_html=True
             )
             for idx, session in enumerate(sessions):
                 session_id = session['session_id']
                 title = session.get('title', '未命名会话')
                 is_current = session_id == current_session_id
+                icon_emoji = _get_session_icon_emoji(title, session_id)
                 
+                # 统一使用按钮实现，按钮文本包含emoji图标和标题
+                button_label = f"{icon_emoji} {title}"
+                button_key = f"session_{session_id}"
+                
+                # 选中状态使用disabled按钮（不可点击但显示选中样式）
                 if is_current:
-                    # 选中状态：使用markdown显示，浅蓝色背景，深蓝色文字（类似DeepSeek）
-                    st.markdown(
-                        f'<div class="session-item-current" style="margin: 0.0625rem 0; padding: 0.15rem 0.4rem; border-radius: 6px; background-color: rgba(37, 99, 235, 0.1); color: var(--color-accent); font-size: 0.85rem; font-weight: 500; line-height: 1.3;">{title}</div>',
-                        unsafe_allow_html=True
+                    st.button(
+                        button_label,
+                        key=button_key,
+                        use_container_width=True,
+                        type="secondary",
+                        disabled=True
                     )
                 else:
-                    # 未选中状态：使用button，hover时浅灰色背景
-                    if st.button(f"{title}", key=f"session_{session_id}", use_container_width=True):
-                        # 设置加载标记和文件路径（app.py会检查这些标记来加载会话）
+                    # 未选中状态：可点击按钮
+                    if st.button(
+                        button_label,
+                        key=button_key,
+                        use_container_width=True,
+                        type="secondary"
+                    ):
+                        # 设置加载标记（不设置file_path，切换时根据session_id动态构建）
                         st.session_state.load_session_id = session_id
-                        st.session_state.load_session_path = session.get('file_path', '')
-                        st.rerun()
+                        # 标记需要加载会话（不立即rerun，由render_chat_interface统一处理）
+                        st.session_state.session_loading_pending = True
 
 

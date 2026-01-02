@@ -6,7 +6,7 @@ import streamlit as st
 from frontend.utils.sources import convert_sources_to_dict
 from frontend.utils.state import save_message_to_history
 from frontend.utils.sources import format_answer_with_citation_links
-from frontend.components.sources_panel import display_sources_below_message
+from frontend.components.query_handler.common import display_reasoning, display_sources, save_to_chat_manager
 from src.infrastructure.logger import get_logger
 
 logger = get_logger('app')
@@ -36,8 +36,9 @@ def handle_non_streaming_query(rag_service, chat_manager, prompt: str) -> None:
                 reasoning_content = response.metadata.get('reasoning_content')
                 
                 # 生成消息ID
+                from frontend.utils.helpers import generate_message_id
                 msg_idx = len(st.session_state.messages)
-                message_id = f"msg_{msg_idx}_{hash(str(answer))}"
+                message_id = generate_message_id(msg_idx, answer)
                 
                 # 保存到消息历史
                 save_message_to_history(answer, local_sources, reasoning_content)
@@ -53,26 +54,12 @@ def handle_non_streaming_query(rag_service, chat_manager, prompt: str) -> None:
                 else:
                     st.markdown(answer)
                 
-                # 显示推理链
-                if reasoning_content:
-                    with st.expander("🧠 推理过程", expanded=False):
-                        st.markdown(f"```\n{reasoning_content}\n```")
-                
-                # 显示引用来源
-                if local_sources:
-                    st.markdown("#### 📚 引用来源")
-                    display_sources_below_message(local_sources, message_id=message_id)
+                # 显示推理链和引用来源
+                display_reasoning(reasoning_content)
+                display_sources(local_sources, message_id)
                 
                 # 保存到ChatManager会话
-                if chat_manager and answer:
-                    if not chat_manager.current_session:
-                        chat_manager.start_session()
-                    if reasoning_content:
-                        chat_manager.current_session.add_turn(prompt, answer, local_sources, reasoning_content)
-                    else:
-                        chat_manager.current_session.add_turn(prompt, answer, local_sources)
-                    if chat_manager.auto_save:
-                        chat_manager.save_current_session()
+                save_to_chat_manager(chat_manager, prompt, answer, local_sources, reasoning_content)
                 
             except Exception as e:
                 import traceback

@@ -18,13 +18,31 @@ logger = get_logger('app')
 def render_chat_interface(rag_service, chat_manager) -> None:
     """渲染对话界面
     
+    优化：统一处理会话加载和rerun，减少重复渲染。
+    
     Args:
         rag_service: RAG服务实例
         chat_manager: 对话管理器实例
     """
-    # 处理历史会话加载
+    # 处理历史会话加载（统一处理，避免多次rerun）
     from frontend.components.session_loader import load_history_session
-    load_history_session(chat_manager)
+    
+    # 检查是否有待加载的会话
+    if st.session_state.get('session_loading_pending', False) or 'load_session_id' in st.session_state:
+        # 加载会话（同步执行，不立即rerun）
+        session_loaded = load_history_session(chat_manager)
+        
+        if session_loaded:
+            # 显示成功消息
+            st.success("✅ 会话已加载")
+            # 统一rerun一次（合并多次rerun）
+            st.rerun()
+        else:
+            # 加载失败
+            st.error("❌ 加载会话失败")
+            # 清除标记后rerun
+            st.rerun()
+        return
     
     # 显示标题
     chat_title = get_chat_title(st.session_state.messages)
@@ -48,12 +66,14 @@ def render_chat_interface(rag_service, chat_manager) -> None:
 def render_chat_history() -> None:
     """渲染对话历史"""
     # 使用 columns 实现水平居中（缩小宽度）
-    left_spacer, center_col, right_spacer = st.columns([2, 6, 2])
+    from frontend.utils.helpers import create_centered_columns
+    left_spacer, center_col, right_spacer = create_centered_columns()
     
     with center_col:
         # 显示对话历史
+        from frontend.utils.helpers import generate_message_id
         for idx, message in enumerate(st.session_state.messages):
-            message_id = f"msg_{idx}_{hash(str(message))}"
+            message_id = generate_message_id(idx, message)
             with st.chat_message(message["role"]):
                 # 如果是AI回答且包含引用，使用带链接的格式
                 if message["role"] == "assistant" and "sources" in message and message["sources"]:
