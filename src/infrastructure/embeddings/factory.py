@@ -61,16 +61,12 @@ def create_embedding(
         cached_type = type(_global_embedding_instance).__name__
         cached_model = _global_embedding_instance.get_model_name()
         
-        logger.info(f"✅ 使用缓存的Embedding实例")
-        logger.info(f"   类型: {cached_type}")
-        logger.info(f"   模型: {cached_model}")
+        logger.info(f"✅ 使用缓存的Embedding实例: {cached_type} ({cached_model})")
         
         return _global_embedding_instance
     
     # 创建新实例
-    logger.info(f"📦 创建新的Embedding实例")
-    logger.info(f"   类型: {embedding_type}")
-    logger.info(f"   模型: {model_name}")
+    logger.info(f"📦 创建新的Embedding实例: {embedding_type} ({model_name})")
     
     match embedding_type:
         case "local":
@@ -110,7 +106,8 @@ def create_embedding(
                 f"支持的类型: local, hf-inference"
             )
     
-    logger.info(f"✅ Embedding实例创建完成: {_global_embedding_instance}")
+    instance_type = type(_global_embedding_instance).__name__
+    logger.info(f"✅ Embedding实例创建完成: {instance_type} ({model_name})")
     
     return _global_embedding_instance
 

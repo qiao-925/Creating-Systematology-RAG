@@ -65,8 +65,9 @@ def ensure_collection_dimension_match(
             logger.error(f"{error_msg}, 尝试的方法: {dim_detection_methods}")
             raise ValueError(error_msg)
         
-        logger.info(f"✅ 成功检测到embedding模型维度: {model_dim} (方法: {', '.join(dim_detection_methods)})")
-        logger.info(f"📏 当前embedding模型维度: {model_dim}")
+        # 合并为单行摘要
+        methods_str = ', '.join(dim_detection_methods) if dim_detection_methods else "默认值"
+        logger.info(f"✅ Embedding模型维度检测: {model_dim}维 (方法: {methods_str})")
         
         # 直接使用已有的 chroma_collection，不重新获取
         chroma_collection = index_manager.chroma_collection
@@ -85,7 +86,7 @@ def ensure_collection_dimension_match(
             # 尝试从collection的metadata获取
             if chroma_collection.metadata and 'embedding_dimension' in chroma_collection.metadata:
                 collection_dim = int(chroma_collection.metadata['embedding_dimension'])
-                logger.info(f"从collection metadata获取维度: {collection_dim}")
+                logger.debug(f"从collection metadata获取维度: {collection_dim}")
             elif collection_count > 0:
                 # 从实际数据获取维度
                 # 如果已提供 sample_data，直接使用；否则查询
@@ -127,7 +128,7 @@ def ensure_collection_dimension_match(
                                     collection_dim = int(first_embedding)
                                 
                                 if collection_dim is not None:
-                                    logger.info(f"从collection实际数据获取维度: {collection_dim}")
+                                    logger.debug(f"从collection实际数据获取维度: {collection_dim}")
                             except (TypeError, ValueError, IndexError) as dim_error:
                                 logger.warning(f"无法从embedding数据获取维度: {dim_error}")
                                 collection_dim = None
@@ -136,7 +137,7 @@ def ensure_collection_dimension_match(
         
         # 如果collection为空，直接使用
         if collection_count == 0:
-            logger.info(f"✅ Collection为空，可以使用: {index_manager.collection_name}")
+            logger.info(f"✅ Collection维度检查: {index_manager.collection_name}为空，可使用模型维度{model_dim}维")
         # 如果无法获取维度，抛出错误
         elif collection_dim is None:
             error_msg = (
@@ -158,7 +159,7 @@ def ensure_collection_dimension_match(
             raise ValueError(error_msg)
         else:
             # 维度匹配，使用现有collection
-            logger.info(f"✅ Collection维度检查通过: {model_dim}维")
+            logger.info(f"✅ Collection维度检查通过: {index_manager.collection_name} ({collection_dim}维) 匹配模型 ({model_dim}维)")
                 
     except ValueError:
         raise

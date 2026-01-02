@@ -226,9 +226,9 @@ def main():
             ],
         },
         {
-            "name": "阶段6: UI测试",
+            "name": "阶段6: 前端测试",
             "paths": [
-                "tests/ui/test_app.py",
+                "frontend/tests/",
             ],
         },
         {

@@ -207,7 +207,7 @@ class IndexManager:
                     if hasattr(self, 'chroma_collection') and self.chroma_collection:
                         count = self.chroma_collection.count()
                         if count > 0:
-                            logger.info("✅ 从向量存储加载索引成功")
+                            logger.info(f"✅ 从向量存储加载索引成功: {count}个向量")
                         else:
                             logger.info("ℹ️  Collection为空，将在添加文档后创建索引")
                             self._collection_is_empty = True

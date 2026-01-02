@@ -60,7 +60,8 @@ def init_index_manager(
     """
     # 初始化embedding模型
     if embedding_instance is not None:
-        logger.info(f"✅ 使用提供的Embedding实例: {embedding_instance}")
+        instance_type = type(embedding_instance).__name__
+        logger.info(f"✅ 使用提供的Embedding实例: {instance_type}")
         embed_model = embedding_instance
     elif embed_model_instance is not None:
         logger.info(f"✅ 使用预加载的Embedding模型: {embedding_model_name}")
@@ -74,13 +75,13 @@ def init_index_manager(
                 logger.info(f"✅ 使用全局缓存的Embedding模型: {embedding_model_name}")
                 embed_model = cached_embedding
             else:
-                logger.info(f"🔄 检测到模型配置变更: {cached_model_name} -> {embedding_model_name}")
+                logger.info(f"🔄 模型配置变更: {cached_model_name} -> {embedding_model_name}")
                 embed_model = None
         else:
             embed_model = None
         
         if embed_model is None:
-            logger.info(f"📦 正在创建Embedding模型: {embedding_model_name}")
+            logger.info(f"📦 创建Embedding模型: {embedding_model_name}")
             try:
                 embed_model = create_embedding(
                     model_name=embedding_model_name,
@@ -105,7 +106,7 @@ def init_index_manager(
     Settings.chunk_overlap = chunk_overlap
     
     # 初始化Chroma Cloud客户端
-    logger.info("🗄️  初始化Chroma Cloud向量数据库")
+    logger.info(f"🗄️  初始化Chroma向量数据库: collection={collection_name}")
     
     if not config.CHROMA_CLOUD_API_KEY or not config.CHROMA_CLOUD_DATABASE:
         raise ValueError(

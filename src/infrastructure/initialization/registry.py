@@ -248,7 +248,7 @@ def _check_index_manager() -> bool:
                 return True
         
         # 尝试加载
-        from src.ui.loading import load_index
+        from frontend.utils.services import load_index
         index_manager = load_index()
         return index_manager is not None
     except Exception as e:
@@ -293,7 +293,7 @@ def _check_rag_service() -> bool:
                 return True
         
         # 尝试加载
-        from src.ui.loading import load_rag_service
+        from frontend.utils.services import load_rag_service
         rag_service = load_rag_service()
         return rag_service is not None
     except Exception as e:
@@ -309,7 +309,7 @@ def _check_chat_manager() -> bool:
                 return True
         
         # 尝试加载
-        from src.ui.loading import load_chat_manager
+        from frontend.utils.services import load_chat_manager
         chat_manager = load_chat_manager()
         return chat_manager is not None
     except Exception as e:

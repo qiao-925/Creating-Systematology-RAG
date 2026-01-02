@@ -30,7 +30,7 @@ class TestMainPageUI:
     
     def test_session_initialization(self, mock_streamlit):
         """测试会话初始化"""
-        from src.ui import init_session_state
+        from frontend.utils.state import init_session_state
         
         # Mock session_state
         mock_streamlit.session_state = {}
@@ -46,7 +46,7 @@ class TestMainPageUI:
     
     def test_rag_service_loading(self):
         """测试RAGService加载"""
-        from src.ui import load_rag_service
+        from frontend.utils.services import load_rag_service
         
         # 测试加载逻辑（不实际加载，避免依赖）
         try:
@@ -57,7 +57,7 @@ class TestMainPageUI:
     
     def test_index_loading(self):
         """测试索引加载"""
-        from src.ui import load_index
+        from frontend.utils.services import load_index
         
         # 验证函数存在
         try:
@@ -67,7 +67,7 @@ class TestMainPageUI:
     
     def test_chat_manager_loading(self):
         """测试ChatManager加载"""
-        from src.ui import load_chat_manager
+        from frontend.utils.services import load_chat_manager
         
         # 验证函数存在
         try:
@@ -77,7 +77,7 @@ class TestMainPageUI:
     
     def test_model_status_display(self):
         """测试模型状态显示"""
-        from src.ui import display_model_status
+        from frontend.components.history import display_model_status
         
         # 验证函数存在
         try:
@@ -87,7 +87,8 @@ class TestMainPageUI:
     
     def test_sources_display(self):
         """测试来源显示"""
-        from src.ui import display_sources_with_anchors, display_sources_right_panel
+        from frontend.utils.sources import display_sources_with_anchors
+        from frontend.components.sources_panel import display_sources_right_panel
         
         # 验证函数存在
         try:
@@ -98,7 +99,7 @@ class TestMainPageUI:
     
     def test_answer_formatting(self):
         """测试答案格式化"""
-        from src.ui import format_answer_with_citation_links
+        from frontend.utils.sources import format_answer_with_citation_links
         
         # 验证函数存在
         try:
@@ -216,13 +217,9 @@ class TestUIIntegration:
     def test_ui_components_import(self):
         """测试UI组件导入"""
         try:
-            from src.ui import (
-                init_session_state,
-                load_rag_service,
-                load_index,
-                load_chat_manager,
-                display_model_status,
-            )
+            from frontend.utils.state import init_session_state
+            from frontend.utils.services import load_rag_service, load_index, load_chat_manager
+            from frontend.components.history import display_model_status
             # 验证所有组件都可以导入
             assert callable(init_session_state)
         except ImportError as e:
@@ -285,7 +282,7 @@ class TestUIComponentFunctions:
     def test_hybrid_sources_display(self):
         """测试混合来源显示"""
         try:
-            from src.ui import display_hybrid_sources
+            from frontend.components.sources_panel import display_hybrid_sources
             
             # 验证函数存在
             assert callable(display_hybrid_sources)
@@ -301,10 +298,8 @@ class TestUIErrorHandling:
         # UI组件应该能够处理各种错误情况
         # 这里主要验证组件存在且可以调用
         try:
-            from src.ui import (
-                init_session_state,
-                load_rag_service,
-            )
+            from frontend.utils.state import init_session_state
+            from frontend.utils.services import load_rag_service
             
             # 验证函数可以处理None或空参数
             # 注意：实际测试可能需要Mock Streamlit

@@ -138,15 +138,19 @@ class TimeMonitor:
         # 计算总耗时
         if self.start_time is not None:
             total_elapsed = time.time() - self.start_time
-            # 如果总耗时大于0.1秒，打印最终日志
-            if total_elapsed >= 0.1:
+            # 如果总耗时大于1秒，打印最终日志（启动阶段的短时间操作不输出）
+            if total_elapsed >= 1.0:
                 final_message = self.message_template.format(elapsed=int(total_elapsed))
                 self.logger.info(f"{final_message} (总计)")
+            elif total_elapsed >= 0.5:
+                # 0.5-1秒之间的操作使用debug级别
+                final_message = self.message_template.format(elapsed=int(total_elapsed))
+                self.logger.debug(f"{final_message} (总计)")
         
         return False  # 不抑制异常
     
     def _log_elapsed_time(self):
-        """后台线程函数，每5秒打印一次已花费时间"""
+        """后台线程函数，每5秒打印一次已花费时间（仅在debug模式或长时间运行时）"""
         last_logged_interval = -1
         
         while not self.stop_event.is_set():
@@ -157,11 +161,16 @@ class TimeMonitor:
             current_interval = int(elapsed / self.interval)  # 按间隔计算
             
             # 只在间隔变化时打印，避免重复
+            # 启动阶段（前10秒）使用debug级别，之后使用info级别
             if current_interval > last_logged_interval and current_interval > 0:
                 try:
                     elapsed_seconds = int(elapsed)
                     message = self.message_template.format(elapsed=elapsed_seconds)
-                    self.logger.info(message)
+                    # 启动阶段（前10秒）使用debug，避免启动日志过多
+                    if elapsed_seconds < 10:
+                        self.logger.debug(message)
+                    else:
+                        self.logger.info(message)
                     last_logged_interval = current_interval
                 except Exception as e:
                     # 如果格式化失败，记录错误但不中断监控
@@ -213,7 +222,7 @@ class HFInferenceEmbedding(BaseEmbedding):
         # 注册到全局实例集合，以便在退出时清理
         _embedding_instances.add(self)
         
-        logger.info(f"📡 初始化 Hugging Face Inference API Embedding: {self.model_name}")
+        logger.info(f"📡 初始化HF Inference API Embedding: {self.model_name}")
     
     def _get_default_dimension(self, model_name: str) -> int:
         """根据模型名称获取默认维度"""
@@ -254,126 +263,120 @@ class HFInferenceEmbedding(BaseEmbedding):
         self._active_requests.add(request_id)
         
         try:
-            # 批次总时间监控
-            with TimeMonitor(
-                logger,
-                f"⏱️  HF Inference API 调用进行中: 已花费 {{elapsed}} 秒 (模型={self.model_name}, 文本数量={len(texts)})"
-            ):
-                try:
-                    results = []
-                    total = len(texts)
+            # 批次总时间监控（仅在批量处理时显示，单个文本时静默）
+            batch_start = time.time()
+            if len(texts) > 1:
+                time_monitor = TimeMonitor(
+                    logger,
+                    f"⏱️  HF Inference API 调用进行中: 已花费 {{elapsed}} 秒 (模型={self.model_name}, 文本数量={len(texts)})"
+                )
+                time_monitor.__enter__()
+            else:
+                time_monitor = None
+            
+            try:
+                results = []
+                total = len(texts)
+                
+                # feature_extraction 一次只能处理一个文本，逐个处理
+                for idx, text in enumerate(texts):
+                    # 构建请求 payload
+                    payload = {"inputs": text}
                     
-                    # feature_extraction 一次只能处理一个文本，逐个处理
-                    for idx, text in enumerate(texts):
-                        # 每个文本处理时间监控
-                        with TimeMonitor(
-                            logger,
-                            f"⏱️  处理文本 {idx + 1}/{total}: 已花费 {{elapsed}} 秒"
-                        ):
-                            # 构建请求 payload
-                            payload = {"inputs": text}
-                            
-                            # 记录请求信息（curl 命令格式）
-                            logger.info(f"📤 发送 HTTP 请求:")
-                            logger.info(f"   URL: {self.api_url}")
-                            logger.info(f"   Method: POST")
-                            logger.info(f"   Headers: {json.dumps({k: v if k != 'Authorization' else 'Bearer ***' for k, v in self.headers.items()}, ensure_ascii=False, indent=2)}")
-                            logger.info(f"   Payload: {json.dumps(payload, ensure_ascii=False, indent=2)}")
-                            
-                            # 生成 curl 命令（用于调试，隐藏密钥）
-                            curl_command = (
-                                f"curl -X POST '{self.api_url}' \\\n"
-                                f"  -H 'Authorization: Bearer $HF_TOKEN' \\\n"
-                                f"  -H 'Content-Type: application/json' \\\n"
-                                f"  -d '{json.dumps(payload, ensure_ascii=False)}'"
+                    # 检查是否已关闭（在请求前再次检查）
+                    if self._closed:
+                        raise RuntimeError("HFInferenceEmbedding 实例已关闭，请求被取消")
+                    
+                    # 使用直接 HTTP 请求调用 API
+                    request_start = time.time()
+                    try:
+                        response = requests.post(
+                            self.api_url,
+                            headers=self.headers,
+                            json=payload,
+                            timeout=30,
+                        )
+                    except requests.exceptions.RequestException as e:
+                        # 如果已关闭，不重试
+                        if self._closed:
+                            raise RuntimeError("HFInferenceEmbedding 实例已关闭，请求被取消") from e
+                        raise
+                    request_elapsed = time.time() - request_start
+                    
+                    response.raise_for_status()  # 自动处理 HTTP 错误
+                    
+                    # 解析响应
+                    try:
+                        result = response.json()
+                        
+                        # 合并为单行摘要日志
+                        if isinstance(result, list) and len(result) > 0:
+                            dim = len(result)
+                            logger.info(
+                                f"📡 HF API调用: 模型={self.model_name}, "
+                                f"状态={response.status_code}, 耗时={request_elapsed:.2f}s, "
+                                f"维度={dim}"
                             )
-                            logger.info(f"   📋 curl 命令 (使用环境变量 HF_TOKEN):\n{curl_command}")
-                            
-                            # 检查是否已关闭（在请求前再次检查）
-                            if self._closed:
-                                raise RuntimeError("HFInferenceEmbedding 实例已关闭，请求被取消")
-                            
-                            # 使用直接 HTTP 请求调用 API
-                            request_start = time.time()
-                            try:
-                                response = requests.post(
-                                    self.api_url,
-                                    headers=self.headers,
-                                    json=payload,
-                                    timeout=30,
-                                )
-                            except requests.exceptions.RequestException as e:
-                                # 如果已关闭，不重试
-                                if self._closed:
-                                    raise RuntimeError("HFInferenceEmbedding 实例已关闭，请求被取消") from e
-                                raise
-                            request_elapsed = time.time() - request_start
-                            
-                            # 记录响应信息
-                            logger.info(f"📥 收到 HTTP 响应:")
-                            logger.info(f"   状态码: {response.status_code}")
-                            logger.info(f"   响应时间: {request_elapsed:.2f} 秒")
-                            logger.info(f"   Headers: {dict(response.headers)}")
-                            
-                            response.raise_for_status()  # 自动处理 HTTP 错误
-                            
-                            # 解析响应
-                            try:
-                                result = response.json()
-                                # 记录响应数据（限制长度，避免日志过长）
-                                result_str = json.dumps(result, ensure_ascii=False)
-                                if len(result_str) > 1000:
-                                    logger.info(f"   响应数据 (前1000字符): {result_str[:1000]}...")
-                                    logger.info(f"   响应数据长度: {len(result_str)} 字符")
-                                    if isinstance(result, list) and len(result) > 0:
-                                        logger.info(f"   向量维度: {len(result)}")
-                                        logger.info(f"   向量前5个值: {result[:5]}")
-                                        logger.info(f"   向量后5个值: {result[-5:]}")
+                            # 详细调试信息移到debug级别
+                            logger.debug(f"   请求URL: {self.api_url}")
+                            logger.debug(f"   响应Headers: {dict(response.headers)}")
+                            logger.debug(f"   向量前5个值: {result[:5]}, 后5个值: {result[-5:]}")
+                        else:
+                            result_str = json.dumps(result, ensure_ascii=False)
+                            result_preview = result_str[:100] + "..." if len(result_str) > 100 else result_str
+                            logger.info(
+                                f"📡 HF API调用: 模型={self.model_name}, "
+                                f"状态={response.status_code}, 耗时={request_elapsed:.2f}s, "
+                                f"响应={result_preview}"
+                            )
+                            logger.debug(f"   完整响应: {result_str}")
+                        
+                        # 处理响应格式并转换为列表
+                        if isinstance(result, list):
+                            # 直接是向量列表
+                            embedding = [float(x) for x in result]
+                        elif isinstance(result, dict):
+                            # 可能是包装在字典中的格式
+                            if "embeddings" in result:
+                                embedding = [float(x) for x in result["embeddings"]]
+                            elif "output" in result:
+                                embedding = [float(x) for x in result["output"]]
+                            else:
+                                # 尝试直接使用第一个值
+                                first_key = next(iter(result.values()))
+                                if isinstance(first_key, list):
+                                    embedding = [float(x) for x in first_key]
                                 else:
-                                    logger.info(f"   响应数据: {result_str}")
-                                
-                                # 处理响应格式并转换为列表
-                                if isinstance(result, list):
-                                    # 直接是向量列表
-                                    embedding = [float(x) for x in result]
-                                elif isinstance(result, dict):
-                                    # 可能是包装在字典中的格式
-                                    if "embeddings" in result:
-                                        embedding = [float(x) for x in result["embeddings"]]
-                                    elif "output" in result:
-                                        embedding = [float(x) for x in result["output"]]
-                                    else:
-                                        # 尝试直接使用第一个值
-                                        first_key = next(iter(result.values()))
-                                        if isinstance(first_key, list):
-                                            embedding = [float(x) for x in first_key]
-                                        else:
-                                            embedding = [float(first_key)]
-                                else:
-                                    # 单个值或其他格式
-                                    embedding = [float(result)] if not isinstance(result, list) else [float(x) for x in result]
-                                
-                                results.append(embedding)
-                                
-                                # 批量处理时显示进度
-                                if total > 1 and (idx + 1) % 10 == 0:
-                                    logger.debug(f"   进度: {idx + 1}/{total}")
-                            except json.JSONDecodeError as e:
-                                logger.error(f"   ❌ JSON 解析失败: {e}")
-                                logger.error(f"   响应文本: {response.text[:500]}")
-                                raise
+                                    embedding = [float(first_key)]
+                        else:
+                            # 单个值或其他格式
+                            embedding = [float(result)] if not isinstance(result, list) else [float(x) for x in result]
+                        
+                        results.append(embedding)
+                        
+                        # 批量处理时显示进度
+                        if total > 1 and (idx + 1) % 10 == 0:
+                            logger.debug(f"   进度: {idx + 1}/{total}")
+                    except json.JSONDecodeError as e:
+                        logger.error(f"   ❌ JSON 解析失败: {e}")
+                        logger.error(f"   响应文本: {response.text[:500]}")
+                        raise
                     
-                    if total > 1:
-                        logger.debug(f"📥 批量处理完成: {len(results)}/{total} 个文本")
-                    
-                    return results
-                            
-                except RequestException as e:
-                    # 统一错误处理：全部重试
-                    return self._handle_request_error(e, texts, retry_count)
-                except Exception as e:
-                    # 处理其他异常（如 JSON 解析错误等）
-                    return self._handle_request_error(e, texts, retry_count)
+                if total > 1:
+                    logger.debug(f"📥 批量处理完成: {len(results)}/{total} 个文本")
+                
+                return results
+                        
+            except RequestException as e:
+                # 统一错误处理：全部重试
+                return self._handle_request_error(e, texts, retry_count)
+            except Exception as e:
+                # 处理其他异常（如 JSON 解析错误等）
+                return self._handle_request_error(e, texts, retry_count)
+            finally:
+                # 关闭时间监控
+                if time_monitor is not None:
+                    time_monitor.__exit__(None, None, None)
         finally:
             # 移除请求跟踪
             self._active_requests.discard(request_id)

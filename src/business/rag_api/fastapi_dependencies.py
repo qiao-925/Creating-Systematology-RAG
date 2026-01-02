@@ -18,7 +18,8 @@ def get_rag_service() -> RAGService:
     """获取 RAGService 实例（单例模式，使用默认collection）
     
     使用单例模式避免每次请求都创建新实例，提升性能。
-    首次调用时会预加载关键组件（index_manager 和 modular_query_engine）。
+    采用延迟加载策略：只在首次使用时初始化关键组件（index_manager 和 modular_query_engine），
+    避免启动时的延迟。
     
     Returns:
         RAGService 实例（使用配置中的默认collection_name）
@@ -26,12 +27,8 @@ def get_rag_service() -> RAGService:
     global _rag_service_singleton
     
     if _rag_service_singleton is None:
-        logger.info("创建 RAGService 单例实例")
+        logger.info("创建 RAGService 单例实例（延迟加载模式）")
         _rag_service_singleton = RAGService(collection_name=config.CHROMA_COLLECTION_NAME)
-        # 预加载关键组件，避免首次请求时的延迟
-        logger.info("预加载 RAGService 关键组件")
-        _rag_service_singleton.index_manager  # 触发初始化
-        _rag_service_singleton.modular_query_engine  # 触发初始化
-        logger.info("RAGService 关键组件预加载完成")
+        logger.info("RAGService 单例实例已创建，关键组件将在首次使用时按需初始化")
     
     return _rag_service_singleton

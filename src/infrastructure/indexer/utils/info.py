@@ -31,8 +31,6 @@ def print_database_info(
         # 直接使用已有的 chroma_collection，不重新获取
         chroma_collection = index_manager.chroma_collection
         
-        logger.info(f"🔍 目标Collection: {index_manager.collection_name}")
-        
         # 如果未提供 collection_count，则查询（向后兼容）
         if collection_count is None:
             try:
@@ -41,19 +39,19 @@ def print_database_info(
                 logger.warning(f"获取collection数量失败: {e}")
                 collection_count = 0
         
-        logger.info(f"   ✅ Collection存在")
-        logger.info(f"   📊 向量总数: {collection_count}")
-        
-        # 基本信息：维度信息
+        # 获取维度信息
+        dim = None
         try:
             if chroma_collection.metadata and 'embedding_dimension' in chroma_collection.metadata:
                 dim = chroma_collection.metadata['embedding_dimension']
-                logger.info(f"   📏 Embedding维度: {dim}")
             elif sample_data and 'embeddings' in sample_data and sample_data['embeddings']:
                 dim = len(sample_data['embeddings'][0])
-                logger.info(f"   📏 Embedding维度: {dim} (从样本数据检测)")
         except Exception as e:
             logger.debug(f"获取维度信息失败: {e}")
+        
+        # 合并为单行摘要
+        dim_str = f", {dim}维" if dim else ""
+        logger.info(f"🔍 Collection: {index_manager.collection_name}, 向量数={collection_count}{dim_str}")
         
         # 详细信息（仅在 detailed=True 时执行，避免初始化时不必要的查询）
         if detailed and collection_count > 0:
