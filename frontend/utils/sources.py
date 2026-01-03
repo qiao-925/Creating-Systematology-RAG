@@ -105,7 +105,8 @@ def format_answer_with_citation_links(answer: str, sources: list, message_id: st
         
         # 检查该引用是否存在
         if citation_num <= len(sources):
-            return f'<a href="#{citation_id}" onclick="event.preventDefault(); scrollToCitation(\'{citation_id}\'); return false;" style="color: #2563EB; text-decoration: none; font-weight: 500; cursor: pointer;" title="点击查看引用来源 {citation_num}">[{citation_num}]</a>'
+            # 使用 CSS 类而不是内联样式，让 CSS 变量自动适配主题
+            return f'<a href="#{citation_id}" onclick="event.preventDefault(); scrollToCitation(\'{citation_id}\'); return false;" class="citation-link" title="点击查看引用来源 {citation_num}">[{citation_num}]</a>'
         else:
             return match.group(0)
     
@@ -116,11 +117,17 @@ def format_answer_with_citation_links(answer: str, sources: list, message_id: st
     js_code = f"""
     <script>
     function scrollToCitation(citationId) {{
+        // 使用 Streamlit 原生主色调
+        const rootStyle = getComputedStyle(document.documentElement);
+        const primaryColor = rootStyle.getPropertyValue('--primary-color').trim() || '#2563EB';
+        // 简单的黄色高亮（Light/Dark 模式通用）
+        const highlightColor = '#FFF9C4';
+        
         const element = document.getElementById(citationId);
         if (element) {{
             element.scrollIntoView({{ behavior: 'smooth', block: 'center' }});
-            element.style.backgroundColor = '#FFF9C4';
-            element.style.border = '2px solid #2563EB';
+            element.style.backgroundColor = highlightColor;
+            element.style.border = '2px solid ' + primaryColor;
             setTimeout(() => {{
                 element.style.backgroundColor = '';
                 element.style.border = '';
@@ -130,8 +137,8 @@ def format_answer_with_citation_links(answer: str, sources: list, message_id: st
                 const targetElement = document.getElementById(citationId);
                 if (targetElement) {{
                     targetElement.scrollIntoView({{ behavior: 'smooth', block: 'center' }});
-                    targetElement.style.backgroundColor = '#FFF9C4';
-                    targetElement.style.border = '2px solid #2563EB';
+                    targetElement.style.backgroundColor = highlightColor;
+                    targetElement.style.border = '2px solid ' + primaryColor;
                     setTimeout(() => {{
                         targetElement.style.backgroundColor = '';
                         targetElement.style.border = '';

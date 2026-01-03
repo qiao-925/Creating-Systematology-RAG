@@ -38,6 +38,13 @@ make test         # 运行所有测试
 make clean        # 清理生成文件
 ```
 
+**4. 主题切换**
+
+应用支持 **Light/Dark 模式**切换：
+- 点击右上角 "⋮" → "Settings" → 选择主题
+- 或使用系统主题偏好自动切换
+- 所有组件（包括自定义组件）都会自动适配主题
+
 ### Chroma Cloud 配置说明
 
 本项目使用 **Chroma Cloud** 作为向量数据库，需要配置以下环境变量：
@@ -94,7 +101,7 @@ uv run --no-sync python -c "import torch; print(f'版本: {torch.__version__}');
 - **LangChain** - 文档加载器（GitHub集成）
 - **DeepSeek API** - 大语言模型（支持推理链和JSON输出）
 - **Chroma Cloud** - 向量数据库（云端托管）
-- **Streamlit** - Web 界面（单页应用）
+- **Streamlit** - Web 界面（单页应用，支持 Dark 模式，优先使用原生组件）
 - **HuggingFace Embeddings** - 本地向量模型（支持镜像和离线）
 - **Git** - GitHub仓库本地克隆和增量更新
 - **pytest** - 测试框架（110+个测试用例）
@@ -114,8 +121,10 @@ uv run --no-sync python -c "import torch; print(f'版本: {torch.__version__}');
 2. **可插拔设计**：所有核心组件（Embedding、DataSource、Observer、Reranker、Retriever）支持可插拔替换
 3. **配置驱动**：集中管理配置，支持运行时切换，无需修改代码
 4. **架构统一**：前端代码独立组织（frontend/），单页应用架构，功能通过弹窗实现
-5. **可观测性优先**：集成 Phoenix、LlamaDebugHandler、RAGAS，行为透明可追踪
-6. **工程实践**：结构化日志（structlog）、类型安全（Pydantic），提升代码质量
+5. **原生组件优先**：优先使用 Streamlit 原生组件（`st.chat_input()`、`st.dialog()` 等），减少自定义代码
+6. **主题适配**：完整支持 Light/Dark 模式切换，使用 CSS 变量实现主题适配
+7. **可观测性优先**：集成 Phoenix、LlamaDebugHandler、RAGAS，行为透明可追踪
+8. **工程实践**：结构化日志（structlog）、类型安全（Pydantic），提升代码质量
 
 ### 模块化三层架构
 
@@ -397,16 +406,19 @@ Creating-Systematology-RAG/
 │
 ├── app.py                          # 🖥️ Streamlit Web应用入口（单页应用）
 │
+├── .streamlit/                     # ⚙️ Streamlit 配置文件
+│   └── config.toml                # 主题配置（Light/Dark 模式）
+│
 ├── frontend/                       # 🎨 前端层（Presentation Layer）
 │   ├── main.py                    # 主入口（单页应用）
-│   ├── components/               # UI组件
+│   ├── components/               # UI组件（优先使用 Streamlit 原生组件）
 │   │   ├── chat_display.py       # 聊天显示
-│   │   ├── chat_input.py         # 聊天输入（Material Design）
+│   │   ├── chat_input.py         # 聊天输入（使用 st.chat_input()）
 │   │   ├── file_viewer.py        # 文件查看（弹窗）
 │   │   ├── history.py            # 历史会话
 │   │   ├── sidebar.py             # 侧边栏
 │   │   ├── sources_panel.py      # 引用来源面板
-│   │   └── settings_dialog.py   # 设置弹窗
+│   │   └── settings_dialog.py   # 设置弹窗（使用 st.dialog()）
 │   ├── settings/                  # 设置模块
 │   │   ├── data_source.py        # 数据源管理
 │   │   ├── dev_tools.py          # 开发者工具
@@ -654,5 +666,5 @@ app.py   RAGService   Config/Logger/Embedding/LLM
 
 ---
 
-**最后更新**: 2026-01-01  
+**最后更新**: 2026-01-03  
 **License**: MIT

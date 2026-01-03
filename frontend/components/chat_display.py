@@ -47,7 +47,7 @@ def render_chat_interface(rag_service, chat_manager) -> None:
     # 显示标题
     chat_title = get_chat_title(st.session_state.messages)
     if chat_title:
-        st.markdown(f"<div style='text-align: center;'><h3>{chat_title}</h3></div>", unsafe_allow_html=True)
+        st.subheader(chat_title)
         st.markdown("---")
     
     # 初始化来源映射
@@ -65,50 +65,45 @@ def render_chat_interface(rag_service, chat_manager) -> None:
 
 def render_chat_history() -> None:
     """渲染对话历史"""
-    # 使用 columns 实现水平居中（缩小宽度）
-    from frontend.utils.helpers import create_centered_columns
-    left_spacer, center_col, right_spacer = create_centered_columns()
-    
-    with center_col:
-        # 显示对话历史
-        from frontend.utils.helpers import generate_message_id
-        for idx, message in enumerate(st.session_state.messages):
-            message_id = generate_message_id(idx, message)
-            with st.chat_message(message["role"]):
-                # 如果是AI回答且包含引用，使用带链接的格式
-                if message["role"] == "assistant" and "sources" in message and message["sources"]:
-                    formatted_content = format_answer_with_citation_links(
-                        message["content"],
-                        message["sources"],
-                        message_id=message_id
-                    )
-                    st.markdown(formatted_content, unsafe_allow_html=True)
-                else:
-                    st.markdown(message["content"])
-                
-                # 显示推理链（始终显示，如果存在）
-                if message["role"] == "assistant":
-                    reasoning_content = message.get("reasoning_content")
-                    # 调试：检查推理链是否存在
-                    if reasoning_content:
-                        with st.expander("🧠 推理过程", expanded=False):
-                            st.markdown(f"```\n{reasoning_content}\n```")
-                    else:
-                        # 调试：显示为什么没有推理链
-                        if config.DEEPSEEK_ENABLE_REASONING_DISPLAY:
-                            # 只在启用显示时才显示调试信息
-                            logger.debug(f"消息 {message_id} 没有推理链内容")
+    # 显示对话历史
+    from frontend.utils.helpers import generate_message_id
+    for idx, message in enumerate(st.session_state.messages):
+        message_id = generate_message_id(idx, message)
+        with st.chat_message(message["role"]):
+            # 如果是AI回答且包含引用，使用带链接的格式
+            if message["role"] == "assistant" and "sources" in message and message["sources"]:
+                formatted_content = format_answer_with_citation_links(
+                    message["content"],
+                    message["sources"],
+                    message_id=message_id
+                )
+                st.markdown(formatted_content, unsafe_allow_html=True)
+            else:
+                st.markdown(message["content"])
             
-            # 在消息下方显示引用来源（如果有）
+            # 显示推理链（始终显示，如果存在）
             if message["role"] == "assistant":
-                sources = st.session_state.current_sources_map.get(message_id, [])
-                if sources:
-                    # 显示引用来源标题
-                    st.markdown("#### 📚 引用来源")
-                    # 显示引用来源详情
-                    display_sources_below_message(sources, message_id=message_id)
-            
-            # 更新session_state中的映射（确保同步）
-            st.session_state.current_sources_map = st.session_state.current_sources_map
-            st.session_state.current_reasoning_map = st.session_state.current_reasoning_map
+                reasoning_content = message.get("reasoning_content")
+                # 调试：检查推理链是否存在
+                if reasoning_content:
+                    with st.expander("🧠 推理过程", expanded=False):
+                        st.markdown(f"```\n{reasoning_content}\n```")
+                else:
+                    # 调试：显示为什么没有推理链
+                    if config.DEEPSEEK_ENABLE_REASONING_DISPLAY:
+                        # 只在启用显示时才显示调试信息
+                        logger.debug(f"消息 {message_id} 没有推理链内容")
+        
+        # 在消息下方显示引用来源（如果有）
+        if message["role"] == "assistant":
+            sources = st.session_state.current_sources_map.get(message_id, [])
+            if sources:
+                # 显示引用来源标题
+                st.markdown("#### 📚 引用来源")
+                # 显示引用来源详情
+                display_sources_below_message(sources, message_id=message_id)
+        
+        # 更新session_state中的映射（确保同步）
+        st.session_state.current_sources_map = st.session_state.current_sources_map
+        st.session_state.current_reasoning_map = st.session_state.current_reasoning_map
 

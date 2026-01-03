@@ -30,17 +30,14 @@ def handle_user_queries(rag_service, chat_manager) -> None:
     
     # 处理用户输入（流式）
     if st.session_state.messages:
-        from frontend.components.chat_input import deepseek_style_chat_input
-        prompt = deepseek_style_chat_input("给系统发送消息", key="main_chat_input", fixed=True)
+        from frontend.components.chat_input import simple_chat_input
+        prompt = simple_chat_input("给系统发送消息", key="main_chat_input")
         
         if prompt:
             st.session_state.is_thinking = True
             # 显示用户消息
-            from frontend.utils.helpers import create_centered_columns
-            left_spacer, center_col, right_spacer = create_centered_columns()
-            with center_col:
-                with st.chat_message("user"):
-                    st.markdown(prompt)
+            with st.chat_message("user"):
+                st.markdown(prompt)
             st.session_state.messages.append({"role": "user", "content": prompt})
             
             # 流式处理

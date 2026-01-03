@@ -9,7 +9,6 @@
 import streamlit as st
 from src.infrastructure.config import config
 from frontend.utils.state import init_session_state
-from frontend.utils.styles import CLAUDE_STYLE_CSS
 from frontend.settings.data_source import render_data_source_tab
 from frontend.settings.dev_tools import render_dev_tools_tab
 from frontend.settings.system_status import render_system_status_tab
@@ -18,9 +17,6 @@ from frontend.settings.system_status import render_system_status_tab
 @st.dialog("⚙️ 设置", width="large")
 def show_settings_dialog() -> None:
     """显示设置弹窗"""
-    # 应用CSS样式
-    st.markdown(CLAUDE_STYLE_CSS, unsafe_allow_html=True)
-    
     # 初始化状态（模型延迟加载，首次使用时自动加载）
     init_session_state()
     

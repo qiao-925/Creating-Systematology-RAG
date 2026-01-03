@@ -21,11 +21,7 @@ def handle_streaming_query(chat_manager, prompt: str) -> None:
         chat_manager: 对话管理器实例
         prompt: 用户查询
     """
-    from frontend.utils.helpers import create_centered_columns
-    left_spacer, center_col, right_spacer = create_centered_columns()
-    
-    with center_col:
-        with st.chat_message("assistant"):
+    with st.chat_message("assistant"):
             # 创建消息占位符用于流式更新
             message_placeholder = st.empty()
             

@@ -12,7 +12,6 @@ configure_all()
 # 导入项目模块
 from src.infrastructure.config import config
 from src.infrastructure.initialization.bootstrap import initialize_app
-from frontend.utils.styles import CLAUDE_STYLE_CSS
 from frontend.components.sidebar import render_sidebar
 from frontend.components.chat_display import render_chat_interface
 from frontend.components.query_handler import handle_user_queries
@@ -20,9 +19,6 @@ from frontend.components.query_handler import handle_user_queries
 
 def main():
     """主函数 - 应用入口点"""
-    # 应用样式
-    st.markdown(CLAUDE_STYLE_CSS, unsafe_allow_html=True)
-    
     # 初始化应用（如果尚未初始化）
     if not st.session_state.get('boot_ready', False):
         _initialize_application()

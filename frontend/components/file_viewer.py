@@ -147,7 +147,7 @@ def display_pdf_file(file_path: Path) -> None:
         
         base64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
         
-        # 使用iframe显示PDF
+        # 使用iframe显示PDF（使用 Streamlit 原生样式）
         pdf_display = f"""
         <iframe src="data:application/pdf;base64,{base64_pdf}" 
                 width="100%" 

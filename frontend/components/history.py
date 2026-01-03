@@ -148,11 +148,8 @@ def display_session_history(user_email: Optional[str] = None, current_session_id
     # 显示分组后的会话
     for group_name, sessions in grouped.items():
         if sessions:
-            # 分组标题样式（Manus风格：小号大写字母，淡色）
-            st.markdown(
-                f"<div class='manus-group-title'>{group_name}</div>",
-                unsafe_allow_html=True
-            )
+            # 分组标题（使用原生组件）
+            st.caption(group_name.upper())
             for idx, session in enumerate(sessions):
                 session_id = session['session_id']
                 title = session.get('title', '未命名会话')

@@ -9,13 +9,10 @@ from frontend.components.settings_dialog import show_settings_dialog
 
 
 def _render_sidebar_footer() -> None:
-    """渲染侧边栏底部固定工具栏（Manus风格）
+    """渲染侧边栏底部固定工具栏
     
     在侧边栏底部固定显示设置等工具按钮
     """
-    # 使用 markdown 创建工具栏容器
-    st.markdown('<div class="manus-sidebar-footer" id="manus-sidebar-footer">', unsafe_allow_html=True)
-    
     # 使用 columns 创建按钮布局
     col1, col2, col3 = st.columns([1, 1, 1])
     
@@ -31,40 +28,6 @@ def _render_sidebar_footer() -> None:
     with col3:
         # 预留位置（反馈按钮，暂时禁用）
         st.button("📱", key="feedback_button", help="反馈", use_container_width=True, disabled=True)
-    
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    # JavaScript: 动态同步底部工具栏宽度
-    st.markdown("""
-    <script>
-    (function() {
-        function updateFooterWidth() {
-            const sidebar = document.querySelector('[data-testid="stSidebar"]');
-            const footer = document.getElementById('manus-sidebar-footer');
-            if (sidebar && footer) {
-                const sidebarWidth = sidebar.offsetWidth || sidebar.clientWidth;
-                footer.style.width = sidebarWidth + 'px';
-            }
-        }
-        
-        // 初始更新
-        updateFooterWidth();
-        
-        // 监听侧边栏宽度变化
-        const observer = new ResizeObserver(function(entries) {
-            updateFooterWidth();
-        });
-        
-        const sidebar = document.querySelector('[data-testid="stSidebar"]');
-        if (sidebar) {
-            observer.observe(sidebar);
-        }
-        
-        // 定期检查（作为备用方案）
-        setInterval(updateFooterWidth, 500);
-    })();
-    </script>
-    """, unsafe_allow_html=True)
 
 
 def render_sidebar(chat_manager) -> None:
@@ -99,11 +62,11 @@ def render_sidebar(chat_manager) -> None:
                 current_session_id = chat_manager.current_session.session_id
             display_session_history(user_email=None, current_session_id=current_session_id)
         
-        # ========== 底部固定工具栏（Manus风格） ==========
+        # ========== 底部固定工具栏 ==========
         _render_sidebar_footer()
         
         # 检查是否需要显示设置弹窗
         if st.session_state.get("show_settings_dialog", False):
             show_settings_dialog()
-            # 注意：对话框的关闭由装饰器自动处理，不需要手动关闭
-
+            # 清除状态标志，避免下次 rerun 时再次显示弹窗
+            st.session_state.show_settings_dialog = False
