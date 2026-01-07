@@ -24,6 +24,12 @@ def render_chat_interface(rag_service, chat_manager) -> None:
         rag_service: RAG服务实例
         chat_manager: 对话管理器实例
     """
+    # 注入全局JavaScript脚本（仅一次，必须在渲染任何消息前）
+    if not st.session_state.get('citation_script_injected', False):
+        from frontend.utils.sources import inject_citation_script
+        st.markdown(inject_citation_script(), unsafe_allow_html=True)
+        st.session_state.citation_script_injected = True
+    
     # 处理历史会话加载（统一处理，避免多次rerun）
     from frontend.components.session_loader import load_history_session
     

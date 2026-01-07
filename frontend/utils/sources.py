@@ -5,6 +5,7 @@
 主要功能：
 - convert_sources_to_dict()：将SourceModel对象列表转换为字典列表
 - format_answer_with_citation_links()：将答案中的引用标签转换为可点击的超链接
+- inject_citation_script()：注入全局JavaScript脚本（仅一次）
 
 注意：文件查看功能已迁移到弹窗实现，不再使用URL跳转
 """
@@ -81,6 +82,61 @@ def convert_sources_to_dict(sources: Union[List[Dict[str, Any]], List[Any]]) -> 
     return result
 
 
+def inject_citation_script() -> str:
+    """注入全局JavaScript脚本用于引用跳转（仅需调用一次）
+    
+    Returns:
+        HTML字符串，包含JavaScript脚本
+    """
+    js_code = """
+    <script>
+    (function() {
+        // 避免重复定义
+        if (window.scrollToCitationLoaded) {
+            return;
+        }
+        window.scrollToCitationLoaded = true;
+        
+        function scrollToCitation(citationId) {
+            // 使用 Streamlit 原生主色调
+            const rootStyle = getComputedStyle(document.documentElement);
+            const primaryColor = rootStyle.getPropertyValue('--primary-color').trim() || '#2563EB';
+            // 简单的黄色高亮（Light/Dark 模式通用）
+            const highlightColor = '#FFF9C4';
+            
+            const element = document.getElementById(citationId);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                element.style.backgroundColor = highlightColor;
+                element.style.border = '2px solid ' + primaryColor;
+                setTimeout(() => {
+                    element.style.backgroundColor = '';
+                    element.style.border = '';
+                }, 2000);
+            } else {
+                setTimeout(() => {
+                    const targetElement = document.getElementById(citationId);
+                    if (targetElement) {
+                        targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        targetElement.style.backgroundColor = highlightColor;
+                        targetElement.style.border = '2px solid ' + primaryColor;
+                        setTimeout(() => {
+                            targetElement.style.backgroundColor = '';
+                            targetElement.style.border = '';
+                        }, 2000);
+                    }
+                }, 100);
+            }
+        }
+        
+        // 将函数暴露到全局作用域
+        window.scrollToCitation = scrollToCitation;
+    })();
+    </script>
+    """
+    return js_code
+
+
 def format_answer_with_citation_links(answer: str, sources: list, message_id: str = None) -> str:
     """将答案中的引用标签[1][2][3]转换为可点击的超链接
     
@@ -113,43 +169,6 @@ def format_answer_with_citation_links(answer: str, sources: list, message_id: st
     # 替换所有引用标签
     formatted_answer = re.sub(citation_pattern, replace_citation, answer)
     
-    # 添加JavaScript代码用于滚动到右侧引用来源
-    js_code = f"""
-    <script>
-    function scrollToCitation(citationId) {{
-        // 使用 Streamlit 原生主色调
-        const rootStyle = getComputedStyle(document.documentElement);
-        const primaryColor = rootStyle.getPropertyValue('--primary-color').trim() || '#2563EB';
-        // 简单的黄色高亮（Light/Dark 模式通用）
-        const highlightColor = '#FFF9C4';
-        
-        const element = document.getElementById(citationId);
-        if (element) {{
-            element.scrollIntoView({{ behavior: 'smooth', block: 'center' }});
-            element.style.backgroundColor = highlightColor;
-            element.style.border = '2px solid ' + primaryColor;
-            setTimeout(() => {{
-                element.style.backgroundColor = '';
-                element.style.border = '';
-            }}, 2000);
-        }} else {{
-            setTimeout(() => {{
-                const targetElement = document.getElementById(citationId);
-                if (targetElement) {{
-                    targetElement.scrollIntoView({{ behavior: 'smooth', block: 'center' }});
-                    targetElement.style.backgroundColor = highlightColor;
-                    targetElement.style.border = '2px solid ' + primaryColor;
-                    setTimeout(() => {{
-                        targetElement.style.backgroundColor = '';
-                        targetElement.style.border = '';
-                    }}, 2000);
-                }}
-            }}, 100);
-        }}
-    }}
-    </script>
-    """
-    
-    return formatted_answer + js_code
+    return formatted_answer
 
 
