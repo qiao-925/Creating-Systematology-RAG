@@ -59,10 +59,6 @@ class Config:
         'EMBED_BATCH_SIZE': lambda m: m.embedding.batch_size,
         'EMBED_MAX_LENGTH': lambda m: m.embedding.max_length,
         # 可观测性配置
-        'ENABLE_PHOENIX': lambda m: m.observability.phoenix.enable,
-        'PHOENIX_LAUNCH_APP': lambda m: m.observability.phoenix.launch_app,
-        'PHOENIX_HOST': lambda m: m.observability.phoenix.host,
-        'PHOENIX_PORT': lambda m: m.observability.phoenix.port,
         'ENABLE_DEBUG_HANDLER': lambda m: m.observability.llama_debug.enable,
         'DEBUG_PRINT_TRACE': lambda m: m.observability.llama_debug.print_trace,
         # RAGAS配置

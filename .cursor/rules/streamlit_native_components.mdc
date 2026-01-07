@@ -1,9 +1,10 @@
 ---
-description: Streamlit 原生组件优先使用规范 - 前端开发时优先使用原生组件
+description: "Streamlit 原生组件优先使用规范 - 前端开发时优先使用原生组件"
 autoAttach: true
 globs:
   - "frontend/**/*.py"
   - "src/ui/**/*.py"
+priority: 2
 ---
 
 # Streamlit 原生组件优先使用规范

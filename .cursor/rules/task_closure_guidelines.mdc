@@ -1,7 +1,7 @@
-# 任务收尾规范
 ---
-description: 任务收尾规范 - 日志、优化分析与规则校验的一体化收尾流程
+description: "任务收尾规范 - 日志、优化分析与规则校验的一体化收尾流程"
 alwaysApply: true
+priority: 1
 ---
 
 # 任务收尾规范

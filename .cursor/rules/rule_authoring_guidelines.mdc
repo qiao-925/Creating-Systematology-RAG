@@ -1,7 +1,8 @@
 ---
-description: 规则设计规范 - 设计或优化规则的指南
+description: "规则设计规范 - 设计或优化规则的指南"
 alwaysApply: false
 manualTrigger: true
+priority: 1
 ---
 # 规则设计规范
 

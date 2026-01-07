@@ -43,6 +43,10 @@ def handle_non_streaming_query(rag_service, chat_manager, prompt: str) -> None:
                 # 保存到消息历史
                 save_message_to_history(answer, local_sources, reasoning_content)
                 
+                # 显示观察器信息（在答案前）
+                from frontend.components.chat_display import _render_observer_info
+                _render_observer_info(msg_idx)
+                
                 # 立即显示AI回答
                 if local_sources:
                     formatted_content = format_answer_with_citation_links(

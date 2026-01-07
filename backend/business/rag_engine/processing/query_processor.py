@@ -16,9 +16,11 @@ RAG引擎查询处理模块 - 查询处理器：统一处理意图理解和查�
 - 一次LLM调用完成意图理解和改写
 - 缓存机制（LRU）
 - 完整的错误处理和降级
+- 模板文件化：支持从文件加载模板，方便修改
 """
 
 import json
+from pathlib import Path
 from typing import Dict, Any, Optional, List
 
 from backend.infrastructure.config import config
@@ -31,7 +33,8 @@ logger = get_logger('rag_engine.processing.query_processor')
 class QueryProcessor:
     """查询处理器 - 统一处理意图理解和改写（一次LLM调用）"""
     
-    COMBINED_PROMPT = """你是一个RAG系统查询处理专家，负责同时完成查询意图理解和查询改写。
+    # 默认模板（作为后备，如果文件不存在时使用）
+    DEFAULT_TEMPLATE = """你是一个RAG系统查询处理专家，负责同时完成查询意图理解和查询改写。
 
 【任务1：意图理解】
 分析查询的意图和特征，提取：
@@ -77,22 +80,85 @@ class QueryProcessor:
 只返回JSON，不要其他说明。改写后的查询数量：简单查询1个，复杂查询1-3个。
 """
     
-    def __init__(self, llm=None, domain_keywords: Optional[List[str]] = None):
+    def __init__(
+        self, 
+        llm=None, 
+        domain_keywords: Optional[List[str]] = None,
+        template_path: Optional[str] = None
+    ):
         """初始化查询处理器
         
         Args:
             llm: LLM实例（可选，默认使用DeepSeek）
             domain_keywords: 领域关键词列表（可选）
+            template_path: 模板文件路径（可选，默认使用 query_rewrite_template.txt）
         """
         self._llm = llm
         self._llm_initialized = False
         self.domain_keywords = domain_keywords or []
         
+        # 加载模板
+        self.template = self._load_template(template_path)
+        
         # 缓存（LRU，最多100个）
         self._cache = {}
         self._cache_size = 100
         
-        logger.info("查询处理器初始化完成")
+        template_source = "file" if template_path or self._template_file_exists() else "default"
+        logger.info("查询处理器初始化完成", template_source=template_source)
+    
+    def _get_default_template_path(self) -> Path:
+        """获取默认模板文件路径"""
+        # 默认路径：项目根目录/query_rewrite_template.txt
+        return config.PROJECT_ROOT / "query_rewrite_template.txt"
+    
+    def _template_file_exists(self) -> bool:
+        """检查默认模板文件是否存在"""
+        return self._get_default_template_path().exists()
+    
+    def _load_template(self, template_path: Optional[str] = None) -> str:
+        """加载模板（优先从文件，否则使用默认模板）
+        
+        Args:
+            template_path: 模板文件路径（可选）
+            
+        Returns:
+            模板内容字符串
+        """
+        # 确定模板文件路径
+        if template_path:
+            template_file = Path(template_path)
+            if not template_file.is_absolute():
+                template_file = config.PROJECT_ROOT / template_file
+        else:
+            template_file = self._get_default_template_path()
+        
+        # 尝试从文件加载
+        if template_file.exists():
+            try:
+                with open(template_file, 'r', encoding='utf-8') as f:
+                    template_content = f.read().strip()
+                
+                logger.info(
+                    "成功加载查询改写模板文件",
+                    template_path=str(template_file)
+                )
+                return template_content
+            
+            except Exception as e:
+                logger.warning(
+                    "加载模板文件失败，使用默认模板",
+                    template_path=str(template_file),
+                    error=str(e)
+                )
+        else:
+            logger.debug(
+                "模板文件不存在，使用默认模板",
+                template_path=str(template_file)
+            )
+        
+        # 使用默认模板
+        return self.DEFAULT_TEMPLATE
     
     def _initialize_llm(self):
         """初始化LLM（延迟加载）"""
@@ -210,7 +276,8 @@ class QueryProcessor:
             if self.domain_keywords:
                 domain_context = f"\n领域关键词：{', '.join(self.domain_keywords)}"
             
-            prompt = self.COMBINED_PROMPT.format(query=query) + domain_context
+            # 使用加载的模板（支持从文件加载）
+            prompt = self.template.format(query=query) + domain_context
             
             # 调用LLM
             response = self._llm.complete(prompt)
@@ -298,6 +365,22 @@ class QueryProcessor:
         """清空缓存"""
         self._cache.clear()
         logger.info("查询处理器缓存已清空")
+    
+    def reload_template(self, template_path: Optional[str] = None) -> None:
+        """重新加载模板（用于运行时更新）
+        
+        Args:
+            template_path: 模板文件路径（可选，默认使用默认路径）
+        """
+        old_template = self.template
+        self.template = self._load_template(template_path)
+        
+        if old_template != self.template:
+            logger.info("查询改写模板已重新加载")
+            # 清空缓存，因为模板已更改
+            self.clear_cache()
+        else:
+            logger.debug("模板未变化，无需重新加载")
 
 
 # 全局查询处理器实例（延迟初始化）

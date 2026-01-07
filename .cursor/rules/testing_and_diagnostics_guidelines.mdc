@@ -1,7 +1,7 @@
-# 测试与诊断规范
 ---
-description: 测试与诊断规范 - 代码变更后的测试执行与排障升级流程
+description: "测试与诊断规范 - 代码变更后的测试执行与排障升级流程"
 alwaysApply: true
+priority: 1
 ---
 
 # 测试与诊断规范

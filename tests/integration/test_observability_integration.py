@@ -1,6 +1,6 @@
 """
 可观测性集成测试
-测试Phoenix和RAGAS集成
+测试RAGAS集成
 """
 
 import pytest
@@ -12,7 +12,6 @@ from unittest.mock import patch, Mock
 from backend.business.rag_engine.core.engine import ModularQueryEngine
 from backend.infrastructure.indexer import IndexManager
 from backend.infrastructure.observers.manager import ObserverManager
-from backend.infrastructure.observers.phoenix_observer import PhoenixObserver
 from backend.infrastructure.observers.ragas_evaluator import RAGASEvaluator
 from llama_index.core.schema import Document as LlamaDocument
 
@@ -55,100 +54,6 @@ def index_manager_with_docs(test_documents):
         manager.delete_collection(collection_name)
     except:
         pass
-
-
-class TestPhoenixIntegration:
-    """Phoenix追踪集成测试"""
-    
-    def test_phoenix_tracking_integration(self, index_manager_with_docs):
-        """测试Phoenix追踪集成"""
-        try:
-            # 创建Phoenix观察器（不启动Web应用）
-            phoenix_observer = PhoenixObserver(launch_app=False, enabled=True)
-            
-            # 创建观察器管理器
-            observer_manager = ObserverManager()
-            observer_manager = ObserverManager()
-            observer_manager.add_observer(phoenix_observer)
-            
-            # 创建查询引擎（带Phoenix观察器）
-            engine = ModularQueryEngine(
-                index_manager=index_manager_with_docs,
-                retrieval_strategy="vector",
-                observer_manager=observer_manager,
-            )
-            
-            # 执行查询
-            query = "系统科学是什么？"
-            answer, sources, trace = engine.query(query, collect_trace=True)
-            
-            assert answer is not None
-            assert isinstance(answer, str)
-            
-            # Phoenix应该通过callback_handler自动追踪
-            # 验证观察器已初始化
-            assert phoenix_observer.enabled is True or phoenix_observer.enabled is False  # 可能未安装
-            
-        except ImportError:
-            pytest.skip("Phoenix未安装，跳过Phoenix集成测试")
-        except Exception as e:
-            pytest.skip(f"Phoenix集成测试失败: {e}")
-    
-    def test_phoenix_callback_handler_integration(self, index_manager_with_docs):
-        """测试Phoenix回调处理器集成"""
-        try:
-            # 创建Phoenix观察器
-            phoenix_observer = PhoenixObserver(launch_app=False)
-            
-            # 验证回调处理器已创建（如果Phoenix可用）
-            if phoenix_observer.enabled:
-                assert phoenix_observer.callback_handler is not None
-                
-                # 获取回调处理器
-                callback_handlers = phoenix_observer.get_callback_handlers()
-                assert len(callback_handlers) > 0
-            else:
-                # 如果Phoenix未安装，也是合理的
-                pytest.skip("Phoenix未安装或未启用")
-                
-        except ImportError:
-            pytest.skip("Phoenix未安装，跳过回调处理器测试")
-        except Exception as e:
-            pytest.skip(f"Phoenix回调处理器测试失败: {e}")
-    
-    def test_phoenix_with_query_tracking(self, index_manager_with_docs):
-        """测试Phoenix查询追踪"""
-        try:
-            # 创建带Phoenix的观察器管理器
-            observer_manager = ObserverManager()
-            phoenix_observer = PhoenixObserver(launch_app=False)
-            
-            if phoenix_observer.enabled:
-                observer_manager.add_observer(phoenix_observer)
-            
-            # 创建查询引擎
-            engine = ModularQueryEngine(
-                index_manager=index_manager_with_docs,
-                retrieval_strategy="vector",
-                observer_manager=observer_manager if phoenix_observer.enabled else None,
-            )
-            
-            # 执行多个查询
-            queries = [
-                "系统科学的定义",
-                "钱学森的贡献",
-            ]
-            
-            for query in queries:
-                answer, sources, trace = engine.query(query, collect_trace=True)
-                assert answer is not None
-                
-                # Phoenix应该追踪这些查询
-                
-        except ImportError:
-            pytest.skip("Phoenix未安装，跳过查询追踪测试")
-        except Exception as e:
-            pytest.skip(f"Phoenix查询追踪测试失败: {e}")
 
 
 class TestRAGASIntegration:
@@ -260,14 +165,6 @@ class TestObserverManagerIntegration:
             # 创建多个观察器
             observer_manager = ObserverManager()
             
-            # 添加Phoenix观察器（如果可用）
-            try:
-                phoenix_observer = PhoenixObserver(launch_app=False)
-                if phoenix_observer.enabled:
-                    observer_manager.add_observer(phoenix_observer)
-            except:
-                pass
-            
             # 添加RAGAS评估器（如果可用）
             try:
                 ragas_evaluator = RAGASEvaluator(enabled=True)
@@ -299,14 +196,6 @@ class TestObserverManagerIntegration:
         """测试ObserverManager回调处理器"""
         try:
             observer_manager = ObserverManager()
-            
-            # 添加Phoenix观察器
-            try:
-                phoenix_observer = PhoenixObserver(launch_app=False)
-                if phoenix_observer.enabled:
-                    observer_manager.add_observer(phoenix_observer)
-            except:
-                pass
             
             # 获取回调处理器
             callback_handlers = observer_manager.get_callback_handlers()
@@ -366,14 +255,6 @@ class TestObservabilityWithRAGService:
             
             # 创建观察器管理器
             observer_manager = ObserverManager()
-            
-            # 添加Phoenix（如果可用）
-            try:
-                phoenix_observer = PhoenixObserver(launch_app=False)
-                if phoenix_observer.enabled:
-                    observer_manager.add_observer(phoenix_observer)
-            except:
-                pass
             
             # 创建RAGService（注意：需要传递observer_manager到ModularQueryEngine）
             service = RAGService(

@@ -43,6 +43,20 @@ class ObserverManager:
             if obs.get_observer_type() == observer_type and obs.is_enabled()
         ]
     
+    def get_observer(self, name: str) -> Optional[BaseObserver]:
+        """根据名称获取观察器实例
+        
+        Args:
+            name: 观察器名称
+            
+        Returns:
+            观察器实例，如果不存在则返回 None
+        """
+        for observer in self.observers:
+            if observer.name == name:
+                return observer
+        return None
+    
     def on_query_start(self, query: str, **kwargs) -> Dict[str, Optional[str]]:
         """通知所有观察器：查询开始
         

@@ -25,7 +25,7 @@ from enum import Enum
 
 class ObserverType(Enum):
     """观察器类型"""
-    TRACING = "tracing"          # 追踪（Phoenix）
+    TRACING = "tracing"          # 追踪
     EVALUATION = "evaluation"    # 评估（RAGAS）
     DEBUG = "debug"              # 调试（LlamaDebug）
     METRICS = "metrics"          # 指标收集

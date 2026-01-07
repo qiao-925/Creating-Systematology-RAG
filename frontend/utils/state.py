@@ -55,9 +55,7 @@ def init_session_state() -> None:
     if 'debug_mode_enabled' not in st.session_state:
         st.session_state.debug_mode_enabled = True
     
-    if 'phoenix_enabled' not in st.session_state:
-        st.session_state.phoenix_enabled = True
-    
+    # 追踪信息默认启用，无需配置
     if 'collect_trace' not in st.session_state:
         st.session_state.collect_trace = True
     

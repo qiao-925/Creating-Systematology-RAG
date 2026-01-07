@@ -15,7 +15,7 @@ class InitCategory(Enum):
     """初始化分类枚举"""
     FOUNDATION = "foundation"  # 基础层：编码、配置、日志等基础设施
     CORE = "core"              # 核心层：Embedding、Chroma、IndexManager、LLM、RAGService、ChatManager
-    OPTIONAL = "optional"       # 可选层：Phoenix、LlamaDebug、RAGAS等可观测性工具
+    OPTIONAL = "optional"       # 可选层：LlamaDebug、RAGAS等可观测性工具
 
 
 # 分类显示名称映射

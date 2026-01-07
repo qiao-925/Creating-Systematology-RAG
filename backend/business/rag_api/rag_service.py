@@ -115,17 +115,27 @@ class RAGService:
         question: str,
         user_id: Optional[str] = None,
         session_id: Optional[str] = None,
+        collect_trace: bool = False,
         **kwargs
     ) -> RAGResponse:
-        """查询接口"""
+        """查询接口
+        
+        Args:
+            question: 查询问题
+            user_id: 用户ID（可选）
+            session_id: 会话ID（可选）
+            collect_trace: 是否收集追踪信息
+            **kwargs: 其他参数
+        """
         # 验证输入
         request = QueryRequest(question=question, session_id=session_id, **kwargs)
-        return self._query_internal(request, user_id=user_id)
+        return self._query_internal(request, user_id=user_id, collect_trace=collect_trace)
     
     def _query_internal(
         self,
         request: QueryRequest,
-        user_id: Optional[str] = None
+        user_id: Optional[str] = None,
+        collect_trace: bool = False
     ) -> RAGResponse:
         """查询接口（使用 Pydantic 验证）"""
         logger.info(
@@ -134,13 +144,14 @@ class RAGService:
             session_id=request.session_id,
             question=request.question[:50] if len(request.question) > 50 else request.question,
             top_k=request.top_k,
-            strategy=request.strategy
+            strategy=request.strategy,
+            collect_trace=collect_trace
         )
         try:
             # 执行查询
-            answer, sources, reasoning_content, _ = self.modular_query_engine.query(
+            answer, sources, reasoning_content, trace_info = self.modular_query_engine.query(
                 request.question,
-                collect_trace=False
+                collect_trace=collect_trace
             )
             
             # 转换为 SourceModel 列表
@@ -158,16 +169,23 @@ class RAGService:
                         node_id=source.get('node_id')
                     ))
             
+            # 创建元数据
+            metadata = {
+                'user_id': user_id,
+                'session_id': request.session_id,
+                'question': request.question,
+                'reasoning_content': reasoning_content,
+            }
+            
+            # 如果收集了追踪信息，添加到元数据
+            if collect_trace and trace_info:
+                metadata['trace_info'] = trace_info
+            
             # 创建 Pydantic 响应模型
             response = RAGResponse(
                 answer=answer,
                 sources=source_models,
-                metadata={
-                    'user_id': user_id,
-                    'session_id': request.session_id,
-                    'question': request.question,
-                    'reasoning_content': reasoning_content,
-                }
+                metadata=metadata
             )
             
             logger.info(

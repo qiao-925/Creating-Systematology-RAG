@@ -161,30 +161,27 @@ class BatchProcessingConfig(BaseModel):
     index_max_batches: int = 0
 
 
-class PhoenixConfig(BaseModel):
-    """Phoenix可观测性配置"""
-    enable: bool = True
-    launch_app: bool = False
-    host: str = "0.0.0.0"
-    port: int = 6006
-
-
 class LlamaDebugConfig(BaseModel):
     """LlamaDebug配置"""
-    enable: bool = False
+    enable: bool = True  # 默认启用
     print_trace: bool = True
 
 
 class ObservabilityConfig(BaseModel):
     """可观测性配置"""
-    phoenix: PhoenixConfig
     llama_debug: LlamaDebugConfig
 
 
 class RagasConfig(BaseModel):
     """RAGAS评估器配置"""
-    enable: bool = False
-    metrics: List[str]
+    enable: bool = True  # 默认启用
+    metrics: List[str] = [
+        "faithfulness",
+        "context_precision",
+        "context_recall",
+        "answer_relevancy",
+        "context_relevancy",
+    ]
     batch_size: int = 10
 
 

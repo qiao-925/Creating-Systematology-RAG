@@ -5,8 +5,8 @@
 - BaseObserver类：观察器基类，定义统一接口
 - ObserverType枚举：观察器类型（追踪、评估、调试、指标）
 - ObserverManager类：观察器管理器
-- PhoenixObserver类：Phoenix追踪观察器
 - LlamaDebugObserver类：LlamaDebug调试观察器
+- RAGASEvaluator类：RAGAS评估器
 - create_default_observers()：创建默认观察器
 
 执行流程：
@@ -30,8 +30,8 @@ __all__ = [
     'BaseObserver',
     'ObserverType',
     'ObserverManager',
-    'PhoenixObserver',
     'LlamaDebugObserver',
+    'RAGASEvaluator',
     'create_default_observers',
 ]
 
@@ -47,12 +47,12 @@ def __getattr__(name: str) -> Any:
     elif name == 'ObserverManager':
         from backend.infrastructure.observers.manager import ObserverManager
         return ObserverManager
-    elif name == 'PhoenixObserver':
-        from backend.infrastructure.observers.phoenix_observer import PhoenixObserver
-        return PhoenixObserver
     elif name == 'LlamaDebugObserver':
         from backend.infrastructure.observers.llama_debug_observer import LlamaDebugObserver
         return LlamaDebugObserver
+    elif name == 'RAGASEvaluator':
+        from backend.infrastructure.observers.ragas_evaluator import RAGASEvaluator
+        return RAGASEvaluator
     elif name == 'create_default_observers':
         from backend.infrastructure.observers.factory import create_default_observers
         return create_default_observers

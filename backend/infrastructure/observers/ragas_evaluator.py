@@ -13,6 +13,14 @@ from backend.infrastructure.logger import get_logger
 
 logger = get_logger('ragas_evaluator')
 
+# 尝试导入 streamlit（可选）
+try:
+    import streamlit as st
+    STREAMLIT_AVAILABLE = True
+except ImportError:
+    STREAMLIT_AVAILABLE = False
+    st = None
+
 
 class RAGASEvaluator(BaseObserver):
     """RAGAS评估器观察器
@@ -137,6 +145,49 @@ class RAGASEvaluator(BaseObserver):
             self.evaluation_data.append(evaluation_entry)
             logger.debug(f"✅ RAGAS 记录查询完成: {len(contexts)} 个上下文")
             
+            # 存储到 session_state 供前端显示（如果 streamlit 可用）
+            if STREAMLIT_AVAILABLE and hasattr(st, 'session_state'):
+                if 'ragas_logs' not in st.session_state:
+                    st.session_state.ragas_logs = []
+                
+                log_entry = {
+                    "query": query,
+                    "answer": answer[:500] + "..." if len(answer) > 500 else answer,
+                    "answer_length": len(answer),
+                    "answer_preview": answer[:200] + "..." if len(answer) > 200 else answer,
+                    "contexts_count": len(contexts),
+                    "contexts": [
+                        ctx[:500] + "..." if len(ctx) > 500 else ctx
+                        for ctx in contexts[:10]  # 保存前10个上下文
+                    ],
+                    "contexts_full": contexts,  # 保存完整上下文列表（用于评估）
+                    "timestamp": evaluation_entry["timestamp"],
+                    "pending_evaluation": True,
+                    "sources_count": len(sources),
+                    "sources": [
+                        {
+                            "text": src.get('text', '')[:200] if isinstance(src, dict) else str(src)[:200],
+                            "score": src.get('score', 0) if isinstance(src, dict) else None,
+                            "metadata": src.get('metadata', {}) if isinstance(src, dict) else {},
+                        }
+                        for src in sources[:10]  # 保存前10个来源
+                    ],
+                    "trace_id": trace_id,
+                    "ground_truth": kwargs.get('ground_truth', None),
+                }
+                st.session_state.ragas_logs.append(log_entry)
+                
+                # 只保留最近50条记录
+                if len(st.session_state.ragas_logs) > 50:
+                    st.session_state.ragas_logs = st.session_state.ragas_logs[-50:]
+            
+            # 打印到控制台
+            print(f"\n📊 RAGAS 评估数据收集:")
+            print(f"   查询: {query[:100]}...")
+            print(f"   答案长度: {len(answer)} 字符")
+            print(f"   上下文数量: {len(contexts)}")
+            print(f"   待评估数据: {len(self.evaluation_data)}/{self.batch_size}")
+            
             # 如果达到批量大小，执行批量评估
             if len(self.evaluation_data) >= self.batch_size:
                 self._run_batch_evaluation()
@@ -193,12 +244,42 @@ class RAGASEvaluator(BaseObserver):
             self.evaluation_results.append(evaluation_result)
             logger.info(f"✅ 批量评估完成: {len(self.evaluation_data)} 条数据")
             
-            # 打印评估结果摘要
+            # 更新 session_state 中的评估结果（如果 streamlit 可用）
+            if STREAMLIT_AVAILABLE and hasattr(st, 'session_state') and 'ragas_logs' in st.session_state:
+                # 标记最近的待评估记录为已评估
+                for log_entry in st.session_state.ragas_logs[-self.batch_size:]:
+                    if log_entry.get('pending_evaluation'):
+                        log_entry['pending_evaluation'] = False
+                        
+                        # 提取评估结果
+                        eval_metrics = {}
+                        if hasattr(result, 'to_dict'):
+                            result_dict = result.to_dict()
+                            # 提取指标值
+                            for metric_name in self.metrics:
+                                if metric_name in result_dict:
+                                    eval_metrics[metric_name] = result_dict[metric_name]
+                        elif isinstance(result, dict):
+                            eval_metrics = result
+                        elif hasattr(result, '__dict__'):
+                            # 尝试从对象属性中提取
+                            for metric_name in self.metrics:
+                                if hasattr(result, metric_name):
+                                    eval_metrics[metric_name] = getattr(result, metric_name)
+                        
+                        log_entry['evaluation_result'] = eval_metrics
+                        log_entry['evaluation_timestamp'] = datetime.now().isoformat()
+                        log_entry['evaluation_batch_size'] = len(self.evaluation_data)
+            
+            # 打印评估结果摘要到控制台
+            print(f"\n📊 RAGAS 批量评估完成:")
+            print(f"   评估数据量: {len(self.evaluation_data)}")
             if hasattr(result, '__dict__'):
-                logger.info(f"📊 评估结果摘要:")
+                print(f"   评估结果:")
                 for metric_name in self.metrics:
                     if hasattr(result, metric_name):
                         metric_value = getattr(result, metric_name)
+                        print(f"     {metric_name}: {metric_value}")
                         logger.info(f"   {metric_name}: {metric_value}")
             
             # 清空已评估的数据

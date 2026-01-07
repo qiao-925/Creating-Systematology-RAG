@@ -149,18 +149,7 @@ def register_all_modules(manager: InitializationManager) -> None:
         description="模块化查询引擎"
     )
     
-    # 12. Phoenix 观察器
-    manager.register_module(
-        name="phoenix",
-        category=InitCategory.OPTIONAL.value,
-        check_func=lambda: _check_phoenix(),
-        init_func=lambda: _init_phoenix(manager),
-        dependencies=["config", "logger"],
-        is_required=False,
-        description="Phoenix可观测性工具"
-    )
-    
-    # 13. LlamaDebug 观察器
+    # 12. LlamaDebug 观察器
     manager.register_module(
         name="llama_debug",
         category=InitCategory.OPTIONAL.value,
@@ -170,7 +159,7 @@ def register_all_modules(manager: InitializationManager) -> None:
         description="LlamaDebug调试工具"
     )
     
-    # 14. RAGAS 评估器
+    # 13. RAGAS 评估器
     manager.register_module(
         name="ragas",
         category=InitCategory.OPTIONAL.value,
@@ -397,21 +386,6 @@ def _init_chat_manager(manager: InitializationManager) -> Any:
     return chat_manager
 
 
-def _init_phoenix(manager: InitializationManager) -> Optional[Any]:
-    """初始化Phoenix观察器（可选）"""
-    if not config.OBSERVABILITY_PHOENIX_ENABLE:
-        logger.debug("Phoenix 未启用，跳过初始化")
-        return None
-    
-    try:
-        from backend.infrastructure.phoenix_utils import start_phoenix_ui
-        phoenix_session = start_phoenix_ui(port=6006)
-        return phoenix_session
-    except Exception as e:
-        logger.warning(f"Phoenix 初始化失败: {e}")
-        return None
-
-
 # ========== 检查函数实现 ==========
 
 def _check_encoding() -> bool:
@@ -573,19 +547,6 @@ def _check_session_state() -> bool:
         # 检查关键状态是否存在
         required_keys = ['collection_name', 'messages']
         return all(key in st.session_state for key in required_keys)
-    except Exception:
-        return False
-
-
-def _check_phoenix() -> bool:
-    """检查Phoenix观察器"""
-    try:
-        if not config.OBSERVABILITY_PHOENIX_ENABLE:
-            return False
-        
-        # 检查模块是否存在
-        from backend.infrastructure.observers.phoenix_observer import PhoenixObserver
-        return True
     except Exception:
         return False
 

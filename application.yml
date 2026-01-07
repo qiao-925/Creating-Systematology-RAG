@@ -114,17 +114,12 @@ batch_processing:
 # 6. 可观测性与评估配置
 # ============================================================================
 observability:
-  phoenix:
-    enable: true
-    launch_app: false
-    host: 0.0.0.0
-    port: 6006
   llama_debug:
-    enable: false
+    enable: true  # 默认启用
     print_trace: true
 
 ragas:
-  enable: false
+  enable: true  # 默认启用
   metrics:
     - faithfulness
     - context_precision

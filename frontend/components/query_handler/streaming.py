@@ -77,6 +77,10 @@ def handle_streaming_query(chat_manager, prompt: str) -> None:
                 msg_idx = len(st.session_state.messages)
                 message_id = generate_message_id(msg_idx, full_answer)
                 
+                # 显示观察器信息（在答案前）
+                from frontend.components.chat_display import _render_observer_info
+                _render_observer_info(msg_idx - 1)  # 减1因为消息已保存
+                
                 if local_sources:
                     formatted_content = format_answer_with_citation_links(
                         full_answer,

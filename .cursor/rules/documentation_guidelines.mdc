@@ -1,6 +1,10 @@
 ---
-description: 文档编写规范 - 文件结构与审校要求
+description: "文档编写规范 - 文件结构与审校要求"
+globs:
+  - "**/*.md"
+  - "**/*.mdc"
 alwaysApply: true
+priority: 1
 ---
 
 # 文档编写规范

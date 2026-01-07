@@ -1,6 +1,6 @@
 """
 Observer模块单元测试
-测试PhoenixObserver、LlamaDebugObserver、RAGASEvaluator和ObserverManager
+测试LlamaDebugObserver、RAGASEvaluator和ObserverManager
 """
 
 import pytest
@@ -8,7 +8,6 @@ from unittest.mock import Mock, patch, MagicMock
 from typing import Dict, List
 
 from backend.infrastructure.observers.base import BaseObserver, ObserverType
-from backend.infrastructure.observers.phoenix_observer import PhoenixObserver
 from backend.infrastructure.observers.llama_debug_observer import LlamaDebugObserver
 from backend.infrastructure.observers.ragas_evaluator import RAGASEvaluator
 from backend.infrastructure.observers.manager import ObserverManager
@@ -34,114 +33,6 @@ class TestBaseObserver:
         assert ObserverType.EVALUATION.value == "evaluation"
         assert ObserverType.DEBUG.value == "debug"
         assert ObserverType.METRICS.value == "metrics"
-
-
-class TestPhoenixObserver:
-    """PhoenixObserver测试"""
-    
-    @patch('src.infrastructure.observers.phoenix_observer.px')
-    def test_phoenix_observer_init(self, mock_px):
-        """测试PhoenixObserver初始化（Mock）"""
-        mock_px.launch_app.return_value = Mock()
-        from phoenix.trace.llama_index import OpenInferenceTraceCallbackHandler
-        
-        observer = PhoenixObserver(
-            name="test_phoenix",
-            enabled=True,
-            launch_app=False
-        )
-        
-        assert isinstance(observer, BaseObserver)
-        assert observer.name == "test_phoenix"
-        assert observer.enabled is True
-        assert observer.get_observer_type() == ObserverType.TRACING
-    
-    @patch('src.infrastructure.observers.phoenix_observer.px')
-    def test_phoenix_observer_init_with_launch(self, mock_px):
-        """测试PhoenixObserver初始化（启动应用）"""
-        mock_session = Mock()
-        mock_px.launch_app.return_value = mock_session
-        from phoenix.trace.llama_index import OpenInferenceTraceCallbackHandler
-        
-        observer = PhoenixObserver(
-            name="test_phoenix",
-            enabled=True,
-            launch_app=True,
-            host="127.0.0.1",
-            port=6006
-        )
-        
-        assert observer.session is not None
-        mock_px.launch_app.assert_called_once_with(host="127.0.0.1", port=6006)
-    
-    @patch('src.infrastructure.observers.phoenix_observer.px')
-    def test_phoenix_observer_init_import_error(self, mock_px):
-        """测试Phoenix导入失败时的处理"""
-        import sys
-        original_import = __import__
-        
-        def mock_import(name, *args, **kwargs):
-            if name == 'phoenix':
-                raise ImportError("phoenix not installed")
-            return original_import(name, *args, **kwargs)
-        
-        with patch('builtins.__import__', side_effect=mock_import):
-            observer = PhoenixObserver(enabled=True)
-            assert observer.enabled is False
-    
-    def test_phoenix_observer_query_callbacks(self):
-        """测试PhoenixObserver查询回调"""
-        observer = PhoenixObserver(
-            name="test_phoenix",
-            enabled=True,
-            launch_app=False
-        )
-        
-        # 如果Phoenix未安装，observer会被禁用
-        if not observer.enabled:
-            pytest.skip("Phoenix未安装")
-        
-        # 测试查询开始
-        trace_id = observer.on_query_start("test query")
-        assert trace_id is None  # Phoenix不需要手动管理trace_id
-        
-        # 测试查询结束
-        observer.on_query_end(
-            query="test query",
-            answer="test answer",
-            sources=[]
-        )
-    
-    def test_phoenix_observer_get_callback_handler(self):
-        """测试获取回调处理器"""
-        observer = PhoenixObserver(
-            name="test_phoenix",
-            enabled=True,
-            launch_app=False
-        )
-        
-        if not observer.enabled:
-            pytest.skip("Phoenix未安装")
-        
-        handler = observer.get_callback_handler()
-        # handler应该存在（如果是None，说明Phoenix未正确初始化）
-        if handler is not None:
-            assert handler is not None
-    
-    def test_phoenix_observer_get_report(self):
-        """测试获取Phoenix报告"""
-        observer = PhoenixObserver(
-            name="test_phoenix",
-            enabled=True,
-            launch_app=False
-        )
-        
-        report = observer.get_report()
-        
-        assert isinstance(report, dict)
-        assert report['observer'] == "test_phoenix"
-        assert report['type'] == 'tracing'
-        assert report['enabled'] == observer.enabled
 
 
 class TestLlamaDebugObserver:
@@ -342,10 +233,8 @@ class TestObserverManager:
         manager = ObserverManager()
         
         debug_observer = LlamaDebugObserver(name="debug1", enabled=True)
-        phoenix_observer = PhoenixObserver(name="phoenix1", enabled=True, launch_app=False)
         
         manager.add_observer(debug_observer)
-        manager.add_observer(phoenix_observer)
         
         debug_observers = manager.get_observers_by_type(ObserverType.DEBUG)
         assert len(debug_observers) > 0
@@ -419,7 +308,6 @@ class TestObserverFactory:
     def test_create_default_observers(self):
         """测试创建默认观察器"""
         manager = create_default_observers(
-            enable_phoenix=False,
             enable_debug=True,
             enable_ragas=False
         )
@@ -430,7 +318,6 @@ class TestObserverFactory:
     def test_create_default_observers_all_enabled(self):
         """测试启用所有观察器"""
         manager = create_default_observers(
-            enable_phoenix=True,
             enable_debug=True,
             enable_ragas=True
         )
@@ -441,10 +328,8 @@ class TestObserverFactory:
     @patch('src.infrastructure.observers.factory.config')
     def test_create_observer_from_config(self, mock_config):
         """测试从配置创建观察器"""
-        mock_config.ENABLE_PHOENIX = False
         mock_config.ENABLE_DEBUG_HANDLER = True
         mock_config.ENABLE_RAGAS = False
-        mock_config.PHOENIX_LAUNCH_APP = False
         
         manager = create_observer_from_config()
         
