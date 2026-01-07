@@ -666,5 +666,5 @@ app.py   RAGService   Config/Logger/Embedding/LLM
 
 ---
 
-**最后更新**: 2026-01-03  
+**最后更新**: 2026-01-07  
 **License**: MIT
