@@ -5,8 +5,8 @@
 
 import pytest
 from pathlib import Path
-from src.infrastructure.data_loader import load_documents_from_directory, load_documents_from_github
-from src.infrastructure.indexer import IndexManager
+from backend.infrastructure.data_loader import load_documents_from_directory, load_documents_from_github
+from backend.infrastructure.indexer import IndexManager
 
 
 @pytest.mark.integration

@@ -8,8 +8,8 @@ from pathlib import Path
 import tempfile
 import os
 
-from src.business.rag_engine.retrieval.strategies.grep import GrepRetriever
-from src.business.rag_engine.retrieval.strategies.multi_strategy import BaseRetriever
+from backend.business.rag_engine.retrieval.strategies.grep import GrepRetriever
+from backend.business.rag_engine.retrieval.strategies.multi_strategy import BaseRetriever
 from llama_index.core.schema import NodeWithScore
 
 

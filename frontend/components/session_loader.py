@@ -4,8 +4,8 @@
 
 import streamlit as st
 from pathlib import Path
-from src.business.chat import load_session_from_file
-from src.infrastructure.config import config
+from backend.business.chat import load_session_from_file
+from backend.infrastructure.config import config
 from frontend.utils.sources import convert_sources_to_dict
 
 

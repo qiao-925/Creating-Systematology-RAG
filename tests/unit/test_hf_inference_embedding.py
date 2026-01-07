@@ -8,8 +8,8 @@ from unittest.mock import Mock, patch, MagicMock
 from typing import List
 import os
 
-from src.infrastructure.embeddings.base import BaseEmbedding
-from src.infrastructure.embeddings.hf_inference_embedding import HFInferenceEmbedding
+from backend.infrastructure.embeddings.base import BaseEmbedding
+from backend.infrastructure.embeddings.hf_inference_embedding import HFInferenceEmbedding
 
 
 class TestHFInferenceEmbedding:
@@ -397,8 +397,8 @@ class TestHFInferenceEmbeddingFactory:
         sys.modules['llama_index.embeddings.huggingface'] = MagicMock()
         
         try:
-            import src.infrastructure.embeddings.factory as factory_module
-            from src.infrastructure.embeddings.factory import create_embedding, clear_embedding_cache
+            import backend.infrastructure.embeddings.factory as factory_module
+            from backend.infrastructure.embeddings.factory import create_embedding, clear_embedding_cache
             clear_embedding_cache()
             
             # Mock HFInferenceEmbedding
@@ -446,8 +446,8 @@ class TestHFInferenceEmbeddingFactory:
         sys.modules['llama_index.embeddings.huggingface'] = MagicMock()
         
         try:
-            import src.infrastructure.embeddings.factory as factory_module
-            from src.infrastructure.embeddings.factory import create_embedding, clear_embedding_cache
+            import backend.infrastructure.embeddings.factory as factory_module
+            from backend.infrastructure.embeddings.factory import create_embedding, clear_embedding_cache
             clear_embedding_cache()
             
             # Mock config
@@ -480,8 +480,8 @@ class TestHFInferenceEmbeddingFactory:
         sys.modules['llama_index.embeddings.huggingface'] = MagicMock()
         
         try:
-            import src.infrastructure.embeddings.factory as factory_module
-            from src.infrastructure.embeddings.factory import create_embedding, clear_embedding_cache
+            import backend.infrastructure.embeddings.factory as factory_module
+            from backend.infrastructure.embeddings.factory import create_embedding, clear_embedding_cache
             clear_embedding_cache()
             
             mock_instance = Mock(spec=BaseEmbedding)

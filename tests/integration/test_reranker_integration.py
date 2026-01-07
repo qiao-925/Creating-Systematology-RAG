@@ -9,8 +9,8 @@ import tempfile
 import shutil
 from unittest.mock import patch
 
-from src.business.rag_engine.core.engine import ModularQueryEngine
-from src.infrastructure.indexer import IndexManager
+from backend.business.rag_engine.core.engine import ModularQueryEngine
+from backend.infrastructure.indexer import IndexManager
 from llama_index.core.schema import Document as LlamaDocument
 
 

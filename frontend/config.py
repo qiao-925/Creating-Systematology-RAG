@@ -25,7 +25,7 @@ def configure_paths() -> None:
     """配置 Python 路径
     
     将项目根目录添加到 sys.path，确保可以导入项目模块。
-    必须在导入项目模块（如 src.*）之前执行。
+    必须在导入项目模块（如 backend.*）之前执行。
     """
     sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -34,11 +34,11 @@ def configure_encoding() -> None:
     """配置 UTF-8 编码
     
     确保 emoji 和中文正确显示。
-    优先使用 src.infrastructure.encoding.setup_utf8_encoding()，
+    优先使用 backend.infrastructure.encoding.setup_utf8_encoding()，
     如果导入失败，则手动设置环境变量。
     """
     try:
-        from src.infrastructure.encoding import setup_utf8_encoding
+        from backend.infrastructure.encoding import setup_utf8_encoding
         setup_utf8_encoding()
     except ImportError:
         # 如果 encoding 模块尚未加载，手动设置基础编码
@@ -77,7 +77,7 @@ def get_file_search_paths() -> list[Path]:
     Returns:
         文件搜索路径列表
     """
-    from src.infrastructure.config import config
+    from backend.infrastructure.config import config
     return [
         config.PROJECT_ROOT,
         config.RAW_DATA_PATH,
@@ -106,7 +106,7 @@ def configure_all() -> None:
     3. 退出钩子配置
     4. Streamlit 页面配置（必须在任何 Streamlit 调用前）
     
-    注意：此函数必须在导入项目模块（如 src.infrastructure.*）之前调用。
+    注意：此函数必须在导入项目模块（如 backend.infrastructure.*）之前调用。
     """
     configure_paths()
     configure_encoding()

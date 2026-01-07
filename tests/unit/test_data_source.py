@@ -8,9 +8,9 @@ import tempfile
 from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
 
-from src.infrastructure.data_loader.source.base import DataSource, SourceFile
-from src.infrastructure.data_loader.source.local import LocalFileSource
-from src.infrastructure.data_loader.source.github import GitHubSource
+from backend.infrastructure.data_loader.source.base import DataSource, SourceFile
+from backend.infrastructure.data_loader.source.local import LocalFileSource
+from backend.infrastructure.data_loader.source.github import GitHubSource
 
 
 class TestDataSourceBase:
@@ -237,7 +237,7 @@ class TestGitHubSource:
         assert source._should_include_file("docs/api.md") is True
         
         # 不应该包含：不在docs目录下
-        assert source._should_include_file("src/main.py") is False
+        assert source._should_include_file("backend/main.py") is False
         
         # 不应该包含：不是.md文件
         assert source._should_include_file("docs/readme.txt") is False

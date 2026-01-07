@@ -247,8 +247,8 @@ class TestIndexGenerator:
             module_name = file_name[5:]  # indexer
             # 尝试多个可能的路径
             possible_paths = [
-                f"src/{module_name}.py",
-                f"src/{module_name.replace('_', '/')}.py",
+                f"backend/{module_name}.py",
+                f"backend/{module_name.replace('_', '/')}.py",
             ]
             
             for path_str in possible_paths:

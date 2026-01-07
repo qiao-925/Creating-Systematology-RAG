@@ -55,7 +55,7 @@ help:
 
 # Windows PowerShell UTF-8 编码设置
 # 在 Windows 上，需要在输出 emoji 前设置编码
-# 注意：Python 代码输出的 emoji 已经正确（通过 src/encoding.py 设置）
+# 注意：Python 代码输出的 emoji 已经正确（通过 backend/encoding.py 设置）
 # 这里主要解决 Makefile echo 命令的输出问题
 #
 # 问题分析：
@@ -67,7 +67,7 @@ ifeq ($(OS),Windows_NT)
     # Windows: Makefile 可能使用 Git Bash 的 sh.exe 或 cmd.exe
     # 检测 shell 类型，使用对应的命令设置 UTF-8
     # 注意：PowerShell 控制台的编码设置是独立的，无法通过 Makefile 直接改变
-    # Python 代码的 emoji 输出已通过 src/encoding.py 正确设置
+    # Python 代码的 emoji 输出已通过 backend/encoding.py 正确设置
     # Makefile 的 echo 乱码不影响功能
     ifdef COMSPEC
         # cmd.exe 环境
@@ -146,7 +146,7 @@ test-api:
 clean:
 	@echo "🧹 Cleaning generated files..."
 	rm -rf __pycache__
-	rm -rf src/__pycache__
+	rm -rf backend/__pycache__
 	rm -rf tests/__pycache__
 	rm -rf tests/*/__pycache__
 	rm -rf .pytest_cache

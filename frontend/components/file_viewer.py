@@ -16,7 +16,7 @@
 import streamlit as st
 from pathlib import Path
 from typing import Optional
-from src.infrastructure.config import config
+from backend.infrastructure.config import config
 from frontend.config import get_file_search_paths
 
 

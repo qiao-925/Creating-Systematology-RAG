@@ -7,7 +7,7 @@ DeepSeekLogger 推理链记录单元测试
 import pytest
 from unittest.mock import Mock, patch, MagicMock
 
-from src.infrastructure.llms.deepseek_logger import DeepSeekLogger
+from backend.infrastructure.llms.deepseek_logger import DeepSeekLogger
 
 
 class TestDeepSeekLoggerReasoningContent:

@@ -5,7 +5,7 @@ GitHub仓库、本地文件管理
 
 import streamlit as st
 
-from src.infrastructure.data_loader import (
+from backend.infrastructure.data_loader import (
     DataImportService,
     parse_github_url,
     sync_github_repository
@@ -237,8 +237,8 @@ def _render_local_file_upload():
         if index_manager:
             with st.spinner(f"正在处理 {len(uploaded_files)} 个文件..."):
                 try:
-                    from src.infrastructure.data_loader.source import LocalFileSource
-                    from src.infrastructure.data_loader import DataImportService
+                    from backend.infrastructure.data_loader.source import LocalFileSource
+                    from backend.infrastructure.data_loader import DataImportService
                     
                     service = DataImportService(show_progress=False)
                     source = LocalFileSource(source=list(uploaded_files))

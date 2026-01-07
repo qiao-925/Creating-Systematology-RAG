@@ -7,7 +7,7 @@
 """
 
 import streamlit as st
-from src.infrastructure.config import config
+from backend.infrastructure.config import config
 from frontend.utils.state import init_session_state
 from frontend.settings.data_source import render_data_source_tab
 from frontend.settings.dev_tools import render_dev_tools_tab

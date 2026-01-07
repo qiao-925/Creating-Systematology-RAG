@@ -5,7 +5,7 @@
 import pytest
 import time
 from llama_index.core import Document
-from src.infrastructure.indexer import IndexManager
+from backend.infrastructure.indexer import IndexManager
 
 
 @pytest.mark.performance

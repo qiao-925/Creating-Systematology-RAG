@@ -4,7 +4,7 @@
 """
 
 import streamlit as st
-from src.infrastructure.config import config
+from backend.infrastructure.config import config
 from frontend.components.history import display_model_status
 
 

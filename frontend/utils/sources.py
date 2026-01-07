@@ -14,7 +14,7 @@ import re
 from pathlib import Path
 from typing import List, Dict, Any, Union, Optional
 
-from src.infrastructure.logger import get_logger
+from backend.infrastructure.logger import get_logger
 
 logger = get_logger('frontend.sources')
 

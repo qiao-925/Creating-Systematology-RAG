@@ -7,9 +7,9 @@ import pytest
 from unittest.mock import Mock, patch, MagicMock
 import json
 
-from src.infrastructure.indexer import IndexManager
-from src.business.rag_engine.core.engine import ModularQueryEngine
-from src.business.rag_engine.processing.query_processor import QueryProcessor
+from backend.infrastructure.indexer import IndexManager
+from backend.business.rag_engine.core.engine import ModularQueryEngine
+from backend.business.rag_engine.processing.query_processor import QueryProcessor
 
 
 @pytest.fixture
@@ -190,7 +190,7 @@ class TestQueryRouterWithUnderstanding:
         mock_llm
     ):
         """测试特定查询类型的路由"""
-        from src.business.rag_engine.routing.query_router import QueryRouter
+        from backend.business.rag_engine.routing.query_router import QueryRouter
         
         router = QueryRouter(
             index_manager=mock_index_manager,
@@ -216,7 +216,7 @@ class TestQueryRouterWithUnderstanding:
         mock_llm
     ):
         """测试探索性查询的路由"""
-        from src.business.rag_engine.routing.query_router import QueryRouter
+        from backend.business.rag_engine.routing.query_router import QueryRouter
         
         router = QueryRouter(
             index_manager=mock_index_manager,
@@ -242,7 +242,7 @@ class TestQueryRouterWithUnderstanding:
         mock_llm
     ):
         """测试事实查询的路由"""
-        from src.business.rag_engine.routing.query_router import QueryRouter
+        from backend.business.rag_engine.routing.query_router import QueryRouter
         
         router = QueryRouter(
             index_manager=mock_index_manager,
@@ -268,7 +268,7 @@ class TestQueryRouterWithUnderstanding:
         mock_llm
     ):
         """测试没有意图理解时的降级（规则匹配）"""
-        from src.business.rag_engine.routing.query_router import QueryRouter
+        from backend.business.rag_engine.routing.query_router import QueryRouter
         
         router = QueryRouter(
             index_manager=mock_index_manager,

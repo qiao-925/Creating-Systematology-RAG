@@ -7,10 +7,10 @@ Embedding 工厂测试
 import pytest
 import os
 from unittest.mock import patch, Mock
-from src.infrastructure.embeddings.base import BaseEmbedding
-from src.infrastructure.embeddings.local_embedding import LocalEmbedding
-from src.infrastructure.embeddings.hf_inference_embedding import HFInferenceEmbedding
-from src.infrastructure.embeddings.factory import (
+from backend.infrastructure.embeddings.base import BaseEmbedding
+from backend.infrastructure.embeddings.local_embedding import LocalEmbedding
+from backend.infrastructure.embeddings.hf_inference_embedding import HFInferenceEmbedding
+from backend.infrastructure.embeddings.factory import (
     create_embedding,
     clear_embedding_cache,
     get_embedding_instance

@@ -18,10 +18,10 @@ import streamlit as st
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
 
-from src.infrastructure.indexer import get_embedding_model_status
-from src.business.chat import get_user_sessions_metadata_lazy
-from src.infrastructure.config import config
-from src.infrastructure.logger import get_logger
+from backend.infrastructure.indexer import get_embedding_model_status
+from backend.business.chat import get_user_sessions_metadata_lazy
+from backend.infrastructure.config import config
+from backend.infrastructure.logger import get_logger
 
 logger = get_logger('frontend.history')
 

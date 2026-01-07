@@ -7,8 +7,8 @@ import pytest
 from pathlib import Path
 import tempfile
 
-from src.business.rag_engine.routing.query_router import QueryRouter
-from src.infrastructure.indexer import IndexManager
+from backend.business.rag_engine.routing.query_router import QueryRouter
+from backend.infrastructure.indexer import IndexManager
 from llama_index.core.schema import Document as LlamaDocument
 
 

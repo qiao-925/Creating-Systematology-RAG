@@ -26,4 +26,4 @@ EXPOSE 8000 8501
 
 # 启动命令（支持环境变量选择）
 # 默认启动 Streamlit（8501），FastAPI 通过 Zeabur 自定义启动命令处理
-CMD ["sh", "-c", "if [ \"$APP_MODE\" = \"api\" ]; then uvicorn src.business.rag_api.fastapi_app:app --host 0.0.0.0 --port ${PORT:-8000}; else streamlit run app.py --server.port=${PORT:-8501} --server.address=0.0.0.0; fi"]
+CMD ["sh", "-c", "if [ \"$APP_MODE\" = \"api\" ]; then uvicorn backend.business.rag_api.fastapi_app:app --host 0.0.0.0 --port ${PORT:-8000}; else streamlit run app.py --server.port=${PORT:-8501} --server.address=0.0.0.0; fi"]

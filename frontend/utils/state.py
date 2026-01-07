@@ -17,7 +17,7 @@
 import streamlit as st
 from typing import List, Dict, Any, Optional
 from frontend.utils.sources import convert_sources_to_dict
-from src.infrastructure.config import config
+from backend.infrastructure.config import config
 
 
 def init_session_state() -> None:
@@ -44,7 +44,7 @@ def init_session_state() -> None:
     
     # GitHub 增量更新相关
     if 'github_sync_manager' not in st.session_state:
-        from src.infrastructure.data_loader.github_sync import GitHubSyncManager
+        from backend.infrastructure.data_loader.github_sync import GitHubSyncManager
         st.session_state.github_sync_manager = GitHubSyncManager(config.GITHUB_SYNC_STATE_PATH)
     
     if 'github_repos' not in st.session_state:
@@ -172,7 +172,7 @@ def invalidate_service_cache() -> None:
     存储在 init_result.instances 中，不会自动失效。
     如需重新初始化，应重新调用 initialize_app()。
     """
-    from src.infrastructure.logger import get_logger
+    from backend.infrastructure.logger import get_logger
     logger = get_logger('frontend.services')
     
     st.session_state.rag_service_validated = False

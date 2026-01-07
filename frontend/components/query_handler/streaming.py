@@ -9,7 +9,7 @@ from frontend.utils.sources import convert_sources_to_dict
 from frontend.utils.state import save_message_to_history
 from frontend.utils.sources import format_answer_with_citation_links
 from frontend.components.query_handler.common import display_reasoning, display_sources, save_to_chat_manager
-from src.infrastructure.logger import get_logger
+from backend.infrastructure.logger import get_logger
 
 logger = get_logger('app')
 

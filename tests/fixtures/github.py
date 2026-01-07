@@ -30,7 +30,7 @@ def github_test_repo_path(tmp_path):
 @pytest.fixture(scope="function")
 def github_test_sync_manager(tmp_path):
     """测试用的GitHubSyncManager"""
-    from src.infrastructure.data_loader.github_sync.manager import GitHubSyncManager
+    from backend.infrastructure.data_loader.github_sync.manager import GitHubSyncManager
     
     sync_state_path = tmp_path / "test_sync_state.json"
     manager = GitHubSyncManager(sync_state_path)
@@ -48,7 +48,7 @@ def github_test_sync_manager(tmp_path):
 @pytest.fixture(scope="module")  # 优化：module 级别
 def github_test_index_manager(tmp_path_factory):
     """专门用于GitHub测试的IndexManager"""
-    from src.infrastructure.indexer import IndexManager
+    from backend.infrastructure.indexer import IndexManager
     
     # 使用 tmp_path_factory 创建 module 级别的临时目录
     temp_vector_store = tmp_path_factory.mktemp("github_test_vector_store")
@@ -73,7 +73,7 @@ def github_prepared_index_manager(
     github_test_sync_manager
 ):
     """准备好的GitHub索引管理器（已构建索引）"""
-    from src.infrastructure.data_loader import load_documents_from_github
+    from backend.infrastructure.data_loader import load_documents_from_github
     
     owner = os.getenv("TEST_GITHUB_OWNER", "octocat")
     repo = os.getenv("TEST_GITHUB_REPO", "Hello-World")

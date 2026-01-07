@@ -5,7 +5,7 @@ BaseEmbedding 接口测试
 """
 
 import pytest
-from src.infrastructure.embeddings.base import BaseEmbedding
+from backend.infrastructure.embeddings.base import BaseEmbedding
 
 
 @pytest.mark.fast

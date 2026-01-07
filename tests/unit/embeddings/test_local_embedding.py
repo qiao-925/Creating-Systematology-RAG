@@ -5,8 +5,8 @@ LocalEmbedding 测试
 """
 
 import pytest
-from src.infrastructure.embeddings.base import BaseEmbedding
-from src.infrastructure.embeddings.local_embedding import LocalEmbedding
+from backend.infrastructure.embeddings.base import BaseEmbedding
+from backend.infrastructure.embeddings.local_embedding import LocalEmbedding
 
 
 @pytest.mark.slow

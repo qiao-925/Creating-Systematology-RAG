@@ -13,11 +13,11 @@ import os
 import sys
 from dotenv import load_dotenv
 
-from src.infrastructure.data_loader import load_documents_from_github
-from src.infrastructure.indexer import IndexManager
-from src.infrastructure.data_loader.github_sync.manager import GitHubSyncManager
-from src.business.rag_engine import QueryEngine
-from src.infrastructure.logger import get_logger
+from backend.infrastructure.data_loader import load_documents_from_github
+from backend.infrastructure.indexer import IndexManager
+from backend.infrastructure.data_loader.github_sync.manager import GitHubSyncManager
+from backend.business.rag_engine import QueryEngine
+from backend.infrastructure.logger import get_logger
 
 # 设置logger以便测试中使用
 logger = get_logger('test_github_e2e')

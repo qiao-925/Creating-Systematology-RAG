@@ -4,7 +4,7 @@
 
 import pytest
 from pathlib import Path
-from src.infrastructure.config import Config
+from backend.infrastructure.config import Config
 
 
 class TestConfig:

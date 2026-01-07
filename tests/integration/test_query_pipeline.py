@@ -4,8 +4,8 @@
 """
 
 import pytest
-from src.infrastructure.indexer import IndexManager
-from src.business.rag_engine import QueryEngine
+from backend.infrastructure.indexer import IndexManager
+from backend.business.rag_engine import QueryEngine
 
 
 @pytest.mark.integration

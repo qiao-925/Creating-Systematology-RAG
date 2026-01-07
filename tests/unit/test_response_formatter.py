@@ -3,7 +3,7 @@
 """
 
 import pytest
-from src.business.rag_engine.formatting import (
+from backend.business.rag_engine.formatting import (
     MarkdownValidator,
     MarkdownFixer,
     CitationReplacer,

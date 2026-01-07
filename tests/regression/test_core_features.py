@@ -9,9 +9,9 @@ import tempfile
 import shutil
 from llama_index.core.schema import Document as LlamaDocument
 
-from src.business.rag_api.rag_service import RAGService
-from src.infrastructure.indexer import IndexManager
-from src.business.rag_engine.core.engine import ModularQueryEngine
+from backend.business.rag_api.rag_service import RAGService
+from backend.infrastructure.indexer import IndexManager
+from backend.business.rag_engine.core.engine import ModularQueryEngine
 
 
 @pytest.fixture

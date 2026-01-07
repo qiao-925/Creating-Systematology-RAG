@@ -8,14 +8,14 @@ from pathlib import Path
 
 from llama_index.core.schema import NodeWithScore, TextNode, QueryBundle
 
-from src.business.rag_engine.retrieval.strategies.file_level import (
+from backend.business.rag_engine.retrieval.strategies.file_level import (
     FilesViaContentRetriever,
     FilesViaMetadataRetriever,
     group_nodes_by_file,
     calculate_file_score,
     aggregate_file_chunks,
 )
-from src.infrastructure.indexer import IndexManager
+from backend.infrastructure.indexer import IndexManager
 
 
 class TestFileLevelRetrieversUtils:

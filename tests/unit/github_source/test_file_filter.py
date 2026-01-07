@@ -5,7 +5,7 @@ GitHubSource 文件过滤测试
 """
 
 import pytest
-from src.infrastructure.data_loader.source.github import GitHubSource
+from backend.infrastructure.data_loader.source.github import GitHubSource
 
 
 @pytest.mark.fast
@@ -17,7 +17,7 @@ class TestGitHubSourceShouldIncludeFile:
         source = GitHubSource(owner="test", repo="test")
         
         assert source._should_include_file("README.md") is True
-        assert source._should_include_file("src/main.py") is True
+        assert source._should_include_file("backend/main.py") is True
         assert source._should_include_file("docs/guide.md") is True
     
     def test_should_include_file_with_directory_filter(self):
@@ -29,7 +29,7 @@ class TestGitHubSourceShouldIncludeFile:
         )
         
         assert source._should_include_file("docs/guide.md") is True
-        assert source._should_include_file("src/main.py") is True
+        assert source._should_include_file("backend/main.py") is True
         assert source._should_include_file("docs") is True
         
         assert source._should_include_file("README.md") is False
@@ -44,7 +44,7 @@ class TestGitHubSourceShouldIncludeFile:
         )
         
         assert source._should_include_file("README.md") is True
-        assert source._should_include_file("src/main.py") is True
+        assert source._should_include_file("backend/main.py") is True
         
         assert source._should_include_file("config.json") is False
         assert source._should_include_file("file.txt") is False
@@ -68,8 +68,8 @@ class TestGitHubSourceShouldIncludeFile:
         source = GitHubSource(
             owner="test",
             repo="test",
-            filter_directories=["docs/", "src/"]
+            filter_directories=["docs/", "backend/"]
         )
         
         assert source._should_include_file("docs/guide.md") is True
-        assert source._should_include_file("src/main.py") is True
+        assert source._should_include_file("backend/main.py") is True

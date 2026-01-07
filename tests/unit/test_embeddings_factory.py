@@ -8,10 +8,10 @@ import pytest
 from unittest.mock import Mock, patch, MagicMock
 from typing import Optional
 
-from src.infrastructure.embeddings.base import BaseEmbedding
-from src.infrastructure.embeddings.local_embedding import LocalEmbedding
-from src.infrastructure.embeddings.hf_inference_embedding import HFInferenceEmbedding
-from src.infrastructure.embeddings.factory import (
+from backend.infrastructure.embeddings.base import BaseEmbedding
+from backend.infrastructure.embeddings.local_embedding import LocalEmbedding
+from backend.infrastructure.embeddings.hf_inference_embedding import HFInferenceEmbedding
+from backend.infrastructure.embeddings.factory import (
     create_embedding,
     get_embedding_instance,
     clear_embedding_cache,

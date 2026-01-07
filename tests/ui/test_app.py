@@ -46,7 +46,7 @@ class TestMainPageUI:
     
     def test_rag_service_loading(self):
         """测试RAGService加载（使用统一初始化系统）"""
-        from src.infrastructure.initialization.bootstrap import initialize_app
+        from backend.infrastructure.initialization.bootstrap import initialize_app
         
         # 测试初始化逻辑（不实际初始化，避免依赖）
         try:
@@ -57,7 +57,7 @@ class TestMainPageUI:
     
     def test_index_loading(self):
         """测试索引加载（使用统一初始化系统）"""
-        from src.infrastructure.initialization.bootstrap import initialize_app
+        from backend.infrastructure.initialization.bootstrap import initialize_app
         
         # 验证函数存在
         try:
@@ -67,7 +67,7 @@ class TestMainPageUI:
     
     def test_chat_manager_loading(self):
         """测试ChatManager加载（使用统一初始化系统）"""
-        from src.infrastructure.initialization.bootstrap import initialize_app
+        from backend.infrastructure.initialization.bootstrap import initialize_app
         
         # 验证函数存在
         try:
@@ -218,7 +218,7 @@ class TestUIIntegration:
         """测试UI组件导入"""
         try:
             from frontend.utils.state import init_session_state
-            from src.infrastructure.initialization.bootstrap import initialize_app
+            from backend.infrastructure.initialization.bootstrap import initialize_app
             from frontend.components.history import display_model_status
             # 验证所有组件都可以导入
             assert callable(init_session_state)
@@ -264,7 +264,7 @@ class TestUIComponentFunctions:
     def test_format_sources_function(self):
         """测试来源格式化函数"""
         try:
-            from src.business.rag_engine import format_sources
+            from backend.business.rag_engine import format_sources
             
             # 测试格式化功能
             test_sources = [
@@ -300,7 +300,7 @@ class TestUIErrorHandling:
         # 这里主要验证组件存在且可以调用
         try:
             from frontend.utils.state import init_session_state
-            from src.infrastructure.initialization.bootstrap import initialize_app
+            from backend.infrastructure.initialization.bootstrap import initialize_app
             
             # 验证函数可以处理None或空参数
             # 注意：实际测试可能需要Mock Streamlit

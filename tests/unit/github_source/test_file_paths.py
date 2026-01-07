@@ -8,8 +8,8 @@ import pytest
 import tempfile
 from pathlib import Path
 from unittest.mock import Mock, patch
-from src.infrastructure.data_loader.source.base import SourceFile
-from src.infrastructure.data_loader.source.github import GitHubSource
+from backend.infrastructure.data_loader.source.base import SourceFile
+from backend.infrastructure.data_loader.source.github import GitHubSource
 from tests.fixtures.mocks import MockGitRepositoryManager
 
 

@@ -66,8 +66,8 @@ def get_test_files() -> Dict[str, List[str]]:
         for src_file in source_files:
             # src/indexer.py -> indexer
             # src/business/rag_service.py -> business.rag_service
-            if src_file.startswith("src/"):
-                module_path = src_file.replace("src/", "").replace(".py", "").replace("/", ".")
+            if src_file.startswith("backend/"):
+                module_path = src_file.replace("backend/", "").replace(".py", "").replace("/", ".")
                 test_mapping[module_path].append(test_path)
     
     return dict(test_mapping)

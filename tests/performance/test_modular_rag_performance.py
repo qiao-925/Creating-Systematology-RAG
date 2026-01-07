@@ -10,17 +10,17 @@ import statistics
 from typing import Dict, List
 from pathlib import Path
 
-from src.infrastructure.indexer import IndexManager
-from src.business.rag_engine.core.engine import ModularQueryEngine
+from backend.infrastructure.indexer import IndexManager
+from backend.business.rag_engine.core.engine import ModularQueryEngine
 # QueryEngine可能在不同的路径，需要根据实际情况调整
 try:
-    from src.business.rag_engine import QueryEngine
+    from backend.business.rag_engine import QueryEngine
 except ImportError:
     try:
-        from src.business.rag_engine.core.engine import ModularQueryEngine as QueryEngine
+        from backend.business.rag_engine.core.engine import ModularQueryEngine as QueryEngine
     except ImportError:
         QueryEngine = None
-from src.business.rag_api.rag_service import RAGService
+from backend.business.rag_api.rag_service import RAGService
 from llama_index.core.schema import Document as LlamaDocument
 
 

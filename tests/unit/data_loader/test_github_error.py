@@ -5,7 +5,7 @@ GitHub 错误处理测试
 """
 
 import pytest
-from src.infrastructure.data_loader import _handle_github_error
+from backend.infrastructure.data_loader import _handle_github_error
 
 
 @pytest.mark.fast

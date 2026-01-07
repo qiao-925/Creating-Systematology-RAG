@@ -5,7 +5,7 @@
 """
 
 import pytest
-from src.infrastructure.data_loader import load_documents_from_directory
+from backend.infrastructure.data_loader import load_documents_from_directory
 
 
 # 导入 fixtures（pytest 会自动发现）

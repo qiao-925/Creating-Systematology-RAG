@@ -7,12 +7,12 @@ DeepSeek LLM 工厂函数单元测试
 import pytest
 from unittest.mock import Mock, patch, MagicMock
 
-from src.infrastructure.llms.factory import (
+from backend.infrastructure.llms.factory import (
     create_deepseek_llm,
     create_deepseek_llm_for_query,
     create_deepseek_llm_for_structure,
 )
-from src.infrastructure.config import config
+from backend.infrastructure.config import config
 
 
 class TestCreateDeepSeekLLM:

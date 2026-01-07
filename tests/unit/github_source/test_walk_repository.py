@@ -7,7 +7,7 @@ GitHubSource 仓库遍历测试
 import pytest
 import tempfile
 from pathlib import Path
-from src.infrastructure.data_loader.source.github import GitHubSource
+from backend.infrastructure.data_loader.source.github import GitHubSource
 
 
 @pytest.mark.fast

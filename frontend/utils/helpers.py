@@ -56,7 +56,7 @@ def handle_error(error: Exception, context: str = "", show_to_user: bool = True,
         st.error(f"❌ {full_message}")
     
     if log_error:
-        from src.infrastructure.logger import get_logger
+        from backend.infrastructure.logger import get_logger
         logger = get_logger('frontend.error_handler')
         logger.error(full_message, exc_info=True)
 

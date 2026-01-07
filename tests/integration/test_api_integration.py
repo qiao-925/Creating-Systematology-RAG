@@ -9,8 +9,8 @@ from pathlib import Path
 import tempfile
 import json
 
-from src.business.rag_api.fastapi_app import app
-from src.infrastructure.user_manager import UserManager
+from backend.business.rag_api.fastapi_app import app
+from backend.infrastructure.user_manager import UserManager
 
 
 @pytest.fixture
@@ -23,7 +23,7 @@ def temp_users_file(tmp_path):
 def client(temp_users_file, monkeypatch):
     """创建测试客户端，使用临时用户文件"""
     # 清除可能存在的 UserManager 实例
-    from src.business.rag_api.fastapi_dependencies import get_user_manager
+    from backend.business.rag_api.fastapi_dependencies import get_user_manager
     if hasattr(get_user_manager, '_instance'):
         delattr(get_user_manager, '_instance')
     
@@ -37,7 +37,7 @@ def client(temp_users_file, monkeypatch):
         return mock_get_user_manager._instance
     
     # 临时替换依赖
-    import src.business.rag_api.fastapi_dependencies
+    import backend.business.rag_api.fastapi_dependencies
     src.business.rag_api.fastapi_dependencies.get_user_manager = mock_get_user_manager
     
     # 设置测试环境变量
@@ -253,7 +253,7 @@ class TestQueryEndpoints:
         """测试已认证的查询请求"""
         # Mock RAGService 以避免真实 API 调用
         from unittest.mock import Mock, patch, AsyncMock
-        from src.business.rag_api.models import RAGResponse
+        from backend.business.rag_api.models import RAGResponse
         
         mock_response = RAGResponse(
             answer="系统科学是研究系统的一般规律和方法的学科。",
@@ -311,7 +311,7 @@ class TestChatEndpoints:
         """测试已认证的对话请求"""
         # Mock RAGService 以避免真实 API 调用
         from unittest.mock import Mock, patch
-        from src.business.rag_api.models import ChatResponse
+        from backend.business.rag_api.models import ChatResponse
         
         mock_response = ChatResponse(
             answer="你好！有什么可以帮助你的吗？",

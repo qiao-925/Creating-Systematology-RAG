@@ -5,7 +5,7 @@ GitHubSource 元数据测试
 """
 
 import pytest
-from src.infrastructure.data_loader.source.github import GitHubSource
+from backend.infrastructure.data_loader.source.github import GitHubSource
 
 
 @pytest.mark.fast

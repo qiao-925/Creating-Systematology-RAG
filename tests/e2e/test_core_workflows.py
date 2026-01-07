@@ -9,9 +9,9 @@ import tempfile
 import shutil
 from unittest.mock import patch
 
-from src.business.rag_api.rag_service import RAGService
-from src.business.rag_api.models import RAGResponse, ChatResponse, IndexResult
-from src.infrastructure.indexer import IndexManager
+from backend.business.rag_api.rag_service import RAGService
+from backend.business.rag_api.models import RAGResponse, ChatResponse, IndexResult
+from backend.infrastructure.indexer import IndexManager
 from llama_index.core.schema import Document as LlamaDocument
 
 
@@ -378,7 +378,7 @@ class TestMultiStrategyRetrievalWorkflow:
                 
                 try:
                     # 使用multi策略执行查询
-                    from src.business.rag_engine.core.engine import ModularQueryEngine
+                    from backend.business.rag_engine.core.engine import ModularQueryEngine
                     engine = ModularQueryEngine(
                         index_manager=manager,
                         retrieval_strategy="multi",
@@ -418,7 +418,7 @@ class TestMultiStrategyRetrievalWorkflow:
             manager = create_index_manager_safe(collection_name)
             manager.build_index(documents=test_documents, collection_name=collection_name)
             
-            from src.business.rag_engine.core.engine import ModularQueryEngine
+            from backend.business.rag_engine.core.engine import ModularQueryEngine
             
             # 单一策略（vector）
             vector_engine = ModularQueryEngine(
@@ -476,7 +476,7 @@ class TestAutoRoutingWorkflow:
             )
             
             try:
-                from src.business.rag_engine.core.engine import ModularQueryEngine
+                from backend.business.rag_engine.core.engine import ModularQueryEngine
                 engine = ModularQueryEngine(
                     index_manager=manager,
                     enable_auto_routing=True,
@@ -532,7 +532,7 @@ class TestAutoRoutingWorkflow:
             manager = create_index_manager_safe(collection_name)
             manager.build_index(documents=test_documents, collection_name=collection_name)
             
-            from src.business.rag_engine.core.engine import ModularQueryEngine
+            from backend.business.rag_engine.core.engine import ModularQueryEngine
             engine = ModularQueryEngine(
                 index_manager=manager,
                 enable_auto_routing=True,

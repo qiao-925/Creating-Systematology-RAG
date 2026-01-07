@@ -6,8 +6,8 @@ APIEmbedding 测试
 
 import pytest
 from unittest.mock import Mock, patch
-from src.infrastructure.embeddings.base import BaseEmbedding
-from src.infrastructure.embeddings.hf_inference_embedding import HFInferenceEmbedding
+from backend.infrastructure.embeddings.base import BaseEmbedding
+from backend.infrastructure.embeddings.hf_inference_embedding import HFInferenceEmbedding
 
 
 @pytest.mark.fast

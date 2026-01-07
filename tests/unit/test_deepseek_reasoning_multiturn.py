@@ -8,8 +8,8 @@ import pytest
 from unittest.mock import Mock, MagicMock, patch
 from llama_index.core.llms import ChatMessage, MessageRole
 
-from src.infrastructure.llms.reasoning import clean_messages_for_api, extract_reasoning_content
-from src.business.chat.session import ChatTurn, ChatSession
+from backend.infrastructure.llms.reasoning import clean_messages_for_api, extract_reasoning_content
+from backend.business.chat.session import ChatTurn, ChatSession
 
 
 class TestChatMessageStructure:

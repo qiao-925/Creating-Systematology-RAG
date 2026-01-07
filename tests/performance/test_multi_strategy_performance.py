@@ -9,8 +9,8 @@ import statistics
 from typing import List
 from unittest.mock import patch
 
-from src.infrastructure.indexer import IndexManager
-from src.business.rag_engine.core.engine import ModularQueryEngine
+from backend.infrastructure.indexer import IndexManager
+from backend.business.rag_engine.core.engine import ModularQueryEngine
 from llama_index.core.schema import Document as LlamaDocument
 
 

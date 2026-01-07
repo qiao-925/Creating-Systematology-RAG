@@ -5,7 +5,7 @@ GitHub URL 解析测试
 """
 
 import pytest
-from src.infrastructure.data_loader import parse_github_url
+from backend.infrastructure.data_loader import parse_github_url
 
 
 @pytest.mark.fast

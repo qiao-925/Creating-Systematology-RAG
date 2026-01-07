@@ -200,11 +200,11 @@ uv run --no-sync python -c "import torch; print(f'版本: {torch.__version__}');
   │     │
   │     ├─→ [1.1] 数据源识别与Git仓库处理
   │     │     │
-│     │     ├─ SourceLoader.load() [src/infrastructure/data_loader/source_loader.py]
+│     │     ├─ SourceLoader.load() [backend/infrastructure/data_loader/source_loader.py]
 │     │     │   ├─ 识别数据源类型（GitHub/本地/网页）
 │     │     │   └─ 调用对应的 DataSource.load()
 │     │     │
-│     │     └─ GitRepositoryManager [src/infrastructure/git/manager.py]（如果是 GitHub 源）
+│     │     └─ GitRepositoryManager [backend/infrastructure/git/manager.py]（如果是 GitHub 源）
   │     │         ├─ 初始化：创建本地存储目录（data/github_repos/）
   │     │         ├─ 检查仓库是否存在，判断首次克隆或增量更新
   │     │         ├─ 首次克隆：
@@ -219,7 +219,7 @@ uv run --no-sync python -c "import torch; print(f'版本: {torch.__version__}');
   │     │         └─ 缓存管理：检查缓存有效性，记录仓库路径和commit信息
   │     │
   │     ├─→ [1.2] 文件路径获取与过滤
-  │     │     └─ GitHubSource/LocalSource/WebSource [src/data_source/]
+  │     │     └─ GitHubSource/LocalSource/WebSource [backend/infrastructure/data_loader/]
   │     │         ├─ 递归遍历目录结构
   │     │         ├─ 排除特定目录：.git, __pycache__, node_modules, .venv, venv, .pytest_cache
   │     │         ├─ 排除特定文件：.pyc, .pyo, .lock, .log
@@ -230,7 +230,7 @@ uv run --no-sync python -c "import torch; print(f'版本: {torch.__version__}');
   │     │         └─ 构建 SourceFile 对象（包含路径、仓库信息、commit SHA、GitHub链接）
   │     │
 │     └─→ [1.3] 文档解析
-│           └─ DocumentParser.parse_files() [src/infrastructure/data_loader/parser.py]
+│           └─ DocumentParser.parse_files() [backend/infrastructure/data_loader/parser.py]
   │               ├─ 解析文件为文档对象
   │               │   └─ 缓存有效则直接返回，跳过解析
   │               ├─ 验证文件：检查存在性、可读性，过滤无效文件
@@ -249,7 +249,7 @@ uv run --no-sync python -c "import torch; print(f'版本: {torch.__version__}');
   ├─→ [阶段2] 索引构建阶段
   │     │
 │     ├─→ [2.1] 文档分块（Chunking）
-│     │     └─ IndexManager.build_index() [src/infrastructure/indexer/index_manager.py]
+│     │     └─ IndexManager.build_index() [backend/infrastructure/indexer/index_manager.py]
   │     │         ├─ 检查断点续传：
   │     │         │   ├─ 检查哪些文档已经向量化
   │     │         │   └─ 跳过已处理文档，只处理新文档或更新的文档
@@ -270,7 +270,7 @@ uv run --no-sync python -c "import torch; print(f'版本: {torch.__version__}');
   │     │             └─ 支持 checkpoint，可以中断后继续
   │     │
 │     ├─→ [2.2] 向量化（Embedding）
-│     │     └─ Embedding 工厂 [src/infrastructure/embeddings/factory.py]
+│     │     └─ Embedding 工厂 [backend/infrastructure/embeddings/factory.py]
   │     │         ├─ 获取 Embedding 模型：
   │     │         │   ├─ 本地模型：LocalEmbedding（HuggingFace模型）
   │     │         │   ├─ API 模型：APIEmbedding（远程API调用）
@@ -284,7 +284,7 @@ uv run --no-sync python -c "import torch; print(f'版本: {torch.__version__}');
   │     │             └─ 维度不匹配时给出警告或错误提示
   │     │
 │     └─→ [2.3] 存储到向量数据库
-│           └─ IndexManager [src/infrastructure/indexer/index_manager.py]
+│           └─ IndexManager [backend/infrastructure/indexer/index_manager.py]
   │               ├─ 初始化向量存储：
   │               │   ├─ 使用 Chroma Cloud 作为向量存储后端
   │               │   ├─ Collection 名称：可自定义（默认 default）
@@ -305,11 +305,11 @@ uv run --no-sync python -c "import torch; print(f'版本: {torch.__version__}');
   ├─→ [阶段3] 查询阶段（使用索引）
   │     │
 │     ├─→ [3.1] 接收用户查询
-│     │     └─ RAGService.query() [src/business/rag_api/rag_service.py]
+│     │     └─ RAGService.query() [backend/business/rag_api/rag_service.py]
 │     │         └─ Web界面：app.py → frontend/main.py → RAGService
   │     │
 │     ├─→ [3.2] 查询引擎初始化与策略选择
-│     │     └─ ModularQueryEngine [src/business/rag_engine/query/engine.py]
+│     │     └─ ModularQueryEngine [backend/business/rag_engine/query/engine.py]
   │     │         │
   │     │         ├─ 固定策略模式（默认）：
   │     │         │   ├─ 策略验证：检查策略是否在 SUPPORTED_STRATEGIES 中
@@ -328,7 +328,7 @@ uv run --no-sync python -c "import torch; print(f'版本: {torch.__version__}');
   │     │     │   └─ 使用预创建的 query_engine 直接执行检索
   │     │     │
   │     │     ├─ 自动路由模式：
-  │     │     │   ├─ QueryRouter.route() [src/business/rag_engine/routers/query_router.py]
+  │     │     │   ├─ QueryRouter.route() [backend/business/rag_engine/routers/query_router.py]
   │     │     │   │   ├─ 查询分析：_analyze_query() 分析查询文本
   │     │     │   │   ├─ 规则匹配：
   │     │     │   │   │   ├─ 文件名关键词 → files_via_metadata 模式
@@ -339,12 +339,12 @@ uv run --no-sync python -c "import torch; print(f'版本: {torch.__version__}');
   │     │     │   └─ 执行查询：使用选定的检索器执行查询
   │     │     │
 │     │     └─ 多策略检索（retrieval_strategy="multi"）：
-│     │         └─ MultiStrategyRetriever [src/business/rag_engine/retrievers/multi_strategy_retriever.py]
+│     │         └─ MultiStrategyRetriever [backend/business/rag_engine/retrievers/multi_strategy_retriever.py]
 │     │             ├─ 并行执行多个检索器：
 │     │             │   ├─ VectorRetriever（语义相似度）
 │     │             │   ├─ BM25Retriever（关键词匹配）
 │     │             │   └─ GrepRetriever（正则表达式）
-│     │             ├─ ResultMerger.merge() [src/business/rag_engine/retrievers/result_merger.py]
+│     │             ├─ ResultMerger.merge() [backend/business/rag_engine/retrievers/result_merger.py]
   │     │             │   ├─ RRF 融合：倒数排名融合（Reciprocal Rank Fusion）
   │     │             │   ├─ 加权融合：支持自定义权重
   │     │             │   ├─ 去重：基于内容哈希去重
@@ -352,7 +352,7 @@ uv run --no-sync python -c "import torch; print(f'版本: {torch.__version__}');
   │     │             └─ 返回合并后的结果
   │     │
 │     ├─→ [3.4] 后处理（Post-processing）
-│     │     └─ PostprocessorFactory [src/business/rag_engine/query/postprocessor_factory.py]
+│     │     └─ PostprocessorFactory [backend/business/rag_engine/query/postprocessor_factory.py]
   │     │         ├─ 相似度阈值过滤：
   │     │         │   ├─ 过滤低相似度结果
   │     │         │   └─ 可配置阈值（similarity_cutoff）
@@ -363,7 +363,7 @@ uv run --no-sync python -c "import torch; print(f'版本: {torch.__version__}');
   │     │             └─ 批量重排序优化
   │     │
 │     ├─→ [3.5] 生成（Generation）
-│     │     └─ QueryExecutor [src/business/rag_engine/query/query_executor.py]
+│     │     └─ QueryExecutor [backend/business/rag_engine/query/query_executor.py]
   │     │         ├─ 构建 Prompt：
   │     │         │   ├─ 包含检索到的上下文
   │     │         │   ├─ 包含用户查询
@@ -378,7 +378,7 @@ uv run --no-sync python -c "import torch; print(f'版本: {torch.__version__}');
   │     │             └─ 自动过滤推理链，确保不传入下一轮对话
   │     │
 │     └─→ [3.6] 响应格式化
-│           └─ ResponseFormatter [src/business/rag_engine/response_formatter/formatter.py]
+│           └─ ResponseFormatter [backend/business/rag_engine/response_formatter/formatter.py]
   │               ├─ 提取引用来源（source_nodes）：
   │               │   ├─ 提取文本内容
   │               │   ├─ 提取相似度分数
@@ -393,7 +393,7 @@ uv run --no-sync python -c "import torch; print(f'版本: {torch.__version__}');
   │                   └─ 元数据（推理链、查询信息等）
   │
 └─→ [阶段4] 会话管理（多轮对话）
-      └─ ChatManager [src/business/chat/manager.py]
+      └─ ChatManager [backend/business/chat/manager.py]
             ├─ 维护会话历史
             ├─ 自动持久化到 sessions/ 目录
             └─ 支持会话切换和历史恢复
@@ -429,7 +429,7 @@ Creating-Systematology-RAG/
 │   │   └── sources.py            # 来源处理
 │   └── tests/                     # 前端测试
 │
-├── src/                            # 💻 源代码（核心业务逻辑）
+├── backend/                        # 💻 后端代码（核心业务逻辑）
 │   │
 │   ├── business/                   # 业务层（Business Layer）
 │   │   ├── rag_engine/            # RAG引擎
@@ -502,19 +502,19 @@ app.py   RAGService   Config/Logger/Embedding/LLM
 ### 5.1 内存缓存（运行时缓存）
 
 **Embedding 模型缓存**
-- **位置**: `src/indexer/embedding_utils.py`
+- **位置**: `backend/infrastructure/indexer/embedding_utils.py`
 - **机制**: 全局变量 `_global_embed_model` 存储模型实例，单例模式避免重复加载
 - **清理**: `clear_embedding_model_cache()` 或模型名称变更时自动清除
 - **用途**: Embedding 模型加载成本高（数GB大小、GPU内存占用），全局缓存避免重复加载
 
 **Reranker 模型缓存**
-- **位置**: `src/rerankers/factory.py`
+- **位置**: `backend/business/rag_engine/reranking/factory.py`
 - **机制**: 全局字典 `_reranker_cache` 存储重排序器实例，Key: `"{reranker_type}:{model}:{top_n}"`
 - **清理**: `clear_reranker_cache()`
 - **用途**: 避免重复加载重排序模型
 
 **Embedding 实例缓存**
-- **位置**: `src/embeddings/factory.py`
+- **位置**: `backend/infrastructure/embeddings/factory.py`
 - **机制**: 全局变量 `_global_embedding_instance` 存储 BaseEmbedding 实例
 - **清理**: `clear_embedding_cache()`
 - **用途**: 统一管理 Embedding 实例，支持可插拔设计

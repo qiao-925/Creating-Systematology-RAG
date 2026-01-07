@@ -9,8 +9,8 @@ from frontend.utils.sources import convert_sources_to_dict
 from frontend.utils.state import initialize_sources_map
 from frontend.utils.sources import format_answer_with_citation_links
 from frontend.components.sources_panel import display_sources_below_message
-from src.infrastructure.config import config
-from src.infrastructure.logger import get_logger
+from backend.infrastructure.config import config
+from backend.infrastructure.logger import get_logger
 
 logger = get_logger('app')
 

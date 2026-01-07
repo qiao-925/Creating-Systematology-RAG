@@ -5,8 +5,8 @@
 import pytest
 from llama_index.core.schema import Document as LlamaDocument
 
-from src.business.rag_engine import ModularQueryEngine
-from src.infrastructure.indexer import IndexManager
+from backend.business.rag_engine import ModularQueryEngine
+from backend.infrastructure.indexer import IndexManager
 
 
 @pytest.fixture

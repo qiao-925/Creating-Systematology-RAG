@@ -5,7 +5,7 @@
 """
 
 import pytest
-from src.infrastructure.data_loader.processor import DocumentProcessor
+from backend.infrastructure.data_loader.processor import DocumentProcessor
 from llama_index.core import Document
 
 

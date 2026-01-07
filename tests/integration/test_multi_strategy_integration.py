@@ -9,10 +9,10 @@ import tempfile
 import shutil
 from unittest.mock import patch, Mock
 
-from src.business.rag_api.rag_service import RAGService
-from src.business.rag_api.models import RAGResponse
-from src.infrastructure.indexer import IndexManager
-from src.business.rag_engine.core.engine import ModularQueryEngine
+from backend.business.rag_api.rag_service import RAGService
+from backend.business.rag_api.models import RAGResponse
+from backend.infrastructure.indexer import IndexManager
+from backend.business.rag_engine.core.engine import ModularQueryEngine
 from llama_index.core.schema import Document as LlamaDocument
 
 

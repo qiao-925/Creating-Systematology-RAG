@@ -6,8 +6,8 @@ import pytest
 from unittest.mock import Mock, patch, MagicMock
 from pathlib import Path
 
-from src.business.rag_api.rag_service import RAGService
-from src.business.rag_api.models import RAGResponse, IndexResult, ChatResponse
+from backend.business.rag_api.rag_service import RAGService
+from backend.business.rag_api.models import RAGResponse, IndexResult, ChatResponse
 
 
 @pytest.mark.fast

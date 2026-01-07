@@ -19,7 +19,7 @@ def temp_vector_store(tmp_path):
 @pytest.fixture(scope="module")  # 优化：module 级别，减少重复初始化
 def prepared_index_manager(tmp_path_factory, sample_documents):
     """准备好的索引管理器（已构建索引）"""
-    from src.infrastructure.indexer import IndexManager
+    from backend.infrastructure.indexer import IndexManager
     
     # 使用 tmp_path_factory 创建 module 级别的临时目录
     temp_vector_store = tmp_path_factory.mktemp("test_vector_store")
@@ -47,7 +47,7 @@ class IndexManagerFactory:
     @staticmethod
     def create_empty(collection_name: str = "test", persist_dir: Path = None):
         """创建空的索引管理器"""
-        from src.infrastructure.indexer import IndexManager
+        from backend.infrastructure.indexer import IndexManager
         return IndexManager(
             collection_name=collection_name,
             persist_dir=persist_dir
@@ -56,7 +56,7 @@ class IndexManagerFactory:
     @staticmethod
     def create_with_documents(documents, collection_name: str = "test", persist_dir: Path = None):
         """创建并构建索引的索引管理器"""
-        from src.infrastructure.indexer import IndexManager
+        from backend.infrastructure.indexer import IndexManager
         
         manager = IndexManager(
             collection_name=collection_name,

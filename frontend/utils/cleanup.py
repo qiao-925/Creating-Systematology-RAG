@@ -34,7 +34,7 @@ def cleanup_resources():
         # 尝试清理全局资源
         try:
             # 清理全局的 Embedding 模型（如果需要）
-            from src.infrastructure.indexer import clear_embedding_model_cache
+            from backend.infrastructure.indexer import clear_embedding_model_cache
             clear_embedding_model_cache()
             log.debug("✅ 全局模型缓存已清理")
         except Exception as e:
@@ -42,7 +42,7 @@ def cleanup_resources():
         
         # 清理 Hugging Face Embedding 资源（线程池和正在进行的请求）
         try:
-            from src.infrastructure.embeddings.hf_inference_embedding import cleanup_hf_embedding_resources
+            from backend.infrastructure.embeddings.hf_inference_embedding import cleanup_hf_embedding_resources
             cleanup_hf_embedding_resources()
             log.debug("✅ Hugging Face Embedding 资源已清理")
         except Exception as e:

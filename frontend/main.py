@@ -10,8 +10,8 @@ from frontend.config import configure_all
 configure_all()
 
 # 导入项目模块
-from src.infrastructure.config import config
-from src.infrastructure.initialization.bootstrap import initialize_app
+from backend.infrastructure.config import config
+from backend.infrastructure.initialization.bootstrap import initialize_app
 from frontend.components.sidebar import render_sidebar
 from frontend.components.chat_display import render_chat_interface
 from frontend.components.query_handler import handle_user_queries

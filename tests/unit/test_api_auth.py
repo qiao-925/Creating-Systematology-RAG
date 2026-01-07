@@ -8,14 +8,14 @@ from datetime import timedelta
 from pathlib import Path
 import tempfile
 
-from src.business.rag_api.auth import (
+from backend.business.rag_api.auth import (
     verify_password,
     get_password_hash,
     create_access_token,
     authenticate_user,
     verify_token,
 )
-from src.infrastructure.user_manager import UserManager
+from backend.infrastructure.user_manager import UserManager
 
 
 class TestPasswordHashing:
@@ -101,7 +101,7 @@ class TestJWTToken:
         """测试过期 Token 验证"""
         from datetime import datetime, timedelta
         from jose import jwt
-        from src.business.rag_api.auth import SECRET_KEY, ALGORITHM
+        from backend.business.rag_api.auth import SECRET_KEY, ALGORITHM
         
         # 创建已过期的 Token
         data = {"sub": "test@example.com", "exp": datetime.utcnow() - timedelta(hours=1)}
@@ -165,7 +165,7 @@ class TestAuthenticateUser:
         password = "new_password"
         
         # 使用 API 注册（会使用 bcrypt）
-        from src.business.rag_api.auth import get_password_hash
+        from backend.business.rag_api.auth import get_password_hash
         password_hash = get_password_hash(password)
         import hashlib
         collection_name = f"user_{hashlib.md5(email.encode()).hexdigest()[:8]}"

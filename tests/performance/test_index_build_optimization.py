@@ -28,8 +28,8 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from llama_index.core.schema import Document as LlamaDocument
-from src.infrastructure.indexer import IndexManager
-from src.infrastructure.config import config
+from backend.infrastructure.indexer import IndexManager
+from backend.infrastructure.config import config
 
 
 def create_test_documents(count: int, doc_size: int = 500) -> List[LlamaDocument]:

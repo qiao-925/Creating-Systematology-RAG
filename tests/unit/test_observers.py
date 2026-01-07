@@ -7,12 +7,12 @@ import pytest
 from unittest.mock import Mock, patch, MagicMock
 from typing import Dict, List
 
-from src.infrastructure.observers.base import BaseObserver, ObserverType
-from src.infrastructure.observers.phoenix_observer import PhoenixObserver
-from src.infrastructure.observers.llama_debug_observer import LlamaDebugObserver
-from src.infrastructure.observers.ragas_evaluator import RAGASEvaluator
-from src.infrastructure.observers.manager import ObserverManager
-from src.infrastructure.observers.factory import create_default_observers, create_observer_from_config
+from backend.infrastructure.observers.base import BaseObserver, ObserverType
+from backend.infrastructure.observers.phoenix_observer import PhoenixObserver
+from backend.infrastructure.observers.llama_debug_observer import LlamaDebugObserver
+from backend.infrastructure.observers.ragas_evaluator import RAGASEvaluator
+from backend.infrastructure.observers.manager import ObserverManager
+from backend.infrastructure.observers.factory import create_default_observers, create_observer_from_config
 
 
 class TestBaseObserver:

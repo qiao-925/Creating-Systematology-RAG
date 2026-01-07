@@ -3,7 +3,7 @@
 """
 
 import streamlit as st
-from src.infrastructure.config import config
+from backend.infrastructure.config import config
 from frontend.components.history import display_session_history
 from frontend.components.settings_dialog import show_settings_dialog
 

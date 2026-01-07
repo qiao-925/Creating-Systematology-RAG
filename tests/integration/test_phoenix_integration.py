@@ -26,7 +26,7 @@ def test_phoenix_utils():
     """测试Phoenix工具模块"""
     print("\n=== 测试2: Phoenix工具模块 ===")
     try:
-        from src.infrastructure.phoenix_utils import start_phoenix_ui, stop_phoenix_ui, is_phoenix_running
+        from backend.infrastructure.phoenix_utils import start_phoenix_ui, stop_phoenix_ui, is_phoenix_running
         print("✅ Phoenix工具模块导入成功")
         return True
     except Exception as e:
@@ -50,7 +50,7 @@ def test_query_engine_debug_support():
     """测试QueryEngine调试支持"""
     print("\n=== 测试4: QueryEngine调试支持 ===")
     try:
-        from src.business.rag_engine import QueryEngine
+        from backend.business.rag_engine import QueryEngine
         import inspect
         
         # 检查__init__是否有enable_debug参数
@@ -72,7 +72,7 @@ def test_chat_manager_debug_support():
     """测试ChatManager调试支持"""
     print("\n=== 测试5: ChatManager调试支持 ===")
     try:
-        from src.business.chat.manager import ChatManager
+        from backend.business.chat.manager import ChatManager
         import inspect
         
         # 检查__init__是否有enable_debug参数

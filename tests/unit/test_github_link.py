@@ -2,7 +2,7 @@
 GitHub 链接生成器测试
 """
 import pytest
-from src.infrastructure.github_link import generate_github_url, get_display_title
+from backend.infrastructure.github_link import generate_github_url, get_display_title
 
 
 class TestGitHubUrlGeneration:
