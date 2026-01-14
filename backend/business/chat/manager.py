@@ -2,31 +2,25 @@
 对话管理 - 管理器核心模块：ChatManager类实现
 
 主要功能：
-- ChatManager类：对话管理器，管理对话会话和历史记录
+- ChatManager类：对话管理器，管理对话会话和历史记录（仅内存）
 - start_session()：开始新会话
 - chat()：非流式对话（同步）
 - stream_chat()：流式对话（异步，使用真正的流式API）
-- save_current_session()：保存当前会话
-- load_session()：加载历史会话
 
 执行流程：
 1. 初始化对话管理器（连接索引管理器）
-2. 创建或加载会话
+2. 创建会话
 3. 执行对话查询（使用ModularQueryEngine + 对话记忆）
-4. 保存对话历史
 
 特性：
-- 会话管理
-- 历史记录持久化
+- 会话管理（仅内存，不持久化）
 - 推理链支持
-- 自动保存机制
 - 复用ModularQueryEngine的丰富检索策略
 - 真正的流式输出支持（实时token输出，无模拟延迟）
 """
 
 import asyncio
 from typing import Optional, List, Tuple
-from pathlib import Path
 
 from llama_index.core.memory import ChatMemoryBuffer
 from llama_index.core.llms import ChatMessage, MessageRole
@@ -36,6 +30,7 @@ from backend.infrastructure.indexer import IndexManager
 from backend.infrastructure.logger import get_logger
 from backend.business.rag_engine.formatting import ResponseFormatter
 from backend.business.rag_engine.core.engine import ModularQueryEngine
+from backend.business.rag_engine.agentic import AgenticQueryEngine
 from backend.business.chat.session import ChatSession
 from backend.infrastructure.llms import create_deepseek_llm_for_query, extract_reasoning_content
 
@@ -53,8 +48,6 @@ class ChatManager:
         model: Optional[str] = None,
         memory_token_limit: int = 3000,
         similarity_top_k: Optional[int] = None,
-        auto_save: bool = True,
-        user_email: Optional[str] = None,
         enable_debug: bool = False,
         similarity_threshold: Optional[float] = None,
         enable_markdown_formatting: bool = True,
@@ -62,6 +55,7 @@ class ChatManager:
         enable_rerank: Optional[bool] = None,
         max_history_turns: int = 6,
         enable_smart_condense: bool = True,
+        use_agentic_rag: bool = False,
         **kwargs
     ):
         """初始化对话管理器
@@ -73,8 +67,6 @@ class ChatManager:
             model: 模型名称
             memory_token_limit: 记忆token限制
             similarity_top_k: 检索相似文档数量
-            auto_save: 是否自动保存会话
-            user_email: 用户邮箱（用于会话目录隔离）
             enable_debug: 是否启用调试模式
             similarity_threshold: 相似度阈值
             enable_markdown_formatting: 是否启用Markdown格式化
@@ -82,12 +74,11 @@ class ChatManager:
             enable_rerank: 是否启用重排序
             max_history_turns: 最大历史轮数（用于查询压缩）
             enable_smart_condense: 是否启用智能压缩（短历史不压缩）
-            **kwargs: 传递给ModularQueryEngine的其他参数
+            use_agentic_rag: 是否使用 Agentic RAG（默认False）
+            **kwargs: 传递给查询引擎的其他参数
         """
         self.index_manager = index_manager
         self.similarity_top_k = similarity_top_k or config.SIMILARITY_TOP_K
-        self.auto_save = auto_save
-        self.user_email = user_email
         self.enable_debug = enable_debug
         self.similarity_threshold = similarity_threshold or config.SIMILARITY_THRESHOLD
         self.max_history_turns = max_history_turns
@@ -124,21 +115,34 @@ class ChatManager:
             token_limit=memory_token_limit,
         )
         
-        # 创建模块化查询引擎（复用丰富的检索策略）
+        # 创建查询引擎（根据 use_agentic_rag 选择）
         if self.index_manager:
-            logger.info("创建模块化查询引擎（支持多种检索策略）")
-            self.query_engine = ModularQueryEngine(
-                index_manager=self.index_manager,
-                api_key=self.api_key,
-                model=self.model,
-                similarity_top_k=self.similarity_top_k,
-                enable_markdown_formatting=enable_markdown_formatting,
-                retrieval_strategy=retrieval_strategy,
-                enable_rerank=enable_rerank,
-                enable_debug=enable_debug,
-                **kwargs
-            )
-            logger.info(f"模块化查询引擎已创建（检索策略: {retrieval_strategy or config.RETRIEVAL_STRATEGY}）")
+            if use_agentic_rag:
+                logger.info("创建 AgenticQueryEngine（Agent 自主选择检索策略）")
+                self.query_engine = AgenticQueryEngine(
+                    index_manager=self.index_manager,
+                    api_key=self.api_key,
+                    model=self.model,
+                    similarity_top_k=self.similarity_top_k,
+                    enable_markdown_formatting=enable_markdown_formatting,
+                    enable_rerank=enable_rerank,
+                    **kwargs
+                )
+                logger.info("AgenticQueryEngine 已创建")
+            else:
+                logger.info("创建模块化查询引擎（支持多种检索策略）")
+                self.query_engine = ModularQueryEngine(
+                    index_manager=self.index_manager,
+                    api_key=self.api_key,
+                    model=self.model,
+                    similarity_top_k=self.similarity_top_k,
+                    enable_markdown_formatting=enable_markdown_formatting,
+                    retrieval_strategy=retrieval_strategy,
+                    enable_rerank=enable_rerank,
+                    enable_debug=enable_debug,
+                    **kwargs
+                )
+                logger.info(f"模块化查询引擎已创建（检索策略: {retrieval_strategy or config.RETRIEVAL_STRATEGY}）")
         else:
             self.query_engine = None
             logger.info("纯LLM对话模式（无知识库检索）")
@@ -348,39 +352,12 @@ class ChatManager:
         if reasoning_content:
             logger.debug(f"推理链内容已提取（长度: {len(reasoning_content)} 字符）")
     
-    def _get_session_save_dir(self) -> Path:
-        """获取会话保存目录
-
-        Returns:
-            保存目录路径
-        """
-        if self.user_email:
-            save_dir = config.SESSIONS_PATH / self.user_email
-            logger.debug(f"保存到用户目录: {save_dir}")
-        else:
-            # 单用户模式：使用 default 目录，与 get_user_sessions_metadata 保持一致
-            save_dir = config.SESSIONS_PATH / "default"
-            logger.debug(f"保存到默认目录: {save_dir}")
-        return save_dir
-    
     def start_session(self, session_id: Optional[str] = None) -> ChatSession:
         """开始新会话"""
         self.current_session = ChatSession(session_id=session_id)
         self.memory.reset()
         logger.info(f"新会话开始: {self.current_session.session_id}")
         return self.current_session
-    
-    def load_session(self, file_path: Path):
-        """加载已有会话"""
-        self.current_session = ChatSession.load(file_path)
-        
-        # 恢复对话历史到记忆
-        self.memory.reset()
-        for turn in self.current_session.history:
-            self.memory.put(ChatMessage(role=MessageRole.USER, content=turn.question))
-            self.memory.put(ChatMessage(role=MessageRole.ASSISTANT, content=turn.answer))
-        
-        logger.info(f"会话已加载: {self.current_session.session_id}, 包含 {len(self.current_session.history)} 轮对话")
     
     def chat(self, message: str) -> tuple[str, List[dict], Optional[str]]:
         """进行对话（使用ModularQueryEngine + 对话记忆）
@@ -402,10 +379,6 @@ class ChatManager:
             
             # 更新记忆和会话
             self._update_memory_and_session(message, answer, sources, reasoning_content)
-            
-            # 自动保存会话
-            if self.auto_save:
-                self.save_current_session()
             
             return answer, sources, reasoning_content
             
@@ -481,10 +454,6 @@ class ChatManager:
             # 更新对话记忆和会话历史
             self._update_memory_and_session(message, full_answer, sources, reasoning_content)
             
-            # 自动保存会话
-            if self.auto_save:
-                self.save_current_session()
-            
             # 返回完成事件
             yield {
                 'type': 'done',
@@ -506,17 +475,6 @@ class ChatManager:
     def get_current_session(self) -> Optional[ChatSession]:
         """获取当前会话"""
         return self.current_session
-    
-    def save_current_session(self, save_dir: Optional[Path] = None):
-        """保存当前会话"""
-        if self.current_session is None:
-            logger.warning("没有活动会话需要保存")
-            return
-        
-        if save_dir is None:
-            save_dir = self._get_session_save_dir()
-        
-        self.current_session.save(save_dir)
     
     def reset_session(self):
         """重置当前会话"""

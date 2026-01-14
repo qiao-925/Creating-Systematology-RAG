@@ -128,7 +128,6 @@ class Config:
             'RAW_DATA_PATH': 'raw_data',
             'PROCESSED_DATA_PATH': 'processed_data',
             'VECTOR_STORE_PATH': 'vector_store',
-            'SESSIONS_PATH': 'sessions',
             'ACTIVITY_LOG_PATH': 'activity_log',
             'GITHUB_REPOS_PATH': 'github_repos',
             'GITHUB_SYNC_STATE_PATH': 'github_sync_state',

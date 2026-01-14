@@ -145,16 +145,3 @@ class SessionDetailResponse(BaseModel):
     history: List[ChatTurnResponse] = Field(default_factory=list, description="完整历史记录")
 
 
-class SessionHistoryResponse(BaseModel):
-    """会话历史响应模型"""
-    session_id: str = Field(..., description="会话ID")
-    title: str = Field(..., description="会话标题")
-    created_at: str = Field(..., description="创建时间")
-    updated_at: str = Field(..., description="更新时间")
-    history: List[ChatTurnResponse] = Field(default_factory=list, description="完整历史记录")
-
-
-class SessionListResponse(BaseModel):
-    """会话列表响应模型"""
-    sessions: List[SessionInfo] = Field(default_factory=list, description="会话列表")
-    total: int = Field(..., ge=0, description="总会话数")

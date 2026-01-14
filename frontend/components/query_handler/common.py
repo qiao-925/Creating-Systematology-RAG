@@ -50,6 +50,4 @@ def save_to_chat_manager(chat_manager, prompt: str, answer: str,
             chat_manager.current_session.add_turn(prompt, answer, sources, reasoning_content)
         else:
             chat_manager.current_session.add_turn(prompt, answer, sources)
-        if chat_manager.auto_save:
-            chat_manager.save_current_session()
 

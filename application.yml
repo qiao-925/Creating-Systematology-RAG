@@ -59,7 +59,6 @@ paths:
   raw_data: ./data/raw
   processed_data: ./data/processed
   vector_store: ./data/vector_store  # 向量存储路径（向后兼容，Chroma Cloud 模式不再使用）
-  sessions: ./data/sessions
   activity_log: ./data/logs/activity
   github_repos: ./data/github_repos
   github_sync_state: ./data/github_sync_state.json

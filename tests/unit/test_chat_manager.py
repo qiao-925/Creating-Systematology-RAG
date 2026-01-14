@@ -119,30 +119,6 @@ class TestChatSession:
         session.clear_history()
         assert len(session.history) == 0
     
-    def test_save_and_load(self, tmp_path):
-        """测试保存和加载会话"""
-        # 创建会话
-        session = ChatSession(session_id="test_session")
-        session.add_turn("问题1", "答案1", [{"index": 1}])
-        session.add_turn("问题2", "答案2", [])
-        
-        # 保存
-        save_dir = tmp_path / "sessions"
-        session.save(save_dir)
-        
-        # 验证文件存在
-        file_path = save_dir / "test_session.json"
-        assert file_path.exists()
-        
-        # 加载
-        loaded_session = ChatSession.load(file_path)
-        
-        # 验证内容
-        assert loaded_session.session_id == "test_session"
-        assert len(loaded_session.history) == 2
-        assert loaded_session.history[0].question == "问题1"
-        assert loaded_session.history[1].answer == "答案2"
-    
     def test_to_dict_from_dict(self):
         """测试序列化和反序列化"""
         session = ChatSession(session_id="test_123")
@@ -227,35 +203,6 @@ class TestChatManager:
         
         assert current is not None
         assert current.session_id == session.session_id
-    
-    def test_save_current_session(self, mock_chat_manager, tmp_path):
-        """测试保存当前会话"""
-        mock_chat_manager.start_session()
-        mock_chat_manager.chat("测试问题")
-        
-        save_dir = tmp_path / "sessions"
-        mock_chat_manager.save_current_session(save_dir=save_dir)
-        
-        # 验证文件被创建
-        assert save_dir.exists()
-        assert len(list(save_dir.glob("*.json"))) == 1
-    
-    def test_load_session(self, mock_chat_manager, tmp_path):
-        """测试加载会话"""
-        # 创建并保存会话
-        session = ChatSession(session_id="load_test")
-        session.add_turn("问题1", "答案1", [])
-        save_dir = tmp_path / "sessions"
-        session.save(save_dir)
-        
-        # 加载会话
-        file_path = save_dir / "load_test.json"
-        mock_chat_manager.load_session(file_path)
-        
-        # 验证
-        current = mock_chat_manager.get_current_session()
-        assert current.session_id == "load_test"
-        assert len(current.history) == 1
     
     def test_reset_session(self, mock_chat_manager):
         """测试重置会话"""

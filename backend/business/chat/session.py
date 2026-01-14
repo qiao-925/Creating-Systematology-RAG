@@ -3,31 +3,21 @@
 
 主要功能：
 - ChatTurn类：单轮对话数据模型，包含问题、回答、来源、时间戳等
-- ChatSession类：对话会话数据模型，包含会话ID、标题、历史记录等
-- 支持JSON序列化和反序列化
+- ChatSession类：对话会话数据模型，包含会话ID、标题、历史记录等（仅内存）
 
 执行流程：
 1. 创建ChatTurn对象
-2. 添加到ChatSession
-3. 序列化为JSON保存
-4. 从JSON反序列化加载
+2. 添加到ChatSession（仅内存）
 
 特性：
 - 数据模型定义
-- JSON序列化支持
 - 推理链内容支持
-- 完整的元数据管理
+- 完整的元数据管理（仅内存，不持久化）
 """
 
-import json
 from datetime import datetime
-from pathlib import Path
 from typing import List, Optional, Dict, Any
 from dataclasses import dataclass, asdict
-
-from backend.infrastructure.logger import get_logger
-
-logger = get_logger('chat_manager')
 
 
 def _convert_source_to_dict(source: Any) -> Dict[str, Any]:
@@ -190,33 +180,4 @@ class ChatSession:
         session.updated_at = data['updated_at']
         session.history = [ChatTurn.from_dict(turn) for turn in data['history']]
         return session
-    
-    def save(self, save_dir: Path):
-        """保存会话到文件
-        
-        Args:
-            save_dir: 保存目录
-        """
-        save_dir.mkdir(parents=True, exist_ok=True)
-        file_path = save_dir / f"{self.session_id}.json"
-        
-        with open(file_path, 'w', encoding='utf-8') as f:
-            json.dump(self.to_dict(), f, ensure_ascii=False, indent=2)
-        
-        logger.info(f"会话已保存: {file_path}")
-    
-    @classmethod
-    def load(cls, file_path: Path):
-        """从文件加载会话
-        
-        Args:
-            file_path: 文件路径
-            
-        Returns:
-            ChatSession对象
-        """
-        with open(file_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-        
-        return cls.from_dict(data)
 

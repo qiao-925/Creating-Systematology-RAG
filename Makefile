@@ -153,7 +153,6 @@ clean:
 	rm -rf htmlcov
 	rm -rf .coverage
 	rm -rf vector_store/*
-	rm -rf sessions/*
 	@echo "✓ Cleanup completed"
 
 run:

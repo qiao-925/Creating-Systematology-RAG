@@ -140,10 +140,18 @@ class InitializationManager:
                     module.init_time = elapsed
                     logger.info(f"✅ 模块 {module_name} 初始化成功 (耗时: {elapsed:.2f}s)")
                 else:
+                    # 检查函数返回 False（通常是可选模块未启用）
                     module.status = InitStatus.FAILED
-                    module.error = "检查函数返回False"
+                    error_msg = "检查函数返回False"
+                    # 为特定模块提供更详细的错误信息
+                    if module_name == "llama_debug":
+                        if hasattr(config, 'ENABLE_DEBUG_HANDLER') and not config.ENABLE_DEBUG_HANDLER:
+                            error_msg = "LlamaDebug 未启用（ENABLE_DEBUG_HANDLER=False），请在 application.yml 中设置 observability.llama_debug.enable=true"
+                        else:
+                            error_msg = "LlamaDebug 模块检查失败，请检查日志获取详细信息"
+                    module.error = error_msg
                     module.init_time = elapsed
-                    logger.error(f"❌ 模块 {module_name} 初始化失败")
+                    logger.warning(f"⚠️  模块 {module_name} 检查未通过: {error_msg}")
             except Exception as e:
                 elapsed = (datetime.now() - start_time).total_seconds()
                 module.status = InitStatus.FAILED

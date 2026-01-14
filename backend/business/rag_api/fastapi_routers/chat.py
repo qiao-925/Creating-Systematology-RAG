@@ -1,9 +1,7 @@
 """
 RAG API - FastAPI对话路由
 
-极简设计：只提供两个核心接口
-- 流式对话（自动创建/使用会话）
-- 获取会话历史
+极简设计：只提供流式对话接口（自动创建/使用会话）
 """
 
 import asyncio
@@ -16,7 +14,6 @@ from backend.business.rag_api.fastapi_dependencies import get_rag_service
 from backend.business.rag_api.rag_service import RAGService
 from backend.business.rag_api.models import (
     ChatRequest,
-    SessionHistoryResponse,
 )
 from backend.infrastructure.logger import get_logger
 from backend.infrastructure.llms import create_deepseek_llm_for_query
@@ -433,37 +430,3 @@ async def stream_chat(
     )
 
 
-@router.get("/sessions/{session_id}/history", response_model=SessionHistoryResponse)
-async def get_session_history(
-    session_id: str,  # 会话ID，从 URL 路径参数获取
-    rag_service: RAGService = Depends(get_rag_service),  # RAG 服务依赖注入
-):
-    """获取指定会话的历史记录
-    
-    Args:
-        session_id: 会话ID，从 URL 路径参数获取
-        rag_service: RAG 服务实例，通过依赖注入获取
-    
-    Returns:
-        SessionHistoryResponse: 会话历史记录响应对象
-    
-    Raises:
-        HTTPException: 
-            - 404: 会话不存在
-            - 500: 获取会话历史失败
-    """
-    logger.info("获取会话历史", session_id=session_id)
-    try:
-        return await asyncio.to_thread(rag_service.get_session_history, session_id)
-    except FileNotFoundError as e:
-        logger.warning("会话不存在", session_id=session_id, error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail={"code": "SESSION_NOT_FOUND", "message": str(e)}
-        )
-    except Exception as e:
-        logger.error("获取会话历史失败", session_id=session_id, error=str(e), exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={"code": "HISTORY_FETCH_FAILED", "message": f"获取会话历史失败: {str(e)}"}
-        )

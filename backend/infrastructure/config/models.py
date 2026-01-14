@@ -85,7 +85,6 @@ class PathsConfig(BaseModel):
     raw_data: str
     processed_data: str
     vector_store: str
-    sessions: str
     activity_log: str
     github_repos: str
     github_sync_state: str

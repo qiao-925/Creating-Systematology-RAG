@@ -9,7 +9,7 @@
 import streamlit as st
 from typing import Optional, Any
 
-from backend.infrastructure.initialization.manager import InitializationManager
+from backend.infrastructure.initialization.manager import InitializationManager, InitStatus
 from backend.infrastructure.initialization.categories import InitCategory
 from backend.infrastructure.config import config
 from backend.infrastructure.logger import get_logger
@@ -61,36 +61,36 @@ def register_all_modules(manager: InitializationManager) -> None:
     
     # ========== 核心层 ==========
     
-    # 4. Embedding 模型
+    # 4. Embedding 模型（延迟加载：启动时不初始化，首次使用时再初始化）
     manager.register_module(
         name="embedding",
         category=InitCategory.CORE.value,
         check_func=lambda: _check_embedding(),
         init_func=lambda: _init_embedding(manager),
         dependencies=["config", "logger"],
-        is_required=True,
-        description=f"Embedding模型 ({config.EMBEDDING_TYPE})"
+        is_required=False,  # 改为可选，延迟加载
+        description=f"Embedding模型 ({config.EMBEDDING_TYPE}) - 延迟加载"
     )
     
-    # 5. Chroma 向量数据库（在 IndexManager 中初始化）
+    # 5. Chroma 向量数据库（延迟加载：启动时不连接，首次使用时再连接）
     manager.register_module(
         name="chroma",
         category=InitCategory.CORE.value,
         check_func=lambda: _check_chroma(),
         dependencies=["config", "logger"],
-        is_required=True,
-        description="Chroma向量数据库连接"
+        is_required=False,  # 改为可选，延迟加载
+        description="Chroma向量数据库连接 - 延迟加载"
     )
     
-    # 6. 索引管理器
+    # 6. 索引管理器（延迟加载：启动时不初始化，首次使用时再初始化）
     manager.register_module(
         name="index_manager",
         category=InitCategory.CORE.value,
         check_func=lambda: _check_index_manager(),
         init_func=lambda: _init_index_manager(manager),
-        dependencies=["embedding", "chroma"],
-        is_required=True,
-        description="索引管理器"
+        dependencies=[],  # 移除强制依赖，改为延迟初始化
+        is_required=False,  # 改为可选，延迟加载
+        description="索引管理器 - 延迟加载"
     )
     
     # 7. LLM 工厂
@@ -115,26 +115,26 @@ def register_all_modules(manager: InitializationManager) -> None:
         description="Streamlit会话状态初始化"
     )
     
-    # 9. RAG 服务
+    # 9. RAG 服务（延迟加载：启动时不初始化，首次使用时再初始化）
     manager.register_module(
         name="rag_service",
         category=InitCategory.CORE.value,
         check_func=lambda: _check_rag_service(),
         init_func=lambda: _init_rag_service(manager),
-        dependencies=["index_manager", "llm_factory"],
-        is_required=True,
-        description="RAG服务"
+        dependencies=["llm_factory"],  # 移除对 index_manager 的强制依赖
+        is_required=False,  # 改为可选，延迟加载
+        description="RAG服务 - 延迟加载"
     )
     
-    # 10. 对话管理器
+    # 10. 对话管理器（延迟加载：启动时不初始化，首次使用时再初始化）
     manager.register_module(
         name="chat_manager",
         category=InitCategory.CORE.value,
         check_func=lambda: _check_chat_manager(),
         init_func=lambda: _init_chat_manager(manager),
-        dependencies=["index_manager", "llm_factory"],
-        is_required=True,
-        description="对话管理器"
+        dependencies=["llm_factory"],  # 移除对 index_manager 的强制依赖
+        is_required=False,  # 改为可选，延迟加载
+        description="对话管理器 - 延迟加载"
     )
     
     # ========== 可选层 ==========
@@ -245,19 +245,29 @@ def _init_embedding(manager: InitializationManager) -> Any:
 
 
 def _init_index_manager(manager: InitializationManager) -> Any:
-    """初始化索引管理器"""
+    """初始化索引管理器（延迟加载：如果依赖未初始化，则自动初始化）"""
     from backend.infrastructure.indexer import IndexManager
-    
-    # 从管理器获取依赖实例
-    embedding = manager.instances.get('embedding')
-    if embedding is None:
-        raise ValueError("Embedding 实例未初始化")
     
     # 检查 session_state 中是否已有
     if hasattr(st, 'session_state'):
         if 'index_manager' in st.session_state and st.session_state.index_manager is not None:
             logger.info("使用 session_state 中已有的 IndexManager")
             return st.session_state.index_manager
+    
+    # 延迟加载：如果 embedding 未初始化，则自动初始化
+    embedding = manager.instances.get('embedding')
+    if embedding is None:
+        logger.info("Embedding 未初始化，自动初始化（延迟加载）")
+        try:
+            embedding = _init_embedding(manager)
+            # 保存到管理器实例中
+            manager.instances['embedding'] = embedding
+            # 更新模块状态
+            if 'embedding' in manager.modules:
+                manager.modules['embedding'].status = InitStatus.SUCCESS
+        except Exception as e:
+            logger.error(f"延迟加载 Embedding 失败: {e}")
+            raise ValueError(f"Embedding 实例初始化失败: {e}") from e
     
     # 创建新的 IndexManager
     collection_name = config.CHROMA_COLLECTION_NAME
@@ -315,13 +325,8 @@ def _init_session_state(manager: InitializationManager) -> None:
 
 
 def _init_rag_service(manager: InitializationManager) -> Any:
-    """初始化RAG服务"""
+    """初始化RAG服务（延迟加载：不依赖 index_manager，通过 @property 延迟加载）"""
     from backend.business.rag_api import RAGService
-    
-    # 从管理器获取依赖实例
-    index_manager = manager.instances.get('index_manager')
-    if index_manager is None:
-        raise ValueError("IndexManager 实例未初始化")
     
     # 检查 session_state 中是否已有
     if hasattr(st, 'session_state'):
@@ -329,7 +334,7 @@ def _init_rag_service(manager: InitializationManager) -> Any:
             logger.info("使用 session_state 中已有的 RAGService")
             return st.session_state.rag_service
     
-    # 创建新的 RAGService
+    # 创建新的 RAGService（不立即初始化 index_manager，通过 @property 延迟加载）
     collection_name = config.CHROMA_COLLECTION_NAME
     if hasattr(st, 'session_state') and 'collection_name' in st.session_state:
         collection_name = st.session_state.collection_name
@@ -338,10 +343,17 @@ def _init_rag_service(manager: InitializationManager) -> Any:
     if hasattr(st, 'session_state') and 'debug_mode_enabled' in st.session_state:
         enable_debug = st.session_state.debug_mode_enabled
     
+    # 读取 use_agentic_rag 配置
+    use_agentic_rag = False
+    if hasattr(st, 'session_state') and 'use_agentic_rag' in st.session_state:
+        use_agentic_rag = st.session_state.use_agentic_rag
+    
+    # RAGService 创建时不初始化 index_manager，通过 @property 延迟加载
     rag_service = RAGService(
         collection_name=collection_name,
         enable_debug=enable_debug,
         enable_markdown_formatting=True,
+        use_agentic_rag=use_agentic_rag,
     )
     
     # 存储到 session_state（如果可用）
@@ -349,17 +361,28 @@ def _init_rag_service(manager: InitializationManager) -> Any:
         st.session_state.rag_service = rag_service
         st.session_state.rag_service_validated = True
     
+    logger.info("RAGService 创建完成（延迟加载模式）")
     return rag_service
 
 
 def _init_chat_manager(manager: InitializationManager) -> Any:
-    """初始化对话管理器"""
+    """初始化对话管理器（延迟加载：不依赖 index_manager，通过 RAGService 延迟加载）"""
     from backend.business.chat import ChatManager
     
-    # 从管理器获取依赖实例
+    # 延迟加载：如果 index_manager 未初始化，则自动初始化
     index_manager = manager.instances.get('index_manager')
     if index_manager is None:
-        raise ValueError("IndexManager 实例未初始化")
+        logger.info("IndexManager 未初始化，自动初始化（延迟加载）")
+        try:
+            index_manager = _init_index_manager(manager)
+            # 保存到管理器实例中
+            manager.instances['index_manager'] = index_manager
+            # 更新模块状态
+            if 'index_manager' in manager.modules:
+                manager.modules['index_manager'].status = InitStatus.SUCCESS
+        except Exception as e:
+            logger.error(f"延迟加载 IndexManager 失败: {e}")
+            raise ValueError(f"IndexManager 实例初始化失败: {e}") from e
     
     # 检查 session_state 中是否已有
     if hasattr(st, 'session_state'):
@@ -372,11 +395,16 @@ def _init_chat_manager(manager: InitializationManager) -> Any:
     if hasattr(st, 'session_state') and 'debug_mode_enabled' in st.session_state:
         enable_debug = st.session_state.debug_mode_enabled
     
+    # 读取 use_agentic_rag 配置
+    use_agentic_rag = False
+    if hasattr(st, 'session_state') and 'use_agentic_rag' in st.session_state:
+        use_agentic_rag = st.session_state.use_agentic_rag
+    
     chat_manager = ChatManager(
         index_manager=index_manager,
-        user_email=None,  # 单用户模式
         enable_debug=enable_debug,
         enable_markdown_formatting=True,
+        use_agentic_rag=use_agentic_rag,
     )
     
     # 存储到 session_state（如果可用）
@@ -552,16 +580,50 @@ def _check_session_state() -> bool:
 
 
 def _check_llama_debug() -> bool:
-    """检查LlamaDebug观察器"""
-    try:
-        if not config.OBSERVABILITY_LLAMA_DEBUG_ENABLE:
-            return False
+    """检查LlamaDebug观察器
+    
+    Returns:
+        bool: True表示检查通过，False表示检查失败
         
-        # 检查模块是否存在
-        from backend.infrastructure.observers.llama_debug_observer import LlamaDebugObserver
-        return True
-    except Exception:
+    Raises:
+        Exception: 检查过程中出现异常时抛出，包含详细错误信息
+    """
+    from backend.infrastructure.logger import get_logger
+    check_logger = get_logger('initialization.check')
+    
+    # 检查配置项是否存在
+    if not hasattr(config, 'ENABLE_DEBUG_HANDLER'):
+        error_msg = "配置项 ENABLE_DEBUG_HANDLER 不存在，请检查配置文件"
+        check_logger.error(error_msg)
+        raise AttributeError(error_msg)
+    
+    # 检查是否启用
+    if not config.ENABLE_DEBUG_HANDLER:
+        error_msg = "LlamaDebug 未启用（ENABLE_DEBUG_HANDLER=False），请在 application.yml 中设置 observability.llama_debug.enable=true"
+        check_logger.warning(error_msg)
+        # 对于可选模块，未启用时返回 False 而不是抛出异常
         return False
+    
+    # 检查模块是否存在
+    try:
+        from backend.infrastructure.observers.llama_debug_observer import LlamaDebugObserver
+        check_logger.debug("LlamaDebugObserver 模块导入成功")
+    except ImportError as e:
+        error_msg = f"无法导入 LlamaDebugObserver 模块: {e}。请检查模块文件是否存在"
+        check_logger.error(error_msg)
+        raise ImportError(error_msg) from e
+    
+    # 尝试创建实例以验证可用性
+    try:
+        observer = LlamaDebugObserver(enabled=False)  # 禁用以避免副作用
+        check_logger.debug("LlamaDebugObserver 实例创建成功")
+    except Exception as e:
+        error_msg = f"LlamaDebugObserver 实例创建失败: {e}。请检查依赖项是否正确安装"
+        check_logger.error(error_msg, exc_info=True)
+        raise RuntimeError(error_msg) from e
+    
+    check_logger.info("LlamaDebug 检查通过")
+    return True
 
 
 def _check_ragas() -> bool:

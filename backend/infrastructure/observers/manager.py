@@ -84,7 +84,21 @@ class ObserverManager:
         trace_ids: Optional[Dict[str, str]] = None,
         **kwargs
     ) -> None:
-        """通知所有观察器：查询结束"""
+        """通知所有观察器：查询结束
+        
+        Args:
+            query: 原始查询
+            answer: 生成的答案
+            sources: 引用来源列表
+            trace_ids: 追踪ID字典
+            **kwargs: 其他参数，包括：
+                - query_processing_result: 查询处理结果（改写、意图理解等）
+                - retrieval_strategy: 检索策略
+                - similarity_top_k: Top K值
+                - retrieval_time: 检索耗时
+                - errors: 错误列表
+                - warnings: 警告列表
+        """
         for observer in self.observers:
             if observer.is_enabled():
                 try:

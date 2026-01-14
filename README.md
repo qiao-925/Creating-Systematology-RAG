@@ -395,8 +395,7 @@ uv run --no-sync python -c "import torch; print(f'版本: {torch.__version__}');
 └─→ [阶段4] 会话管理（多轮对话）
       └─ ChatManager [backend/business/chat/manager.py]
             ├─ 维护会话历史
-            ├─ 自动持久化到 sessions/ 目录
-            └─ 支持会话切换和历史恢复
+            └─ 支持多轮对话（仅内存，不持久化）
 ```
 
 ### 目录结构
@@ -470,7 +469,6 @@ Creating-Systematology-RAG/
 ├── data/                           # 📁 数据目录
 │   └── github_repos/               # GitHub仓库（本地克隆）
 │
-├── sessions/                       # 💾 对话会话记录（按用户隔离）
 ├── logs/                           # 📋 日志目录
 ├── agent-task-log/                 # 📝 AI Agent任务记录
 └── Makefile                        # 🛠️ 构建脚本
@@ -541,12 +539,6 @@ app.py   RAGService   Config/Logger/Embedding/LLM
 - **清理**: 通过 Chroma Cloud 控制台或 `IndexManager.clear_index()` 清除集合
 - **用途**: 持久化存储向量索引，支持大规模数据
 
-**会话记录缓存**
-- **位置**: `sessions/{user_email}/{session_id}.json`
-- **机制**: JSON 文件存储对话会话，按用户隔离
-- **配置**: `SESSIONS_PATH`（默认: `sessions`）
-- **清理**: 删除对应会话文件，或通过 `ChatManager` 管理
-- **用途**: 持久化对话历史，支持会话恢复
 
 **用户数据缓存**
 - **位置**: `data/users.json`
@@ -599,7 +591,6 @@ app.py   RAGService   Config/Logger/Embedding/LLM
 **高重要性**（不建议删除）:
 - 向量数据库（Chroma Cloud 云端存储）
 - 用户数据 (`data/users.json`)
-- 会话记录 (`sessions/`)
 
 **中等重要性**（可选择性清理）:
 - GitHub 仓库本地缓存 (`data/github_repos/`)
@@ -624,7 +615,7 @@ app.py   RAGService   Config/Logger/Embedding/LLM
 **推荐清理策略**：
 - **日常清理**：Python 字节码缓存、pytest 测试缓存、旧的活动日志
 - **定期清理**：GitHub 仓库本地缓存（如需要）
-- **谨慎清理**：向量数据库、用户数据、会话记录、GitHub 仓库缓存（需确认）
+- **谨慎清理**：向量数据库、用户数据、GitHub 仓库缓存（需确认）
 
 > 📖 详细缓存分析 → [缓存机制分析](docs/CACHE_ANALYSIS.md)
 

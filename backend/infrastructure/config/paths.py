@@ -32,7 +32,6 @@ def get_required_directories(config) -> List[Path]:
         config.RAW_DATA_PATH,
         config.PROCESSED_DATA_PATH,
         config.VECTOR_STORE_PATH,  # 向后兼容
-        config.SESSIONS_PATH,
         config.ACTIVITY_LOG_PATH,
         config.GITHUB_REPOS_PATH,
         # 确保主日志目录存在（用于 logger.py）

@@ -30,26 +30,6 @@ def render_chat_interface(rag_service, chat_manager) -> None:
         st.markdown(inject_citation_script(), unsafe_allow_html=True)
         st.session_state.citation_script_injected = True
     
-    # 处理历史会话加载（统一处理，避免多次rerun）
-    from frontend.components.session_loader import load_history_session
-    
-    # 检查是否有待加载的会话
-    if st.session_state.get('session_loading_pending', False) or 'load_session_id' in st.session_state:
-        # 加载会话（同步执行，不立即rerun）
-        session_loaded = load_history_session(chat_manager)
-        
-        if session_loaded:
-            # 显示成功消息
-            st.success("✅ 会话已加载")
-            # 统一rerun一次（合并多次rerun）
-            st.rerun()
-        else:
-            # 加载失败
-            st.error("❌ 加载会话失败")
-            # 清除标记后rerun
-            st.rerun()
-        return
-    
     # 显示标题
     chat_title = get_chat_title(st.session_state.messages)
     if chat_title:
@@ -153,24 +133,90 @@ def _render_observer_info(message_index: int) -> None:
     elif len(ragas_logs) > 0:
         ragas_log = ragas_logs[-1]
     
-    # 显示观察器信息（如果有）- 按执行流程顺序
+    # 显示观察器信息（如果有）- 按执行流程顺序（直接展示，不折叠）
     if debug_log or ragas_log:
-        with st.expander("🔍 可观测性信息（按执行流程）", expanded=True):
-            if debug_log:
-                _render_llamadebug_full_info(debug_log)
-            
-            if ragas_log:
-                st.divider()
-                _render_ragas_full_info(ragas_log)
+        st.markdown("##### 🔍 可观测性信息（按执行流程）")
+        if debug_log:
+            _render_llamadebug_full_info(debug_log)
+        
+        if ragas_log:
+            st.divider()
+            _render_ragas_full_info(ragas_log)
 
 
 def _render_llamadebug_full_info(debug_log: dict) -> None:
     """按执行流程渲染 LlamaDebug 全量信息"""
     
     # ========== 阶段1: 查询开始 ==========
-    st.markdown("### 📝 1. 查询阶段")
+    st.markdown("##### 📝 1. 查询阶段")
     if debug_log.get('query'):
-        st.markdown(f"**查询内容**: `{debug_log['query']}`")
+        st.markdown(f"**原始查询**: `{debug_log['query']}`")
+    
+    # 查询处理结果（新增）
+    query_processing = debug_log.get('query_processing')
+    if query_processing:
+        col1, col2 = st.columns(2)
+        with col1:
+            if query_processing.get('rewritten_queries'):
+                rewritten = query_processing['rewritten_queries']
+                if len(rewritten) > 0:
+                    st.markdown(f"**改写后的查询**: `{rewritten[0]}`")
+                    if len(rewritten) > 1:
+                        with st.expander(f"其他改写版本 ({len(rewritten)-1} 个)", expanded=False):
+                            for i, q in enumerate(rewritten[1:], 2):
+                                st.markdown(f"**版本 {i}**: `{q}`")
+        
+        with col2:
+            if query_processing.get('processing_method'):
+                method = query_processing['processing_method']
+                method_label = "简单查询（跳过LLM）" if method == "simple" else "LLM处理"
+                st.markdown(f"**处理方式**: {method_label}")
+        
+        # 意图理解结果（新增）
+        understanding = query_processing.get('understanding')
+        if understanding:
+            with st.expander("🧠 查询意图理解", expanded=False):
+                if isinstance(understanding, dict):
+                    if understanding.get('query_type'):
+                        st.markdown(f"**查询类型**: `{understanding['query_type']}`")
+                    if understanding.get('complexity'):
+                        complexity = understanding['complexity']
+                        complexity_label = {
+                            'simple': '简单',
+                            'medium': '中等',
+                            'complex': '复杂'
+                        }.get(complexity, complexity)
+                        st.markdown(f"**复杂度**: {complexity_label}")
+                    if understanding.get('intent'):
+                        st.markdown(f"**查询意图**: {understanding['intent']}")
+                    if understanding.get('entities'):
+                        entities = understanding['entities']
+                        if entities:
+                            st.markdown(f"**关键实体**: {', '.join(entities)}")
+                    if understanding.get('confidence') is not None:
+                        st.markdown(f"**置信度**: {understanding['confidence']:.2f}")
+                else:
+                    st.json(understanding)
+    
+    # 配置信息（新增）
+    if debug_log.get('llm_model') or debug_log.get('retrieval_strategy') or debug_log.get('top_k'):
+        with st.expander("⚙️ 配置信息", expanded=False):
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                if debug_log.get('llm_model'):
+                    st.markdown(f"**LLM模型**: `{debug_log['llm_model']}`")
+                if debug_log.get('llm_params'):
+                    params = debug_log['llm_params']
+                    if params.get('temperature') is not None:
+                        st.markdown(f"**Temperature**: {params['temperature']}")
+                    if params.get('max_tokens') is not None:
+                        st.markdown(f"**Max Tokens**: {params['max_tokens']}")
+            with col2:
+                if debug_log.get('retrieval_strategy'):
+                    st.markdown(f"**检索策略**: `{debug_log['retrieval_strategy']}`")
+            with col3:
+                if debug_log.get('top_k'):
+                    st.markdown(f"**Top K**: {debug_log['top_k']}")
     
     # 基础统计
     col1, col2, col3, col4 = st.columns(4)
@@ -197,7 +243,7 @@ def _render_llamadebug_full_info(debug_log: dict) -> None:
     st.divider()
     
     # ========== 阶段2: 检索阶段 ==========
-    st.markdown("### 🔍 2. 检索阶段")
+    st.markdown("##### 🔍 2. 检索阶段")
     
     col1, col2 = st.columns(2)
     with col1:
@@ -247,7 +293,7 @@ def _render_llamadebug_full_info(debug_log: dict) -> None:
     st.divider()
     
     # ========== 阶段3: LLM调用阶段 ==========
-    st.markdown("### 🤖 3. LLM调用阶段")
+    st.markdown("##### 🤖 3. LLM调用阶段")
     
     col1, col2, col3, col4 = st.columns(4)
     with col1:
@@ -288,7 +334,7 @@ def _render_llamadebug_full_info(debug_log: dict) -> None:
     st.divider()
     
     # ========== 阶段4: 生成阶段 ==========
-    st.markdown("### ✨ 4. 生成阶段")
+    st.markdown("##### ✨ 4. 生成阶段")
     
     col1, col2 = st.columns(2)
     with col1:
@@ -310,7 +356,7 @@ def _render_llamadebug_full_info(debug_log: dict) -> None:
     st.divider()
     
     # ========== 阶段5: 性能指标 ==========
-    st.markdown("### ⏱️ 5. 性能指标")
+    st.markdown("##### ⏱️ 5. 性能指标")
     
     if debug_log.get('stage_times'):
         st.markdown("**各阶段耗时明细**:")
@@ -321,7 +367,7 @@ def _render_llamadebug_full_info(debug_log: dict) -> None:
     st.divider()
     
     # ========== 阶段6: 事件详情 ==========
-    st.markdown("### 🔍 6. 事件详情")
+    st.markdown("##### 🔍 6. 事件详情")
     
     if debug_log.get('event_pairs'):
         with st.expander(f"📋 事件对详情 ({len(debug_log['event_pairs'])} 个)", expanded=False):
@@ -350,6 +396,23 @@ def _render_llamadebug_full_info(debug_log: dict) -> None:
                     if pair.get('payload'):
                         with st.expander("Payload详情", expanded=False):
                             st.json(pair['payload'])
+    
+    # ========== 阶段7: 错误和警告 ==========
+    errors = debug_log.get('errors', [])
+    warnings = debug_log.get('warnings', [])
+    
+    if errors or warnings:
+        st.markdown("##### ⚠️ 7. 错误和警告")
+        
+        if errors:
+            st.error(f"❌ 错误 ({len(errors)} 个)")
+            for i, error in enumerate(errors, 1):
+                st.markdown(f"**错误 {i}**: {error}")
+        
+        if warnings:
+            st.warning(f"⚠️ 警告 ({len(warnings)} 个)")
+            for i, warning in enumerate(warnings, 1):
+                st.markdown(f"**警告 {i}**: {warning}")
 
 
 def _render_ragas_full_info(ragas_log: dict) -> None:
@@ -359,7 +422,7 @@ def _render_ragas_full_info(ragas_log: dict) -> None:
     status_icon = "⏳" if is_pending else "✅"
     
     # ========== 阶段1: 数据收集阶段 ==========
-    st.markdown("### 📥 1. 数据收集阶段")
+    st.markdown("##### 📥 1. 数据收集阶段")
     
     st.markdown(f"**状态**: {status_icon} {'待评估' if is_pending else '已评估'}")
     
@@ -430,7 +493,7 @@ def _render_ragas_full_info(ragas_log: dict) -> None:
     st.divider()
     
     # ========== 阶段2: 批量评估状态 ==========
-    st.markdown("### 📊 2. 批量评估状态")
+    st.markdown("##### 📊 2. 批量评估状态")
     
     # 计算待评估数据量
     if 'ragas_logs' in st.session_state:
@@ -471,7 +534,7 @@ def _render_ragas_full_info(ragas_log: dict) -> None:
     st.divider()
     
     # ========== 阶段3: 评估指标详情 ==========
-    st.markdown("### 📈 3. 评估指标详情")
+    st.markdown("##### 📈 3. 评估指标详情")
     
     if not is_pending and ragas_log.get('evaluation_result'):
         eval_result = ragas_log['evaluation_result']
@@ -542,7 +605,7 @@ def _render_ragas_full_info(ragas_log: dict) -> None:
     st.divider()
     
     # ========== 阶段4: 评估数据质量 ==========
-    st.markdown("### 🔍 4. 评估数据质量")
+    st.markdown("##### 🔍 4. 评估数据质量")
     
     # 数据完整性检查
     quality_checks = []

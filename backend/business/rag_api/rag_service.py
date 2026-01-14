@@ -9,9 +9,9 @@ from pathlib import Path
 
 from backend.infrastructure.indexer import IndexManager
 from backend.business.rag_engine.core.engine import ModularQueryEngine
+from backend.business.rag_engine.agentic import AgenticQueryEngine
 from backend.business.chat import ChatManager
 from backend.business.chat.session import ChatSession, ChatTurn
-from backend.business.chat.utils import get_user_sessions_metadata, load_session_from_file
 from backend.infrastructure.logger import get_logger
 from backend.infrastructure.config import config
 from backend.business.rag_api.models import (
@@ -24,8 +24,6 @@ from backend.business.rag_api.models import (
     SessionInfo,
     ChatTurnResponse,
     SessionDetailResponse,
-    SessionHistoryResponse,
-    SessionListResponse,
 )
 from backend.business.rag_engine.models import QueryContext, QueryResult, SourceModel
 
@@ -45,6 +43,7 @@ class RAGService:
         similarity_top_k: Optional[int] = None,
         enable_debug: bool = False,
         enable_markdown_formatting: bool = True,
+        use_agentic_rag: bool = False,
         **kwargs
     ):
         """初始化RAG服务
@@ -60,11 +59,13 @@ class RAGService:
         self.similarity_top_k = similarity_top_k or config.SIMILARITY_TOP_K
         self.enable_debug = enable_debug
         self.enable_markdown_formatting = enable_markdown_formatting
+        self.use_agentic_rag = use_agentic_rag
         self.engine_kwargs = kwargs
         
         # 延迟初始化（按需加载）
         self._index_manager: Optional[IndexManager] = None
         self._modular_query_engine: Optional[ModularQueryEngine] = None
+        self._agentic_query_engine: Optional[AgenticQueryEngine] = None
         self._chat_manager: Optional[ChatManager] = None
         
         logger.info(
@@ -99,6 +100,25 @@ class RAGService:
             )
         return self._modular_query_engine
     
+    def _get_query_engine(self):
+        """获取查询引擎（根据 use_agentic_rag 选择）"""
+        if self.use_agentic_rag:
+            if self._agentic_query_engine is None:
+                logger.info(
+                    "初始化AgenticQueryEngine",
+                    top_k=self.similarity_top_k,
+                    markdown_formatting=self.enable_markdown_formatting
+                )
+                self._agentic_query_engine = AgenticQueryEngine(
+                    index_manager=self.index_manager,
+                    similarity_top_k=self.similarity_top_k,
+                    enable_markdown_formatting=self.enable_markdown_formatting,
+                    **self.engine_kwargs
+                )
+            return self._agentic_query_engine
+        else:
+            return self.modular_query_engine
+    
     @property
     def chat_manager(self) -> ChatManager:
         """获取对话管理器（延迟加载）"""
@@ -107,6 +127,7 @@ class RAGService:
             self._chat_manager = ChatManager(
                 index_manager=self.index_manager,
                 similarity_top_k=self.similarity_top_k,
+                use_agentic_rag=self.use_agentic_rag,
             )
         return self._chat_manager
     
@@ -148,8 +169,9 @@ class RAGService:
             collect_trace=collect_trace
         )
         try:
-            # 执行查询
-            answer, sources, reasoning_content, trace_info = self.modular_query_engine.query(
+            # 执行查询（根据 use_agentic_rag 选择引擎）
+            query_engine = self._get_query_engine()
+            answer, sources, reasoning_content, trace_info = query_engine.query(
                 request.question,
                 collect_trace=collect_trace
             )
@@ -443,88 +465,6 @@ class RAGService:
             created_at=session.created_at,
             updated_at=session.updated_at,
             history=history,
-        )
-    
-    def get_session_history(self, session_id: str) -> SessionHistoryResponse:
-        """获取指定会话的历史记录
-        
-        Args:
-            session_id: 会话ID
-            
-        Returns:
-            会话历史响应
-        """
-        logger.info("获取会话历史", session_id=session_id)
-        
-        # 尝试从文件加载会话
-        sessions_dir = config.SESSIONS_PATH / "default"
-        session_file = sessions_dir / f"{session_id}.json"
-        
-        if not session_file.exists():
-            raise FileNotFoundError(f"会话不存在: {session_id}")
-        
-        session = load_session_from_file(str(session_file))
-        if session is None:
-            raise ValueError(f"无法加载会话: {session_id}")
-        
-        # 转换历史记录
-        history = []
-        for turn in session.history:
-            source_models = []
-            for source in turn.sources:
-                if isinstance(source, dict):
-                    source_models.append(SourceModel(**source))
-                else:
-                    source_models.append(SourceModel(
-                        text=source.get('text', ''),
-                        score=source.get('score', 0.0),
-                        metadata=source.get('metadata', {}),
-                        file_name=source.get('file_name'),
-                        page_number=source.get('page_number'),
-                        node_id=source.get('node_id')
-                    ))
-            
-            history.append(ChatTurnResponse(
-                question=turn.question,
-                answer=turn.answer,
-                sources=source_models,
-                timestamp=turn.timestamp,
-                reasoning_content=turn.reasoning_content,
-            ))
-        
-        return SessionHistoryResponse(
-            session_id=session.session_id,
-            title=session.title,
-            created_at=session.created_at,
-            updated_at=session.updated_at,
-            history=history,
-        )
-    
-    def list_sessions(self) -> SessionListResponse:
-        """列出所有会话
-        
-        Returns:
-            会话列表响应
-        """
-        logger.info("列出所有会话")
-        
-        # 获取会话元数据（单用户模式，user_email=None）
-        sessions_metadata = get_user_sessions_metadata(user_email=None)
-        
-        # 转换为 SessionInfo 列表
-        sessions = []
-        for metadata in sessions_metadata:
-            sessions.append(SessionInfo(
-                session_id=metadata['session_id'],
-                title=metadata.get('title', '新对话'),
-                created_at=metadata['created_at'],
-                updated_at=metadata['updated_at'],
-                turn_count=metadata.get('message_count', 0),
-            ))
-        
-        return SessionListResponse(
-            sessions=sessions,
-            total=len(sessions),
         )
     
     async def stream_chat(self, message: str, session_id: Optional[str] = None) -> AsyncIterator[Dict[str, Any]]:

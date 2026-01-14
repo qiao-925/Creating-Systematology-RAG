@@ -3,7 +3,6 @@
 """
 
 import streamlit as st
-from frontend.components.query_handler.streaming import handle_streaming_query
 from frontend.components.query_handler.non_streaming import handle_non_streaming_query
 
 
@@ -28,10 +27,10 @@ def handle_user_queries(rag_service, chat_manager) -> None:
         handle_non_streaming_query(rag_service, chat_manager, prompt)
         return
     
-    # 处理用户输入（流式）
+    # 处理用户输入
     if st.session_state.messages:
-        from frontend.components.chat_input import simple_chat_input
-        prompt = simple_chat_input("给系统发送消息", key="main_chat_input")
+        from frontend.components.chat_input_with_mode import render_chat_input_with_mode
+        prompt = render_chat_input_with_mode("给系统发送消息", key="main_chat_input")
         
         if prompt:
             st.session_state.is_thinking = True
@@ -40,9 +39,9 @@ def handle_user_queries(rag_service, chat_manager) -> None:
                 st.markdown(prompt)
             st.session_state.messages.append({"role": "user", "content": prompt})
             
-            # 流式处理
-            handle_streaming_query(chat_manager, prompt)
+            # 非流式处理
+            handle_non_streaming_query(rag_service, chat_manager, prompt)
 
 
-__all__ = ['handle_user_queries', 'handle_streaming_query', 'handle_non_streaming_query']
+__all__ = ['handle_user_queries', 'handle_non_streaming_query']
 

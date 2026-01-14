@@ -76,14 +76,9 @@ class TestMainPageUI:
             pytest.skip("初始化模块未找到")
     
     def test_model_status_display(self):
-        """测试模型状态显示"""
-        from frontend.components.history import display_model_status
-        
-        # 验证函数存在
-        try:
-            assert callable(display_model_status)
-        except ImportError:
-            pytest.skip("ui_components模块未找到")
+        """测试模型状态显示（已移除）"""
+        # display_model_status 功能已移除，跳过测试
+        pytest.skip("display_model_status 功能已移除")
     
     def test_sources_display(self):
         """测试来源显示"""

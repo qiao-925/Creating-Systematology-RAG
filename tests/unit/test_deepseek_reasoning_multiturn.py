@@ -155,36 +155,6 @@ class TestChatTurnStructure:
         assert turn.reasoning_content == "推理过程"
 
 
-class TestChatSessionLoad:
-    """测试会话加载逻辑"""
-    
-    def test_load_session_does_not_restore_reasoning_to_memory(self):
-        """测试加载会话时，reasoning_content 不会被恢复到 memory"""
-        session = ChatSession(session_id="test")
-        session.add_turn(
-            question="问题1",
-            answer="回答1",
-            sources=[],
-            reasoning_content="推理过程1"  # 包含推理链
-        )
-        
-        # 模拟 memory.put 调用
-        memory_messages = []
-        
-        def mock_memory_put(msg):
-            memory_messages.append(msg)
-        
-        # 模拟 load_session 的逻辑
-        for turn in session.history:
-            user_msg = ChatMessage(role=MessageRole.USER, content=turn.question)
-            assistant_msg = ChatMessage(role=MessageRole.ASSISTANT, content=turn.answer)
-            mock_memory_put(user_msg)
-            mock_memory_put(assistant_msg)
-        
-        # 验证 memory 中的消息不包含 reasoning_content
-        assert len(memory_messages) == 2
-        assert memory_messages[0].content == "问题1"
-        assert memory_messages[1].content == "回答1"
         # 验证 ChatMessage 不包含 reasoning_content
         assert not hasattr(memory_messages[0], 'reasoning_content')
         assert not hasattr(memory_messages[1], 'reasoning_content')

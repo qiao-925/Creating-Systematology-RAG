@@ -5,7 +5,6 @@
 
 import streamlit as st
 from backend.infrastructure.config import config
-from frontend.components.history import display_model_status
 
 
 def render_system_status_tab():
@@ -62,7 +61,24 @@ def _render_index_management():
 def _render_model_status():
     """渲染模型状态部分"""
     st.subheader("🔧 Embedding 模型状态")
-    display_model_status()
+    
+    # 获取 Embedding 实例状态
+    try:
+        from backend.infrastructure.embeddings.factory import get_embedding_instance
+        
+        instance = get_embedding_instance()
+        if instance:
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("模型名称", instance.get_model_name())
+            with col2:
+                st.metric("已加载", "✅ 是")
+            with col3:
+                st.metric("向量维度", instance.get_embedding_dimension())
+        else:
+            st.warning("⚠️ 模型未加载")
+    except Exception as e:
+        st.error(f"❌ 获取模型状态失败: {e}")
 
 
 def _render_system_info():

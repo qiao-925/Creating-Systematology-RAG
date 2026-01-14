@@ -3,7 +3,7 @@
 """
 
 import streamlit as st
-from frontend.components.chat_input import simple_chat_input
+from frontend.components.chat_input_with_mode import render_chat_input_with_mode
 from frontend.config import DEFAULT_QUESTIONS
 
 
@@ -24,10 +24,10 @@ def render_quick_start() -> None:
                 st.session_state.selected_question = question
                 st.rerun()
     
-    # 在快速开始下方添加输入框
+    # 在快速开始下方添加输入框和模式切换按钮
     st.markdown("---")  # 添加分隔线
-    # 只显示输入框，不在这里处理逻辑（因为一旦有消息，快速开始就会消失）
-    prompt = simple_chat_input("给系统发送消息", key="main_chat_input")
+    # 只显示输入框和模式切换按钮，不在这里处理逻辑（因为一旦有消息，快速开始就会消失）
+    prompt = render_chat_input_with_mode("给系统发送消息", key="main_chat_input")
     
     # 处理输入框的发送逻辑（只在没有对话历史时执行）
     # 注意：一旦有消息，下次 rerun 时快速开始就不会显示了

@@ -261,7 +261,8 @@ class ModularQueryEngine:
         self,
         query_engine: RetrieverQueryEngine,
         final_query: str,
-        collect_trace: bool
+        collect_trace: bool,
+        query_processing_result: Optional[Dict[str, Any]] = None
     ) -> Tuple[str, List[dict], Optional[str], Optional[Dict[str, Any]]]:
         """使用查询引擎执行查询
         
@@ -269,6 +270,7 @@ class ModularQueryEngine:
             query_engine: 查询引擎实例
             final_query: 处理后的查询
             collect_trace: 是否收集追踪信息
+            query_processing_result: 查询处理结果（包含改写、意图理解等）
             
         Returns:
             (答案, 引用来源, 推理链内容, 追踪信息)
@@ -278,7 +280,10 @@ class ModularQueryEngine:
             self.formatter,
             self.observer_manager,
             final_query,
-            collect_trace
+            collect_trace,
+            query_processing_result=query_processing_result,
+            retrieval_strategy=self.retrieval_strategy,
+            similarity_top_k=self.similarity_top_k,
         )
     
     def query(
@@ -316,7 +321,8 @@ class ModularQueryEngine:
         answer, sources, reasoning_content, trace_info = self._execute_with_query_engine(
             query_engine,
             final_query,
-            collect_trace
+            collect_trace,
+            query_processing_result=processed
         )
         
         # 记录追踪信息

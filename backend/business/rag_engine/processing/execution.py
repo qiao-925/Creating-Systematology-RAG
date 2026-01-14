@@ -39,7 +39,10 @@ def execute_query(
     formatter: ResponseFormatter,
     observer_manager,
     question: str,
-    collect_trace: bool = False
+    collect_trace: bool = False,
+    query_processing_result: Optional[Dict[str, Any]] = None,
+    retrieval_strategy: Optional[str] = None,
+    similarity_top_k: Optional[int] = None,
 ) -> Tuple[str, List[dict], Optional[str], Optional[Dict[str, Any]]]:
     """执行查询
     
@@ -49,11 +52,16 @@ def execute_query(
         observer_manager: 观察器管理器
         question: 用户问题
         collect_trace: 是否收集追踪信息
+        query_processing_result: 查询处理结果（包含改写、意图理解等）
+        retrieval_strategy: 检索策略
+        similarity_top_k: Top K值
         
     Returns:
         (答案文本, 引用来源列表, 推理链内容, 追踪信息)
     """
     trace_info = None
+    errors = []
+    warnings = []
     
     # 通知观察器：查询开始
     trace_ids = observer_manager.on_query_start(question)
@@ -139,7 +147,9 @@ def execute_query(
             logger.info(f"🧠 推理链内容已提取（长度: {len(reasoning_content)} 字符）")
             logger.debug(f"🧠 推理链内容预览（前200字符）: {reasoning_content[:200]}...")
         else:
-            logger.warning("⚠️ 响应中没有推理链内容，可能原因：1) 模型不支持推理链 2) API未返回推理链 3) 提取失败")
+            warning_msg = "⚠️ 响应中没有推理链内容，可能原因：1) 模型不支持推理链 2) API未返回推理链 3) 提取失败"
+            logger.warning(warning_msg)
+            warnings.append(warning_msg)
         
         # 通知观察器：查询结束
         observer_manager.on_query_end(
@@ -148,12 +158,37 @@ def execute_query(
             sources=sources,
             trace_ids=trace_ids,
             retrieval_time=retrieval_time,
+            query_processing_result=query_processing_result,
+            retrieval_strategy=retrieval_strategy,
+            similarity_top_k=similarity_top_k,
+            errors=errors,
+            warnings=warnings,
         )
         
         return answer, sources, reasoning_content, trace_info
         
     except Exception as e:
-        logger.error(f"❌ 查询失败: {e}", exc_info=True)
+        error_msg = f"❌ 查询失败: {e}"
+        logger.error(error_msg, exc_info=True)
+        errors.append(error_msg)
+        
+        # 即使查询失败，也通知观察器（记录错误）
+        try:
+            observer_manager.on_query_end(
+                query=question,
+                answer="",
+                sources=[],
+                trace_ids=trace_ids,
+                retrieval_time=0,
+                query_processing_result=query_processing_result,
+                retrieval_strategy=retrieval_strategy,
+                similarity_top_k=similarity_top_k,
+                errors=errors,
+                warnings=warnings,
+            )
+        except Exception as observer_error:
+            logger.error(f"❌ 通知观察器失败: {observer_error}")
+        
         raise
 
 

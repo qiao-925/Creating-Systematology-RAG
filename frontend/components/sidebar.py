@@ -4,7 +4,6 @@
 
 import streamlit as st
 from backend.infrastructure.config import config
-from frontend.components.history import display_session_history
 from frontend.components.settings_dialog import show_settings_dialog
 
 
@@ -53,14 +52,6 @@ def render_sidebar(chat_manager) -> None:
                     st.session_state.current_reasoning_map = {}
                 # 仅刷新UI，不触发服务重新验证
                 st.rerun()
-
-        # ========== 历史会话（可滚动区域） ==========
-        # 使用容器包裹，确保历史会话可以滚动
-        with st.container():
-            current_session_id = None
-            if chat_manager and chat_manager.current_session:
-                current_session_id = chat_manager.current_session.session_id
-            display_session_history(user_email=None, current_session_id=current_session_id)
         
         # ========== 底部固定工具栏 ==========
         _render_sidebar_footer()

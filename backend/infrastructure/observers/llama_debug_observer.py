@@ -8,6 +8,7 @@ from llama_index.core.callbacks import LlamaDebugHandler
 
 from backend.infrastructure.observers.base import BaseObserver, ObserverType
 from backend.infrastructure.logger import get_logger
+from backend.infrastructure.config import config
 
 logger = get_logger('llama_debug_observer')
 
@@ -77,11 +78,38 @@ class LlamaDebugObserver(BaseObserver):
         trace_id: Optional[str] = None,
         **kwargs
     ) -> None:
-        """查询结束时回调"""
+        """查询结束时回调
+        
+        Args:
+            query: 原始查询
+            answer: 生成的答案
+            sources: 引用来源列表
+            trace_id: 追踪ID
+            **kwargs: 其他参数，包括：
+                - query_processing_result: 查询处理结果（改写、意图理解等）
+                - retrieval_strategy: 检索策略
+                - similarity_top_k: Top K值
+                - retrieval_time: 检索耗时
+                - errors: 错误列表
+                - warnings: 警告列表
+        """
         # LlamaDebugHandler 自动处理
         # 同时将调试信息存储到 session_state 供前端显示
         if self.handler:
             try:
+                # 提取查询处理结果
+                query_processing_result = kwargs.get('query_processing_result')
+                retrieval_strategy = kwargs.get('retrieval_strategy')
+                similarity_top_k = kwargs.get('similarity_top_k')
+                errors = kwargs.get('errors', [])
+                warnings = kwargs.get('warnings', [])
+                
+                # 提取配置信息
+                llm_model = config.LLM_MODEL if hasattr(config, 'LLM_MODEL') else None
+                # 注意：LLM参数（temperature、max_tokens）需要从LLM实例中获取，这里先设为None
+                llm_temperature = None
+                llm_max_tokens = None
+                
                 event_pairs = self.get_event_pairs()
                 # 提取更详细的事件信息
                 event_details = []
@@ -206,6 +234,30 @@ class LlamaDebugObserver(BaseObserver):
                         }
                         for src in sources[:10]  # 保存前10个来源
                     ],
+                    
+                    # 查询处理结果（新增）
+                    "rewritten_query": None,
+                    "query_intent": None,
+                    "query_processing": {
+                        "original_query": query_processing_result.get("original_query") if query_processing_result else None,
+                        "rewritten_queries": query_processing_result.get("rewritten_queries", []) if query_processing_result else [],
+                        "final_query": query_processing_result.get("final_query") if query_processing_result else query,
+                        "processing_method": query_processing_result.get("processing_method") if query_processing_result else None,
+                        "understanding": query_processing_result.get("understanding") if query_processing_result else None,
+                    } if query_processing_result else None,
+                    
+                    # 配置信息（新增）
+                    "llm_model": llm_model,
+                    "llm_params": {
+                        "temperature": llm_temperature,
+                        "max_tokens": llm_max_tokens,
+                    },
+                    "retrieval_strategy": retrieval_strategy,
+                    "top_k": similarity_top_k,
+                    
+                    # 错误和警告（新增）
+                    "errors": errors,
+                    "warnings": warnings,
                     
                     # 事件统计
                     "events_count": len(event_pairs),

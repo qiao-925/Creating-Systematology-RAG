@@ -74,6 +74,10 @@ def init_session_state() -> None:
     if 'store_reasoning' not in st.session_state:
         st.session_state.store_reasoning = config.DEEPSEEK_STORE_REASONING
     
+    # Agentic RAG 设置（默认禁用）
+    if 'use_agentic_rag' not in st.session_state:
+        st.session_state.use_agentic_rag = False
+    
     # 服务验证状态缓存（避免每次rerun都验证）
     if 'rag_service_validated' not in st.session_state:
         st.session_state.rag_service_validated = False

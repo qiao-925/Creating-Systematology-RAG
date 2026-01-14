@@ -26,6 +26,7 @@
 | `coding_practices.mdc` | 代码编写规范 | 涉及 `src/`、`tests/` 代码改动 | — | 类型提示、日志与异常处理一致 |
 | `documentation_guidelines.mdc` | 文档撰写规范 | 编辑 Markdown / 日志 / 规则文件 | — | 标题编号、日期格式、引用规范 |
 | `architecture_design_guidelines.mdc` | 架构方案设计 | 牵涉跨模块或 RAG 流程调整 | — | 分层边界清晰、依赖无循环 |
+| `personal-project-focus.mdc` | 个人项目聚焦原则 | 所有设计决策和功能开发 | — | 聚焦核心、避免大而全、拥抱临时方案 |
 | `rule_authoring_guidelines.mdc` | 规则创建/优化 | 需要新增或重构规则 | `/design-rule` | 核对元数据、模板与评审要求 |
 | `task_closure_guidelines.mdc` | 任务收尾 | 进入收尾阶段或用户指示 | `/generate-task-log` → `/run-optimization-review` → `/run-rule-check`（可选 `/execute-post-hooks`） | 日志命名、六维分析、规则执行率统计 |
 
@@ -98,5 +99,5 @@
 
 ## 8. 版本信息
 
-- **最后更新**：2025-11-09
-- **版本**：v4.2（合并分层结构内容并精简示例引用）
+- **最后更新**：2026-01-14
+- **版本**：v4.3（新增个人项目聚焦原则规则）
