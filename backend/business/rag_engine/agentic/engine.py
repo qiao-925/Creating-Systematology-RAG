@@ -24,12 +24,10 @@ from backend.infrastructure.logger import get_logger
 from backend.infrastructure.config import config
 from backend.business.rag_engine.formatting import ResponseFormatter
 from backend.business.rag_engine.agentic.agent.planning import create_planning_agent
-from backend.business.rag_engine.agentic.fallback import FallbackHandler
 from backend.business.rag_engine.agentic.extraction import (
     extract_sources_from_agent,
     extract_reasoning_from_agent,
 )
-from backend.business.rag_engine.utils.utils import handle_fallback
 from backend.infrastructure.llms import create_deepseek_llm_for_query
 from backend.infrastructure.observers.manager import ObserverManager
 from backend.infrastructure.observers.factory import create_observer_from_config
@@ -95,19 +93,6 @@ class AgenticQueryEngine:
         
         # 创建规划 Agent（延迟初始化，在首次查询时创建）
         self._planning_agent: Optional[Any] = None
-        
-        # 创建降级处理器
-        self.fallback_handler = FallbackHandler(
-            index_manager=self.index_manager,
-            llm=self.llm,
-            similarity_top_k=self.similarity_top_k,
-            enable_rerank=self.enable_rerank,
-            rerank_top_n=self.rerank_top_n,
-            reranker_type=self.reranker_type,
-            similarity_cutoff=self.similarity_cutoff,
-            observer_manager=self.observer_manager,
-            formatter=self.formatter,
-        )
         
         logger.info(
             "AgenticQueryEngine 初始化完成",
@@ -250,17 +235,6 @@ class AgenticQueryEngine:
                 has_reasoning=reasoning_content is not None
             )
             
-            # 处理兜底逻辑（无来源、低相似度或空答案时触发）
-            # 注意：使用原始查询进行兜底处理，确保用户看到的是原始问题的答案
-            answer, fallback_reason = handle_fallback(
-                answer, sources, question, self.llm, self.similarity_cutoff
-            )
-            
-            # 如果收集追踪信息，记录兜底状态
-            if collect_trace and trace_info:
-                trace_info['fallback_used'] = bool(fallback_reason)
-                trace_info['fallback_reason'] = fallback_reason
-            
             # 通知观察器：查询结束
             retrieval_time = 0
             if trace_info and isinstance(trace_info, dict):
@@ -276,7 +250,7 @@ class AgenticQueryEngine:
             
             return answer, sources, reasoning_content, trace_info
             
-        except FutureTimeoutError:
+        except FutureTimeoutError as e:
             # 安全计算 elapsed_time
             if trace_info and isinstance(trace_info, dict):
                 start_time = trace_info.get("start_time", time.time())
@@ -284,15 +258,15 @@ class AgenticQueryEngine:
             else:
                 elapsed_time = 0
             
-            logger.warning(
-                "Agent 调用超时，降级到传统 RAG",
+            logger.error(
+                "Agent 调用超时",
                 timeout=self.timeout_seconds,
                 elapsed_time=elapsed_time,
                 query=question[:50] if len(question) > 50 else question
             )
-            return self.fallback_handler.fallback_to_traditional_rag(
-                question, collect_trace, trace_info, trace_ids
-            )
+            raise TimeoutError(
+                f"Agent 调用超时（{elapsed_time}秒，限制{self.timeout_seconds}秒）"
+            ) from e
         except Exception as e:
             # 安全计算 elapsed_time
             if trace_info and isinstance(trace_info, dict):
@@ -302,16 +276,14 @@ class AgenticQueryEngine:
                 elapsed_time = 0
             
             logger.error(
-                "Agent 调用失败，降级到传统 RAG",
+                "Agent 调用失败",
                 error=str(e),
                 error_type=type(e).__name__,
                 elapsed_time=elapsed_time,
                 query=question[:50] if len(question) > 50 else question,
                 exc_info=True
             )
-            return self.fallback_handler.fallback_to_traditional_rag(
-                question, collect_trace, trace_info, trace_ids
-            )
+            raise
     
     def _call_agent_with_timeout(self, agent, question: str):
         """调用 Agent（带超时控制）"""

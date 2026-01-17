@@ -2,6 +2,7 @@
 向量ID管理模块：向量ID查询和删除
 """
 
+import time
 from typing import List, Dict, TYPE_CHECKING
 
 from backend.infrastructure.logger import get_logger
@@ -85,6 +86,48 @@ def get_vector_ids_batch(index_manager: "IndexManager", file_paths: List[str]) -
                 logger.warning(f"查询单个向量ID失败 [{file_path}]: {query_error}")
     
     return vector_ids_map
+
+
+def get_vector_ids_with_retry(
+    index_manager: "IndexManager",
+    file_path: str,
+    max_retries: int = 3,
+    retry_delay: float = 0.1
+) -> List[str]:
+    """查询向量ID（带重试机制）
+    
+    Args:
+        index_manager: IndexManager实例
+        file_path: 文件路径
+        max_retries: 最大重试次数
+        retry_delay: 重试延迟（秒）
+        
+    Returns:
+        向量ID列表
+    """
+    if not file_path:
+        return []
+    
+    for attempt in range(max_retries):
+        try:
+            vector_ids = get_vector_ids_by_metadata(index_manager, file_path)
+            if vector_ids:
+                if attempt > 0:
+                    logger.info(f"查询向量ID成功 [{file_path}] (重试 {attempt} 次后)")
+                return vector_ids
+            # 如果查询成功但结果为空，等待后重试
+            if attempt < max_retries - 1:
+                delay = retry_delay * (attempt + 1)  # 递增延迟
+                logger.debug(f"查询向量ID结果为空 [{file_path}]，等待 {delay:.2f}s 后重试 (尝试 {attempt + 1}/{max_retries})")
+                time.sleep(delay)
+        except Exception as e:
+            logger.warning(f"查询向量ID失败 [{file_path}] (尝试 {attempt + 1}/{max_retries}): {e}")
+            if attempt < max_retries - 1:
+                delay = retry_delay * (attempt + 1)  # 递增延迟
+                time.sleep(delay)
+    
+    logger.warning(f"查询向量ID最终失败 [{file_path}]，返回空列表")
+    return []
 
 
 def delete_vectors_by_ids(index_manager: "IndexManager", vector_ids: List[str]) -> None:

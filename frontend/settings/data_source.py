@@ -91,7 +91,8 @@ def _handle_add_github_repo(github_url: str):
                     if documents:
                         index, vector_ids_map = index_manager.build_index(
                             documents, 
-                            show_progress=True
+                            show_progress=True,
+                            github_sync_manager=st.session_state.github_sync_manager
                         )
                         st.session_state.github_sync_manager.update_repository_sync_state(
                             owner=github_owner,
@@ -170,7 +171,8 @@ def _handle_sync_repo(repo: dict):
                     if added_docs or modified_docs:
                         index_manager.build_index(
                             added_docs + modified_docs,
-                            show_progress=True
+                            show_progress=True,
+                            github_sync_manager=st.session_state.github_sync_manager
                         )
                     index_manager.incremental_update(
                         added_docs=added_docs,

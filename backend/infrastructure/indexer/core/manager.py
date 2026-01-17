@@ -3,7 +3,7 @@
 """
 
 from pathlib import Path
-from typing import List, Optional, Tuple, Dict
+from typing import List, Optional, Tuple, Dict, TYPE_CHECKING
 
 from llama_index.core import VectorStoreIndex, StorageContext
 from llama_index.core.schema import Document as LlamaDocument
@@ -20,6 +20,9 @@ from backend.infrastructure.indexer.utils.cleanup import clear_index, clear_coll
 from backend.infrastructure.indexer.utils.incremental import incremental_update
 from backend.infrastructure.indexer.utils.lifecycle import close
 from backend.infrastructure.indexer.build.builder import build_index_method
+
+if TYPE_CHECKING:
+    from backend.infrastructure.data_loader.github_sync.manager import GitHubSyncManager
 
 logger = get_logger('indexer')
 
@@ -104,10 +107,20 @@ class IndexManager:
     def build_index(
         self,
         documents: List[LlamaDocument],
-        show_progress: bool = True
+        show_progress: bool = True,
+        github_sync_manager: Optional["GitHubSyncManager"] = None
     ) -> Tuple[VectorStoreIndex, Dict[str, List[str]]]:
-        """构建或更新索引"""
-        return build_index_method(self, documents, show_progress)
+        """构建或更新索引
+        
+        Args:
+            documents: 文档列表
+            show_progress: 是否显示进度
+            github_sync_manager: GitHub同步管理器实例（可选）
+            
+        Returns:
+            (索引, 向量ID映射)
+        """
+        return build_index_method(self, documents, show_progress, github_sync_manager)
     
     def get_embedding_instance(self) -> Optional[BaseEmbedding]:
         """获取统一的Embedding实例"""

@@ -147,25 +147,6 @@ class TestAgenticQueryEngineFunctionality:
         assert trace is not None
         assert isinstance(trace, dict)
         # 追踪信息可能包含策略选择、工具调用等信息
-    
-    def test_fallback_on_error(self, agentic_engine, mocker):
-        """测试错误时的降级策略"""
-        # Mock Agent 调用失败
-        mocker.patch.object(
-            agentic_engine,
-            '_agent',
-            side_effect=Exception("Agent error")
-        )
-        
-        # 应该降级到 ModularQueryEngine
-        answer, sources, reasoning, trace = agentic_engine.query(
-            "测试问题",
-            collect_trace=False
-        )
-        
-        # 降级后应该仍然返回结果
-        assert answer is not None
-        assert isinstance(sources, list)
 
 
 class TestAgenticQueryEngineComparison:

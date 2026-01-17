@@ -80,6 +80,9 @@ def main():
     
     init_result, rag_service, chat_manager = init_data
     
+    # 将 init_result 存储到 session_state，供其他组件使用
+    st.session_state.init_result = init_result
+    
     # 首次初始化时显示摘要（使用 session_state 标记）
     if not st.session_state.get('init_summary_shown', False):
         summary = init_result.summary

@@ -59,6 +59,17 @@ def incremental_update(
                         branch = doc.metadata.get("branch", "main")
                         
                         if owner and repo:
+                            # 检查是否已存在且相同
+                            existing_vector_ids = github_sync_manager.get_file_vector_ids(
+                                owner, repo, branch, file_path
+                            )
+                            
+                            # 如果已存在且相同，跳过更新
+                            if existing_vector_ids == added_vector_ids[file_path]:
+                                logger.debug(f"向量ID已存在且相同 [{file_path}]，跳过更新")
+                                continue
+                            
+                            # 更新向量ID
                             github_sync_manager.update_file_vector_ids(
                                 owner, repo, branch, file_path,
                                 added_vector_ids[file_path]
@@ -109,6 +120,17 @@ def incremental_update(
                         branch = doc.metadata.get("branch", "main")
                         
                         if owner and repo:
+                            # 检查是否已存在且相同
+                            existing_vector_ids = github_sync_manager.get_file_vector_ids(
+                                owner, repo, branch, file_path
+                            )
+                            
+                            # 如果已存在且相同，跳过更新
+                            if existing_vector_ids == modified_vector_ids[file_path]:
+                                logger.debug(f"向量ID已存在且相同 [{file_path}]，跳过更新")
+                                continue
+                            
+                            # 更新向量ID
                             github_sync_manager.update_file_vector_ids(
                                 owner, repo, branch, file_path,
                                 modified_vector_ids[file_path]
