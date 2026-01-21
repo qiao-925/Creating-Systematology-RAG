@@ -9,6 +9,7 @@ from frontend.utils.sources import convert_sources_to_dict
 from frontend.utils.state import initialize_sources_map
 from frontend.utils.sources import format_answer_with_citation_links
 from frontend.components.sources_panel import display_sources_below_message
+from frontend.components.observability_summary import render_observability_summary
 from backend.infrastructure.config import config
 from backend.infrastructure.logger import get_logger
 
@@ -24,6 +25,12 @@ def render_chat_interface(rag_service, chat_manager) -> None:
         rag_service: RAG服务实例
         chat_manager: 对话管理器实例
     """
+    # 统一处理会话加载（优化：减少 rerun 次数）
+    if st.session_state.get('session_loading_pending') or st.session_state.get('load_session_id'):
+        from frontend.components.session_loader import load_history_session
+        if load_history_session(chat_manager):
+            st.rerun()
+    
     # 注入全局JavaScript脚本（仅一次，必须在渲染任何消息前）
     if not st.session_state.get('citation_script_injected', False):
         from frontend.utils.sources import inject_citation_script
@@ -133,15 +140,20 @@ def _render_observer_info(message_index: int) -> None:
     elif len(ragas_logs) > 0:
         ragas_log = ragas_logs[-1]
     
-    # 显示观察器信息（如果有）- 按执行流程顺序（直接展示，不折叠）
+    # 显示观察器信息（如果有）- 分层展示
     if debug_log or ragas_log:
-        st.markdown("##### 🔍 可观测性信息（按执行流程）")
+        # L0 + L1: 智能摘要（始终显示，集成 RAGAS）
         if debug_log:
-            _render_llamadebug_full_info(debug_log)
+            render_observability_summary(debug_log, ragas_log=ragas_log, show_l2=False)
         
-        if ragas_log:
-            st.divider()
-            _render_ragas_full_info(ragas_log)
+        # L2: 完整链路（折叠，供开发者调试）
+        with st.expander("🔬 完整链路详情（开发者）", expanded=False):
+            if debug_log:
+                _render_llamadebug_full_info(debug_log)
+            
+            if ragas_log:
+                st.divider()
+                _render_ragas_full_info(ragas_log)
 
 
 def _render_llamadebug_full_info(debug_log: dict) -> None:

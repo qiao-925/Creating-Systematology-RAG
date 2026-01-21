@@ -32,7 +32,7 @@ from backend.infrastructure.config import config, get_gpu_device
 from backend.infrastructure.indexer import IndexManager
 from backend.infrastructure.logger import get_logger
 from backend.business.rag_engine.formatting import ResponseFormatter
-from backend.business.rag_engine.formatting.templates import SIMPLE_MARKDOWN_TEMPLATE
+from backend.business.rag_engine.formatting.templates import get_template
 from backend.business.rag_engine.utils.utils import extract_sources_from_response
 from backend.infrastructure.llms import create_deepseek_llm_for_query, extract_reasoning_content
 
@@ -103,7 +103,7 @@ class QueryEngine:
         # 创建 Markdown Prompt 模板（如果启用格式化）
         markdown_template = None
         if enable_markdown_formatting:
-            markdown_template = PromptTemplate(SIMPLE_MARKDOWN_TEMPLATE)
+            markdown_template = PromptTemplate(get_template('chat'))
             logger.info("📝 启用 Markdown 格式化 Prompt")
         
         # 创建带引用的查询引擎

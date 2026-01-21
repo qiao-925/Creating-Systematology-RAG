@@ -1,7 +1,10 @@
 """
 RAG API - FastAPI对话路由
 
-极简设计：只提供流式对话接口（自动创建/使用会话）
+提供对话相关接口：
+- 流式对话（自动创建/使用会话）
+- 获取会话历史
+- 列出用户会话
 """
 
 import asyncio
@@ -14,11 +17,13 @@ from backend.business.rag_api.fastapi_dependencies import get_rag_service
 from backend.business.rag_api.rag_service import RAGService
 from backend.business.rag_api.models import (
     ChatRequest,
+    SessionHistoryResponse,
+    SessionListResponse,
 )
 from backend.infrastructure.logger import get_logger
 from backend.infrastructure.llms import create_deepseek_llm_for_query
 from backend.infrastructure.llms.reasoning import extract_reasoning_from_stream_chunk, extract_reasoning_content
-from backend.business.rag_engine.formatting.templates import CHAT_MARKDOWN_TEMPLATE
+from backend.business.rag_engine.formatting.templates import get_template
 from backend.business.rag_engine.retrieval.factory import create_retriever
 from llama_index.core.llms import ChatMessage, MessageRole
 from backend.infrastructure.config import config
@@ -111,7 +116,7 @@ def _build_prompt(query: str, nodes_with_scores: list) -> str:
     else:
         context_str = "（知识库中未找到相关信息）"
     
-    prompt = CHAT_MARKDOWN_TEMPLATE.format(context_str=context_str)
+    prompt = get_template('chat').format(context_str=context_str)
     prompt += f"\n\n用户问题：{query}\n\n请用中文回答问题。"
     return prompt
 
@@ -429,4 +434,55 @@ async def stream_chat(
         }
     )
 
+
+@router.get("/sessions/{session_id}/history", response_model=SessionHistoryResponse)
+async def get_session_history(
+    session_id: str,
+    rag_service: RAGService = Depends(get_rag_service),
+) -> SessionHistoryResponse:
+    """获取指定会话的历史记录
+    
+    Args:
+        session_id: 会话ID
+        rag_service: RAG服务实例（依赖注入）
+    
+    Returns:
+        SessionHistoryResponse: 会话历史响应
+    """
+    logger.info("获取会话历史", session_id=session_id)
+    
+    try:
+        return rag_service.get_session_history(session_id)
+    except FileNotFoundError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error("获取会话历史失败", session_id=session_id, error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"获取会话历史失败: {str(e)}"
+        )
+
+
+@router.get("/sessions", response_model=SessionListResponse)
+async def list_sessions(
+    rag_service: RAGService = Depends(get_rag_service),
+) -> SessionListResponse:
+    """列出用户的所有会话
+    
+    Returns:
+        SessionListResponse: 会话列表响应
+    """
+    logger.info("列出所有会话")
+    
+    try:
+        return rag_service.list_sessions()
+    except Exception as e:
+        logger.error("列出会话失败", error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"列出会话失败: {str(e)}"
+        )
 

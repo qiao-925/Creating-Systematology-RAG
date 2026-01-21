@@ -296,8 +296,6 @@ class TestIndexGenerator:
             tags.add('performance')
         if 'github' in file_name:
             tags.add('github')
-        if 'phoenix' in file_name:
-            tags.add('phoenix')
         
         # 从目标模块推断标签
         if metadata["target_module"]:

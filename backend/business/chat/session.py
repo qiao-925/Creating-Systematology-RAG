@@ -180,4 +180,36 @@ class ChatSession:
         session.updated_at = data['updated_at']
         session.history = [ChatTurn.from_dict(turn) for turn in data['history']]
         return session
-
+    
+    def save(self, file_path) -> None:
+        """保存会话到文件
+        
+        Args:
+            file_path: 保存路径（Path 或字符串）
+        """
+        import json
+        from pathlib import Path
+        
+        path = Path(file_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        
+        with open(path, 'w', encoding='utf-8') as f:
+            json.dump(self.to_dict(), f, ensure_ascii=False, indent=2)
+    
+    @classmethod
+    def load(cls, file_path):
+        """从文件加载会话
+        
+        Args:
+            file_path: 文件路径（Path 或字符串）
+            
+        Returns:
+            ChatSession 对象
+        """
+        import json
+        from pathlib import Path
+        
+        path = Path(file_path)
+        with open(path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        return cls.from_dict(data)

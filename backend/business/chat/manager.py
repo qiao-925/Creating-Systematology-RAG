@@ -345,12 +345,41 @@ class ChatManager:
         else:
             self.current_session.add_turn(message, answer, sources)
         
+        # 自动保存会话到文件
+        self._save_session()
+        
         # 记录日志
         logger.info(f"AI回答（前100字符）: {answer[:100]}...")
         if sources:
             logger.info(f"引用来源: {len(sources)} 个")
         if reasoning_content:
             logger.debug(f"推理链内容已提取（长度: {len(reasoning_content)} 字符）")
+    
+    def _save_session(self) -> None:
+        """保存当前会话到文件"""
+        # #region agent log
+        import json as _json; open('/home/q/Desktop/START/repos/AI-Practice (皮卡丘)/Creating-Systematology-RAG/.cursor/debug.log','a').write(_json.dumps({"hypothesisId":"H6","location":"manager.py:_save_session","message":"save_session called","data":{"has_session":self.current_session is not None,"session_id":self.current_session.session_id if self.current_session else None},"timestamp":__import__('time').time(),"sessionId":"debug-session"})+'\n')
+        # #endregion
+        if self.current_session is None:
+            return
+        
+        try:
+            sessions_dir = config.SESSIONS_PATH / "default"
+            # #region agent log
+            open('/home/q/Desktop/START/repos/AI-Practice (皮卡丘)/Creating-Systematology-RAG/.cursor/debug.log','a').write(_json.dumps({"hypothesisId":"H7","location":"manager.py:mkdir","message":"creating dir","data":{"sessions_dir":str(sessions_dir)},"timestamp":__import__('time').time(),"sessionId":"debug-session"})+'\n')
+            # #endregion
+            sessions_dir.mkdir(parents=True, exist_ok=True)
+            session_file = sessions_dir / f"{self.current_session.session_id}.json"
+            self.current_session.save(session_file)
+            # #region agent log
+            open('/home/q/Desktop/START/repos/AI-Practice (皮卡丘)/Creating-Systematology-RAG/.cursor/debug.log','a').write(_json.dumps({"hypothesisId":"H7","location":"manager.py:saved","message":"session saved","data":{"session_file":str(session_file)},"timestamp":__import__('time').time(),"sessionId":"debug-session"})+'\n')
+            # #endregion
+            logger.debug(f"会话已保存: {session_file}")
+        except Exception as e:
+            # #region agent log
+            open('/home/q/Desktop/START/repos/AI-Practice (皮卡丘)/Creating-Systematology-RAG/.cursor/debug.log','a').write(_json.dumps({"hypothesisId":"H7","location":"manager.py:save_error","message":"save failed","data":{"error":str(e)},"timestamp":__import__('time').time(),"sessionId":"debug-session"})+'\n')
+            # #endregion
+            logger.warning(f"保存会话失败: {e}")
     
     def start_session(self, session_id: Optional[str] = None) -> ChatSession:
         """开始新会话"""

@@ -34,7 +34,7 @@ def display_sources(sources: List[Dict[str, Any]], message_id: str) -> None:
 def save_to_chat_manager(chat_manager, prompt: str, answer: str, 
                         sources: List[Dict[str, Any]], 
                         reasoning_content: Optional[str] = None) -> None:
-    """保存到ChatManager会话
+    """保存到ChatManager会话（包含文件持久化）
     
     Args:
         chat_manager: 对话管理器实例
@@ -43,6 +43,9 @@ def save_to_chat_manager(chat_manager, prompt: str, answer: str,
         sources: 引用来源列表
         reasoning_content: 推理链内容（可选）
     """
+    # #region agent log
+    import json as _json; open('/home/q/Desktop/START/repos/AI-Practice (皮卡丘)/Creating-Systematology-RAG/.cursor/debug.log','a').write(_json.dumps({"hypothesisId":"H8","location":"common.py:save_to_chat_manager","message":"save called","data":{"has_chat_manager":chat_manager is not None,"has_answer":bool(answer)},"timestamp":__import__('time').time(),"sessionId":"debug-session"})+'\n')
+    # #endregion
     if chat_manager and answer:
         if not chat_manager.current_session:
             chat_manager.start_session()
@@ -50,4 +53,6 @@ def save_to_chat_manager(chat_manager, prompt: str, answer: str,
             chat_manager.current_session.add_turn(prompt, answer, sources, reasoning_content)
         else:
             chat_manager.current_session.add_turn(prompt, answer, sources)
-
+        
+        # 持久化会话到文件
+        chat_manager._save_session()

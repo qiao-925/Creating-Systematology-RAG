@@ -233,15 +233,78 @@ class HFInferenceEmbedding(BaseEmbedding):
             return 768 if "base" in model_lower else 384
         return 384  # 通用默认值
     
-    def _make_request(self, texts: List[str], retry_count: int = 0) -> List[List[float]]:
-        """发起 API 请求（带重试机制）
+    def _make_single_request(self, text: str, retry_count: int = 0) -> List[float]:
+        """发起单个文本的 API 请求（带重试机制）
         
-        使用 HuggingFace Inference API 的 feature_extraction 方法生成向量。
-        注意：feature_extraction 一次只能处理一个文本，需要逐个处理。
+        Args:
+            text: 单个文本
+            retry_count: 当前重试次数
+            
+        Returns:
+            单个向量
+            
+        Raises:
+            RuntimeError: API 调用失败或实例已关闭
+        """
+        if self._closed:
+            raise RuntimeError("HFInferenceEmbedding 实例已关闭，请求被取消")
+        
+        max_retries = 3
+        payload = {"inputs": text}
+        
+        request_start = time.time()
+        try:
+            response = requests.post(
+                self.api_url,
+                headers=self.headers,
+                json=payload,
+                timeout=30,
+            )
+            response.raise_for_status()
+            request_elapsed = time.time() - request_start
+            
+            result = response.json()
+            
+            # 处理响应格式
+            if isinstance(result, list):
+                embedding = [float(x) for x in result]
+            elif isinstance(result, dict):
+                if "embeddings" in result:
+                    embedding = [float(x) for x in result["embeddings"]]
+                elif "output" in result:
+                    embedding = [float(x) for x in result["output"]]
+                else:
+                    first_key = next(iter(result.values()))
+                    embedding = [float(x) for x in first_key] if isinstance(first_key, list) else [float(first_key)]
+            else:
+                embedding = [float(result)] if not isinstance(result, list) else [float(x) for x in result]
+            
+            logger.debug(f"📡 HF API: 耗时={request_elapsed:.2f}s, 维度={len(embedding)}")
+            return embedding
+            
+        except (RequestException, json.JSONDecodeError) as e:
+            if self._closed:
+                raise RuntimeError("HFInferenceEmbedding 实例已关闭，请求被取消") from e
+            
+            if retry_count < max_retries:
+                wait_time = (retry_count + 1) * 1.0
+                logger.warning(f"⚠️  请求失败，{wait_time:.1f}秒后重试 ({retry_count + 1}/{max_retries})")
+                time.sleep(wait_time)
+                return self._make_single_request(text, retry_count + 1)
+            else:
+                error_details = str(e)
+                if isinstance(e, RequestException) and hasattr(e, 'response') and e.response is not None:
+                    error_details = f"HTTP {e.response.status_code}: {e.response.text[:200]}"
+                raise RuntimeError(f"HF API 调用失败（已重试 {max_retries} 次）: {error_details}") from e
+    
+    def _make_request(self, texts: List[str], retry_count: int = 0) -> List[List[float]]:
+        """发起 API 请求（并行处理优化）
+        
+        使用 ThreadPoolExecutor 并行处理多个文本，显著提升批量处理性能。
         
         Args:
             texts: 文本列表
-            retry_count: 当前重试次数
+            retry_count: 当前重试次数（用于向后兼容，并行模式下每个请求独立重试）
             
         Returns:
             向量列表
@@ -249,136 +312,88 @@ class HFInferenceEmbedding(BaseEmbedding):
         Raises:
             RuntimeError: API 调用失败或实例已关闭
         """
-        # 检查实例是否已关闭
         if self._closed:
             raise RuntimeError(f"HFInferenceEmbedding 实例已关闭，无法继续请求")
         
-        if retry_count > 0:
-            logger.warning(f"⚠️  重试请求 ({retry_count}/3): 模型={self.model_name}, 文本数量={len(texts)}")
-        else:
-            logger.debug(f"📤 HF Inference API 请求: 模型={self.model_name}, 文本数量={len(texts)}")
+        if not texts:
+            return []
         
-        # 创建请求标识符用于跟踪
+        total = len(texts)
+        logger.debug(f"📤 HF Inference API 请求: 模型={self.model_name}, 文本数量={total}")
+        
         request_id = id(texts)
         self._active_requests.add(request_id)
         
         try:
-            # 批次总时间监控（仅在批量处理时显示，单个文本时静默）
+            # 单个文本直接处理，无需并行
+            if total == 1:
+                result = self._make_single_request(texts[0])
+                return [result]
+            
+            # 多个文本使用并行处理
             batch_start = time.time()
-            if len(texts) > 1:
-                time_monitor = TimeMonitor(
-                    logger,
-                    f"⏱️  HF Inference API 调用进行中: 已花费 {{elapsed}} 秒 (模型={self.model_name}, 文本数量={len(texts)})"
-                )
-                time_monitor.__enter__()
-            else:
-                time_monitor = None
+            time_monitor = TimeMonitor(
+                logger,
+                f"⏱️  HF API 并行调用: 已花费 {{elapsed}} 秒 (模型={self.model_name}, 文本数量={total})"
+            )
+            time_monitor.__enter__()
             
             try:
-                results = []
-                total = len(texts)
+                # 使用全局线程池并行处理
+                # 限制并发数为 5，避免触发 API 限流
+                executor = _get_or_create_executor()
+                max_workers = min(5, total)  # 最多 5 个并发
                 
-                # feature_extraction 一次只能处理一个文本，逐个处理
-                for idx, text in enumerate(texts):
-                    # 构建请求 payload
-                    payload = {"inputs": text}
+                results = []
+                errors = []
+                
+                # 分批并行处理
+                for batch_start_idx in range(0, total, max_workers):
+                    batch_end_idx = min(batch_start_idx + max_workers, total)
+                    batch_texts = texts[batch_start_idx:batch_end_idx]
                     
-                    # 检查是否已关闭（在请求前再次检查）
-                    if self._closed:
-                        raise RuntimeError("HFInferenceEmbedding 实例已关闭，请求被取消")
+                    # 提交并行任务
+                    futures = [executor.submit(self._make_single_request, text) for text in batch_texts]
                     
-                    # 使用直接 HTTP 请求调用 API
-                    request_start = time.time()
-                    try:
-                        response = requests.post(
-                            self.api_url,
-                            headers=self.headers,
-                            json=payload,
-                            timeout=30,
-                        )
-                    except requests.exceptions.RequestException as e:
-                        # 如果已关闭，不重试
-                        if self._closed:
-                            raise RuntimeError("HFInferenceEmbedding 实例已关闭，请求被取消") from e
-                        raise
-                    request_elapsed = time.time() - request_start
+                    # 收集结果（保持顺序）
+                    for i, future in enumerate(futures):
+                        try:
+                            result = future.result(timeout=60)  # 60秒超时
+                            results.append(result)
+                        except Exception as e:
+                            logger.error(f"❌ 并行请求失败 (索引 {batch_start_idx + i}): {e}")
+                            errors.append((batch_start_idx + i, e))
+                            results.append(None)  # 占位
                     
-                    response.raise_for_status()  # 自动处理 HTTP 错误
-                    
-                    # 解析响应
-                    try:
-                        result = response.json()
-                        
-                        # 合并为单行摘要日志
-                        if isinstance(result, list) and len(result) > 0:
-                            dim = len(result)
-                            logger.info(
-                                f"📡 HF API调用: 模型={self.model_name}, "
-                                f"状态={response.status_code}, 耗时={request_elapsed:.2f}s, "
-                                f"维度={dim}"
-                            )
-                            # 详细调试信息移到debug级别
-                            logger.debug(f"   请求URL: {self.api_url}")
-                            logger.debug(f"   响应Headers: {dict(response.headers)}")
-                            logger.debug(f"   向量前5个值: {result[:5]}, 后5个值: {result[-5:]}")
-                        else:
-                            result_str = json.dumps(result, ensure_ascii=False)
-                            result_preview = result_str[:100] + "..." if len(result_str) > 100 else result_str
-                            logger.info(
-                                f"📡 HF API调用: 模型={self.model_name}, "
-                                f"状态={response.status_code}, 耗时={request_elapsed:.2f}s, "
-                                f"响应={result_preview}"
-                            )
-                            logger.debug(f"   完整响应: {result_str}")
-                        
-                        # 处理响应格式并转换为列表
-                        if isinstance(result, list):
-                            # 直接是向量列表
-                            embedding = [float(x) for x in result]
-                        elif isinstance(result, dict):
-                            # 可能是包装在字典中的格式
-                            if "embeddings" in result:
-                                embedding = [float(x) for x in result["embeddings"]]
-                            elif "output" in result:
-                                embedding = [float(x) for x in result["output"]]
-                            else:
-                                # 尝试直接使用第一个值
-                                first_key = next(iter(result.values()))
-                                if isinstance(first_key, list):
-                                    embedding = [float(x) for x in first_key]
-                                else:
-                                    embedding = [float(first_key)]
-                        else:
-                            # 单个值或其他格式
-                            embedding = [float(result)] if not isinstance(result, list) else [float(x) for x in result]
-                        
-                        results.append(embedding)
-                        
-                        # 批量处理时显示进度
-                        if total > 1 and (idx + 1) % 10 == 0:
-                            logger.debug(f"   进度: {idx + 1}/{total}")
-                    except json.JSONDecodeError as e:
-                        logger.error(f"   ❌ JSON 解析失败: {e}")
-                        logger.error(f"   响应文本: {response.text[:500]}")
-                        raise
-                    
-                if total > 1:
-                    logger.debug(f"📥 批量处理完成: {len(results)}/{total} 个文本")
+                    # 显示进度
+                    if batch_end_idx < total:
+                        logger.debug(f"   进度: {batch_end_idx}/{total}")
+                
+                # 检查是否有失败
+                if errors:
+                    failed_count = len(errors)
+                    logger.warning(f"⚠️  {failed_count}/{total} 个请求失败")
+                    # 对失败的请求进行串行重试
+                    for idx, error in errors:
+                        try:
+                            logger.debug(f"   重试索引 {idx}...")
+                            results[idx] = self._make_single_request(texts[idx])
+                        except Exception as retry_error:
+                            logger.error(f"❌ 重试失败 (索引 {idx}): {retry_error}")
+                            raise RuntimeError(f"批量请求失败，索引 {idx}: {retry_error}") from retry_error
+                
+                batch_elapsed = time.time() - batch_start
+                avg_time = batch_elapsed / total
+                logger.info(
+                    f"📥 并行批量完成: {total} 个文本, "
+                    f"总耗时={batch_elapsed:.2f}s, 平均={avg_time:.2f}s/个"
+                )
                 
                 return results
-                        
-            except RequestException as e:
-                # 统一错误处理：全部重试
-                return self._handle_request_error(e, texts, retry_count)
-            except Exception as e:
-                # 处理其他异常（如 JSON 解析错误等）
-                return self._handle_request_error(e, texts, retry_count)
+                
             finally:
-                # 关闭时间监控
-                if time_monitor is not None:
-                    time_monitor.__exit__(None, None, None)
+                time_monitor.__exit__(None, None, None)
         finally:
-            # 移除请求跟踪
             self._active_requests.discard(request_id)
     
     def _handle_request_error(

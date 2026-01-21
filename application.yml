@@ -35,7 +35,7 @@ github:
 # 3. 模型配置
 # ============================================================================
 model:
-  llm: deepseek-reasoner
+  llm: deepseek-chat  # 切换为 chat 模型提升响应速度（reasoner 模型约 50s，chat 约 5-10s）
   embedding: BAAI/bge-base-zh-v1.5
 
 embedding:
@@ -63,6 +63,7 @@ paths:
   github_repos: ./data/github_repos
   github_sync_state: ./data/github_sync_state.json
   cache_state: ./data/cache_state.json  # 已废弃：缓存管理器功能已移除，此配置不再使用
+  sessions: ./data/sessions  # 会话持久化目录
 
 index:
   chunk_size: 512

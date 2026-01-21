@@ -501,7 +501,7 @@ class ModularQueryEngine:
                 logger.info(f"检索到 {len(nodes_with_scores)} 个文档片段")
             
             # Step 4: 构建 prompt
-            from backend.business.rag_engine.formatting.templates import CHAT_MARKDOWN_TEMPLATE
+            from backend.business.rag_engine.formatting.templates import get_template
             
             # 构建上下文字符串
             context_str = ""
@@ -516,8 +516,8 @@ class ModularQueryEngine:
                 context_str = "（知识库中未找到相关信息）"
             
             # 构建完整 prompt
-            # CHAT_MARKDOWN_TEMPLATE 只包含 context_str，需要手动添加查询
-            prompt = CHAT_MARKDOWN_TEMPLATE.format(context_str=context_str)
+            # chat 模板只包含 context_str，需要手动添加查询
+            prompt = get_template('chat').format(context_str=context_str)
             prompt += f"\n\n用户问题：{final_query}\n\n请用中文回答问题。"
             
             # Step 5: 直接使用 DeepSeek 流式输出

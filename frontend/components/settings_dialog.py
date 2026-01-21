@@ -8,7 +8,7 @@
 
 import streamlit as st
 from frontend.utils.state import init_session_state
-from frontend.settings.data_source import render_data_source_tab
+from frontend.settings import render_data_source_tab
 
 
 @st.dialog("⚙️ 设置", width="large")

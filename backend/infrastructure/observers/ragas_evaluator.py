@@ -50,12 +50,12 @@ class RAGASEvaluator(BaseObserver):
             batch_size: 批量评估大小
         """
         super().__init__(name, enabled)
+        # 默认使用 RAGAS 0.4.3 支持的核心指标
         self.metrics = metrics or [
             "faithfulness",
             "context_precision",
             "context_recall",
             "answer_relevancy",
-            "context_relevancy",
         ]
         self.batch_size = batch_size
         
@@ -80,18 +80,33 @@ class RAGASEvaluator(BaseObserver):
             # 延迟导入RAGAS（因为它是可选依赖）
             import ragas
             from ragas import evaluate
-            from ragas.datasets_schema import Dataset
+            from ragas.dataset_schema import EvaluationDataset, SingleTurnSample
+            
+            # 导入指标类（RAGAS 0.4.3+ API）
+            from ragas.metrics._faithfulness import Faithfulness
+            from ragas.metrics._context_precision import ContextPrecision
+            from ragas.metrics._context_recall import ContextRecall
+            from ragas.metrics._answer_relevance import AnswerRelevancy
             
             self.ragas = ragas
-            self.evaluate = evaluate
-            self.Dataset = Dataset
+            self.evaluate_func = evaluate
+            self.EvaluationDataset = EvaluationDataset
+            self.SingleTurnSample = SingleTurnSample
             
-            logger.info(f"✅ RAGAS 评估器已初始化")
+            # 创建指标实例（RAGAS 0.4.3 可用指标）
+            self.metric_instances = {
+                "faithfulness": Faithfulness(),
+                "context_precision": ContextPrecision(),
+                "context_recall": ContextRecall(),
+                "answer_relevancy": AnswerRelevancy(),
+            }
+            
+            logger.info(f"✅ RAGAS 评估器已初始化 (版本: {ragas.__version__})")
             logger.info(f"   评估指标: {', '.join(self.metrics)}")
             
         except ImportError as e:
             logger.warning(f"⚠️  RAGAS 未安装: {e}")
-            logger.info("   请运行: pip install ragas")
+            logger.info("   请运行: uv sync --extra evaluation")
             logger.info("   观察器将被禁用")
             self.enabled = False
         except Exception as e:
@@ -211,26 +226,32 @@ class RAGASEvaluator(BaseObserver):
         try:
             logger.info(f"📊 开始批量评估: {len(self.evaluation_data)} 条数据")
             
-            # 准备数据集
-            dataset_dict = {
-                "question": [entry["question"] for entry in self.evaluation_data],
-                "answer": [entry["answer"] for entry in self.evaluation_data],
-                "contexts": [entry["contexts"] for entry in self.evaluation_data],
-            }
+            # 准备数据集（RAGAS 0.4.3+ API）
+            samples = []
+            for entry in self.evaluation_data:
+                sample = self.SingleTurnSample(
+                    user_input=entry["question"],
+                    response=entry["answer"],
+                    retrieved_contexts=entry["contexts"],
+                    reference=entry.get("ground_truth"),  # 可选
+                )
+                samples.append(sample)
             
-            # 如果有ground_truth，添加到数据集
-            if any(entry.get("ground_truth") for entry in self.evaluation_data):
-                dataset_dict["ground_truth"] = [
-                    entry.get("ground_truth", "") for entry in self.evaluation_data
-                ]
+            # 创建评估数据集
+            dataset = self.EvaluationDataset(samples=samples)
             
-            # 创建数据集
-            dataset = self.Dataset.from_dict(dataset_dict)
+            # 获取要使用的指标实例
+            metrics_to_use = [
+                self.metric_instances[m] 
+                for m in self.metrics 
+                if m in self.metric_instances
+            ]
             
             # 执行评估
-            result = self.evaluate(
+            result = self.evaluate_func(
                 dataset=dataset,
-                metrics=self.metrics,
+                metrics=metrics_to_use,
+                show_progress=True,
             )
             
             # 保存结果

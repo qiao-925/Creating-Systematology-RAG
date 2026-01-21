@@ -31,21 +31,29 @@ def ensure_collection_dimension_match(
         model_dim = None
         dim_detection_methods = []
         
-        # 方法1: 尝试从模型属性获取（最快速，无需计算）
-        if hasattr(index_manager.embed_model, 'embed_dim'):
+        # 方法0: 优先使用初始化时缓存的维度（最快，无需 API 调用）
+        if hasattr(index_manager.embed_model, '_cached_embed_dim'):
+            model_dim = index_manager.embed_model._cached_embed_dim
+            dim_detection_methods.append("初始化缓存")
+        
+        # 方法1: 尝试从模型属性获取（快速，无需计算）
+        if model_dim is None and hasattr(index_manager.embed_model, 'embed_dim'):
             model_dim = index_manager.embed_model.embed_dim
             dim_detection_methods.append("embed_dim属性")
-        elif hasattr(index_manager.embed_model, '_model') and hasattr(index_manager.embed_model._model, 'config'):
-            try:
-                model_dim = getattr(index_manager.embed_model._model.config, 'hidden_size', None)
-                if model_dim:
-                    dim_detection_methods.append("模型config.hidden_size")
-            except Exception as e:
-                logger.debug(f"从模型config获取维度失败: {e}")
+        elif model_dim is None and hasattr(index_manager.embed_model, '_model'):
+            if hasattr(index_manager.embed_model._model, 'config'):
+                try:
+                    model_dim = getattr(index_manager.embed_model._model.config, 'hidden_size', None)
+                    if model_dim:
+                        dim_detection_methods.append("模型config.hidden_size")
+                except Exception as e:
+                    logger.debug(f"从模型config获取维度失败: {e}")
         
-        # 方法2: 通过实际计算一个测试向量获取维度（最可靠，但需要计算）
+        # 方法2: 通过实际计算一个测试向量获取维度（最可靠，但需要 API 调用）
+        # 注意：这是最后的手段，会产生额外的 API 调用延迟
         if model_dim is None:
             try:
+                logger.debug("使用测试向量检测维度（会产生额外 API 调用）")
                 test_embedding = index_manager.embed_model.get_query_embedding("test")
                 if hasattr(test_embedding, 'shape') and len(test_embedding.shape) > 0:
                     model_dim = int(test_embedding.shape[0])
@@ -54,6 +62,8 @@ def ensure_collection_dimension_match(
                 else:
                     model_dim = int(test_embedding)
                 dim_detection_methods.append("实际计算测试向量")
+                # 缓存结果，避免后续重复调用
+                index_manager.embed_model._cached_embed_dim = model_dim
             except Exception as e:
                 logger.warning(f"通过测试向量获取维度失败: {e}")
         

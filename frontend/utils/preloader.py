@@ -1,0 +1,233 @@
+"""
+后台预加载器：异步初始化耗时模块，实现界面立即显示
+
+核心功能：
+- start_background_init()：启动后台初始化线程
+- is_ready()：检查是否初始化完成
+- get_services()：获取初始化完成的服务实例
+- get_status()：获取当前初始化状态
+"""
+
+import threading
+import time
+from dataclasses import dataclass
+from typing import Any, Optional, Tuple
+from enum import Enum
+
+from backend.infrastructure.logger import get_logger
+
+logger = get_logger('frontend.preloader')
+
+
+class PreloadStatus(Enum):
+    """预加载状态"""
+    NOT_STARTED = "not_started"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+@dataclass
+class PreloadResult:
+    """预加载结果"""
+    status: PreloadStatus
+    init_result: Optional[Any] = None
+    rag_service: Optional[Any] = None
+    chat_manager: Optional[Any] = None
+    error: Optional[str] = None
+    duration: float = 0.0
+
+
+class BackgroundPreloader:
+    """后台预加载器（单例）"""
+    
+    _instance: Optional["BackgroundPreloader"] = None
+    _lock = threading.Lock()
+    
+    def __new__(cls):
+        if cls._instance is None:
+            with cls._lock:
+                if cls._instance is None:
+                    cls._instance = super().__new__(cls)
+                    cls._instance._initialized = False
+        return cls._instance
+    
+    def __init__(self):
+        if self._initialized:
+            return
+        
+        self._initialized = True
+        self._status = PreloadStatus.NOT_STARTED
+        self._result: Optional[PreloadResult] = None
+        self._thread: Optional[threading.Thread] = None
+        self._start_time: float = 0.0
+        # 详细进度跟踪
+        self._current_stage: str = ""
+        self._stage_details: list[str] = []
+        self._completed_modules: list[str] = []
+    
+    def start(self) -> None:
+        """启动后台初始化（如果尚未开始）"""
+        with self._lock:
+            if self._status != PreloadStatus.NOT_STARTED:
+                return
+            
+            self._status = PreloadStatus.IN_PROGRESS
+            self._start_time = time.perf_counter()
+            self._thread = threading.Thread(target=self._do_init, daemon=True)
+            self._thread.start()
+            logger.info("🚀 后台预加载已启动")
+    
+    def _update_stage(self, stage: str, module_name: Optional[str] = None) -> None:
+        """更新当前阶段"""
+        self._current_stage = stage
+        if module_name:
+            self._stage_details.append(f"✅ {module_name}")
+            if module_name not in self._completed_modules:
+                self._completed_modules.append(module_name)
+    
+    def _do_init(self) -> None:
+        """执行初始化（分步执行以实时更新进度）"""
+        try:
+            from backend.infrastructure.initialization.manager import InitializationManager
+            from backend.infrastructure.initialization.registry import register_all_modules
+            from backend.infrastructure.initialization.bootstrap import InitResult
+            
+            self._update_stage("创建初始化管理器")
+            manager = InitializationManager()
+            register_all_modules(manager)
+            
+            # 逐个初始化模块（使用模块自身的 description 作为显示名称）
+            for module_name in manager._topological_sort():
+                module = manager.modules[module_name]
+                display = module.description or module_name
+                
+                self._update_stage(f"初始化 {display}")
+                success = manager.execute_init(module_name)
+                
+                if success:
+                    self._update_stage(f"{display}", module_name)
+                elif module.is_required:
+                    self._fail(f"必需模块 {display} 初始化失败: {module.error}")
+                    return
+                else:
+                    self._stage_details.append(f"⏭️ {display} (跳过)")
+            
+            # 获取服务实例
+            self._update_stage("获取服务实例")
+            rag_service = manager.instances.get('rag_service')
+            chat_manager = manager.instances.get('chat_manager')
+            
+            # 延迟初始化服务
+            if not rag_service:
+                self._update_stage("初始化 RAG服务")
+                if manager.execute_init('rag_service'):
+                    rag_service = manager.instances.get('rag_service')
+                    self._update_stage("RAG服务", 'rag_service')
+            
+            if not chat_manager:
+                self._update_stage("初始化 对话管理器")
+                if manager.execute_init('chat_manager'):
+                    chat_manager = manager.instances.get('chat_manager')
+                    self._update_stage("对话管理器", 'chat_manager')
+            
+            if not rag_service or not chat_manager:
+                self._fail("服务实例创建失败")
+                return
+            
+            # 成功
+            summary = manager.get_status_summary()
+            init_result = InitResult(
+                all_required_ready=summary['all_required_ready'],
+                manager=manager, instances=manager.instances.copy(),
+                failed_modules=summary['required_failed'], summary=summary
+            )
+            self._complete(init_result, rag_service, chat_manager)
+            
+        except Exception as e:
+            self._fail(str(e))
+            logger.error(f"❌ 后台预加载异常: {e}", exc_info=True)
+    
+    def _fail(self, error: str) -> None:
+        """标记初始化失败"""
+        self._result = PreloadResult(
+            status=PreloadStatus.FAILED, error=error,
+            duration=time.perf_counter() - self._start_time
+        )
+        self._status = PreloadStatus.FAILED
+        logger.error(f"❌ {error}")
+    
+    def _complete(self, init_result: Any, rag_service: Any, chat_manager: Any) -> None:
+        """标记初始化完成"""
+        duration = time.perf_counter() - self._start_time
+        self._update_stage("初始化完成")
+        self._result = PreloadResult(
+            status=PreloadStatus.COMPLETED, init_result=init_result,
+            rag_service=rag_service, chat_manager=chat_manager, duration=duration
+        )
+        self._status = PreloadStatus.COMPLETED
+        logger.info(f"✅ 后台预加载完成（耗时: {duration:.2f}s）")
+    
+    def is_ready(self) -> bool:
+        """检查是否初始化完成"""
+        return self._status == PreloadStatus.COMPLETED
+    
+    def get_status(self) -> PreloadStatus:
+        """获取当前状态"""
+        return self._status
+    
+    def get_progress_message(self) -> str:
+        """获取进度消息"""
+        if self._status == PreloadStatus.NOT_STARTED:
+            return "准备初始化..."
+        if self._status == PreloadStatus.IN_PROGRESS:
+            elapsed = time.perf_counter() - self._start_time
+            return f"{self._current_stage or '启动中'}... ({elapsed:.1f}s)"
+        if self._status == PreloadStatus.COMPLETED:
+            return f"初始化完成 ({self._result.duration:.1f}s)"
+        return f"初始化失败: {self._result.error if self._result else '未知错误'}"
+    
+    def get_detailed_progress(self) -> dict:
+        """获取详细进度信息"""
+        elapsed = time.perf_counter() - self._start_time if self._start_time > 0 else 0
+        return {
+            "status": self._status.value, "stage": self._current_stage, "elapsed": elapsed,
+            "completed_modules": list(self._completed_modules),
+            "module_count": len(self._completed_modules), "logs": list(self._stage_details),
+        }
+    
+    def get_services(self) -> Optional[Tuple[Any, Any, Any]]:
+        """获取服务实例 -> (init_result, rag_service, chat_manager) 或 None"""
+        if self._status != PreloadStatus.COMPLETED or self._result is None:
+            return None
+        return (self._result.init_result, self._result.rag_service, self._result.chat_manager)
+    
+    def get_error(self) -> Optional[str]:
+        """获取错误信息"""
+        return self._result.error if self._result and self._result.error else None
+    
+    def reset(self) -> None:
+        """重置预加载器（用于重试）"""
+        with self._lock:
+            self._status, self._result, self._thread = PreloadStatus.NOT_STARTED, None, None
+            self._start_time, self._current_stage = 0.0, ""
+            self._stage_details, self._completed_modules = [], []
+
+
+# 全局预加载器实例
+_preloader: Optional[BackgroundPreloader] = None
+
+def get_preloader() -> BackgroundPreloader:
+    """获取全局预加载器实例"""
+    global _preloader
+    if _preloader is None:
+        _preloader = BackgroundPreloader()
+    return _preloader
+
+# 便捷函数
+def start_background_init() -> None: get_preloader().start()
+def is_services_ready() -> bool: return get_preloader().is_ready()
+def get_services() -> Optional[Tuple[Any, Any, Any]]: return get_preloader().get_services()
+def get_init_status() -> PreloadStatus: return get_preloader().get_status()
+def get_progress_message() -> str: return get_preloader().get_progress_message()
+def get_detailed_progress() -> dict: return get_preloader().get_detailed_progress()

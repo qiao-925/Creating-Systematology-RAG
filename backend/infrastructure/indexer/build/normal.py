@@ -1,5 +1,10 @@
 """
-正常模式构建模块：正常模式构建索引
+正常模式构建模块：批量优化的索引构建
+
+优化点：
+1. 批量分块：一次性处理所有文档
+2. 批量插入：使用 insert_nodes() 批量插入
+3. 批量查询：合并向量ID查询减少网络请求
 """
 
 import time
@@ -19,13 +24,84 @@ if TYPE_CHECKING:
 logger = get_logger('indexer')
 
 
+def _collect_metadata(documents: List[LlamaDocument]) -> Dict[str, Dict]:
+    """批量收集文档元数据
+    
+    Args:
+        documents: 文档列表
+        
+    Returns:
+        文件路径到元数据的映射
+    """
+    metadata_map = {}
+    for doc in documents:
+        file_path = doc.metadata.get("file_path", "")
+        if file_path:
+            metadata_map[file_path] = {
+                "repository": doc.metadata.get("repository", ""),
+                "branch": doc.metadata.get("branch", "main"),
+                "owner": doc.metadata.get("owner", ""),
+                "repo": doc.metadata.get("repo", "")
+            }
+    return metadata_map
+
+
+def _batch_query_vector_ids(
+    index_manager,
+    documents: List[LlamaDocument],
+    show_progress: bool = True
+) -> Dict[str, List[str]]:
+    """批量查询向量ID
+    
+    Args:
+        index_manager: IndexManager实例
+        documents: 文档列表
+        show_progress: 是否显示进度
+        
+    Returns:
+        文件路径到向量ID列表的映射
+    """
+    vector_ids_map = {}
+    file_paths = [doc.metadata.get("file_path", "") for doc in documents if doc.metadata.get("file_path")]
+    
+    if not file_paths:
+        return vector_ids_map
+    
+    total = len(file_paths)
+    logger.info(f"[阶段2.3] 🔍 批量查询向量ID: {total} 个文件")
+    
+    # 批量查询，每 20 个一组
+    batch_size = 20
+    for i in range(0, total, batch_size):
+        batch_paths = file_paths[i:i + batch_size]
+        
+        for file_path in batch_paths:
+            try:
+                vector_ids = get_vector_ids_with_retry(index_manager, file_path)
+                vector_ids_map[file_path] = vector_ids
+            except Exception as e:
+                logger.warning(f"查询向量ID失败 [{file_path}]: {e}")
+                vector_ids_map[file_path] = []
+        
+        if show_progress and (i + batch_size) < total:
+            logger.debug(f"   向量ID查询进度: {min(i + batch_size, total)}/{total}")
+    
+    return vector_ids_map
+
+
 def build_index_normal_mode(
     index_manager,
     documents: List[LlamaDocument],
     show_progress: bool = True,
     github_sync_manager: Optional["GitHubSyncManager"] = None
 ) -> Tuple[VectorStoreIndex, Dict[str, List[str]], Dict[str, Dict]]:
-    """按文档逐个处理，返回向量ID映射和文档元数据映射
+    """批量处理模式构建索引
+    
+    优化后的流程：
+    1. 批量收集元数据
+    2. 批量分块所有文档
+    3. 批量插入节点
+    4. 批量查询向量ID
     
     Args:
         index_manager: IndexManager实例
@@ -40,13 +116,15 @@ def build_index_normal_mode(
         index = index_manager.get_index()
         return index, {}, {}
     
-    # 检查是否需要创建新索引（_index 为 None 或 collection 为空）
+    total_docs = len(documents)
+    logger.info(f"[阶段2.1] 🔨 开始批量构建索引，文档数: {total_docs}")
+    
+    # 检查是否需要创建新索引
     need_create_new = (
         index_manager._index is None or 
         getattr(index_manager, '_collection_is_empty', False)
     )
     
-    # 如果 collection 为空，检查是否真的为空
     if not need_create_new and hasattr(index_manager, 'chroma_collection') and index_manager.chroma_collection:
         try:
             count = index_manager.chroma_collection.count()
@@ -56,8 +134,10 @@ def build_index_normal_mode(
         except Exception:
             pass
     
-    vector_ids_map = {}
-    metadata_map = {}  # 文档元数据映射
+    # 阶段1: 批量收集元数据
+    metadata_start = time.time()
+    metadata_map = _collect_metadata(documents)
+    logger.debug(f"[阶段2.1] 元数据收集完成: {len(metadata_map)} 个文件 ({time.time() - metadata_start:.2f}s)")
     
     # 初始化分块器
     from llama_index.core.node_parser import SentenceSplitter
@@ -66,112 +146,99 @@ def build_index_normal_mode(
         chunk_overlap=index_manager.chunk_overlap
     )
     
-    batch_size = config.EMBED_BATCH_SIZE
+    logger.info(f"[阶段2.1]    分块参数: size={index_manager.chunk_size}, overlap={index_manager.chunk_overlap}")
     
     if need_create_new:
-        logger.info(f"[阶段2.1] 🔨 开始创建索引，文档数: {len(documents)}")
-        logger.info(f"[阶段2.1]    分块参数: size={index_manager.chunk_size}, overlap={index_manager.chunk_overlap}")
-        logger.info("[阶段2.1]    按文档逐个处理模式")
-        
+        # 创建新索引 - 使用 VectorStoreIndex.from_documents（已经是批量处理）
+        logger.info("[阶段2.1]    模式: 创建新索引（批量处理）")
         index_start_time = time.time()
+        
         try:
-            # 获取LlamaIndex兼容的embedding实例
             llama_embed_model = index_manager._get_llama_index_compatible_embedding()
             
-            # 按文档逐个处理，收集元数据
-            for doc_idx, doc in enumerate(documents, 1):
-                file_path = doc.metadata.get("file_path", "")
-                
-                # 保存文档元数据（用于中间层提取owner/repo/branch）
-                if file_path:
-                    metadata_map[file_path] = {
-                        "repository": doc.metadata.get("repository", ""),
-                        "branch": doc.metadata.get("branch", "main"),
-                        "owner": doc.metadata.get("owner", ""),
-                        "repo": doc.metadata.get("repo", "")
-                    }
-                
-                if show_progress and (doc_idx % 10 == 0 or doc_idx == len(documents)):
-                    logger.info(f"[阶段2.1]    处理进度: {doc_idx}/{len(documents)}")
-            
-            # 创建索引（使用所有文档）
+            # 创建索引（LlamaIndex 内部会批量处理）
             index_manager._index = VectorStoreIndex.from_documents(
                 documents,
                 storage_context=index_manager.storage_context,
                 embed_model=llama_embed_model,
+                show_progress=show_progress,
             )
             
-            # 清除空标记
             if hasattr(index_manager, '_collection_is_empty'):
                 delattr(index_manager, '_collection_is_empty')
             
-            # 查询向量ID（带重试）
-            for doc in documents:
-                file_path = doc.metadata.get("file_path", "")
-                if file_path:
-                    vector_ids = get_vector_ids_with_retry(index_manager, file_path)
-                    vector_ids_map[file_path] = vector_ids
-            
             index_elapsed = time.time() - index_start_time
-            logger.info(f"[阶段2.3] ✅ 索引创建成功 (耗时: {index_elapsed:.2f}s)")
+            logger.info(f"[阶段2.2] ✅ 索引创建成功 (耗时: {index_elapsed:.2f}s)")
+            
         except Exception as e:
-            logger.error(f"[阶段2.1/2.2/2.3] ❌ 索引创建失败: {e}", exc_info=True)
+            logger.error(f"[阶段2.1/2.2] ❌ 索引创建失败: {e}", exc_info=True)
             raise
     else:
-        # 增量添加文档 - 按文档逐个处理
-        logger.info(f"[阶段2.1] 📝 开始增量添加文档，文档数: {len(documents)}")
-        logger.info("[阶段2.1]    按文档逐个处理模式")
+        # 增量添加 - 批量分块和插入
+        logger.info("[阶段2.1]    模式: 增量添加（批量优化）")
         insert_start_time = time.time()
         
         try:
-            # 确保索引存在
             if index_manager._index is None:
                 index_manager.get_index()
             
-            # 按文档逐个处理
-            doc_progress = tqdm(documents, desc="处理文档", disable=not show_progress, unit="doc") if show_progress else documents
+            # 阶段2: 批量分块所有文档
+            chunk_start = time.time()
+            logger.info(f"[阶段2.1] 📄 批量分块 {total_docs} 个文档...")
             
-            for doc in doc_progress:
-                file_path = doc.metadata.get("file_path", "")
-                
-                # 保存文档元数据（用于中间层提取owner/repo/branch）
-                if file_path:
-                    metadata_map[file_path] = {
-                        "repository": doc.metadata.get("repository", ""),
-                        "branch": doc.metadata.get("branch", "main"),
-                        "owner": doc.metadata.get("owner", ""),
-                        "repo": doc.metadata.get("repo", "")
-                    }
-                
-                # 分块（不再检查是否已向量化，因为已由filter过滤）
-                nodes = node_parser.get_nodes_from_documents([doc])
-                
-                # 批量上传（每10个chunks一批）
-                for i in range(0, len(nodes), batch_size):
-                    batch_nodes = nodes[i:i+batch_size]
-                    try:
-                        if hasattr(index_manager._index, 'insert_nodes'):
-                            index_manager._index.insert_nodes(batch_nodes)
-                        else:
-                            for node in batch_nodes:
-                                index_manager._index.insert(node)
-                    except Exception as insert_error:
-                        logger.warning(f"插入节点失败 [{file_path}] (批次 {i//batch_size + 1}): {insert_error}")
-                        # 继续处理其他节点
-                        continue
-                
-                # 查询向量ID（带重试）
-                if file_path:
-                    vector_ids = get_vector_ids_with_retry(index_manager, file_path)
-                    vector_ids_map[file_path] = vector_ids
+            all_nodes = node_parser.get_nodes_from_documents(documents, show_progress=show_progress)
             
-            if show_progress and hasattr(doc_progress, 'close'):
-                doc_progress.close()
+            chunk_elapsed = time.time() - chunk_start
+            logger.info(f"[阶段2.1] ✅ 分块完成: {len(all_nodes)} 个节点 (耗时: {chunk_elapsed:.2f}s)")
             
-            insert_elapsed = time.time() - insert_start_time
-            logger.info(f"[阶段2.3] ✅ 文档已按文档逐个添加到现有索引 (耗时: {insert_elapsed:.2f}s)")
+            # 阶段3: 批量插入节点
+            insert_start = time.time()
+            batch_size = config.EMBED_BATCH_SIZE * 5  # 增大批次大小
+            total_nodes = len(all_nodes)
+            
+            logger.info(f"[阶段2.2] 📤 批量插入 {total_nodes} 个节点...")
+            
+            # 使用 tqdm 显示进度
+            if show_progress:
+                pbar = tqdm(total=total_nodes, desc="插入节点", unit="node")
+            
+            for i in range(0, total_nodes, batch_size):
+                batch_nodes = all_nodes[i:i + batch_size]
+                try:
+                    if hasattr(index_manager._index, 'insert_nodes'):
+                        index_manager._index.insert_nodes(batch_nodes)
+                    else:
+                        for node in batch_nodes:
+                            index_manager._index.insert(node)
+                    
+                    if show_progress:
+                        pbar.update(len(batch_nodes))
+                        
+                except Exception as insert_error:
+                    logger.warning(f"批次插入失败 (批次 {i//batch_size + 1}): {insert_error}")
+                    # 单个节点重试
+                    for node in batch_nodes:
+                        try:
+                            index_manager._index.insert(node)
+                            if show_progress:
+                                pbar.update(1)
+                        except Exception:
+                            pass
+            
+            if show_progress:
+                pbar.close()
+            
+            insert_elapsed = time.time() - insert_start
+            logger.info(f"[阶段2.2] ✅ 插入完成 (耗时: {insert_elapsed:.2f}s)")
+            
+            total_elapsed = time.time() - insert_start_time
+            logger.info(f"[阶段2.2] ✅ 增量添加完成，共 {total_nodes} 个节点 (总耗时: {total_elapsed:.2f}s)")
+            
         except Exception as e:
-            logger.error(f"[阶段2.1/2.2/2.3] ❌ 增量添加文档失败: {e}", exc_info=True)
+            logger.error(f"[阶段2.1/2.2] ❌ 增量添加失败: {e}", exc_info=True)
             raise
+    
+    # 阶段4: 批量查询向量ID
+    vector_ids_map = _batch_query_vector_ids(index_manager, documents, show_progress)
     
     return index_manager._index, vector_ids_map, metadata_map

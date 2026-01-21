@@ -1,6 +1,7 @@
 """
 设置页面数据源管理模块
 GitHub仓库、本地文件管理
+使用 on_click 回调优化快速操作，避免不必要的 st.rerun()
 """
 
 import streamlit as st
@@ -10,7 +11,6 @@ from backend.infrastructure.data_loader import (
     parse_github_url,
     sync_github_repository
 )
-# 使用统一初始化系统获取实例
 
 
 def render_data_source_tab():
@@ -112,8 +112,26 @@ def _handle_add_github_repo(github_url: str):
                     st.error(f"❌ 添加失败: {str(e)[:100]}")
 
 
+def _create_delete_callback(repo: dict):
+    """创建删除仓库的回调函数（闭包捕获 repo）"""
+    def callback():
+        parts = repo['key'].split('@')
+        repo_part = parts[0]
+        branch = parts[1] if len(parts) > 1 else 'main'
+        owner, repo_name = repo_part.split('/')
+        st.session_state.github_sync_manager.remove_repository(owner, repo_name, branch)
+        st.session_state.github_repos = st.session_state.github_sync_manager.list_repositories()
+        st.session_state._delete_success_msg = f"已删除 {repo['key']}"
+    return callback
+
+
 def _render_github_repos_list():
     """渲染GitHub仓库列表"""
+    # 显示删除成功消息（如果有）
+    if st.session_state.get('_delete_success_msg'):
+        st.success(st.session_state._delete_success_msg)
+        st.session_state._delete_success_msg = None
+    
     if st.session_state.github_repos:
         st.caption(f"共 {len(st.session_state.github_repos)} 个仓库")
         
@@ -127,15 +145,18 @@ def _render_github_repos_list():
                     if 'commit_sha' in repo:
                         st.text(f"Commit: {repo['commit_sha'][:8]}")
                 
-                # 同步此仓库
+                # 同步此仓库（耗时操作，保持 if st.button）
                 with col2:
                     if st.button("🔄 同步", key=f"sync_{repo['key']}"):
                         _handle_sync_repo(repo)
                 
-                # 删除此仓库
+                # 删除此仓库（快速操作，使用 on_click）
                 with col3:
-                    if st.button("🗑️ 删除", key=f"del_{repo['key']}"):
-                        _handle_delete_repo(repo)
+                    st.button(
+                        "🗑️ 删除", 
+                        key=f"del_{repo['key']}",
+                        on_click=_create_delete_callback(repo)
+                    )
     else:
         st.info("尚未添加任何仓库")
 
@@ -205,18 +226,6 @@ def _handle_sync_repo(repo: dict):
                 st.rerun()
             except Exception as e:
                 st.error(f"❌ 同步失败: {str(e)[:80]}")
-
-
-def _handle_delete_repo(repo: dict):
-    """处理仓库删除"""
-    parts = repo['key'].split('@')
-    repo_part = parts[0]
-    branch = parts[1] if len(parts) > 1 else 'main'
-    owner, repo_name = repo_part.split('/')
-    st.session_state.github_sync_manager.remove_repository(owner, repo_name, branch)
-    st.session_state.github_repos = st.session_state.github_sync_manager.list_repositories()
-    st.success(f"已删除 {repo['key']}")
-    st.rerun()
 
 
 def _render_local_file_upload():

@@ -22,12 +22,6 @@ class MockGitRepositoryManager:
         self.update = Mock(return_value=(self.repo_path, self.commit_sha))
 
 
-class MockGitLoader:
-    """统一的GitLoader Mock"""
-    
-    def __init__(self, documents=None):
-        self.documents = documents or []
-        self.load = Mock(return_value=self.documents)
 
 
 class MockEmbedding:
@@ -56,27 +50,26 @@ class MockLLM:
 # 模块路径映射（适配重构后的路径）
 MODULE_PATH_MAP = {
     # GitHub 相关
-    'github_loader': 'src.infrastructure.data_loader.source.github',
-    'github_source': 'src.infrastructure.data_loader.source.github',
-    'git_repository_manager': 'src.infrastructure.git.manager',
-    'git_loader': 'langchain_community.document_loaders.git',  # 外部依赖
+    'github_loader': 'backend.infrastructure.data_loader.source.github',
+    'github_source': 'backend.infrastructure.data_loader.source.github',
+    'git_repository_manager': 'backend.infrastructure.git.manager',
     
     # Data loader 相关
-    'data_loader': 'src.infrastructure.data_loader',
-    'document_parser': 'src.infrastructure.data_loader.parser',
+    'data_loader': 'backend.infrastructure.data_loader',
+    'document_parser': 'backend.infrastructure.data_loader.parser',
     
     # Embedding 相关
-    'embedding': 'src.infrastructure.embeddings',
-    'local_embedding': 'src.infrastructure.embeddings.local_embedding',
-    'api_embedding': 'src.infrastructure.embeddings.hf_inference_embedding',
+    'embedding': 'backend.infrastructure.embeddings',
+    'local_embedding': 'backend.infrastructure.embeddings.local_embedding',
+    'api_embedding': 'backend.infrastructure.embeddings.hf_inference_embedding',
     
     # LLM 相关
-    'llm': 'src.infrastructure.llms',
-    'deepseek': 'src.infrastructure.llms.reasoning',
+    'llm': 'backend.infrastructure.llms',
+    'deepseek': 'backend.infrastructure.llms.reasoning',
     
     # Indexer 相关
-    'indexer': 'src.infrastructure.indexer',
-    'index_manager': 'src.infrastructure.indexer.core.manager',
+    'indexer': 'backend.infrastructure.indexer',
+    'index_manager': 'backend.infrastructure.indexer.core.manager',
 }
 
 
@@ -87,27 +80,24 @@ def get_module_path(module_name: str) -> str:
 
 # ==================== Patch 工具函数 ====================
 
-def patch_github_loader(mocker, mock_git_manager=None, mock_git_loader=None):
-    """统一的GitHub loader patch工具"""
+def patch_github_loader(mocker, mock_git_manager=None):
+    """统一的GitHub loader patch工具
+    
+    注意：项目使用自研的 GitRepositoryManager，不依赖 langchain。
+    需要在使用该类的模块中 patch，而不是在定义它的模块中。
+    """
     if mock_git_manager is None:
         mock_git_manager = MockGitRepositoryManager()
     
-    if mock_git_loader is None:
-        mock_git_loader = MockGitLoader()
+    # Patch GitRepositoryManager（在使用它的模块中 patch）
+    # GitHubSource 从 backend.infrastructure.git 导入 GitRepositoryManager
+    mocker.patch(
+        'backend.infrastructure.data_loader.source.github.GitRepositoryManager',
+        return_value=mock_git_manager
+    )
     
-    # Patch GitRepositoryManager
-    git_manager_path = get_module_path('git_repository_manager')
-    mocker.patch(f'{git_manager_path}.GitRepositoryManager', return_value=mock_git_manager)
-    
-    # Patch GitLoader（如果需要）
-    git_loader_path = get_module_path('git_loader')
-    try:
-        mocker.patch(f'{git_loader_path}.GitLoader', return_value=mock_git_loader)
-    except AttributeError:
-        # 如果路径不存在，跳过
-        pass
-    
-    return mock_git_manager, mock_git_loader
+    # 返回兼容的元组（保持向后兼容）
+    return mock_git_manager, None
 
 
 def patch_embedding(mocker, mock_embedding=None):

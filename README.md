@@ -97,19 +97,51 @@ uv run --no-sync python -c "import torch; print(f'版本: {torch.__version__}');
 
 - **Python 3.12+** - 编程语言
 - **uv** - 依赖管理和包管理
-- **LlamaIndex** - RAG 核心框架
-- **LangChain** - 文档加载器（GitHub集成）
+- **LlamaIndex** - RAG 核心框架（含 ReActAgent）
+- **Git** - GitHub仓库本地克隆（自研实现）
 - **DeepSeek API** - 大语言模型（支持推理链和JSON输出）
 - **Chroma Cloud** - 向量数据库（云端托管）
 - **Streamlit** - Web 界面（单页应用，支持 Dark 模式，优先使用原生组件）
 - **HuggingFace Embeddings** - 本地向量模型（支持镜像和离线）
-- **Git** - GitHub仓库本地克隆和增量更新
-- **pytest** - 测试框架（110+个测试用例）
-- **Phoenix** - RAG可观测性平台
-- **OpenTelemetry** - 分布式追踪
+- **pytest** - 测试框架
+- **LlamaDebugHandler** - 内置可观测性
 - **RAGAS** - RAG评估框架
 - **structlog** - 结构化日志系统
 - **Pydantic** - 数据验证和类型安全
+
+---
+
+## 3. 🤖 Agentic RAG 特性
+
+### 核心能力
+
+项目支持两种 RAG 模式（可通过 UI 切换）：
+
+| 模式 | 特点 | 适用场景 |
+|------|------|----------|
+| **传统 RAG** | 固定检索策略，规则驱动 | 简单查询、低延迟需求 |
+| **Agentic RAG** | Agent 自主决策，动态组合工具 | 复杂查询、多意图查询 |
+
+### 规划 Agent 工具集
+
+规划 Agent（ReActAgent）支持 6 个工具：
+
+**查询处理工具**：
+- `analyze_intent` - 意图理解（分析查询复杂度、主题、是否需要改写）
+- `rewrite_query` - 查询改写（保留实体、扩展语义）
+- `decompose_multi_intent` - 多意图分解（将复杂查询拆分为子查询）
+
+**检索工具**：
+- `vector_search` - 向量语义检索
+- `hybrid_search` - 混合检索（向量+BM25）
+- `multi_search` - 多策略融合检索（向量+BM25+Grep+RRF融合）
+
+### 降级机制
+
+AgenticQueryEngine 支持三级降级：
+1. Agent 执行失败 → 降级到 ModularQueryEngine
+2. ModularQueryEngine 失败 → 降级到纯 LLM 回答
+3. LLM 失败 → 返回友好错误信息
 
 ---
 
@@ -123,8 +155,83 @@ uv run --no-sync python -c "import torch; print(f'版本: {torch.__version__}');
 4. **架构统一**：前端代码独立组织（frontend/），单页应用架构，功能通过弹窗实现
 5. **原生组件优先**：优先使用 Streamlit 原生组件（`st.chat_input()`、`st.dialog()` 等），减少自定义代码
 6. **主题适配**：完整支持 Light/Dark 模式切换，使用 CSS 变量实现主题适配
-7. **可观测性优先**：集成 Phoenix、LlamaDebugHandler、RAGAS，行为透明可追踪
+7. **可观测性优先**：集成 LlamaDebugHandler、RAGAS，行为透明可追踪
 8. **工程实践**：结构化日志（structlog）、类型安全（Pydantic），提升代码质量
+
+### RAG 链路整体架构
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        Frontend (Streamlit)                  │
+├─────────────────────────────────────────────────────────────┤
+│                        RAG API Layer                         │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
+│  │  RAGService  │  │  FastAPI App │  │ Chat Router  │       │
+│  └──────────────┘  └──────────────┘  └──────────────┘       │
+├─────────────────────────────────────────────────────────────┤
+│                      RAG Engine Layer                        │
+│  ┌────────────────────┐  ┌────────────────────┐             │
+│  │ ModularQueryEngine │  │ AgenticQueryEngine │             │
+│  │   (传统 RAG)       │  │  (Agentic RAG)     │             │
+│  └────────────────────┘  └────────────────────┘             │
+├─────────────────────────────────────────────────────────────┤
+│                     Infrastructure Layer                     │
+│  ┌─────────┐  ┌───────────┐  ┌──────────┐  ┌─────────────┐  │
+│  │ Indexer │  │ Embedding │  │   LLMs   │  │  Observers  │  │
+│  └─────────┘  └───────────┘  └──────────┘  └─────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**查询处理流程**：
+```
+用户查询
+    ↓
+QueryProcessor (意图理解 + 改写)
+    ↓
+┌─────────────────────────────┐
+│ 路由决策 (QueryRouter)       │
+│   - 简单查询 → vector        │
+│   - 精确查询 → grep          │
+│   - 复杂查询 → hybrid/multi  │
+└─────────────────────────────┘
+    ↓
+检索执行 (Retriever)
+    ↓
+后处理 (Reranker + SimilarityCutoff)
+    ↓
+LLM 响应生成 (DeepSeek)
+    ↓
+格式化输出 (ResponseFormatter)
+```
+
+**核心组件**：
+
+| 组件 | 位置 | 功能 |
+|------|------|------|
+| `RAGService` | `rag_api/rag_service.py` | 统一服务入口，延迟加载引擎 |
+| `ModularQueryEngine` | `rag_engine/core/engine.py` | 传统 RAG 引擎 |
+| `AgenticQueryEngine` | `rag_engine/agentic/engine.py` | Agentic 引擎（ReActAgent） |
+| `QueryProcessor` | `rag_engine/processing/query_processor.py` | 查询意图理解+改写 |
+| `create_retriever` | `rag_engine/retrieval/factory.py` | 检索器工厂 |
+| `create_reranker` | `rag_engine/reranking/factory.py` | 重排序器工厂 |
+| `IndexManager` | `infrastructure/indexer/` | 向量索引管理 |
+
+**检索策略**：
+
+| 策略 | 说明 | 适用场景 |
+|------|------|----------|
+| `vector` | 向量语义检索 | 通用语义查询 |
+| `bm25` | 关键词检索 | 精确术语匹配 |
+| `hybrid` | 向量+BM25+RRF融合 | 兼顾语义和关键词 |
+| `grep` | 正则/文本检索 | 代码、文件名查询 |
+| `multi` | 多策略组合 | 复杂查询 |
+
+**关键配置**：
+- `RETRIEVAL_STRATEGY`：检索策略（vector/bm25/hybrid/grep/multi）
+- `SIMILARITY_TOP_K`：检索数量
+- `ENABLE_RERANK` / `RERANKER_TYPE`：重排序配置
+- `ENABLE_AUTO_ROUTING`：自动路由模式
+- `use_agentic_rag`：Agentic RAG 模式
 
 ### 模块化三层架构
 
@@ -169,8 +276,8 @@ uv run --no-sync python -c "import torch; print(f'版本: {torch.__version__}');
 ┌─────────────────────────────────────────────────────────────┐
 │               基础设施层（Infrastructure）                    │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  │
-│  │ Config   │  │ Logger   │  │ Phoenix  │  │ Chroma   │  │
-│  │ Embedding│  │ Observer │  │DataSource│  │ LLM      │  │
+│  │ Config   │  │ Logger   │  │DataSource│  │ Chroma   │  │
+│  │ Embedding│  │ Observer │  │ Git      │  │ LLM      │  │
 │  └──────────┘  └──────────┘  └──────────┘  └──────────┘  │
 │  ┌──────────────────────────────────────┐                  │
 │  │  ModuleRegistry (模块注册中心)        │                  │
@@ -411,17 +518,15 @@ Creating-Systematology-RAG/
 ├── frontend/                       # 🎨 前端层（Presentation Layer）
 │   ├── main.py                    # 主入口（单页应用）
 │   ├── components/               # UI组件（优先使用 Streamlit 原生组件）
-│   │   ├── chat_display.py       # 聊天显示
-│   │   ├── chat_input.py         # 聊天输入（使用 st.chat_input()）
+│   │   ├── chat_display.py       # 聊天显示（含可观测性信息）
+│   │   ├── chat_input_with_mode.py # 聊天输入（支持 Agentic 模式切换）
 │   │   ├── file_viewer.py        # 文件查看（弹窗）
-│   │   ├── history.py            # 历史会话
+│   │   ├── observability_summary.py # 可观测性摘要展示
 │   │   ├── sidebar.py             # 侧边栏
 │   │   ├── sources_panel.py      # 引用来源面板
 │   │   └── settings_dialog.py   # 设置弹窗（使用 st.dialog()）
 │   ├── settings/                  # 设置模块
-│   │   ├── data_source.py        # 数据源管理
-│   │   ├── dev_tools.py          # 开发者工具
-│   │   └── system_status.py      # 系统状态
+│   │   └── data_source.py        # 数据源管理
 │   ├── utils/                     # 工具函数
 │   │   ├── services.py           # 服务封装
 │   │   ├── state.py              # 状态管理
@@ -432,7 +537,10 @@ Creating-Systematology-RAG/
 │   │
 │   ├── business/                   # 业务层（Business Layer）
 │   │   ├── rag_engine/            # RAG引擎
-│   │   │   └── ...                 # RAG引擎模块
+│   │   │   ├── agentic/          # Agentic RAG 模块
+│   │   │   │   ├── agent/        # Agent 实现（规划 Agent、工具）
+│   │   │   │   └── prompts/      # Agent Prompt 模板
+│   │   │   └── ...                # 传统 RAG 模块
 │   │   ├── rag_api/               # RAG API
 │   │   │   ├── models.py         # 数据模型（Pydantic）
 │   │   │   └── ...                 # API模块
@@ -617,19 +725,16 @@ app.py   RAGService   Config/Logger/Embedding/LLM
 - **定期清理**：GitHub 仓库本地缓存（如需要）
 - **谨慎清理**：向量数据库、用户数据、GitHub 仓库缓存（需确认）
 
-> 📖 详细缓存分析 → [缓存机制分析](docs/CACHE_ANALYSIS.md)
-
 ---
 
 ## 6. 📚 相关文档 (Related Documents)
 
-### 核心文档
+### 设计与分析
 
-- [📖 文档中心](docs/README.md) - 文档导航和索引
-- [📖 架构设计](docs/ARCHITECTURE.md) - 系统架构和设计思路
-- [📖 API参考](docs/API.md) - 完整的API接口文档
-- [📖 项目结构](docs/PROJECT_STRUCTURE.md) - 详细的目录组织说明
-- [📖 项目追踪](docs/TRACKER.md) - 任务管理与进度追踪
+- [📖 文档中心](docs/README.md) - 文档导航索引
+- [📖 Agentic RAG 设计](docs/agentic-rag-design.md) - Agentic RAG 系统完整设计
+- [📖 RAG 架构分析](docs/rag-architecture-analysis.md) - RAG 链路架构与优化分析
+- [📖 查询改写分析](docs/query-rewriting-analysis.md) - 查询改写策略与业界实践
 
 ### Cursor 规则编写指引
 
@@ -657,5 +762,5 @@ app.py   RAGService   Config/Logger/Embedding/LLM
 
 ---
 
-**最后更新**: 2026-01-07  
+**最后更新**: 2026-01-21（更新 RAG 链路架构分析）  
 **License**: MIT

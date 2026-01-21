@@ -43,9 +43,14 @@ def load_planning_prompt(template_path: Optional[Path] = None) -> str:
         Prompt 模板字符串
     """
     if template_path is None:
-        # 使用默认路径
+        # 使用集中管理的模板路径：prompts/agentic/planning.txt
         current_file = Path(__file__)
-        template_path = current_file.parent / "templates" / "planning.txt"
+        project_root = current_file.parent.parent.parent.parent.parent.parent
+        template_path = project_root / "prompts" / "agentic" / "planning.txt"
+        
+        # 向后兼容：如果新路径不存在，尝试旧路径
+        if not template_path.exists():
+            template_path = current_file.parent / "templates" / "planning.txt"
     
     # 尝试从文件加载
     if template_path.exists():

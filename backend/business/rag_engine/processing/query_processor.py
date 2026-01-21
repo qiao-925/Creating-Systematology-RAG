@@ -109,7 +109,11 @@ class QueryProcessor:
     
     def _get_default_template_path(self) -> Path:
         """获取默认模板文件路径"""
-        # 默认路径：项目根目录/query_rewrite_template.txt
+        # 新路径：prompts/query/rewrite.txt（集中管理）
+        new_path = config.PROJECT_ROOT / "prompts" / "query" / "rewrite.txt"
+        if new_path.exists():
+            return new_path
+        # 向后兼容：旧路径
         return config.PROJECT_ROOT / "query_rewrite_template.txt"
     
     def _template_file_exists(self) -> bool:

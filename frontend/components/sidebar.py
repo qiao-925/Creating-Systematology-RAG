@@ -1,10 +1,15 @@
 """
-侧边栏组件
+侧边栏组件 - 显示应用标题、新对话按钮和历史会话列表
+
+主要功能：
+- render_sidebar(): 渲染完整侧边栏
+- _render_sidebar_footer(): 渲染底部工具栏
 """
 
 import streamlit as st
 from backend.infrastructure.config import config
 from frontend.components.settings_dialog import show_settings_dialog
+from frontend.components.history import display_session_history
 
 
 def _render_sidebar_footer() -> None:
@@ -40,18 +45,48 @@ def render_sidebar(chat_manager) -> None:
         st.title("📚 " + config.APP_TITLE)
         
         # ========== 新对话（顶部） ==========
-        if st.button("💬 开启新对话", type="primary", use_container_width=True, key="new_chat_top"):
+        # 使用 on_click 回调，避免不必要的 rerun
+        # Streamlit 按钮点击本身就会触发脚本重执行，无需手动 rerun
+        def _start_new_chat():
+            """开启新对话的回调函数"""
             if chat_manager:
-                # 创建新会话（只重置对话状态，不重新初始化服务）
                 chat_manager.start_session()
-                st.session_state.messages = []
-                # 清空引用来源映射，避免右侧显示上一个对话的引用来源
-                if 'current_sources_map' in st.session_state:
-                    st.session_state.current_sources_map = {}
-                if 'current_reasoning_map' in st.session_state:
-                    st.session_state.current_reasoning_map = {}
-                # 仅刷新UI，不触发服务重新验证
-                st.rerun()
+            st.session_state.messages = []
+            # 清空引用来源映射
+            if 'current_sources_map' in st.session_state:
+                st.session_state.current_sources_map = {}
+            if 'current_reasoning_map' in st.session_state:
+                st.session_state.current_reasoning_map = {}
+            # 清空观察器日志
+            if 'llama_debug_logs' in st.session_state:
+                st.session_state.llama_debug_logs = []
+            if 'ragas_logs' in st.session_state:
+                st.session_state.ragas_logs = []
+        
+        st.button(
+            "💬 开启新对话", 
+            type="primary", 
+            use_container_width=True, 
+            key="new_chat_top",
+            on_click=_start_new_chat
+        )
+        
+        st.divider()
+        
+        # ========== 历史会话列表 ==========
+        current_session_id = None
+        if chat_manager and chat_manager.current_session:
+            current_session_id = chat_manager.current_session.session_id
+        
+        # #region agent log
+        import json as _json; open('/home/q/Desktop/START/repos/AI-Practice (皮卡丘)/Creating-Systematology-RAG/.cursor/debug.log','a').write(_json.dumps({"hypothesisId":"H1","location":"sidebar.py:81","message":"before display_session_history","data":{"current_session_id":current_session_id,"chat_manager_exists":chat_manager is not None},"timestamp":__import__('time').time(),"sessionId":"debug-session"})+'\n')
+        # #endregion
+        display_session_history(current_session_id=current_session_id)
+        # #region agent log
+        open('/home/q/Desktop/START/repos/AI-Practice (皮卡丘)/Creating-Systematology-RAG/.cursor/debug.log','a').write(_json.dumps({"hypothesisId":"H1","location":"sidebar.py:84","message":"after display_session_history","data":{},"timestamp":__import__('time').time(),"sessionId":"debug-session"})+'\n')
+        # #endregion
+        
+        st.divider()
         
         # ========== 底部固定工具栏 ==========
         _render_sidebar_footer()

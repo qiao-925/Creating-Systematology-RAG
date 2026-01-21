@@ -99,7 +99,7 @@ def analyze_missing_tests(source_files: Set[str], test_mapping: Dict[str, List[s
     
     for module in sorted(source_files):
         # 跳过一些特殊的模块
-        if module in ["__init__", "encoding", "phoenix_utils", "vector_version_utils", "activity_logger"]:
+        if module in ["__init__", "encoding", "vector_version_utils", "activity_logger"]:
             continue
         
         # 检查是否有测试

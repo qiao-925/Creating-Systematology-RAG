@@ -132,6 +132,7 @@ class Config:
             'GITHUB_REPOS_PATH': 'github_repos',
             'GITHUB_SYNC_STATE_PATH': 'github_sync_state',
             'CACHE_STATE_PATH': 'cache_state',  # 已废弃：缓存管理器功能已移除，此配置不再使用
+            'SESSIONS_PATH': 'sessions',  # 会话持久化目录
         }
         
         if name in path_mapping:

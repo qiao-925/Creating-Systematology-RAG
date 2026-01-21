@@ -89,6 +89,7 @@ class PathsConfig(BaseModel):
     github_repos: str
     github_sync_state: str
     cache_state: str
+    sessions: str = "./data/sessions"  # 会话持久化目录
 
 
 class IndexConfig(BaseModel):

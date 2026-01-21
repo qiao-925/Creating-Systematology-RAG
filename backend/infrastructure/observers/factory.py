@@ -64,7 +64,7 @@ def create_default_observers(
             ragas = RAGASEvaluator(
                 enabled=True,
                 metrics=kwargs.get('ragas_metrics', None),
-                batch_size=kwargs.get('ragas_batch_size', 10),
+                batch_size=kwargs.get('ragas_batch_size', 1),  # 每次查询立即评估
             )
             manager.add_observer(ragas)
             logger.info("✅ 已添加 RAGAS 评估器（默认启用）")

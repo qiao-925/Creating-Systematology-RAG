@@ -1,5 +1,7 @@
 """
 索引初始化模块：初始化索引管理器的核心组件
+
+使用 ChromaClientManager 全局单例复用连接，减少握手延迟。
 """
 
 from pathlib import Path
@@ -14,9 +16,9 @@ _http_loggers = [
     'httpcore.http2', 'httpcore.sync', 'httpcore.async',
 ]
 for logger_name in _http_loggers:
-    logger = logging.getLogger(logger_name)
-    logger.setLevel(logging.WARNING)
-    logger.propagate = False
+    _logger = logging.getLogger(logger_name)
+    _logger.setLevel(logging.WARNING)
+    _logger.propagate = False
 
 # 抑制遥测相关的日志（对用户无用的信息）
 _telemetry_loggers = [
@@ -24,22 +26,24 @@ _telemetry_loggers = [
     'chromadb.telemetry',
 ]
 for logger_name in _telemetry_loggers:
-    logger = logging.getLogger(logger_name)
-    logger.setLevel(logging.WARNING)
-    logger.propagate = False
+    _logger = logging.getLogger(logger_name)
+    _logger.setLevel(logging.WARNING)
+    _logger.propagate = False
 
 # 注意：chromadb、chromadb.api、chromadb.client 等保留默认日志级别
 # 这样可以看到连接成功、集合创建等有用的 INFO 级别日志
 
-import chromadb
 from llama_index.core import Settings
 
 from backend.infrastructure.config import config
 from backend.infrastructure.logger import get_logger
 from backend.infrastructure.embeddings.base import BaseEmbedding
 from backend.infrastructure.embeddings.factory import create_embedding, get_embedding_instance
-from backend.infrastructure.indexer.utils.info import print_database_info
-from backend.infrastructure.indexer.utils.dimension import ensure_collection_dimension_match
+from backend.infrastructure.indexer.core.chroma_client import (
+    ChromaClientManager,
+    get_chroma_client,
+    get_chroma_collection,
+)
 
 logger = get_logger('indexer')
 
@@ -105,63 +109,11 @@ def init_index_manager(
     Settings.chunk_size = chunk_size
     Settings.chunk_overlap = chunk_overlap
     
-    # 初始化Chroma Cloud客户端
-    logger.info(f"🗄️  初始化Chroma向量数据库: collection={collection_name}")
+    # 使用全局单例获取 Chroma 客户端和 Collection
+    # ChromaClientManager 会在首次调用时初始化连接，后续复用
+    logger.info(f"🗄️  获取 Chroma 向量数据库: collection={collection_name}")
     
-    if not config.CHROMA_CLOUD_API_KEY or not config.CHROMA_CLOUD_DATABASE:
-        raise ValueError(
-            "Chroma Cloud配置不完整，请设置以下环境变量：\n"
-            "- CHROMA_CLOUD_API_KEY\n"
-            "- CHROMA_CLOUD_DATABASE"
-        )
-    
-    tenant = config.CHROMA_CLOUD_TENANT
-    if not tenant or tenant == "your_chroma_cloud_tenant_here":
-        logger.warning("⚠️  CHROMA_CLOUD_TENANT 未设置或为模板值，将尝试自动检测...")
-        tenant = None
-    
-    try:
-        if tenant:
-            chroma_client = chromadb.CloudClient(
-                api_key=config.CHROMA_CLOUD_API_KEY,
-                tenant=tenant,
-                database=config.CHROMA_CLOUD_DATABASE
-            )
-        else:
-            chroma_client = chromadb.CloudClient(
-                api_key=config.CHROMA_CLOUD_API_KEY,
-                database=config.CHROMA_CLOUD_DATABASE
-            )
-    except chromadb.errors.ChromaAuthError as e:
-        error_msg = str(e)
-        if "does not match" in error_msg and "from the server" in error_msg:
-            import re
-            tenant_match = re.search(r'does not match ([a-f0-9\-]+) from the server', error_msg)
-            if tenant_match:
-                correct_tenant = tenant_match.group(1)
-                logger.error(f"❌ Chroma Cloud Tenant 配置错误")
-                logger.error(f"   当前配置: {config.CHROMA_CLOUD_TENANT}")
-                logger.error(f"   服务器返回的正确 Tenant: {correct_tenant}")
-                raise ValueError(
-                    f"Chroma Cloud Tenant 配置不匹配！\n"
-                    f"当前配置: {config.CHROMA_CLOUD_TENANT}\n"
-                    f"服务器返回的正确 Tenant: {correct_tenant}\n\n"
-                    f"请在 .env 文件中更新配置：\n"
-                    f"CHROMA_CLOUD_TENANT={correct_tenant}"
-                )
-        raise
-    except Exception as e:
-        logger.error(f"❌ Chroma Cloud 初始化失败: {e}")
-        raise
-    
-    # 创建或获取集合
-    try:
-        chroma_collection = chroma_client.get_or_create_collection(
-            name=collection_name,
-            metadata={"hnsw:space": "cosine"}
-        )
-    except Exception as e:
-        logger.error(f"❌ 创建 Chroma 集合失败: {e}")
-        raise
+    chroma_client = get_chroma_client()
+    chroma_collection = get_chroma_collection(collection_name)
     
     return embed_model, chroma_client, chroma_collection

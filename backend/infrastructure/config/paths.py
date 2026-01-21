@@ -34,6 +34,8 @@ def get_required_directories(config) -> List[Path]:
         config.VECTOR_STORE_PATH,  # 向后兼容
         config.ACTIVITY_LOG_PATH,
         config.GITHUB_REPOS_PATH,
+        config.SESSIONS_PATH,  # 会话持久化目录
+        config.SESSIONS_PATH / "default",  # 默认用户会话目录
         # 确保主日志目录存在（用于 logger.py）
         Path(config.PROJECT_ROOT / "data" / "logs"),
     ]

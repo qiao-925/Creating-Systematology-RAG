@@ -206,7 +206,10 @@ def _init_logger(manager: InitializationManager) -> Any:
 
 
 def _init_embedding(manager: InitializationManager) -> Any:
-    """初始化Embedding模型并验证连接"""
+    """初始化Embedding模型并验证连接
+    
+    优化：缓存首次验证的维度信息，避免后续重复 API 调用
+    """
     from backend.infrastructure.embeddings.factory import create_embedding, get_embedding_instance
     
     # 先尝试从工厂函数获取缓存的实例
@@ -216,7 +219,10 @@ def _init_embedding(manager: InitializationManager) -> Any:
         # 验证连接（生成测试向量）
         try:
             test_embedding = cached_instance.get_query_embedding("test")
-            logger.info(f"✅ Embedding 连接验证成功（维度: {len(test_embedding)}）")
+            embed_dim = len(test_embedding)
+            logger.info(f"✅ Embedding 连接验证成功（维度: {embed_dim}）")
+            # 缓存维度信息，避免后续重复 API 调用
+            cached_instance._cached_embed_dim = embed_dim
         except Exception as e:
             logger.warning(f"⚠️  缓存的 Embedding 实例连接验证失败: {e}，将重新创建")
             cached_instance = None
@@ -228,7 +234,10 @@ def _init_embedding(manager: InitializationManager) -> Any:
         # 验证连接（生成测试向量）
         try:
             test_embedding = embedding_instance.get_query_embedding("test")
-            logger.info(f"✅ Embedding 连接验证成功（维度: {len(test_embedding)}）")
+            embed_dim = len(test_embedding)
+            logger.info(f"✅ Embedding 连接验证成功（维度: {embed_dim}）")
+            # 缓存维度信息，避免后续重复 API 调用
+            embedding_instance._cached_embed_dim = embed_dim
         except Exception as e:
             logger.error(f"❌ Embedding 连接验证失败: {e}")
             raise RuntimeError(f"Embedding 模型连接失败: {e}") from e

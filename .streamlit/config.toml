@@ -2,18 +2,15 @@
 # 参考: https://docs.streamlit.io/get-started/fundamentals/additional-features
 
 [theme]
-# Light 模式主题配置
-primaryColor = "#2563EB"
-backgroundColor = "#FFFFFF"
-secondaryBackgroundColor = "#F5F5F5"
-textColor = "#2C2C2C"
+# 现代 Light 模式主题
+primaryColor = "#6366f1"
+backgroundColor = "#fafafa"
+secondaryBackgroundColor = "#f3f4f6"
+textColor = "#1f2937"
 font = "sans serif"
 
-[theme.dark]
-# Dark 模式主题配置
-primaryColor = "#3B82F6"
-backgroundColor = "#1A1A1A"
-secondaryBackgroundColor = "#262626"
-textColor = "#E5E5E5"
-font = "sans serif"
+[server]
+# 服务器配置
+headless = true
+runOnSave = true
 

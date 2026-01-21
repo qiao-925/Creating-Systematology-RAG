@@ -1,11 +1,15 @@
 """
-规划 Agent 模块：创建 ReActAgent 用于自主选择检索策略
+规划 Agent 模块：创建 ReActAgent 用于查询处理和检索策略选择
 
 主要功能：
 - create_planning_agent()：创建规划 Agent
-- 集成检索工具
+- 集成检索工具和查询处理工具
 - 设置 System Prompt（从模板加载）
-- 配置 max_iterations=5, verbose=True
+- 配置 max_iterations=8, verbose=True
+
+工具列表：
+- 查询处理工具：analyze_intent, rewrite_query, decompose_multi_intent
+- 检索工具：vector_search, hybrid_search, multi_search
 """
 
 from typing import List, Optional
@@ -15,6 +19,9 @@ from llama_index.core.tools import QueryEngineTool
 from backend.infrastructure.indexer import IndexManager
 from backend.infrastructure.logger import get_logger
 from backend.business.rag_engine.agentic.agent.tools.retrieval_tools import create_retrieval_tools
+from backend.business.rag_engine.agentic.agent.tools.query_processing_tools import (
+    create_query_processing_tools,
+)
 from backend.business.rag_engine.agentic.prompts.loader import load_planning_prompt
 
 logger = get_logger('rag_engine.agentic.agent')
@@ -34,9 +41,10 @@ def create_planning_agent(
     enable_rerank: Optional[bool] = None,
     rerank_top_n: Optional[int] = None,
     reranker_type: Optional[str] = None,
-    max_iterations: int = 5,
+    max_iterations: int = 8,
     verbose: bool = True,
     system_prompt: Optional[str] = None,
+    enable_query_processing: bool = True,
 ) -> ReActAgent:
     """创建规划 Agent（ReActAgent）
     
@@ -48,9 +56,10 @@ def create_planning_agent(
         enable_rerank: 是否启用重排序（可选，默认使用配置）
         rerank_top_n: 重排序Top-N（可选，默认使用配置）
         reranker_type: 重排序器类型（可选，默认使用配置）
-        max_iterations: 最大迭代次数（默认5）
+        max_iterations: 最大迭代次数（默认8，增加以支持查询处理）
         verbose: 是否显示详细日志（默认True）
         system_prompt: System Prompt（可选，默认从模板加载）
+        enable_query_processing: 是否启用查询处理工具（默认True）
         
     Returns:
         ReActAgent实例
@@ -67,8 +76,17 @@ def create_planning_agent(
         actual_llm = llm._llm
         logger.debug("从包装器中提取底层 LLM")
     
-    # 创建检索工具（使用原始 LLM，因为工具内部也会处理包装器）
-    tools = create_retrieval_tools(
+    # 创建工具列表
+    tools = []
+    
+    # 1. 查询处理工具（可选）
+    if enable_query_processing:
+        query_processing_tools = create_query_processing_tools()
+        tools.extend(query_processing_tools)
+        logger.info("已添加查询处理工具", tool_count=len(query_processing_tools))
+    
+    # 2. 检索工具
+    retrieval_tools = create_retrieval_tools(
         index_manager=index_manager,
         llm=llm,  # 工具可以使用包装器
         similarity_top_k=similarity_top_k,
@@ -77,6 +95,7 @@ def create_planning_agent(
         rerank_top_n=rerank_top_n,
         reranker_type=reranker_type,
     )
+    tools.extend(retrieval_tools)
     
     # 加载 System Prompt
     if system_prompt is None:
@@ -151,14 +170,18 @@ def create_planning_agent(
     key_methods = ['query', 'chat', 'run']
     found_methods = [m for m in key_methods if hasattr(agent, m) and callable(getattr(agent, m))]
     
+    # 收集工具名称
+    tool_names = [t.metadata.name if hasattr(t, 'metadata') else str(t) for t in tools]
+    
     if found_methods:
         logger.info(
             "创建规划 Agent 完成",
             tool_count=len(tools),
+            tool_names=tool_names,
+            query_processing_enabled=enable_query_processing,
             max_iterations=max_iterations,
             verbose=verbose,
             available_key_methods=found_methods,
-            recommended_method=found_methods[0]  # 第一个找到的方法通常是推荐的
         )
     else:
         logger.warning(

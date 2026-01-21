@@ -12,6 +12,7 @@ from backend.business.rag_engine.core.engine import ModularQueryEngine
 from backend.business.rag_engine.agentic import AgenticQueryEngine
 from backend.business.chat import ChatManager
 from backend.business.chat.session import ChatSession, ChatTurn
+from backend.business.chat.utils import get_user_sessions_metadata, load_session_from_file
 from backend.infrastructure.logger import get_logger
 from backend.infrastructure.config import config
 from backend.business.rag_api.models import (
@@ -24,6 +25,8 @@ from backend.business.rag_api.models import (
     SessionInfo,
     ChatTurnResponse,
     SessionDetailResponse,
+    SessionHistoryResponse,
+    SessionListResponse,
 )
 from backend.business.rag_engine.models import QueryContext, QueryResult, SourceModel
 
@@ -490,6 +493,90 @@ class RAGService:
         # 使用 ChatManager 的流式对话
         async for chunk in self.chat_manager.stream_chat(message):
             yield chunk
+    
+    def get_session_history(self, session_id: str) -> SessionHistoryResponse:
+        """获取指定会话的历史记录
+        
+        Args:
+            session_id: 会话ID
+            
+        Returns:
+            会话历史响应
+        """
+        logger.info("获取会话历史", session_id=session_id)
+        
+        # 从文件加载会话
+        sessions_dir = config.SESSIONS_PATH / "default"
+        session_file = sessions_dir / f"{session_id}.json"
+        
+        if not session_file.exists():
+            raise FileNotFoundError(f"会话不存在: {session_id}")
+        
+        session = load_session_from_file(str(session_file))
+        if session is None:
+            raise ValueError(f"无法加载会话: {session_id}")
+        
+        # 转换历史记录
+        history = []
+        for turn in session.history:
+            source_models = []
+            for source in turn.sources:
+                if isinstance(source, dict):
+                    source_models.append(SourceModel(**source))
+                else:
+                    source_models.append(SourceModel(
+                        text=source.get('text', ''),
+                        score=source.get('score', 0.0),
+                        metadata=source.get('metadata', {}),
+                        file_name=source.get('file_name'),
+                        page_number=source.get('page_number'),
+                        node_id=source.get('node_id')
+                    ))
+            
+            history.append(ChatTurnResponse(
+                question=turn.question,
+                answer=turn.answer,
+                sources=source_models,
+                timestamp=turn.timestamp,
+                reasoning_content=turn.reasoning_content,
+            ))
+        
+        return SessionHistoryResponse(
+            session_id=session.session_id,
+            title=session.title,
+            created_at=session.created_at,
+            updated_at=session.updated_at,
+            history=history,
+        )
+    
+    def list_sessions(self, user_email: str = None) -> SessionListResponse:
+        """列出用户的所有会话
+        
+        Args:
+            user_email: 用户邮箱（可选，单用户模式下使用默认路径）
+            
+        Returns:
+            会话列表响应
+        """
+        logger.info("列出会话", user_email=user_email)
+        
+        sessions_metadata = get_user_sessions_metadata(user_email)
+        
+        sessions = [
+            SessionInfo(
+                session_id=meta['session_id'],
+                title=meta['title'],
+                created_at=meta['created_at'],
+                updated_at=meta['updated_at'],
+                turn_count=meta.get('message_count', 0),
+            )
+            for meta in sessions_metadata
+        ]
+        
+        return SessionListResponse(
+            sessions=sessions,
+            total=len(sessions),
+        )
     
     def list_collections(self) -> list:
         """列出所有向量集合"""
