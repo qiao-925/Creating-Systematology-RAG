@@ -43,9 +43,6 @@ def save_to_chat_manager(chat_manager, prompt: str, answer: str,
         sources: 引用来源列表
         reasoning_content: 推理链内容（可选）
     """
-    # #region agent log
-    import json as _json; open('/home/q/Desktop/START/repos/AI-Practice (皮卡丘)/Creating-Systematology-RAG/.cursor/debug.log','a').write(_json.dumps({"hypothesisId":"H8","location":"common.py:save_to_chat_manager","message":"save called","data":{"has_chat_manager":chat_manager is not None,"has_answer":bool(answer)},"timestamp":__import__('time').time(),"sessionId":"debug-session"})+'\n')
-    # #endregion
     if chat_manager and answer:
         if not chat_manager.current_session:
             chat_manager.start_session()

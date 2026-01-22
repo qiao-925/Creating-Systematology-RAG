@@ -78,13 +78,7 @@ def render_sidebar(chat_manager) -> None:
         if chat_manager and chat_manager.current_session:
             current_session_id = chat_manager.current_session.session_id
         
-        # #region agent log
-        import json as _json; open('/home/q/Desktop/START/repos/AI-Practice (皮卡丘)/Creating-Systematology-RAG/.cursor/debug.log','a').write(_json.dumps({"hypothesisId":"H1","location":"sidebar.py:81","message":"before display_session_history","data":{"current_session_id":current_session_id,"chat_manager_exists":chat_manager is not None},"timestamp":__import__('time').time(),"sessionId":"debug-session"})+'\n')
-        # #endregion
-        display_session_history(current_session_id=current_session_id)
-        # #region agent log
-        open('/home/q/Desktop/START/repos/AI-Practice (皮卡丘)/Creating-Systematology-RAG/.cursor/debug.log','a').write(_json.dumps({"hypothesisId":"H1","location":"sidebar.py:84","message":"after display_session_history","data":{},"timestamp":__import__('time').time(),"sessionId":"debug-session"})+'\n')
-        # #endregion
+            display_session_history(current_session_id=current_session_id)
         
         st.divider()
         

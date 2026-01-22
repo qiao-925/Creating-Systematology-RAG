@@ -307,8 +307,8 @@ LLM 响应生成 (DeepSeek)
   │     │
   │     ├─→ [1.1] 数据源识别与Git仓库处理
   │     │     │
-│     │     ├─ SourceLoader.load() [backend/infrastructure/data_loader/source_loader.py]
-│     │     │   ├─ 识别数据源类型（GitHub/本地/网页）
+│     │     ├─ DataImportService [backend/infrastructure/data_loader/service.py]
+│     │     │   ├─ 识别数据源类型（GitHub/本地）
 │     │     │   └─ 调用对应的 DataSource.load()
 │     │     │
 │     │     └─ GitRepositoryManager [backend/infrastructure/git/manager.py]（如果是 GitHub 源）
@@ -325,8 +325,8 @@ LLM 响应生成 (DeepSeek)
   │     │         ├─ 获取 Commit SHA（git rev-parse HEAD）
   │     │         └─ 缓存管理：检查缓存有效性，记录仓库路径和commit信息
   │     │
-  │     ├─→ [1.2] 文件路径获取与过滤
-  │     │     └─ GitHubSource/LocalSource/WebSource [backend/infrastructure/data_loader/]
+│     ├─→ [1.2] 文件路径获取与过滤
+│     │     └─ GitHubSource/LocalFileSource [backend/infrastructure/data_loader/source/]
   │     │         ├─ 递归遍历目录结构
   │     │         ├─ 排除特定目录：.git, __pycache__, node_modules, .venv, venv, .pytest_cache
   │     │         ├─ 排除特定文件：.pyc, .pyo, .lock, .log
@@ -590,8 +590,8 @@ app.py   RAGService   Config/Logger/Embedding/LLM
 ```
 
 **核心函数**：
-- `SourceLoader.load()`: 统一数据加载入口，自动识别数据源类型
-- `DocumentParser.parse_files()`: 文档解析，支持缓存和批量处理
+- `DataImportService.import_from_github()`: GitHub 数据导入
+- `DataImportService.import_from_directory()`: 本地目录导入
 - `IndexManager.build_index()`: 索引构建，分块→向量化→存储
 - `ModularQueryEngine.query()`: 模块化查询，支持多种检索策略
 - `RAGService.query()`: 统一服务接口，协调各模块执行
@@ -607,10 +607,10 @@ app.py   RAGService   Config/Logger/Embedding/LLM
 
 ### 5.1 内存缓存（运行时缓存）
 
-**Embedding 模型缓存**
-- **位置**: `backend/infrastructure/indexer/embedding_utils.py`
-- **机制**: 全局变量 `_global_embed_model` 存储模型实例，单例模式避免重复加载
-- **清理**: `clear_embedding_model_cache()` 或模型名称变更时自动清除
+**Embedding 实例缓存**
+- **位置**: `backend/infrastructure/embeddings/factory.py`, `backend/infrastructure/embeddings/cache.py`
+- **机制**: 全局变量 `_global_embedding_instance` 存储 BaseEmbedding 实例，单例模式避免重复加载
+- **清理**: `clear_embedding_cache()` 或 `clear_all_cache()`
 - **用途**: Embedding 模型加载成本高（数GB大小、GPU内存占用），全局缓存避免重复加载
 
 **Reranker 模型缓存**
@@ -618,12 +618,6 @@ app.py   RAGService   Config/Logger/Embedding/LLM
 - **机制**: 全局字典 `_reranker_cache` 存储重排序器实例，Key: `"{reranker_type}:{model}:{top_n}"`
 - **清理**: `clear_reranker_cache()`
 - **用途**: 避免重复加载重排序模型
-
-**Embedding 实例缓存**
-- **位置**: `backend/infrastructure/embeddings/factory.py`
-- **机制**: 全局变量 `_global_embedding_instance` 存储 BaseEmbedding 实例
-- **清理**: `clear_embedding_cache()`
-- **用途**: 统一管理 Embedding 实例，支持可插拔设计
 
 **Streamlit Session State 缓存**
 - **位置**: `app.py`, `frontend/main.py`
@@ -714,9 +708,9 @@ app.py   RAGService   Config/Logger/Embedding/LLM
 ### 5.5 调试注意事项
 
 **缓存可能导致的问题**：
-1. **文档更新不生效**：检查元数据管理器状态，可能需要重新同步仓库
-2. **模型切换不生效**：检查 Embedding 模型缓存，调用 `clear_embedding_model_cache()` 清理
-3. **索引维度不匹配**：检查 Embedding 模型缓存，确保使用正确的模型
+1. **文档更新不生效**：检查 GitHub 同步状态，可能需要重新同步仓库
+2. **模型切换不生效**：检查 Embedding 缓存，调用 `clear_embedding_cache()` 清理
+3. **索引维度不匹配**：检查 Embedding 缓存，确保使用正确的模型
 4. **会话状态异常**：清理 Streamlit Session State 或重启应用
 5. **GitHub 仓库未更新**：检查 `data/github_repos/` 目录，手动删除后重新克隆
 
@@ -729,12 +723,9 @@ app.py   RAGService   Config/Logger/Embedding/LLM
 
 ## 6. 📚 相关文档 (Related Documents)
 
-### 设计与分析
+### Prompt 模板
 
-- [📖 文档中心](docs/README.md) - 文档导航索引
-- [📖 Agentic RAG 设计](docs/agentic-rag-design.md) - Agentic RAG 系统完整设计
-- [📖 RAG 架构分析](docs/rag-architecture-analysis.md) - RAG 链路架构与优化分析
-- [📖 查询改写分析](docs/query-rewriting-analysis.md) - 查询改写策略与业界实践
+- [📖 Prompt 模板说明](prompts/README.md) - Prompt 模板集中管理与使用指南
 
 ### Cursor 规则编写指引
 
@@ -752,7 +743,6 @@ app.py   RAGService   Config/Logger/Embedding/LLM
 ### AI Agent 任务记录
 
 - [📖 任务归档](agent-task-log/README.md) - AI Agent 执行任务的完整记录
-- [📖 AI Agent 协作指南](AGENTS.md) - 协作规范与要点（含协作范式）
 
 ---
 
@@ -762,5 +752,5 @@ app.py   RAGService   Config/Logger/Embedding/LLM
 
 ---
 
-**最后更新**: 2026-01-21（更新 RAG 链路架构分析）  
+**最后更新**: 2026-01-21（修复文档路径和目录结构描述）  
 **License**: MIT

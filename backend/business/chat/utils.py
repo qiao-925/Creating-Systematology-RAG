@@ -147,19 +147,11 @@ def get_user_sessions_metadata(user_email: Optional[str] = None) -> List[Dict[st
         else config.SESSIONS_PATH / user_email
     )
     
-    # #region agent log
-    import json as _json; open('/home/q/Desktop/START/repos/AI-Practice (皮卡丘)/Creating-Systematology-RAG/.cursor/debug.log','a').write(_json.dumps({"hypothesisId":"H3","location":"utils.py:get_metadata","message":"checking sessions_dir","data":{"sessions_dir":str(sessions_dir),"exists":sessions_dir.exists(),"SESSIONS_PATH":str(config.SESSIONS_PATH)},"timestamp":__import__('time').time(),"sessionId":"debug-session"})+'\n')
-    # #endregion
-    
     if not sessions_dir.exists():
         return []
     
     # 获取所有会话文件的修改时间（用于缓存失效）
     session_files = list(sessions_dir.glob("*.json"))
-    
-    # #region agent log
-    open('/home/q/Desktop/START/repos/AI-Practice (皮卡丘)/Creating-Systematology-RAG/.cursor/debug.log','a').write(_json.dumps({"hypothesisId":"H3","location":"utils.py:scan_files","message":"found session files","data":{"file_count":len(session_files),"files":[str(f.name) for f in session_files[:5]]},"timestamp":__import__('time').time(),"sessionId":"debug-session"})+'\n')
-    # #endregion
     
     file_mtimes = tuple(
         (f.name, f.stat().st_mtime) 

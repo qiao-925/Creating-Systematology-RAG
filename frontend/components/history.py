@@ -80,16 +80,7 @@ def display_session_history(
         user_email: 用户邮箱（单用户模式下可忽略）
         current_session_id: 当前会话ID（用于高亮显示）
     """
-    # #region agent log
-    import json as _json; open('/home/q/Desktop/START/repos/AI-Practice (皮卡丘)/Creating-Systematology-RAG/.cursor/debug.log','a').write(_json.dumps({"hypothesisId":"H2","location":"history.py:entry","message":"display_session_history called","data":{"user_email":user_email,"current_session_id":current_session_id},"timestamp":__import__('time').time(),"sessionId":"debug-session"})+'\n')
-    # #endregion
-    
-    # 获取会话元数据
     sessions_metadata = get_user_sessions_metadata(user_email)
-    
-    # #region agent log
-    open('/home/q/Desktop/START/repos/AI-Practice (皮卡丘)/Creating-Systematology-RAG/.cursor/debug.log','a').write(_json.dumps({"hypothesisId":"H2","location":"history.py:after_get_metadata","message":"got sessions_metadata","data":{"count":len(sessions_metadata) if sessions_metadata else 0,"sessions":sessions_metadata[:3] if sessions_metadata else []},"timestamp":__import__('time').time(),"sessionId":"debug-session"})+'\n')
-    # #endregion
     
     if not sessions_metadata:
         st.caption("💡 还没有历史会话")
@@ -97,10 +88,6 @@ def display_session_history(
     
     # 按时间分组
     grouped = group_sessions_by_time(sessions_metadata)
-    
-    # #region agent log
-    open('/home/q/Desktop/START/repos/AI-Practice (皮卡丘)/Creating-Systematology-RAG/.cursor/debug.log','a').write(_json.dumps({"hypothesisId":"H4","location":"history.py:after_group","message":"grouped sessions","data":{"today":len(grouped.get('今天',[])),"yesterday":len(grouped.get('昨天',[])),"week":len(grouped.get('7天内',[])),"month":len(grouped.get('30天内',[]))},"timestamp":__import__('time').time(),"sessionId":"debug-session"})+'\n')
-    # #endregion
     
     # 显示分组后的会话
     for group_name, sessions in grouped.items():
