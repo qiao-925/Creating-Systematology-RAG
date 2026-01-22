@@ -70,3 +70,53 @@ class IndexManagerFactory:
 def index_manager_factory():
     """索引管理器工厂 fixture"""
     return IndexManagerFactory
+
+
+# ==================== Query Engine Mocks ====================
+
+@pytest.fixture
+def mock_agentic_query_engine(mocker):
+    """Mock AgenticQueryEngine"""
+    from backend.business.rag_engine.agentic import AgenticQueryEngine
+    
+    mock_engine = mocker.Mock(spec=AgenticQueryEngine)
+    mock_engine.query.return_value = (
+        "Mock答案",
+        [{"file_name": "test.md", "content": "测试内容"}],
+        None,  # reasoning_content
+        {}  # metadata
+    )
+    
+    # Mock stream_query
+    async def mock_stream():
+        yield {'type': 'token', 'data': 'Mock'}
+        yield {'type': 'token', 'data': '答案'}
+        yield {'type': 'sources', 'data': [{"file_name": "test.md"}]}
+        yield {'type': 'done', 'data': {'answer': 'Mock答案'}}
+    
+    mock_engine.stream_query = mock_stream
+    return mock_engine
+
+
+@pytest.fixture
+def mock_modular_query_engine(mocker):
+    """Mock ModularQueryEngine"""
+    from backend.business.rag_engine.core.engine import ModularQueryEngine
+    
+    mock_engine = mocker.Mock(spec=ModularQueryEngine)
+    mock_engine.query.return_value = (
+        "Mock答案",
+        [{"file_name": "test.md", "content": "测试内容"}],
+        None,  # reasoning_content
+        {}  # metadata
+    )
+    
+    # Mock stream_query
+    async def mock_stream(query):
+        yield {'type': 'token', 'data': 'Mock'}
+        yield {'type': 'token', 'data': '答案'}
+        yield {'type': 'sources', 'data': [{"file_name": "test.md"}]}
+        yield {'type': 'done', 'data': {'answer': 'Mock答案'}}
+    
+    mock_engine.stream_query = mock_stream
+    return mock_engine

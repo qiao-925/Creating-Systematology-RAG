@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 from backend.infrastructure.data_loader import load_documents_from_github
 from backend.infrastructure.indexer import IndexManager
 from backend.infrastructure.data_loader.github_sync.manager import GitHubSyncManager
-from backend.business.rag_engine import QueryEngine
+from backend.business.rag_engine.core.engine import ModularQueryEngine as QueryEngine  # 使用新引擎替代
 from backend.infrastructure.logger import get_logger
 
 # 设置logger以便测试中使用

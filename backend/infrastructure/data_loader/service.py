@@ -27,7 +27,9 @@ from typing import List, Optional, Dict, Any, TYPE_CHECKING
 from llama_index.core.schema import Document as LlamaDocument
 
 from backend.infrastructure.logger import get_logger
-from backend.infrastructure.data_loader.processor import DocumentProcessor, safe_print
+from backend.infrastructure.data_loader.processor import DocumentProcessor
+from backend.infrastructure.data_loader.models import ImportResult, ProgressReporter
+from backend.infrastructure.data_loader.document_loader import load_documents_from_source
 
 if TYPE_CHECKING:
     from backend.infrastructure.data_loader.source import DataSource
@@ -43,93 +45,6 @@ try:
 except ImportError:
     NEW_ARCHITECTURE_AVAILABLE = False
     _GitHubSource = None
-
-
-@dataclass
-class ImportResult:
-    """导入结果"""
-    documents: List[LlamaDocument]
-    success: bool
-    stats: Dict[str, Any] = field(default_factory=dict)
-    errors: List[str] = field(default_factory=list)
-    warnings: List[str] = field(default_factory=list)
-
-
-class ProgressReporter:
-    """进度反馈器"""
-    
-    def __init__(self, show_progress: bool = True):
-        """初始化进度反馈器
-        
-        Args:
-            show_progress: 是否显示进度
-        """
-        self.show_progress = show_progress
-    
-    def report_stage(self, stage: str, message: str):
-        """报告阶段信息
-        
-        Args:
-            stage: 阶段名称
-            message: 消息内容
-        """
-        if self.show_progress:
-            safe_print(f"{stage} {message}")
-        logger.info(f"[{stage}] {message}")
-    
-    def report_progress(self, current: int, total: int, message: str = ""):
-        """报告进度
-        
-        Args:
-            current: 当前进度
-            total: 总数
-            message: 附加消息
-        """
-        if self.show_progress:
-            progress_msg = f"进度: {current}/{total}"
-            if message:
-                progress_msg += f" - {message}"
-            safe_print(progress_msg)
-        logger.debug(f"进度: {current}/{total} {message}")
-    
-    def report_success(self, message: str):
-        """报告成功
-        
-        Args:
-            message: 成功消息
-        """
-        if self.show_progress:
-            safe_print(f"✅ {message}")
-        logger.info(f"成功: {message}")
-    
-    def report_error(self, message: str):
-        """报告错误
-        
-        Args:
-            message: 错误消息
-        """
-        if self.show_progress:
-            safe_print(f"❌ {message}")
-        logger.error(f"错误: {message}")
-    
-    def report_warning(self, message: str):
-        """报告警告
-        
-        Args:
-            message: 警告消息
-        """
-        if self.show_progress:
-            safe_print(f"⚠️  {message}")
-        logger.warning(f"警告: {message}")
-    
-    def print_if_enabled(self, message: str):
-        """如果启用进度显示则打印消息（简化版）
-        
-        Args:
-            message: 消息内容
-        """
-        if self.show_progress:
-            safe_print(message)
 
 
 class DataImportService:
@@ -182,10 +97,11 @@ class DataImportService:
             self.progress_reporter.report_stage("🔍", "正在从数据源获取文件路径...")
             
             # 调用核心加载流程
-            documents = self._load_documents_from_source(
+            documents = load_documents_from_source(
                 source=source,
                 clean=clean,
-                show_progress=self.show_progress
+                show_progress=self.show_progress,
+                progress_reporter=self.progress_reporter
             )
             
             elapsed = time.time() - start_time
@@ -492,98 +408,3 @@ class DataImportService:
             **kwargs
         )
     
-    def _load_documents_from_source(
-        self,
-        source: "DataSource",
-        clean: bool = True,
-        show_progress: bool = True
-    ) -> List[LlamaDocument]:
-        """从数据源加载文档（核心加载流程，私有方法）
-        
-        整合数据来源层和解析层，执行核心加载流程
-        
-        Args:
-            source: 数据源对象（GitHubSource, LocalFileSource等）
-            clean: 是否清理文本
-            show_progress: 是否显示进度
-            
-        Returns:
-            文档列表
-        """
-        if not NEW_ARCHITECTURE_AVAILABLE:
-            logger.error("[阶段1.2] 新架构未可用")
-            return []
-        
-        try:
-            total_start_time = time.time()
-            
-            # 步骤1: 从数据源获取文件路径
-            self.progress_reporter.print_if_enabled("🔍 正在从数据源获取文件路径...")
-            
-            source_start_time = time.time()
-            # 调用数据源的标准方法 get_file_paths()
-            source_files = source.get_file_paths()
-            source_elapsed = time.time() - source_start_time
-            
-            if not source_files:
-                logger.warning(f"[阶段1.2] 数据源未返回任何文件")
-                self.progress_reporter.print_if_enabled("⚠️  未找到任何文件")
-                return []
-            
-            logger.info(f"[阶段1.2] 数据源返回 {len(source_files)} 个文件 (耗时: {source_elapsed:.2f}s)")
-            self.progress_reporter.print_if_enabled(f"✅ 找到 {len(source_files)} 个文件")
-            
-            # 步骤2: 构建文件路径列表和元数据映射
-            file_paths = [sf.path for sf in source_files]
-            metadata_map = {
-                sf.path: {**sf.metadata, 'source_type': sf.source_type}
-                for sf in source_files
-            }
-            
-            # 步骤3: 使用解析器解析文件
-            self.progress_reporter.print_if_enabled("📄 正在解析文件...")
-            
-            parser_start_time = time.time()
-            documents = DocumentParser().parse_files(
-                file_paths, metadata_map, clean=clean
-            )
-            parser_elapsed = time.time() - parser_start_time
-            
-            if not documents:
-                logger.warning(f"[阶段1.3] 解析器未返回任何文档 (输入文件数: {len(file_paths)})")
-                self.progress_reporter.print_if_enabled("⚠️  未能解析任何文档")
-                return []
-            
-            logger.info(f"[阶段1.3] 解析器返回 {len(documents)} 个文档 (耗时: {parser_elapsed:.2f}s)")
-            
-            # 步骤4: 可选的文本清理
-            clean_start_time = time.time()
-            if clean:
-                processor = DocumentProcessor()
-                documents = [
-                    LlamaDocument(
-                        text=processor.clean_text(doc.text),
-                        metadata=doc.metadata,
-                        id_=doc.id_
-                    )
-                    for doc in documents
-                ]
-            clean_elapsed = time.time() - clean_start_time if clean else 0.0
-            
-            total_elapsed = time.time() - total_start_time
-            self.progress_reporter.print_if_enabled(f"✅ 成功加载 {len(documents)} 个文档")
-            
-            success_rate = (len(documents) / len(source_files) * 100) if source_files else 0
-            logger.info(
-                f"[阶段1.3] 文档加载完成: 源文件数={len(source_files)}, "
-                f"解析文档数={len(documents)}, 成功率={success_rate:.1f}%, "
-                f"总耗时={total_elapsed:.2f}s (获取路径={source_elapsed:.2f}s, "
-                f"解析={parser_elapsed:.2f}s, 清理={clean_elapsed:.2f}s)"
-            )
-            
-            return documents
-            
-        except Exception as e:
-            logger.error(f"[阶段1.2/1.3] 从数据源加载文档失败: {e}")
-            self.progress_reporter.print_if_enabled(f"❌ 加载失败: {e}")
-            return []

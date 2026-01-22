@@ -105,3 +105,50 @@ def github_prepared_index_manager(
         pytest.skip(f"GitHub测试准备失败: {e}")
     
     yield github_test_index_manager
+
+
+# ==================== GitHub Sync Fixtures ====================
+
+@pytest.fixture
+def sample_sync_state():
+    """样例同步状态数据"""
+    return {
+        "version": "1.0",
+        "repositories": {
+            "owner/repo@main": {
+                "owner": "owner",
+                "repo": "repo",
+                "branch": "main",
+                "last_commit_sha": "abc123def456",
+                "last_indexed_at": "2025-01-01T00:00:00",
+                "file_count": 3,
+                "files": {
+                    "doc1.md": {
+                        "hash": "hash1",
+                        "size": 100,
+                        "last_modified": "2025-01-01T00:00:00",
+                        "vector_ids": ["vec1", "vec2"]
+                    },
+                    "doc2.md": {
+                        "hash": "hash2",
+                        "size": 200,
+                        "last_modified": "2025-01-01T00:00:00",
+                        "vector_ids": ["vec3"]
+                    }
+                }
+            }
+        }
+    }
+
+
+@pytest.fixture
+def sample_file_changes():
+    """样例文件变更"""
+    from backend.infrastructure.data_loader.github_sync.file_change import FileChange
+    
+    changes = FileChange()
+    changes.added = ["new_file.md"]
+    changes.modified = ["doc1.md"]
+    changes.deleted = ["old_file.md"]
+    
+    return changes

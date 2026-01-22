@@ -23,9 +23,9 @@ from backend.business.rag_api.models import (
 from backend.infrastructure.logger import get_logger
 from backend.infrastructure.llms import create_deepseek_llm_for_query
 from backend.infrastructure.llms.reasoning import extract_reasoning_from_stream_chunk, extract_reasoning_content
+from backend.infrastructure.llms.message_builder import build_chat_messages
 from backend.business.rag_engine.formatting.templates import get_template
 from backend.business.rag_engine.retrieval.factory import create_retriever
-from llama_index.core.llms import ChatMessage, MessageRole
 from backend.infrastructure.config import config
 
 # 全局变量：日志记录器，用于记录对话路由相关的日志信息
@@ -96,15 +96,14 @@ def _retrieve_nodes_and_sources(
     return nodes_with_scores, sources
 
 
-def _build_prompt(query: str, nodes_with_scores: list) -> str:
-    """构建 prompt
+def _build_system_prompt(nodes_with_scores: list) -> str:
+    """构建系统 prompt（包含知识库上下文）
     
     Args:
-        query: 用户查询文本
         nodes_with_scores: 检索到的节点列表（带相似度分数）
     
     Returns:
-        str: 构建完成的 prompt 文本，包含上下文和用户问题
+        str: 系统 prompt 文本，包含角色定义和知识库上下文
     """
     if nodes_with_scores:
         context_parts = []  # 格式化后的上下文片段列表
@@ -116,9 +115,7 @@ def _build_prompt(query: str, nodes_with_scores: list) -> str:
     else:
         context_str = "（知识库中未找到相关信息）"
     
-    prompt = get_template('chat').format(context_str=context_str)
-    prompt += f"\n\n用户问题：{query}\n\n请用中文回答问题。"
-    return prompt
+    return get_template('chat').format(context_str=context_str)
 
 
 def _extract_token_from_chunk(chunk, full_answer: str) -> str:
@@ -310,16 +307,17 @@ async def _generate_stream(
         )
         timing_stats['retrieval'] = time.time() - step_start
         
-        # Step 3: 构建 prompt（计时）
+        # Step 3: 构建 prompt 和消息（计时）
         step_start = time.time()
-        prompt = _build_prompt(request.message, nodes_with_scores)
+        system_prompt = _build_system_prompt(nodes_with_scores)
+        user_query = f"用户问题：{request.message}\n\n请用中文回答问题。"
+        # 根据模型类型组装消息（通用模型：system+user，推理模型：合并到user）
+        messages = build_chat_messages(system_prompt, user_query)
         timing_stats['prompt_build'] = time.time() - step_start
         
         # Step 4: 流式处理 LLM 响应（计时）
         llm_start = time.time()
-        llm = create_deepseek_llm_for_query()  # 创建 DeepSeek LLM 实例
-        chat_message = ChatMessage(role=MessageRole.USER, content=prompt)
-        messages = [chat_message]  # 消息列表
+        llm = create_deepseek_llm_for_query()  # 创建 LLM 实例
         
         full_answer = ""  # 累积的完整答案文本
         reasoning_content = ""  # 累积的推理链内容

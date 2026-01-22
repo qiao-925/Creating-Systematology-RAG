@@ -1,5 +1,5 @@
 """
-侧边栏组件 - 显示应用标题、新对话按钮和历史会话列表
+侧边栏组件 - 显示应用标题、配置面板、历史会话列表
 
 主要功能：
 - render_sidebar(): 渲染完整侧边栏
@@ -10,6 +10,8 @@ import streamlit as st
 from backend.infrastructure.config import config
 from frontend.components.settings_dialog import show_settings_dialog
 from frontend.components.history import display_session_history
+from frontend.components.config_panel import render_sidebar_config
+from frontend.utils.state import rebuild_services
 
 
 def _render_sidebar_footer() -> None:
@@ -45,8 +47,6 @@ def render_sidebar(chat_manager) -> None:
         st.title("📚 " + config.APP_TITLE)
         
         # ========== 新对话（顶部） ==========
-        # 使用 on_click 回调，避免不必要的 rerun
-        # Streamlit 按钮点击本身就会触发脚本重执行，无需手动 rerun
         def _start_new_chat():
             """开启新对话的回调函数"""
             if chat_manager:
@@ -70,6 +70,11 @@ def render_sidebar(chat_manager) -> None:
             key="new_chat_top",
             on_click=_start_new_chat
         )
+        
+        st.divider()
+        
+        # ========== 配置面板（模型、预设、检索策略） ==========
+        render_sidebar_config(on_config_change=rebuild_services)
         
         st.divider()
         

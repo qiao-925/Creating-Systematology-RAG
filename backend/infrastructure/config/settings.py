@@ -14,13 +14,13 @@
 
 import os
 from pathlib import Path
-from typing import Optional, Any
+from typing import Optional, Any, List
 
 from dotenv import load_dotenv
 from pydantic import ValidationError
 
 from backend.infrastructure.config.yaml_loader import load_yaml_config
-from backend.infrastructure.config.models import ConfigModel
+from backend.infrastructure.config.models import ConfigModel, LLMModelConfig
 
 # 加载环境变量
 load_dotenv()
@@ -241,6 +241,34 @@ class Config:
                 except Exception:
                     pass  # 忽略无法访问的属性
         return f"Config(\n" + "\n".join(attrs[:20]) + "\n    ...\n)"
+    
+    # ==================== 多模型配置方法 ====================
+    
+    def get_default_llm_id(self) -> str:
+        """获取默认 LLM 模型 ID"""
+        if self._model.model.llms:
+            return self._model.model.llms.default
+        return self._model.model.llm  # 向后兼容
+    
+    def get_available_llm_models(self) -> List[LLMModelConfig]:
+        """获取所有可用的 LLM 模型列表"""
+        if self._model.model.llms:
+            return self._model.model.llms.available
+        return []
+    
+    def get_llm_model_config(self, model_id: str) -> Optional[LLMModelConfig]:
+        """根据模型 ID 获取模型配置
+        
+        Args:
+            model_id: 模型标识（如 "deepseek-chat"）
+            
+        Returns:
+            LLMModelConfig 或 None（如果未找到）
+        """
+        for model in self.get_available_llm_models():
+            if model.id == model_id:
+                return model
+        return None
 
 
 # 添加COLLECTION_NAME属性（别名）

@@ -7,11 +7,12 @@
 - initialize_sources_map()：初始化来源映射
 - save_message_to_history()：保存消息到历史
 - invalidate_service_cache()：使服务缓存失效
+- rebuild_services()：重建 RAGService 和 ChatManager（配置变更时调用）
 
 特性：
 - 完整的会话状态初始化
 - 单例模式管理服务
-- 默认值设置
+- 配置变更时的服务重建
 """
 
 import streamlit as st
@@ -88,8 +89,28 @@ def init_session_state() -> None:
     # 强制验证标志（当配置变更时需要重新验证）
     if 'force_validate_services' not in st.session_state:
         st.session_state.force_validate_services = False
-
-
+    
+    # 模型选择状态
+    if 'selected_model' not in st.session_state:
+        st.session_state.selected_model = config.get_default_llm_id()
+    
+    # LLM 预设（精确/平衡/创意）
+    if 'llm_preset' not in st.session_state:
+        st.session_state.llm_preset = 'balanced'
+    
+    # RAG 检索策略
+    if 'retrieval_strategy' not in st.session_state:
+        st.session_state.retrieval_strategy = config.RETRIEVAL_STRATEGY
+    
+    # RAG 高级参数
+    if 'similarity_top_k' not in st.session_state:
+        st.session_state.similarity_top_k = config.SIMILARITY_TOP_K
+    
+    if 'similarity_threshold' not in st.session_state:
+        st.session_state.similarity_threshold = config.SIMILARITY_THRESHOLD
+    
+    if 'enable_rerank' not in st.session_state:
+        st.session_state.enable_rerank = config.ENABLE_RERANK
 
 
 def initialize_sources_map() -> None:
@@ -181,4 +202,92 @@ def invalidate_service_cache() -> None:
     st.session_state.index_manager_validated = False
     st.session_state.force_validate_services = True
     logger.info("🔄 服务缓存已失效，下次加载时将重新验证")
+
+
+def rebuild_services() -> bool:
+    """重建 RAGService 和 ChatManager
+    
+    当配置变更时调用，根据当前 session_state 中的配置重建服务实例。
+    
+    Returns:
+        bool: 重建是否成功
+    """
+    from backend.infrastructure.logger import get_logger
+    logger = get_logger('frontend.services')
+    
+    if 'init_result' not in st.session_state:
+        logger.warning("init_result 不存在，无法重建服务")
+        return False
+    
+    init_result = st.session_state.init_result
+    index_manager = init_result.instances.get('index_manager')
+    
+    if index_manager is None:
+        # 标记需要重新初始化
+        logger.warning("index_manager 不存在，标记需要重新初始化")
+        st.session_state.boot_ready = False
+        if 'init_result' in st.session_state:
+            del st.session_state.init_result
+        return False
+    
+    # 获取当前配置
+    from frontend.components.config_panel.models import AppConfig
+    app_config = AppConfig.from_session_state()
+    
+    # 获取 LLM 参数
+    temperature = app_config.get_llm_temperature()
+    max_tokens = app_config.get_llm_max_tokens()
+    
+    logger.info(
+        f"重建服务: model={app_config.selected_model}, "
+        f"preset={app_config.llm_preset}, "
+        f"agentic={app_config.use_agentic_rag}, "
+        f"temperature={temperature}"
+    )
+    
+    try:
+        # 延迟导入避免循环依赖
+        from backend.business.rag_api import RAGService
+        from backend.business.chat import ChatManager
+        
+        collection_name = st.session_state.get(
+            'collection_name', config.CHROMA_COLLECTION_NAME
+        )
+        enable_debug = app_config.debug_mode
+        
+        # 重建 RAGService
+        init_result.instances['rag_service'] = RAGService(
+            collection_name=collection_name,
+            enable_debug=enable_debug,
+            enable_markdown_formatting=True,
+            use_agentic_rag=app_config.use_agentic_rag,
+            model_id=app_config.selected_model,
+            retrieval_strategy=app_config.retrieval_strategy,
+            similarity_top_k=app_config.similarity_top_k,
+            similarity_threshold=app_config.similarity_threshold,
+            enable_rerank=app_config.enable_rerank,
+        )
+        
+        # 重建 ChatManager
+        init_result.instances['chat_manager'] = ChatManager(
+            index_manager=index_manager,
+            user_email=None,
+            enable_debug=enable_debug,
+            enable_markdown_formatting=True,
+            use_agentic_rag=app_config.use_agentic_rag,
+            model_id=app_config.selected_model,
+            retrieval_strategy=app_config.retrieval_strategy,
+            similarity_top_k=app_config.similarity_top_k,
+            similarity_threshold=app_config.similarity_threshold,
+            enable_rerank=app_config.enable_rerank,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+        
+        logger.info("✅ 服务重建完成")
+        return True
+        
+    except Exception as e:
+        logger.error(f"❌ 服务重建失败: {e}", exc_info=True)
+        return False
 

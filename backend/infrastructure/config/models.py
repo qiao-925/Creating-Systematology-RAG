@@ -54,10 +54,28 @@ class GitHubConfig(BaseModel):
     default_branch: str = "main"
 
 
+class LLMModelConfig(BaseModel):
+    """单个 LLM 模型配置"""
+    id: str  # 模型标识（如 "deepseek-chat"）
+    name: str  # 显示名称（如 "DeepSeek Chat"）
+    litellm_model: str  # LiteLLM 模型标识（如 "deepseek/deepseek-chat"）
+    api_key_env: str  # API Key 环境变量名
+    temperature: Optional[float] = 0.7  # 温度参数
+    max_tokens: Optional[int] = 4096  # 最大 token 数
+    supports_reasoning: bool = False  # 是否支持推理链
+
+
+class LLMModelsConfig(BaseModel):
+    """LLM 多模型配置"""
+    default: str = "deepseek-chat"  # 默认模型 ID
+    available: List[LLMModelConfig] = []  # 可用模型列表
+
+
 class ModelConfig(BaseModel):
     """模型配置"""
-    llm: str
+    llm: str  # 向后兼容：单模型配置
     embedding: str
+    llms: Optional[LLMModelsConfig] = None  # 多模型配置（可选）
 
 
 class EmbeddingConfig(BaseModel):

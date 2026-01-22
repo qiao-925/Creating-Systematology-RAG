@@ -16,10 +16,7 @@ import os
 from typing import List, Optional
 import time
 import asyncio
-import threading
 import json
-import weakref
-from concurrent.futures import ThreadPoolExecutor
 
 import requests
 from requests.exceptions import RequestException
@@ -27,157 +24,14 @@ from requests.exceptions import RequestException
 from backend.infrastructure.embeddings.base import BaseEmbedding
 from backend.infrastructure.config import config
 from backend.infrastructure.logger import get_logger
+from backend.infrastructure.embeddings.hf_thread_pool import (
+    register_embedding_instance,
+    cleanup_hf_embedding_resources,
+)
+from backend.infrastructure.embeddings.hf_llama_adapter import create_llama_index_adapter
+from backend.infrastructure.embeddings.hf_api_client import HFAPIClient
 
 logger = get_logger('hf_inference_embedding')
-
-# 全局线程池执行器，用于 asyncio.to_thread()
-# 使用弱引用集合跟踪所有 HFInferenceEmbedding 实例，以便在退出时清理
-_global_executor: Optional[ThreadPoolExecutor] = None
-_embedding_instances: weakref.WeakSet = weakref.WeakSet()
-
-
-def _get_or_create_executor() -> ThreadPoolExecutor:
-    """获取或创建全局线程池执行器
-    
-    Returns:
-        ThreadPoolExecutor: 全局线程池执行器
-    """
-    global _global_executor
-    if _global_executor is None:
-        # 创建线程池，最大线程数为 CPU 核心数的 2 倍
-        max_workers = min(32, (os.cpu_count() or 1) * 2)
-        _global_executor = ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="hf_embedding")
-        logger.debug(f"创建全局线程池执行器: max_workers={max_workers}")
-    return _global_executor
-
-
-def cleanup_hf_embedding_resources() -> None:
-    """清理所有 HFInferenceEmbedding 资源和线程池
-    
-    应该在应用退出时调用此函数，确保所有线程和连接被正确关闭。
-    """
-    global _global_executor
-    
-    logger.info("🔧 开始清理 Hugging Face Embedding 资源...")
-    
-    # 1. 关闭所有 HFInferenceEmbedding 实例
-    instances_to_close = list(_embedding_instances)
-    if instances_to_close:
-        logger.info(f"关闭 {len(instances_to_close)} 个 HFInferenceEmbedding 实例...")
-        for instance in instances_to_close:
-            try:
-                instance.close()
-            except Exception as e:
-                logger.warning(f"关闭 HFInferenceEmbedding 实例时出错: {e}")
-    
-    # 2. 关闭全局线程池执行器
-    if _global_executor is not None:
-        try:
-            logger.info("关闭全局线程池执行器...")
-            _global_executor.shutdown(wait=True, timeout=5.0)
-            logger.info("✅ 全局线程池执行器已关闭")
-        except Exception as e:
-            logger.warning(f"关闭线程池执行器时出错: {e}")
-        finally:
-            _global_executor = None
-    
-    logger.info("✅ Hugging Face Embedding 资源清理完成")
-
-
-class TimeMonitor:
-    """时间监控上下文管理器，用于实时记录操作耗时
-    
-    使用后台线程每秒打印一次已花费时间，帮助监控长时间运行的操作。
-    """
-    
-    def __init__(
-        self,
-        logger_instance,
-        message_template: str,
-        interval: float = 5.0
-    ):
-        """初始化时间监控器
-        
-        Args:
-            logger_instance: logger 实例
-            message_template: 日志消息模板，支持 {elapsed} 占位符
-            interval: 打印间隔（秒），默认5.0秒
-        """
-        self.logger = logger_instance
-        self.message_template = message_template
-        self.interval = interval
-        self.start_time: Optional[float] = None
-        self.stop_event = threading.Event()
-        self.thread: Optional[threading.Thread] = None
-    
-    def __enter__(self):
-        """进入上下文，开始监控"""
-        self.start_time = time.time()
-        self.stop_event.clear()
-        
-        # 创建并启动后台线程
-        self.thread = threading.Thread(
-            target=self._log_elapsed_time,
-            daemon=True  # 设置为守护线程，主线程退出时自动结束
-        )
-        self.thread.start()
-        
-        return self
-    
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """退出上下文，停止监控"""
-        # 停止后台线程
-        if self.thread and self.thread.is_alive():
-            self.stop_event.set()
-            # 等待线程结束，最多等待2秒
-            self.thread.join(timeout=2.0)
-            # 如果线程仍在运行，强制终止（daemon 线程会在主线程退出时自动终止）
-            if self.thread.is_alive():
-                self.logger.debug("TimeMonitor 线程仍在运行，将在主线程退出时自动终止")
-        
-        # 计算总耗时
-        if self.start_time is not None:
-            total_elapsed = time.time() - self.start_time
-            # 如果总耗时大于1秒，打印最终日志（启动阶段的短时间操作不输出）
-            if total_elapsed >= 1.0:
-                final_message = self.message_template.format(elapsed=int(total_elapsed))
-                self.logger.info(f"{final_message} (总计)")
-            elif total_elapsed >= 0.5:
-                # 0.5-1秒之间的操作使用debug级别
-                final_message = self.message_template.format(elapsed=int(total_elapsed))
-                self.logger.debug(f"{final_message} (总计)")
-        
-        return False  # 不抑制异常
-    
-    def _log_elapsed_time(self):
-        """后台线程函数，每5秒打印一次已花费时间（仅在debug模式或长时间运行时）"""
-        last_logged_interval = -1
-        
-        while not self.stop_event.is_set():
-            if self.start_time is None:
-                break
-            
-            elapsed = time.time() - self.start_time
-            current_interval = int(elapsed / self.interval)  # 按间隔计算
-            
-            # 只在间隔变化时打印，避免重复
-            # 启动阶段（前10秒）使用debug级别，之后使用info级别
-            if current_interval > last_logged_interval and current_interval > 0:
-                try:
-                    elapsed_seconds = int(elapsed)
-                    message = self.message_template.format(elapsed=elapsed_seconds)
-                    # 启动阶段（前10秒）使用debug，避免启动日志过多
-                    if elapsed_seconds < 10:
-                        self.logger.debug(message)
-                    else:
-                        self.logger.info(message)
-                    last_logged_interval = current_interval
-                except Exception as e:
-                    # 如果格式化失败，记录错误但不中断监控
-                    self.logger.debug(f"时间监控日志格式化失败: {e}")
-            
-            # 等待间隔时间或直到停止事件被设置
-            self.stop_event.wait(timeout=self.interval)
 
 
 class HFInferenceEmbedding(BaseEmbedding):
@@ -220,7 +74,16 @@ class HFInferenceEmbedding(BaseEmbedding):
         }
         
         # 注册到全局实例集合，以便在退出时清理
-        _embedding_instances.add(self)
+        register_embedding_instance(self)
+        
+        # 创建 API 客户端
+        self._api_client = HFAPIClient(
+            api_url=self.api_url,
+            headers=self.headers,
+            model_name=self.model_name,
+            closed=self._closed,
+            active_requests=self._active_requests
+        )
         
         logger.info(f"📡 初始化HF Inference API Embedding: {self.model_name}")
     
@@ -233,213 +96,18 @@ class HFInferenceEmbedding(BaseEmbedding):
             return 768 if "base" in model_lower else 384
         return 384  # 通用默认值
     
-    def _make_single_request(self, text: str, retry_count: int = 0) -> List[float]:
-        """发起单个文本的 API 请求（带重试机制）
-        
-        Args:
-            text: 单个文本
-            retry_count: 当前重试次数
-            
-        Returns:
-            单个向量
-            
-        Raises:
-            RuntimeError: API 调用失败或实例已关闭
-        """
-        if self._closed:
-            raise RuntimeError("HFInferenceEmbedding 实例已关闭，请求被取消")
-        
-        max_retries = 3
-        payload = {"inputs": text}
-        
-        request_start = time.time()
-        try:
-            response = requests.post(
-                self.api_url,
-                headers=self.headers,
-                json=payload,
-                timeout=30,
-            )
-            response.raise_for_status()
-            request_elapsed = time.time() - request_start
-            
-            result = response.json()
-            
-            # 处理响应格式
-            if isinstance(result, list):
-                embedding = [float(x) for x in result]
-            elif isinstance(result, dict):
-                if "embeddings" in result:
-                    embedding = [float(x) for x in result["embeddings"]]
-                elif "output" in result:
-                    embedding = [float(x) for x in result["output"]]
-                else:
-                    first_key = next(iter(result.values()))
-                    embedding = [float(x) for x in first_key] if isinstance(first_key, list) else [float(first_key)]
-            else:
-                embedding = [float(result)] if not isinstance(result, list) else [float(x) for x in result]
-            
-            logger.debug(f"📡 HF API: 耗时={request_elapsed:.2f}s, 维度={len(embedding)}")
-            return embedding
-            
-        except (RequestException, json.JSONDecodeError) as e:
-            if self._closed:
-                raise RuntimeError("HFInferenceEmbedding 实例已关闭，请求被取消") from e
-            
-            if retry_count < max_retries:
-                wait_time = (retry_count + 1) * 1.0
-                logger.warning(f"⚠️  请求失败，{wait_time:.1f}秒后重试 ({retry_count + 1}/{max_retries})")
-                time.sleep(wait_time)
-                return self._make_single_request(text, retry_count + 1)
-            else:
-                error_details = str(e)
-                if isinstance(e, RequestException) and hasattr(e, 'response') and e.response is not None:
-                    error_details = f"HTTP {e.response.status_code}: {e.response.text[:200]}"
-                raise RuntimeError(f"HF API 调用失败（已重试 {max_retries} 次）: {error_details}") from e
-    
-    def _make_request(self, texts: List[str], retry_count: int = 0) -> List[List[float]]:
-        """发起 API 请求（并行处理优化）
-        
-        使用 ThreadPoolExecutor 并行处理多个文本，显著提升批量处理性能。
+    def _make_request(self, texts: List[str]) -> List[List[float]]:
+        """发起 API 请求（使用 API 客户端）
         
         Args:
             texts: 文本列表
-            retry_count: 当前重试次数（用于向后兼容，并行模式下每个请求独立重试）
             
         Returns:
             向量列表
-            
-        Raises:
-            RuntimeError: API 调用失败或实例已关闭
         """
-        if self._closed:
-            raise RuntimeError(f"HFInferenceEmbedding 实例已关闭，无法继续请求")
-        
-        if not texts:
-            return []
-        
-        total = len(texts)
-        logger.debug(f"📤 HF Inference API 请求: 模型={self.model_name}, 文本数量={total}")
-        
-        request_id = id(texts)
-        self._active_requests.add(request_id)
-        
-        try:
-            # 单个文本直接处理，无需并行
-            if total == 1:
-                result = self._make_single_request(texts[0])
-                return [result]
-            
-            # 多个文本使用并行处理
-            batch_start = time.time()
-            time_monitor = TimeMonitor(
-                logger,
-                f"⏱️  HF API 并行调用: 已花费 {{elapsed}} 秒 (模型={self.model_name}, 文本数量={total})"
-            )
-            time_monitor.__enter__()
-            
-            try:
-                # 使用全局线程池并行处理
-                # 限制并发数为 5，避免触发 API 限流
-                executor = _get_or_create_executor()
-                max_workers = min(5, total)  # 最多 5 个并发
-                
-                results = []
-                errors = []
-                
-                # 分批并行处理
-                for batch_start_idx in range(0, total, max_workers):
-                    batch_end_idx = min(batch_start_idx + max_workers, total)
-                    batch_texts = texts[batch_start_idx:batch_end_idx]
-                    
-                    # 提交并行任务
-                    futures = [executor.submit(self._make_single_request, text) for text in batch_texts]
-                    
-                    # 收集结果（保持顺序）
-                    for i, future in enumerate(futures):
-                        try:
-                            result = future.result(timeout=60)  # 60秒超时
-                            results.append(result)
-                        except Exception as e:
-                            logger.error(f"❌ 并行请求失败 (索引 {batch_start_idx + i}): {e}")
-                            errors.append((batch_start_idx + i, e))
-                            results.append(None)  # 占位
-                    
-                    # 显示进度
-                    if batch_end_idx < total:
-                        logger.debug(f"   进度: {batch_end_idx}/{total}")
-                
-                # 检查是否有失败
-                if errors:
-                    failed_count = len(errors)
-                    logger.warning(f"⚠️  {failed_count}/{total} 个请求失败")
-                    # 对失败的请求进行串行重试
-                    for idx, error in errors:
-                        try:
-                            logger.debug(f"   重试索引 {idx}...")
-                            results[idx] = self._make_single_request(texts[idx])
-                        except Exception as retry_error:
-                            logger.error(f"❌ 重试失败 (索引 {idx}): {retry_error}")
-                            raise RuntimeError(f"批量请求失败，索引 {idx}: {retry_error}") from retry_error
-                
-                batch_elapsed = time.time() - batch_start
-                avg_time = batch_elapsed / total
-                logger.info(
-                    f"📥 并行批量完成: {total} 个文本, "
-                    f"总耗时={batch_elapsed:.2f}s, 平均={avg_time:.2f}s/个"
-                )
-                
-                return results
-                
-            finally:
-                time_monitor.__exit__(None, None, None)
-        finally:
-            self._active_requests.discard(request_id)
-    
-    def _handle_request_error(
-        self,
-        error: Exception,
-        texts: List[str],
-        retry_count: int
-    ) -> List[List[float]]:
-        """处理 API 请求错误（统一重试策略）
-        
-        Args:
-            error: 捕获的异常
-            texts: 请求的文本列表
-            retry_count: 当前重试次数
-            
-        Returns:
-            向量列表（重试成功时）
-            
-        Raises:
-            RuntimeError: 重试次数用尽
-        """
-        max_retries = 3
-        
-        # 构建详细的错误信息
-        error_details = str(error)
-        if isinstance(error, RequestException):
-            if hasattr(error, 'response') and error.response is not None:
-                try:
-                    error_body = error.response.text[:200]  # 限制长度
-                    error_details = f"HTTP {error.response.status_code}: {error_body}"
-                except Exception:
-                    error_details = f"HTTP {error.response.status_code}: {str(error)}"
-        
-        if retry_count < max_retries:
-            wait_time = (retry_count + 1) * 1.0
-            logger.warning(
-                f"❌ API 请求失败: {error.__class__.__name__}: {error_details}。"
-                f"{wait_time:.1f}秒后重试 ({retry_count + 1}/{max_retries})"
-            )
-            time.sleep(wait_time)
-            return self._make_request(texts, retry_count + 1)
-        else:
-            logger.error(f"❌ API 调用失败（已重试 {max_retries} 次）: {error_details}")
-            raise RuntimeError(
-                f"Hugging Face Inference API 调用失败（模型: {self.model_name}）: {error_details}"
-            ) from error
+        # 更新 API 客户端状态
+        self._api_client._closed = self._closed
+        return self._api_client.make_request(texts)
     
     def get_query_embedding(self, query: str) -> List[float]:
         """生成查询向量"""
@@ -540,195 +208,4 @@ class HFInferenceEmbedding(BaseEmbedding):
         Raises:
             ImportError: 如果无法导入LlamaIndex BaseEmbedding
         """
-        # 延迟导入，避免模块加载时出错
-        # 优先直接导入 BaseEmbedding（而不是通过 HuggingFaceEmbedding 获取）
-        LlamaBaseEmbedding = None
-        try:
-            from llama_index.core.embeddings.base import BaseEmbedding as LlamaBaseEmbedding
-            logger.debug("✅ 成功导入 llama_index.core.embeddings.base.BaseEmbedding")
-        except ImportError:
-            try:
-                from llama_index.embeddings.base import BaseEmbedding as LlamaBaseEmbedding
-                logger.debug("✅ 成功导入 llama_index.embeddings.base.BaseEmbedding")
-            except ImportError:
-                # 如果直接导入失败，尝试通过 HuggingFaceEmbedding 的 MRO 找到 BaseEmbedding
-                try:
-                    from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-                    # 通过 MRO 找到 BaseEmbedding（而不是直接取 __bases__[0]）
-                    for base_class in HuggingFaceEmbedding.__mro__:
-                        if base_class.__name__ == 'BaseEmbedding' and 'embeddings' in base_class.__module__:
-                            LlamaBaseEmbedding = base_class
-                            logger.debug(f"✅ 通过MRO找到BaseEmbedding: {base_class.__module__}.{base_class.__name__}")
-                            break
-                    
-                    if LlamaBaseEmbedding is None:
-                        raise ImportError("无法在 HuggingFaceEmbedding 的 MRO 中找到 BaseEmbedding")
-                except (ImportError, AttributeError) as e:
-                    # 如果都失败，抛出错误而不是返回不兼容的对象
-                    error_msg = (
-                        "无法导入LlamaIndex BaseEmbedding。"
-                        "请确保已安装 llama-index 或 llama-index-core。"
-                        f"错误详情: {e}"
-                    )
-                    logger.error(error_msg)
-                    raise ImportError(error_msg) from e
-        
-        # 验证获取到的确实是 BaseEmbedding（不是 MultiModalEmbedding 或其他）
-        if LlamaBaseEmbedding and LlamaBaseEmbedding.__name__ != 'BaseEmbedding':
-            error_msg = (
-                f"获取到的基类不是 BaseEmbedding，而是 {LlamaBaseEmbedding.__name__}。"
-                f"这可能导致适配器需要实现额外的抽象方法。"
-            )
-            logger.warning(error_msg)
-        
-        # 动态创建继承LlamaBaseEmbedding的适配器类
-        class LlamaIndexEmbeddingAdapter(LlamaBaseEmbedding):
-            """LlamaIndex兼容的Embedding适配器包装器"""
-            
-            def __init__(self, embedding: HFInferenceEmbedding):
-                # 先调用父类初始化（Pydantic 模型需要先初始化）
-                model_name = embedding.get_model_name()
-                try:
-                    # 尝试使用 model_name 参数初始化
-                    super().__init__(model_name=model_name)
-                except (TypeError, AttributeError) as e:
-                    try:
-                        # 尝试无参数初始化
-                        super().__init__()
-                    except Exception as init_error:
-                        # 如果父类初始化失败，记录警告但继续
-                        logger.debug(f"父类初始化失败: {init_error}")
-                        # 即使初始化失败，也继续（可能不需要参数）
-                        pass
-                
-                # 父类初始化后再设置属性（使用 object.__setattr__ 绕过 Pydantic 验证）
-                # 这样可以避免 Pydantic 的字段验证问题
-                object.__setattr__(self, '_embedding', embedding)
-                # model_name 可能已经在 super().__init__() 中设置了，如果没有则设置
-                if not hasattr(self, 'model_name') or self.model_name != model_name:
-                    try:
-                        self.model_name = model_name
-                    except (AttributeError, ValueError):
-                        # 如果 Pydantic 不允许直接设置，使用 object.__setattr__
-                        object.__setattr__(self, 'model_name', model_name)
-            
-            def _get_query_embedding(self, query: str) -> List[float]:
-                """生成查询向量（LlamaIndex接口，私有方法，同步）"""
-                return self._embedding.get_query_embedding(query)
-            
-            def _get_text_embedding(self, text: str) -> List[float]:
-                """生成单个文本向量（LlamaIndex接口，私有方法，同步）"""
-                embeddings = self._embedding.get_text_embeddings([text])
-                return embeddings[0] if embeddings else []
-            
-            def _get_text_embeddings(self, texts: List[str]) -> List[List[float]]:
-                """批量生成文本向量（LlamaIndex接口，私有方法，同步）"""
-                return self._embedding.get_text_embeddings(texts)
-            
-            async def _aget_query_embedding(self, query: str) -> List[float]:
-                """生成查询向量（LlamaIndex接口，私有方法，异步）"""
-                # 使用自定义线程池执行器，确保可以正确关闭
-                executor = _get_or_create_executor()
-                loop = asyncio.get_event_loop()
-                return await loop.run_in_executor(executor, self._embedding.get_query_embedding, query)
-            
-            async def _aget_text_embedding(self, text: str) -> List[float]:
-                """生成单个文本向量（LlamaIndex接口，私有方法，异步）"""
-                # 使用自定义线程池执行器，确保可以正确关闭
-                executor = _get_or_create_executor()
-                loop = asyncio.get_event_loop()
-                embeddings = await loop.run_in_executor(executor, self._embedding.get_text_embeddings, [text])
-                return embeddings[0] if embeddings else []
-            
-            async def _aget_text_embeddings(self, texts: List[str]) -> List[List[float]]:
-                """批量生成文本向量（LlamaIndex接口，私有方法，异步）"""
-                # 使用自定义线程池执行器，确保可以正确关闭
-                executor = _get_or_create_executor()
-                loop = asyncio.get_event_loop()
-                return await loop.run_in_executor(executor, self._embedding.get_text_embeddings, texts)
-            
-            def get_query_embedding(self, query: str) -> List[float]:
-                """生成查询向量（公共方法，兼容LlamaIndex接口）"""
-                return self._get_query_embedding(query)
-            
-            def get_text_embedding(self, text: str) -> List[float]:
-                """生成单个文本向量（公共方法，兼容LlamaIndex接口）"""
-                return self._get_text_embedding(text)
-            
-            def get_text_embedding_batch(self, texts: List[str], **kwargs) -> List[List[float]]:
-                """批量生成文本向量（公共方法，兼容LlamaIndex接口）
-                
-                Args:
-                    texts: 文本列表
-                    **kwargs: 额外参数（如 show_progress），会被忽略
-                """
-                return self._get_text_embeddings(texts)
-        
-        try:
-            adapter = LlamaIndexEmbeddingAdapter(self)
-        except TypeError as e:
-            # 如果创建适配器失败（可能是抽象方法未实现），提供更详细的错误信息
-            error_msg = (
-                f"无法创建LlamaIndex适配器: {e}。"
-                f"这可能是因为基类 {LlamaBaseEmbedding.__name__} 有未实现的抽象方法。"
-                f"请检查是否需要实现额外的抽象方法。"
-            )
-            logger.error(error_msg)
-            raise TypeError(error_msg) from e
-        
-        # 验证适配器确实是BaseEmbedding的实例
-        if not isinstance(adapter, LlamaBaseEmbedding):
-            error_msg = (
-                f"创建的适配器不是LlamaIndex BaseEmbedding的实例。"
-                f"类型: {type(adapter)}, 期望: {LlamaBaseEmbedding}"
-            )
-            logger.error(error_msg)
-            raise TypeError(error_msg)
-        
-        logger.debug(f"✅ 成功创建LlamaIndex适配器: {type(adapter)}")
-        return adapter
-
-
-class _SimpleAdapter:
-    """简单的适配器包装器（当无法导入LlamaIndex BaseEmbedding时使用）"""
-    
-    def __init__(self, embedding: HFInferenceEmbedding):
-        self._embedding = embedding
-        self.model_name = embedding.get_model_name()
-    
-    def get_query_embedding(self, query: str) -> List[float]:
-        return self._embedding.get_query_embedding(query)
-    
-    def get_text_embedding(self, text: str) -> List[float]:
-        embeddings = self._embedding.get_text_embeddings([text])
-        return embeddings[0] if embeddings else []
-    
-    def _get_query_embedding(self, query: str) -> List[float]:
-        """生成查询向量（LlamaIndex接口，私有方法）"""
-        return self._embedding.get_query_embedding(query)
-    
-    def _get_text_embedding(self, text: str) -> List[float]:
-        """生成单个文本向量（LlamaIndex接口，私有方法）"""
-        embeddings = self._embedding.get_text_embeddings([text])
-        return embeddings[0] if embeddings else []
-    
-    def _get_text_embeddings(self, texts: List[str]) -> List[List[float]]:
-        """批量生成文本向量（LlamaIndex接口，私有方法）"""
-        return self._embedding.get_text_embeddings(texts)
-    
-    def get_query_embedding(self, query: str) -> List[float]:
-        """生成查询向量（公共方法，兼容LlamaIndex接口）"""
-        return self._get_query_embedding(query)
-    
-    def get_text_embedding(self, text: str) -> List[float]:
-        """生成单个文本向量（公共方法，兼容LlamaIndex接口）"""
-        return self._get_text_embedding(text)
-    
-    def get_text_embedding_batch(self, texts: List[str], **kwargs) -> List[List[float]]:
-        """批量生成文本向量（公共方法，兼容LlamaIndex接口）
-        
-        Args:
-            texts: 文本列表
-            **kwargs: 额外参数（如 show_progress），会被忽略
-        """
-        return self._get_text_embeddings(texts)
+        return create_llama_index_adapter(self)

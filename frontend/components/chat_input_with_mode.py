@@ -5,11 +5,13 @@
 
 主要功能：
 - render_chat_input_with_mode()：渲染整合的输入区域（输入框 + 按钮）
-- 处理 Agentic RAG 状态切换逻辑
+- 处理 Agentic RAG 状态切换逻辑（使用统一的 rebuild_services）
 """
 
 import streamlit as st
 from typing import Optional
+
+from frontend.utils.state import rebuild_services
 
 
 def _on_send_click(input_key: str) -> None:
@@ -20,48 +22,14 @@ def _on_send_click(input_key: str) -> None:
 def _on_agentic_toggle() -> None:
     """Agentic RAG 切换回调
     
-    在回调中切换状态并重建服务，避免手动 rerun
+    在回调中切换状态并重建服务，使用统一的 rebuild_services()
     """
     # 切换状态
     new_state = not st.session_state.use_agentic_rag
     st.session_state.use_agentic_rag = new_state
     
-    # 重建服务实例
-    if 'init_result' in st.session_state:
-        init_result = st.session_state.init_result
-        index_manager = init_result.instances.get('index_manager')
-        
-        if index_manager is None:
-            # 标记需要重新初始化
-            st.session_state.boot_ready = False
-            if 'init_result' in st.session_state:
-                del st.session_state.init_result
-            return
-        
-        # 重新创建服务（延迟导入避免循环依赖）
-        from backend.business.rag_api import RAGService
-        from backend.business.chat import ChatManager
-        from backend.infrastructure.config import config
-        
-        collection_name = st.session_state.get('collection_name', config.CHROMA_COLLECTION_NAME)
-        enable_debug = st.session_state.get('debug_mode_enabled', False)
-        
-        # 重建 RAGService
-        init_result.instances['rag_service'] = RAGService(
-            collection_name=collection_name,
-            enable_debug=enable_debug,
-            enable_markdown_formatting=True,
-            use_agentic_rag=new_state,
-        )
-        
-        # 重建 ChatManager
-        init_result.instances['chat_manager'] = ChatManager(
-            index_manager=index_manager,
-            user_email=None,
-            enable_debug=enable_debug,
-            enable_markdown_formatting=True,
-            use_agentic_rag=new_state,
-        )
+    # 使用统一的服务重建函数
+    rebuild_services()
 
 
 def render_chat_input_with_mode(
@@ -158,5 +126,3 @@ def _render_agentic_rag_toggle() -> None:
         help=button_help,
         on_click=_on_agentic_toggle
     )
-
-

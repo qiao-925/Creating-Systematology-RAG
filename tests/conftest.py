@@ -216,5 +216,13 @@ def pytest_collection_modifyitems(config, items):
 #     print(f"{'=' * 60}\n")
 
 # 注意：fixtures 已拆分到 tests/fixtures/ 目录
-# pytest 会自动发现这些 fixtures，无需手动导入
+# 显式导入 fixtures 模块以确保 pytest 能够发现它们
+pytest_plugins = [
+    "tests.fixtures.data",
+    "tests.fixtures.indexer",
+    "tests.fixtures.github",
+    "tests.fixtures.embeddings",
+    "tests.fixtures.llm",
+    "tests.fixtures.mocks",
+]
 

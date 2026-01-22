@@ -5,7 +5,7 @@
 
 import pytest
 from backend.infrastructure.indexer import IndexManager
-from backend.business.rag_engine import QueryEngine
+from backend.business.rag_engine.core.engine import ModularQueryEngine as QueryEngine  # 使用新引擎替代
 
 
 @pytest.mark.integration

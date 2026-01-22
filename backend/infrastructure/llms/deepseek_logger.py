@@ -1,34 +1,48 @@
 """
-DeepSeek LLM 日志包装器
-拦截 DeepSeek API 调用，记录请求体和返回值
+LLM 日志包装器：通用 LLM 日志记录功能
+
+主要功能：
+- LLMLogger 类：通用 LLM 日志记录器，支持任意 LLM 实例
+- wrap_llm()：包装 LLM 实例，添加日志记录功能
+- 支持 complete、chat、stream_complete、stream_chat 方法
+- 支持推理链内容提取和记录
+
+特性：
+- 通用设计：支持任意 LlamaIndex LLM 实例
+- 完整日志：记录请求、响应、推理链
+- 流式支持：支持流式响应的日志记录
 """
 
 import json
 import time
 from typing import Any, Optional, Dict, List
-from llama_index.core.llms import CompletionResponse, ChatResponse, LLMMetadata
-from llama_index.llms.deepseek import DeepSeek
+from llama_index.core.llms import (
+    CompletionResponse,
+    ChatResponse,
+    LLMMetadata,
+    LLM,
+)
 
 from backend.infrastructure.logger import get_logger
 from backend.infrastructure.llms.reasoning import clean_messages_for_api
 
-logger = get_logger('deepseek_logger')
+logger = get_logger('llm_logger')
 
 
-class DeepSeekLogger:
-    """DeepSeek LLM 包装器，记录所有 API 调用
+class LLMLogger:
+    """通用 LLM 日志包装器，记录所有 API 调用
     
-    包装 DeepSeek 实例，拦截 complete 和 chat 方法，
+    包装任意 LLM 实例，拦截 complete 和 chat 方法，
     在调用前后记录请求参数和响应结果。
     """
     
-    def __init__(self, deepseek_instance: DeepSeek):
+    def __init__(self, llm_instance: LLM):
         """初始化日志包装器
         
         Args:
-            deepseek_instance: DeepSeek 实例
+            llm_instance: LLM 实例（任意 LlamaIndex LLM）
         """
-        self._llm = deepseek_instance
+        self._llm = llm_instance
         
         # 直接替换方法，而不是依赖 __getattr__
         # 这样确保即使方法已存在也会被拦截
@@ -37,10 +51,18 @@ class DeepSeekLogger:
         self.stream_complete = self._stream_complete_with_logging
         self.stream_chat = self._stream_chat_with_logging
         
-        logger.info("DeepSeek 日志包装器已初始化")
+        # 获取模型名称（用于日志）
+        model_name = getattr(llm_instance, 'model', 'unknown')
+        logger.info(f"LLM 日志包装器已初始化: model={model_name}")
+    
+    def _get_model_name(self) -> str:
+        """获取模型名称（用于日志）"""
+        if hasattr(self._llm, 'model'):
+            return str(self._llm.model)
+        return type(self._llm).__name__
     
     def __getattr__(self, name: str) -> Any:
-        """代理所有其他属性和方法到原始 DeepSeek 实例"""
+        """代理所有其他属性和方法到原始 LLM 实例"""
         # 对于未拦截的方法，直接代理到原始实例
         return getattr(self._llm, name)
     
@@ -54,18 +76,14 @@ class DeepSeekLogger:
         Returns:
             CompletionResponse: 完成响应
         """
-        # 构建请求体
-        request_body = {
-            "prompt": prompt,
-            **kwargs
-        }
+        model_name = self._get_model_name()
         
         # 记录请求
         logger.info("=" * 80)
-        logger.info("🔵 DeepSeek API 调用 - complete")
+        logger.info(f"🔵 LLM API 调用 - complete")
         logger.info("-" * 80)
         logger.info(f"📤 请求体:")
-        logger.info(f"   模型: {self._llm.model}")
+        logger.info(f"   模型: {model_name}")
         logger.info(f"   提示词长度: {len(prompt)} 字符")
         logger.info(f"   提示词内容: {prompt[:500]}{'...' if len(prompt) > 500 else ''}")
         if kwargs:
@@ -99,7 +117,7 @@ class DeepSeekLogger:
             return response
             
         except Exception as e:
-            logger.error(f"❌ DeepSeek API 调用失败:")
+            logger.error(f"❌ LLM API 调用失败:")
             logger.error(f"   错误类型: {type(e).__name__}")
             logger.error(f"   错误信息: {str(e)}")
             logger.error("=" * 80)
@@ -115,18 +133,14 @@ class DeepSeekLogger:
         Returns:
             ChatResponse: 聊天响应
         """
-        # 构建请求体
-        request_body = {
-            "messages": messages,
-            **kwargs
-        }
+        model_name = self._get_model_name()
         
         # 记录请求
         logger.info("=" * 80)
-        logger.info("🔵 DeepSeek API 调用 - chat")
+        logger.info(f"🔵 LLM API 调用 - chat")
         logger.info("-" * 80)
         logger.info(f"📤 请求体:")
-        logger.info(f"   模型: {self._llm.model}")
+        logger.info(f"   模型: {model_name}")
         logger.info(f"   消息数量: {len(messages)}")
         for i, msg in enumerate(messages):
             # 处理 ChatMessage 对象或字典
@@ -199,7 +213,7 @@ class DeepSeekLogger:
             return response
             
         except Exception as e:
-            logger.error(f"❌ DeepSeek API 调用失败:")
+            logger.error(f"❌ LLM API 调用失败:")
             logger.error(f"   错误类型: {type(e).__name__}")
             logger.error(f"   错误信息: {str(e)}")
             logger.error("=" * 80)
@@ -215,12 +229,14 @@ class DeepSeekLogger:
         Yields:
             CompletionResponse: 流式完成响应
         """
+        model_name = self._get_model_name()
+        
         # 记录请求
         logger.info("=" * 80)
-        logger.info("🔵 DeepSeek API 调用 - stream_complete")
+        logger.info(f"🔵 LLM API 调用 - stream_complete")
         logger.info("-" * 80)
         logger.info(f"📤 请求体:")
-        logger.info(f"   模型: {self._llm.model}")
+        logger.info(f"   模型: {model_name}")
         logger.info(f"   提示词长度: {len(prompt)} 字符")
         logger.info(f"   提示词内容: {prompt[:500]}{'...' if len(prompt) > 500 else ''}")
         if kwargs:
@@ -242,7 +258,7 @@ class DeepSeekLogger:
             logger.info("=" * 80)
             
         except Exception as e:
-            logger.error(f"❌ DeepSeek API 调用失败:")
+            logger.error(f"❌ LLM API 调用失败:")
             logger.error(f"   错误类型: {type(e).__name__}")
             logger.error(f"   错误信息: {str(e)}")
             logger.error("=" * 80)
@@ -258,12 +274,14 @@ class DeepSeekLogger:
         Yields:
             ChatResponse: 流式聊天响应
         """
+        model_name = self._get_model_name()
+        
         # 记录请求
         logger.info("=" * 80)
-        logger.info("🔵 DeepSeek API 调用 - stream_chat")
+        logger.info(f"🔵 LLM API 调用 - stream_chat")
         logger.info("-" * 80)
         logger.info(f"📤 请求体:")
-        logger.info(f"   模型: {self._llm.model}")
+        logger.info(f"   模型: {model_name}")
         logger.info(f"   消息数量: {len(messages)}")
         for i, msg in enumerate(messages):
             # 处理 ChatMessage 对象或字典
@@ -346,21 +364,39 @@ class DeepSeekLogger:
             logger.info("=" * 80)
             
         except Exception as e:
-            logger.error(f"❌ DeepSeek API 调用失败:")
+            logger.error(f"❌ LLM API 调用失败:")
             logger.error(f"   错误类型: {type(e).__name__}")
             logger.error(f"   错误信息: {str(e)}")
             logger.error("=" * 80)
             raise
 
 
-def wrap_deepseek(deepseek_instance: DeepSeek) -> DeepSeekLogger:
-    """包装 DeepSeek 实例，添加日志记录功能
+def wrap_llm(llm_instance: LLM) -> LLMLogger:
+    """包装 LLM 实例，添加日志记录功能
     
     Args:
-        deepseek_instance: DeepSeek 实例
+        llm_instance: LLM 实例（任意 LlamaIndex LLM）
         
     Returns:
-        包装后的 DeepSeekLogger 实例
+        包装后的 LLMLogger 实例
     """
-    return DeepSeekLogger(deepseek_instance)
+    return LLMLogger(llm_instance)
+
+
+# ==================== 向后兼容接口 ====================
+
+def wrap_deepseek(deepseek_instance: LLM) -> LLMLogger:
+    """包装 DeepSeek 实例，添加日志记录功能（向后兼容）
+    
+    Args:
+        deepseek_instance: DeepSeek 实例（现在可以是任意 LLM）
+        
+    Returns:
+        包装后的 LLMLogger 实例
+    """
+    return wrap_llm(deepseek_instance)
+
+
+# 向后兼容：保留旧类名
+DeepSeekLogger = LLMLogger
 

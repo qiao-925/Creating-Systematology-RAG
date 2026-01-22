@@ -1,34 +1,137 @@
 """
-DeepSeek LLM工厂函数：统一管理DeepSeek实例创建，支持推理模型、JSON Output等功能
+LLM 工厂函数：统一管理 LLM 实例创建，支持多模型动态切换
 
 主要功能：
-- create_deepseek_llm()：创建DeepSeek LLM实例（统一工厂函数）
-- create_deepseek_llm_for_query()：创建用于查询的DeepSeek LLM
-- create_deepseek_llm_for_structure()：创建用于结构化输出的DeepSeek LLM
-
-执行流程：
-1. 读取配置（API密钥、模型名称等）
-2. 创建DeepSeek实例
-3. 配置推理模型和JSON输出
-4. 包装日志功能
-5. 返回LLM实例
+- create_llm()：按模型 ID 创建 LLM 实例（推荐使用）
+- get_available_models()：获取所有可用模型列表
+- create_deepseek_llm_for_query()：创建用于查询的 LLM（向后兼容）
+- create_deepseek_llm_for_structure()：创建用于结构化输出的 LLM（向后兼容）
 
 特性：
-- 统一工厂函数
-- 推理模型配置
-- JSON输出支持
-- 参数验证和错误处理
+- 多模型支持（通过 LiteLLM 统一接口）
+- 动态模型切换
+- 向后兼容旧接口
 - 日志包装
 """
 
-from typing import Optional, Dict, Any
-from llama_index.llms.deepseek import DeepSeek
+import os
+from typing import Optional, Dict, Any, List
+
+from llama_index.llms.litellm import LiteLLM
+from llama_index.core.llms import LLM
 
 from backend.infrastructure.config import config
+from backend.infrastructure.config.models import LLMModelConfig
 from backend.infrastructure.logger import get_logger
-from backend.infrastructure.llms.deepseek_logger import wrap_deepseek
 
 logger = get_logger('llm_factory')
+
+
+def create_llm(
+    model_id: Optional[str] = None,
+    temperature: Optional[float] = None,
+    max_tokens: Optional[int] = None,
+    **kwargs
+) -> LLM:
+    """按模型 ID 创建 LLM 实例（推荐使用）
+    
+    通过 LiteLLM 统一接口创建 LLM 实例，支持多种模型提供商。
+    
+    Args:
+        model_id: 模型标识（如 "deepseek-chat"、"qwen-plus"）
+                  默认使用 config.get_default_llm_id()
+        temperature: 温度参数（覆盖配置中的默认值）
+        max_tokens: 最大 token 数（覆盖配置中的默认值）
+        **kwargs: 其他 LiteLLM 参数
+        
+    Returns:
+        LLM 实例
+        
+    Raises:
+        ValueError: 如果模型 ID 无效或 API Key 未设置
+    """
+    # 获取模型 ID
+    final_model_id = model_id or config.get_default_llm_id()
+    
+    # 获取模型配置
+    model_config = config.get_llm_model_config(final_model_id)
+    if not model_config:
+        available = [m.id for m in config.get_available_llm_models()]
+        raise ValueError(
+            f"未找到模型配置: {final_model_id}，"
+            f"可用模型: {available}"
+        )
+    
+    # 获取 API Key
+    api_key = os.getenv(model_config.api_key_env, "")
+    if not api_key:
+        raise ValueError(
+            f"未设置 {model_config.api_key_env}，请在 .env 文件中配置"
+        )
+    
+    # 构建 LLM 配置
+    llm_kwargs: Dict[str, Any] = {
+        'model': model_config.litellm_model,
+        'api_key': api_key,
+    }
+    
+    # 设置 max_tokens
+    final_max_tokens = max_tokens or model_config.max_tokens
+    if final_max_tokens:
+        llm_kwargs['max_tokens'] = final_max_tokens
+    
+    # 设置 temperature（推理模型不支持）
+    final_temperature = temperature if temperature is not None else model_config.temperature
+    if final_temperature is not None:
+        if model_config.supports_reasoning:
+            logger.debug(f"推理模型不支持 temperature 参数，已忽略: {final_temperature}")
+        else:
+            llm_kwargs['temperature'] = final_temperature
+    
+    # 合并其他参数
+    llm_kwargs.update(kwargs)
+    
+    # 创建 LiteLLM 实例
+    logger.info(
+        f"创建 LLM 实例: model_id={final_model_id}, "
+        f"litellm_model={model_config.litellm_model}"
+    )
+    llm = LiteLLM(**llm_kwargs)
+    
+    return llm
+
+
+def get_available_models() -> List[LLMModelConfig]:
+    """获取所有可用的 LLM 模型列表
+    
+    Returns:
+        LLMModelConfig 列表
+    """
+    return config.get_available_llm_models()
+
+
+def get_model_info(model_id: str) -> Optional[Dict[str, Any]]:
+    """获取模型信息（供前端使用）
+    
+    Args:
+        model_id: 模型标识
+        
+    Returns:
+        模型信息字典，包含 id, name, supports_reasoning 等
+    """
+    model_config = config.get_llm_model_config(model_id)
+    if not model_config:
+        return None
+    return {
+        'id': model_config.id,
+        'name': model_config.name,
+        'supports_reasoning': model_config.supports_reasoning,
+        'temperature': model_config.temperature,
+        'max_tokens': model_config.max_tokens,
+    }
+
+
+# ==================== 向后兼容接口 ====================
 
 
 def create_deepseek_llm(
@@ -38,67 +141,42 @@ def create_deepseek_llm(
     max_tokens: Optional[int] = None,
     use_json_output: bool = False,
     **kwargs
-) -> DeepSeek:
-    """创建 DeepSeek LLM 实例（统一工厂函数）
+) -> LLM:
+    """创建 DeepSeek LLM 实例（向后兼容）
     
-    统一管理 DeepSeek 实例创建，自动处理：
-    - 推理模型配置（deepseek-reasoner）
-    - JSON Output（按场景选择）
-    - 参数验证和错误处理
+    注意：此函数保留用于向后兼容，推荐使用 create_llm()。
     
     Args:
-        api_key: API 密钥，默认使用 config.DEEPSEEK_API_KEY
-        model: 模型名称，默认使用 config.LLM_MODEL（deepseek-reasoner）
-        temperature: 温度参数，推理模型不支持此参数（会被忽略）
-        max_tokens: 最大 token 数，默认 32K（推理模型最大 64K）
-        use_json_output: 是否启用 JSON Output（仅用于结构化场景）
+        api_key: API 密钥（已弃用，使用环境变量配置）
+        model: 模型名称（已弃用，使用 model_id）
+        temperature: 温度参数
+        max_tokens: 最大 token 数
+        use_json_output: 是否启用 JSON Output
         **kwargs: 其他参数
         
     Returns:
-        包装后的 DeepSeek 实例（已添加日志记录）
-        
-    Raises:
-        ValueError: 如果 API 密钥未设置
+        LLM 实例
     """
-    # 获取配置
-    final_api_key = api_key or config.DEEPSEEK_API_KEY
-    final_model = model or config.LLM_MODEL
-    
-    if not final_api_key:
-        raise ValueError("未设置 DEEPSEEK_API_KEY，请在 .env 文件中配置")
-    
-    # 确保使用推理模型
-    if final_model != "deepseek-reasoner":
-        logger.warning(f"模型 {final_model} 不是推理模型，建议使用 deepseek-reasoner")
-    
-    # 构建 LLM 配置
-    llm_kwargs: Dict[str, Any] = {
-        'api_key': final_api_key,
-        'model': final_model,
-        'max_tokens': max_tokens or 32768,  # 推理模型默认 32K
+    # 映射旧模型名称到新模型 ID
+    model_id_map = {
+        'deepseek-chat': 'deepseek-chat',
+        'deepseek-reasoner': 'deepseek-reasoner',
     }
     
-    # JSON Output（仅用于结构化场景）
+    model_name = model or config.LLM_MODEL
+    model_id = model_id_map.get(model_name, 'deepseek-chat')
+    
+    # JSON Output 通过 kwargs 传递
     if use_json_output:
-        llm_kwargs['response_format'] = {"type": "json_object"}
+        kwargs['response_format'] = {"type": "json_object"}
         logger.debug("启用 JSON Output 模式")
     
-    # 推理模型不支持某些参数，但为了兼容性不报错
-    # 注意：temperature、top_p 等参数会被忽略
-    if temperature is not None:
-        logger.debug(f"推理模型不支持 temperature 参数，已忽略: {temperature}")
-    
-    # 合并其他参数
-    llm_kwargs.update(kwargs)
-    
-    # 创建实例
-    logger.info(f"创建 DeepSeek LLM 实例: model={final_model}, json_output={use_json_output}")
-    deepseek_instance = DeepSeek(**llm_kwargs)
-    
-    # 包装日志记录
-    wrapped_llm = wrap_deepseek(deepseek_instance)
-    
-    return wrapped_llm
+    return create_llm(
+        model_id=model_id,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        **kwargs
+    )
 
 
 def create_deepseek_llm_for_query(
@@ -106,8 +184,8 @@ def create_deepseek_llm_for_query(
     model: Optional[str] = None,
     max_tokens: Optional[int] = None,
     **kwargs
-) -> DeepSeek:
-    """创建用于查询的 DeepSeek LLM 实例（自然语言输出）"""
+) -> LLM:
+    """创建用于查询的 LLM 实例（向后兼容）"""
     return create_deepseek_llm(
         api_key=api_key, model=model, max_tokens=max_tokens,
         use_json_output=False, **kwargs
@@ -119,10 +197,9 @@ def create_deepseek_llm_for_structure(
     model: Optional[str] = None,
     max_tokens: Optional[int] = None,
     **kwargs
-) -> DeepSeek:
-    """创建用于结构化输出的 DeepSeek LLM 实例（JSON Output）"""
+) -> LLM:
+    """创建用于结构化输出的 LLM 实例（向后兼容）"""
     return create_deepseek_llm(
         api_key=api_key, model=model, max_tokens=max_tokens,
         use_json_output=True, **kwargs
     )
-

@@ -32,7 +32,11 @@ from backend.business.rag_engine.formatting import ResponseFormatter
 from backend.business.rag_engine.core.engine import ModularQueryEngine
 from backend.business.rag_engine.agentic import AgenticQueryEngine
 from backend.business.chat.session import ChatSession
-from backend.infrastructure.llms import create_deepseek_llm_for_query, extract_reasoning_content
+from backend.infrastructure.llms import (
+    create_llm,
+    create_deepseek_llm_for_query,  # 向后兼容
+    extract_reasoning_content,
+)
 
 logger = get_logger('chat_manager')
 
@@ -46,6 +50,7 @@ class ChatManager:
         api_key: Optional[str] = None,
         api_base: Optional[str] = None,
         model: Optional[str] = None,
+        model_id: Optional[str] = None,  # 新增：模型 ID（优先使用）
         memory_token_limit: int = 3000,
         similarity_top_k: Optional[int] = None,
         enable_debug: bool = False,
@@ -56,6 +61,8 @@ class ChatManager:
         max_history_turns: int = 6,
         enable_smart_condense: bool = True,
         use_agentic_rag: bool = False,
+        temperature: Optional[float] = None,  # 新增：LLM 温度参数
+        max_tokens: Optional[int] = None,  # 新增：LLM 最大 token 数
         **kwargs
     ):
         """初始化对话管理器
@@ -75,6 +82,8 @@ class ChatManager:
             max_history_turns: 最大历史轮数（用于查询压缩）
             enable_smart_condense: 是否启用智能压缩（短历史不压缩）
             use_agentic_rag: 是否使用 Agentic RAG（默认False）
+            temperature: LLM 温度参数（覆盖配置默认值，推理模型忽略）
+            max_tokens: LLM 最大 token 数（覆盖配置默认值）
             **kwargs: 传递给查询引擎的其他参数
         """
         self.index_manager = index_manager
@@ -85,16 +94,43 @@ class ChatManager:
         self.enable_smart_condense = enable_smart_condense
         self.min_high_quality_sources = 2  # 高质量来源的最小数量
         
+        # 保存 API 密钥（无论使用哪种模式都需要）
+        self.api_key = api_key or config.DEEPSEEK_API_KEY
+        
         # 初始化响应格式化器
         self.formatter = ResponseFormatter(enable_formatting=enable_markdown_formatting)
         logger.info(f"响应格式化器已{'启用' if enable_markdown_formatting else '禁用'}")
         
-        # 配置DeepSeek LLM
-        self.api_key = api_key or config.DEEPSEEK_API_KEY
-        self.model = model or config.LLM_MODEL
-        
-        if not self.api_key:
-            raise ValueError("未设置DEEPSEEK_API_KEY")
+        # 配置 LLM（优先使用 model_id，向后兼容 model）
+        if model_id:
+            # 使用新的多模型接口
+            logger.info(
+                f"初始化 LLM (模型 ID: {model_id}, "
+                f"temperature: {temperature}, max_tokens: {max_tokens})"
+            )
+            self.llm = create_llm(
+                model_id=model_id,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+            # 获取模型配置信息
+            model_config = config.get_llm_model_config(model_id)
+            if model_config:
+                self.model = model_config.litellm_model
+            else:
+                self.model = model_id
+        else:
+            # 向后兼容：使用旧的接口
+            self.model = model or config.LLM_MODEL
+            
+            if not self.api_key:
+                raise ValueError("未设置DEEPSEEK_API_KEY")
+            
+            logger.info(f"初始化 LLM (向后兼容模式): {self.model}")
+            self.llm = create_deepseek_llm_for_query(
+                api_key=self.api_key,
+                model=self.model,
+            )
         
         # 配置调试模式
         if self.enable_debug:
@@ -103,12 +139,6 @@ class ChatManager:
             logger.info("对话管理器：启用调试模式")
             llama_debug = LlamaDebugHandler(print_trace_on_end=True)
             Settings.callback_manager = CallbackManager([llama_debug])
-        
-        logger.info(f"初始化DeepSeek LLM (对话模式): {self.model}")
-        self.llm = create_deepseek_llm_for_query(
-            api_key=self.api_key,
-            model=self.model,
-        )
         
         # 创建记忆缓冲区
         self.memory = ChatMemoryBuffer.from_defaults(

@@ -35,8 +35,45 @@ github:
 # 3. 模型配置
 # ============================================================================
 model:
-  llm: deepseek-chat  # 切换为 chat 模型提升响应速度（reasoner 模型约 50s，chat 约 5-10s）
+  llm: deepseek-chat  # 向后兼容：默认 LLM 模型
   embedding: BAAI/bge-base-zh-v1.5
+  
+  # 多模型配置（LiteLLM 统一接口）
+  llms:
+    default: deepseek-chat  # 默认使用的模型 ID
+    available:
+      - id: deepseek-chat
+        name: DeepSeek Chat
+        litellm_model: deepseek/deepseek-chat
+        api_key_env: DEEPSEEK_API_KEY
+        temperature: 0.7
+        max_tokens: 4096
+        supports_reasoning: false
+        
+      - id: deepseek-reasoner
+        name: DeepSeek Reasoner (推理)
+        litellm_model: deepseek/deepseek-reasoner
+        api_key_env: DEEPSEEK_API_KEY
+        temperature: null  # 推理模型不支持 temperature
+        max_tokens: 32768
+        supports_reasoning: true
+        
+      # 以下模型需要配置对应的 API Key 后启用
+      # - id: qwen-plus
+      #   name: 通义千问 Plus
+      #   litellm_model: qwen/qwen-plus
+      #   api_key_env: DASHSCOPE_API_KEY
+      #   temperature: 0.7
+      #   max_tokens: 8192
+      #   supports_reasoning: false
+      #
+      # - id: gpt-4o
+      #   name: GPT-4o
+      #   litellm_model: gpt-4o
+      #   api_key_env: OPENAI_API_KEY
+      #   temperature: 0.7
+      #   max_tokens: 4096
+      #   supports_reasoning: false
 
 embedding:
   type: hf-inference  # 使用 Hugging Face Inference API

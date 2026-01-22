@@ -12,14 +12,7 @@ from pathlib import Path
 
 from backend.infrastructure.indexer import IndexManager
 from backend.business.rag_engine.core.engine import ModularQueryEngine
-# QueryEngine可能在不同的路径，需要根据实际情况调整
-try:
-    from backend.business.rag_engine import QueryEngine
-except ImportError:
-    try:
-        from backend.business.rag_engine.core.engine import ModularQueryEngine as QueryEngine
-    except ImportError:
-        QueryEngine = None
+QueryEngine = None  # legacy QueryEngine 已移除
 from backend.business.rag_api.rag_service import RAGService
 from llama_index.core.schema import Document as LlamaDocument
 

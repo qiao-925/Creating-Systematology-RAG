@@ -8,6 +8,7 @@ dependencies = [
     "llama-index>=0.14.3",
     "llama-index-llms-openai>=0.2.0",
     "llama-index-llms-deepseek>=0.2.0",
+    "llama-index-llms-litellm>=0.6.0",
     "llama-index-embeddings-huggingface>=0.3.0",
     "llama-index-vector-stores-chroma>=0.2.0",
     "llama-index-readers-file>=0.2.0",

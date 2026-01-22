@@ -29,6 +29,21 @@ from backend.business.rag_api.models import (
     SessionListResponse,
 )
 from backend.business.rag_engine.models import QueryContext, QueryResult, SourceModel
+from backend.business.rag_api.rag_service_sessions import (
+    get_chat_history as _get_chat_history,
+    clear_chat_history as _clear_chat_history,
+    start_new_session as _start_new_session,
+    get_current_session_detail as _get_current_session_detail,
+    get_session_history as _get_session_history,
+    list_sessions as _list_sessions,
+)
+from backend.business.rag_api.rag_service_index import (
+    build_index as _build_index,
+    list_collections as _list_collections,
+    delete_collection as _delete_collection,
+)
+from backend.business.rag_api.rag_service_query import execute_query as _execute_query
+from backend.business.rag_api.rag_service_chat import execute_chat as _execute_chat
 
 logger = get_logger('rag_service')
 
@@ -47,6 +62,7 @@ class RAGService:
         enable_debug: bool = False,
         enable_markdown_formatting: bool = True,
         use_agentic_rag: bool = False,
+        model_id: Optional[str] = None,  # 新增：模型 ID
         **kwargs
     ):
         """初始化RAG服务
@@ -63,6 +79,7 @@ class RAGService:
         self.enable_debug = enable_debug
         self.enable_markdown_formatting = enable_markdown_formatting
         self.use_agentic_rag = use_agentic_rag
+        self.model_id = model_id  # 保存模型 ID
         self.engine_kwargs = kwargs
         
         # 延迟初始化（按需加载）
@@ -126,11 +143,12 @@ class RAGService:
     def chat_manager(self) -> ChatManager:
         """获取对话管理器（延迟加载）"""
         if self._chat_manager is None:
-            logger.info("初始化ChatManager", top_k=self.similarity_top_k)
+            logger.info("初始化ChatManager", top_k=self.similarity_top_k, model_id=self.model_id)
             self._chat_manager = ChatManager(
                 index_manager=self.index_manager,
                 similarity_top_k=self.similarity_top_k,
                 use_agentic_rag=self.use_agentic_rag,
+                model_id=self.model_id,  # 传入模型 ID
             )
         return self._chat_manager
     
@@ -162,88 +180,13 @@ class RAGService:
         collect_trace: bool = False
     ) -> RAGResponse:
         """查询接口（使用 Pydantic 验证）"""
-        logger.info(
-            "收到查询请求",
-            user_id=user_id,
-            session_id=request.session_id,
-            question=request.question[:50] if len(request.question) > 50 else request.question,
-            top_k=request.top_k,
-            strategy=request.strategy,
-            collect_trace=collect_trace
-        )
-        try:
-            # 执行查询（根据 use_agentic_rag 选择引擎）
-            query_engine = self._get_query_engine()
-            answer, sources, reasoning_content, trace_info = query_engine.query(
-                request.question,
-                collect_trace=collect_trace
-            )
-            
-            # 转换为 SourceModel 列表
-            source_models = []
-            for source in sources:
-                if isinstance(source, dict):
-                    source_models.append(SourceModel(**source))
-                else:
-                    source_models.append(SourceModel(
-                        text=source.get('text', ''),
-                        score=source.get('score', 0.0),
-                        metadata=source.get('metadata', {}),
-                        file_name=source.get('file_name'),
-                        page_number=source.get('page_number'),
-                        node_id=source.get('node_id')
-                    ))
-            
-            # 创建元数据
-            metadata = {
-                'user_id': user_id,
-                'session_id': request.session_id,
-                'question': request.question,
-                'reasoning_content': reasoning_content,
-            }
-            
-            # 如果收集了追踪信息，添加到元数据
-            if collect_trace and trace_info:
-                metadata['trace_info'] = trace_info
-            
-            # 创建 Pydantic 响应模型
-            response = RAGResponse(
-                answer=answer,
-                sources=source_models,
-                metadata=metadata
-            )
-            
-            logger.info(
-                "查询成功",
-                user_id=user_id,
-                sources_count=len(response.sources),
-                answer_len=len(answer)
-            )
-            return response
-        except Exception as e:
-            logger.error("查询失败", user_id=user_id, error=str(e), exc_info=True)
-            raise
+        query_engine = self._get_query_engine()
+        return _execute_query(query_engine, request, user_id, collect_trace)
     
     def _load_documents_from_source(self, source_path: str) -> tuple[list, Optional[str]]:
         """从数据源加载文档（私有方法）"""
-        from backend.infrastructure.data_loader import DataImportService, parse_github_url
-        data_service = DataImportService(show_progress=False)
-        if source_path.startswith(('http://', 'https://', 'git@')):
-            if 'github.com' in source_path:
-                repo_info = parse_github_url(source_path)
-                if not repo_info:
-                    return [], "无法解析GitHub URL"
-                result = data_service.import_from_github(
-                    owner=repo_info['owner'],
-                    repo=repo_info['repo'],
-                    branch=repo_info.get('branch', 'main')
-                )
-                documents = result.documents if result.success else []
-                return documents, None if result.success else "GitHub导入失败"
-            return [], "不支持Web URL，仅支持GitHub和本地路径"
-        result = data_service.import_from_directory(source_path)
-        documents = result.documents if result.success else []
-        return documents, None if result.success else "本地目录导入失败"
+        from backend.business.rag_api.rag_service_index import load_documents_from_source
+        return load_documents_from_source(source_path)
     
     def build_index(
         self,
@@ -253,55 +196,15 @@ class RAGService:
     ) -> IndexResult:
         """构建索引接口"""
         target_collection = collection_name or self.collection_name
-        logger.info(
-            "开始构建索引",
-            source=source_path,
-            collection=target_collection
+        from backend.business.rag_api.rag_service_index import build_index as build_index_func
+        result = build_index_func(self.index_manager, source_path, target_collection)
+        # 适配返回格式
+        return IndexResult(
+            success=result.success,
+            collection_name=result.collection_name,
+            doc_count=result.document_count,
+            message=result.message
         )
-        try:
-            documents, error_msg = self._load_documents_from_source(source_path)
-            if error_msg:
-                logger.warning("索引构建失败", collection=target_collection, error=error_msg)
-                return IndexResult(
-                    success=False,
-                    collection_name=target_collection,
-                    doc_count=0,
-                    message=error_msg
-                )
-            if not documents:
-                logger.warning("未找到文档", collection=target_collection)
-                return IndexResult(
-                    success=False,
-                    collection_name=target_collection,
-                    doc_count=0,
-                    message="未找到文档"
-                )
-            
-            self.index_manager.build_index(documents=documents, collection_name=target_collection, **kwargs)
-            logger.info(
-                "索引构建成功",
-                collection=target_collection,
-                doc_count=len(documents)
-            )
-            return IndexResult(
-                success=True,
-                collection_name=target_collection,
-                doc_count=len(documents),
-                message=f"成功索引 {len(documents)} 个文档"
-            )
-        except Exception as e:
-            logger.error(
-                "索引构建失败",
-                collection=target_collection,
-                error=str(e),
-                exc_info=True
-            )
-            return IndexResult(
-                success=False,
-                collection_name=target_collection,
-                doc_count=0,
-                message=f"索引构建失败: {str(e)}"
-            )
     
     def chat(
         self,
@@ -320,169 +223,28 @@ class RAGService:
         user_id: Optional[str] = None
     ) -> ChatResponse:
         """对话接口（使用 Pydantic 验证）"""
-        logger.info(
-            "收到对话请求",
-            user_id=user_id,
-            session_id=request.session_id,
-            message=request.message[:50] if len(request.message) > 50 else request.message
-        )
-        try:
-            if request.session_id:
-                session = self.chat_manager.get_current_session()
-                if not session or session.session_id != request.session_id:
-                    session = self.chat_manager.start_session(session_id=request.session_id)
-            else:
-                session = self.chat_manager.start_session()
-            
-            answer, sources, reasoning_content = self.chat_manager.chat(message=request.message)
-            
-            # 转换为 SourceModel 列表
-            source_models = []
-            for source in sources:
-                if isinstance(source, dict):
-                    source_models.append(SourceModel(**source))
-                else:
-                    source_models.append(SourceModel(
-                        text=source.get('text', ''),
-                        score=source.get('score', 0.0),
-                        metadata=source.get('metadata', {}),
-                        file_name=source.get('file_name'),
-                        page_number=source.get('page_number'),
-                        node_id=source.get('node_id')
-                    ))
-            
-            # 创建 Pydantic 响应模型
-            response = ChatResponse(
-                answer=answer,
-                sources=source_models,
-                session_id=session.session_id,
-                turn_count=len(session.history),
-                metadata={
-                    'user_id': user_id,
-                    'message': request.message,
-                    'reasoning_content': reasoning_content
-                }
-            )
-            
-            logger.info(
-                "对话成功",
-                user_id=user_id,
-                session_id=session.session_id,
-                turn_count=response.turn_count
-            )
-            return response
-        except Exception as e:
-            logger.error(
-                "对话失败",
-                user_id=user_id,
-                session_id=request.session_id,
-                error=str(e),
-                exc_info=True
-            )
-            raise
+        return _execute_chat(self.chat_manager, request, user_id)
     
     def get_chat_history(self, session_id: Optional[str] = None):
         """获取对话历史"""
-        if session_id:
-            current_session = self.chat_manager.get_current_session()
-            if not current_session or current_session.session_id != session_id:
-                self.chat_manager.start_session(session_id=session_id)
-        return self.chat_manager.get_current_session()
+        return _get_chat_history(self.chat_manager, session_id)
     
     def clear_chat_history(self, session_id: str) -> bool:
         """清空对话历史"""
-        try:
-            self.chat_manager.reset_session()
-            logger.info("清空对话历史", session_id=session_id)
-            return True
-        except Exception as e:
-            logger.error("清空对话历史失败", session_id=session_id, error=str(e))
-            return False
+        return _clear_chat_history(self.chat_manager, session_id)
     
     def start_new_session(self, request: CreateSessionRequest) -> Dict[str, Any]:
-        """创建新会话
-        
-        Args:
-            request: 创建会话请求
-            
-        Returns:
-            会话信息字典
-        """
-        logger.info("创建新会话", session_id=request.session_id, has_message=request.message is not None)
-        
-        # 创建新会话
-        session = self.chat_manager.start_session(session_id=request.session_id)
-        
-        # 如果提供了消息，发送第一条消息
-        if request.message:
-            answer, sources, reasoning_content = self.chat_manager.chat(request.message)
-            logger.info("新会话创建并发送第一条消息", session_id=session.session_id)
-        
-        return {
-            'session_id': session.session_id,
-            'title': session.title,
-            'created_at': session.created_at,
-            'updated_at': session.updated_at,
-            'turn_count': len(session.history),
-        }
+        """创建新会话"""
+        return _start_new_session(self.chat_manager, request)
     
     def get_current_session_detail(self) -> SessionDetailResponse:
-        """获取当前会话详情（包含完整历史）
-        
-        Returns:
-            会话详情响应
-        """
-        session = self.chat_manager.get_current_session()
-        if session is None:
-            raise ValueError("当前没有活跃会话")
-        
-        # 转换历史记录
-        history = []
-        for turn in session.history:
-            # 转换 sources 为 SourceModel
-            source_models = []
-            for source in turn.sources:
-                if isinstance(source, dict):
-                    source_models.append(SourceModel(**source))
-                else:
-                    source_models.append(SourceModel(
-                        text=source.get('text', ''),
-                        score=source.get('score', 0.0),
-                        metadata=source.get('metadata', {}),
-                        file_name=source.get('file_name'),
-                        page_number=source.get('page_number'),
-                        node_id=source.get('node_id')
-                    ))
-            
-            history.append(ChatTurnResponse(
-                question=turn.question,
-                answer=turn.answer,
-                sources=source_models,
-                timestamp=turn.timestamp,
-                reasoning_content=turn.reasoning_content,
-            ))
-        
-        return SessionDetailResponse(
-            session_id=session.session_id,
-            title=session.title,
-            created_at=session.created_at,
-            updated_at=session.updated_at,
-            history=history,
-        )
+        """获取当前会话详情（包含完整历史）"""
+        return _get_current_session_detail(self.chat_manager)
     
     async def stream_chat(self, message: str, session_id: Optional[str] = None) -> AsyncIterator[Dict[str, Any]]:
-        """流式对话
-        
-        Args:
-            message: 对话消息
-            session_id: 会话ID（可选）
-            
-        Yields:
-            流式响应字典
-        """
+        """流式对话"""
         logger.info("开始流式对话", session_id=session_id, message=message[:50] if len(message) > 50 else message)
         
-        # 确保会话存在
         if session_id:
             current_session = self.chat_manager.get_current_session()
             if not current_session or current_session.session_id != session_id:
@@ -490,113 +252,24 @@ class RAGService:
         elif not self.chat_manager.get_current_session():
             self.chat_manager.start_session()
         
-        # 使用 ChatManager 的流式对话
         async for chunk in self.chat_manager.stream_chat(message):
             yield chunk
     
     def get_session_history(self, session_id: str) -> SessionHistoryResponse:
-        """获取指定会话的历史记录
-        
-        Args:
-            session_id: 会话ID
-            
-        Returns:
-            会话历史响应
-        """
-        logger.info("获取会话历史", session_id=session_id)
-        
-        # 从文件加载会话
-        sessions_dir = config.SESSIONS_PATH / "default"
-        session_file = sessions_dir / f"{session_id}.json"
-        
-        if not session_file.exists():
-            raise FileNotFoundError(f"会话不存在: {session_id}")
-        
-        session = load_session_from_file(str(session_file))
-        if session is None:
-            raise ValueError(f"无法加载会话: {session_id}")
-        
-        # 转换历史记录
-        history = []
-        for turn in session.history:
-            source_models = []
-            for source in turn.sources:
-                if isinstance(source, dict):
-                    source_models.append(SourceModel(**source))
-                else:
-                    source_models.append(SourceModel(
-                        text=source.get('text', ''),
-                        score=source.get('score', 0.0),
-                        metadata=source.get('metadata', {}),
-                        file_name=source.get('file_name'),
-                        page_number=source.get('page_number'),
-                        node_id=source.get('node_id')
-                    ))
-            
-            history.append(ChatTurnResponse(
-                question=turn.question,
-                answer=turn.answer,
-                sources=source_models,
-                timestamp=turn.timestamp,
-                reasoning_content=turn.reasoning_content,
-            ))
-        
-        return SessionHistoryResponse(
-            session_id=session.session_id,
-            title=session.title,
-            created_at=session.created_at,
-            updated_at=session.updated_at,
-            history=history,
-        )
+        """获取指定会话的历史记录"""
+        return _get_session_history(session_id)
     
     def list_sessions(self, user_email: str = None) -> SessionListResponse:
-        """列出用户的所有会话
-        
-        Args:
-            user_email: 用户邮箱（可选，单用户模式下使用默认路径）
-            
-        Returns:
-            会话列表响应
-        """
-        logger.info("列出会话", user_email=user_email)
-        
-        sessions_metadata = get_user_sessions_metadata(user_email)
-        
-        sessions = [
-            SessionInfo(
-                session_id=meta['session_id'],
-                title=meta['title'],
-                created_at=meta['created_at'],
-                updated_at=meta['updated_at'],
-                turn_count=meta.get('message_count', 0),
-            )
-            for meta in sessions_metadata
-        ]
-        
-        return SessionListResponse(
-            sessions=sessions,
-            total=len(sessions),
-        )
+        """列出用户的所有会话"""
+        return _list_sessions(user_email)
     
     def list_collections(self) -> list:
         """列出所有向量集合"""
-        try:
-            collections = self.index_manager.list_collections()
-            logger.info("列出集合", count=len(collections))
-            return collections
-        except Exception as e:
-            logger.error("列出集合失败", error=str(e))
-            return []
+        return _list_collections(self.index_manager)
     
     def delete_collection(self, collection_name: str) -> bool:
         """删除向量集合"""
-        try:
-            self.index_manager.delete_collection(collection_name)
-            logger.info("删除集合", collection=collection_name)
-            return True
-        except Exception as e:
-            logger.error("删除集合失败", collection=collection_name, error=str(e))
-            return False
+        return _delete_collection(self.index_manager, collection_name)
     
     def close(self):
         """关闭服务，释放资源"""
