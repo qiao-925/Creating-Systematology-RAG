@@ -45,6 +45,14 @@ make clean        # 清理生成文件
 - 或使用系统主题偏好自动切换
 - 所有组件（包括自定义组件）都会自动适配主题
 
+**5. 配置系统**
+
+应用提供统一的配置管理系统：
+- **侧边栏**：常用配置（模型选择、LLM 预设、检索策略、Agentic RAG 开关）
+- **设置弹窗**：高级配置（RAG 参数、显示设置）
+- **LLM 预设**：精确/平衡/创意三种模式，自动调整 temperature 和 max_tokens
+- **RAG 参数**：Top-K、相似度阈值、重排序开关等研究级别调优参数
+
 ### Chroma Cloud 配置说明
 
 本项目使用 **Chroma Cloud** 作为向量数据库，需要配置以下环境变量：
@@ -215,6 +223,7 @@ LLM 响应生成 (DeepSeek)
 | `create_retriever` | `rag_engine/retrieval/factory.py` | 检索器工厂 |
 | `create_reranker` | `rag_engine/reranking/factory.py` | 重排序器工厂 |
 | `IndexManager` | `infrastructure/indexer/` | 向量索引管理 |
+| `AppConfig` | `frontend/components/config_panel/models.py` | 统一配置模型 |
 
 **检索策略**：
 
@@ -520,6 +529,11 @@ Creating-Systematology-RAG/
 │   ├── components/               # UI组件（优先使用 Streamlit 原生组件）
 │   │   ├── chat_display.py       # 聊天显示（含可观测性信息）
 │   │   ├── chat_input_with_mode.py # 聊天输入（支持 Agentic 模式切换）
+│   │   ├── config_panel/         # 配置面板模块（统一配置管理）
+│   │   │   ├── models.py         # AppConfig 数据模型 + LLM 预设
+│   │   │   ├── panel.py          # 主配置面板
+│   │   │   ├── llm_presets.py    # LLM 预设面板（精确/平衡/创意）
+│   │   │   └── rag_params.py     # RAG 参数面板（Top-K、相似度阈值等）
 │   │   ├── file_viewer.py        # 文件查看（弹窗）
 │   │   ├── observability_summary.py # 可观测性摘要展示
 │   │   ├── sidebar.py             # 侧边栏
@@ -578,7 +592,16 @@ Creating-Systematology-RAG/
 │   └── github_repos/               # GitHub仓库（本地克隆）
 │
 ├── logs/                           # 📋 日志目录
-├── agent-task-log/                 # 📝 AI Agent任务记录
+│
+├── aha-moments/                    # 💡 知识沉淀（技术决策、设计洞察）
+│   ├── README.md                  # 索引文档
+│   └── YYYY-MM-DD_标题.md         # 各个 aha moment 文档
+│
+├── agent-task-log/                 # 📝 AI Agent 任务记录
+│   ├── README.md                  # 任务日志说明
+│   ├── ongoing/                   # 进行中的任务
+│   └── archive/YYYY-MM/           # 按月归档（已完成任务）
+│
 └── Makefile                        # 🛠️ 构建脚本
 ```
 
@@ -603,15 +626,15 @@ app.py   RAGService   Config/Logger/Embedding/LLM
 
 **总体规模**：
 - 后端代码：143 个 Python 文件
-- 前端代码：22 个 Python 文件
+- 前端代码：26 个 Python 文件（新增配置面板模块）
 - 测试代码：99 个 Python 文件
-- **总计：264 个文件**
+- **总计：268 个文件**
 
 **按层级统计**：
 
 | 层级 | 模块数 | 主要职责 |
 |------|--------|----------|
-| **前端层** | 22 | 用户交互与展示（UI 组件、状态管理） |
+| **前端层** | 26 | 用户交互与展示（UI 组件、统一配置面板、状态管理） |
 | **业务层** | 43 | 核心业务逻辑（RAG 引擎、API、对话管理） |
 | **基础设施层** | 78 | 技术基础设施（配置、数据加载、索引、向量化、LLM、可观测性） |
 | **测试层** | 99 | 测试覆盖（单元、集成、性能、E2E） |
@@ -627,7 +650,8 @@ app.py   RAGService   Config/Logger/Embedding/LLM
 | **检索策略** | 6 | 多种检索策略（vector/bm25/hybrid/grep/multi/file-level） |
 | **重排序** | 4 | 结果重排序（SentenceTransformer、BGE） |
 | **可观测性** | 5 | 日志、调试、评估（LlamaDebugHandler、RAGAS） |
-| **前端 UI** | 22 | Streamlit 界面组件（单页应用、主题切换） |
+| **前端 UI** | 26 | Streamlit 界面组件（单页应用、统一配置面板、主题切换） |
+| **配置管理** | 5 | 统一配置系统（LLM 预设、RAG 参数、应用配置） |
 | **测试** | 99 | 单元、集成、性能、E2E 测试 |
 
 **核心特性实现状态**：
@@ -772,6 +796,13 @@ app.py   RAGService   Config/Logger/Embedding/LLM
 
 ## 6. 📚 相关文档 (Related Documents)
 
+### Aha Moments（知识沉淀）
+
+- [💡 Aha Moments](aha-moments/README.md) - 项目开发过程中的顿悟瞬间与深度思考
+  - 记录技术选型背后的思考
+  - 沉淀经验和方法论
+  - 从 150+ 篇任务日志中提炼的核心洞察
+
 ### Prompt 模板
 
 - [📖 Prompt 模板说明](prompts/README.md) - Prompt 模板集中管理与使用指南
@@ -792,6 +823,9 @@ app.py   RAGService   Config/Logger/Embedding/LLM
 ### AI Agent 任务记录
 
 - [📖 任务归档](agent-task-log/README.md) - AI Agent 执行任务的完整记录
+  - `ongoing/` - 进行中的任务（支持 Plan-Checkpoint 工作流）
+  - `archive/YYYY-MM/` - 按月归档的已完成任务
+  - 记录任务背景、实施步骤、测试结果、经验总结
 
 ---
 
@@ -801,5 +835,5 @@ app.py   RAGService   Config/Logger/Embedding/LLM
 
 ---
 
-**最后更新**: 2026-01-22（添加模块统计信息）  
+**最后更新**: 2026-01-22（添加配置面板模块、aha-moments 知识沉淀、agent-task-log 结构更新）  
 **License**: MIT
