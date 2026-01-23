@@ -672,6 +672,251 @@ app.py   RAGService   Config/Logger/Embedding/LLM
 - ✅ **E2E 测试**：1 个文件（核心工作流）
 - ✅ **测试工具**：12 个文件（测试辅助工具）
 
+### 4.1 项目上下文理解
+
+#### 代码库结构说明
+
+**目录职责**：
+- `frontend/`：前端层，用户交互与展示，只调用 RAGService
+- `backend/business/`：业务层，核心业务逻辑与流程编排
+- `backend/infrastructure/`：基础设施层，技术基础设施，无业务逻辑
+
+**关键文件索引**：
+- **入口文件**：`app.py` → `frontend/main.py`
+- **服务入口**：`backend/business/rag_api/rag_service.py`（RAGService）
+- **查询引擎**：`backend/business/rag_engine/core/engine.py`（ModularQueryEngine）
+- **索引管理**：`backend/infrastructure/indexer/core/manager.py`（IndexManager）
+- **配置管理**：`backend/infrastructure/config/settings.py`（Config）
+
+#### 依赖关系说明
+
+**模块依赖关系**：
+```
+前端层（frontend/）
+    ↓ 只调用 RAGService
+业务层（backend/business/）
+    ↓ 通过依赖注入获取基础设施能力
+基础设施层（backend/infrastructure/）
+```
+
+**外部依赖**：
+- **LlamaIndex**：RAG 核心框架，提供 Document、Node、Index、QueryEngine
+- **DeepSeek API**：大语言模型，支持推理链输出
+- **Chroma Cloud**：向量数据库，云端托管
+- **Streamlit**：Web 界面框架
+- **HuggingFace**：本地向量模型
+
+**内部依赖**：
+- 业务层内部：RAGService → QueryEngine → Retriever → LLM
+- 基础设施层内部：IndexManager → Embedding → Chroma
+
+#### 编码规范与设计模式
+
+**编码规范**：
+- 类型提示：所有函数、方法、类声明必须补全类型提示
+- 日志规范：统一通过 `backend.infrastructure.logger.get_logger()` 获取 logger，禁止使用 `print`
+- 异常处理：捕获具体异常类型，记录日志后合理抛出，严禁裸 `except`
+- 文件行数：单个代码文件必须 ≤ 300 行（硬性限制）
+
+**设计模式使用**：
+- **工厂模式**：`create_retriever()`, `create_reranker()`, `create_embedding()`, `create_llm()`
+- **依赖注入**：所有组件通过构造函数注入依赖，禁止静态单例
+- **可插拔设计**：所有核心组件（Embedding、DataSource、Observer、Reranker、Retriever）支持可插拔替换
+- **延迟加载**：RAGService 中的引擎按需初始化，避免启动时加载所有组件
+
+### 4.2 模块交互关系
+
+#### 模块依赖图
+
+**三层架构依赖关系**：
+```
+前端层
+  └─→ RAGService（业务层）
+        └─→ IndexManager、QueryEngine（基础设施层）
+```
+
+**业务层内部依赖**：
+```
+RAGService
+  ├─→ ModularQueryEngine / AgenticQueryEngine
+  │     ├─→ QueryProcessor（查询处理）
+  │     ├─→ create_retriever()（检索器工厂）
+  │     ├─→ create_reranker()（重排序器工厂）
+  │     └─→ ResponseFormatter（响应格式化）
+  └─→ ChatManager（对话管理）
+```
+
+**基础设施层内部依赖**：
+```
+IndexManager
+  ├─→ Embedding（向量化）
+  ├─→ ChromaVectorStore（向量存储）
+  └─→ DocumentParser（文档解析）
+
+DataImportService
+  ├─→ GitHubSource / LocalFileSource（数据源）
+  └─→ DocumentParser（文档解析）
+```
+
+#### 接口契约
+
+**核心接口定义**：
+
+| 接口 | 位置 | 签名 | 说明 |
+|------|------|------|------|
+| `RAGService.query()` | `rag_api/rag_service.py` | `query(question: str, session_id: Optional[str]) -> RAGResponse` | 统一查询入口 |
+| `ModularQueryEngine.query()` | `rag_engine/core/engine.py` | `query(query: str) -> QueryResult` | 传统 RAG 查询 |
+| `AgenticQueryEngine.query()` | `rag_engine/agentic/engine.py` | `query(query: str) -> QueryResult` | Agentic RAG 查询 |
+| `IndexManager.build_index()` | `indexer/core/manager.py` | `build_index(documents: List[Document]) -> None` | 索引构建 |
+| `DataImportService.import_from_github()` | `data_loader/service.py` | `import_from_github(...) -> ImportResult` | GitHub 数据导入 |
+
+#### 数据流向
+
+**查询流程数据流**：
+```
+用户输入
+  ↓
+frontend/main.py → handle_user_queries()
+  ↓
+RAGService.query(question, session_id)
+  ↓
+[选择引擎]
+  ├─ use_agentic_rag=True → AgenticQueryEngine.query()
+  │   └─ ReActAgent → Tools → Retriever → LLM
+  │
+  └─ use_agentic_rag=False → ModularQueryEngine.query()
+      ↓
+      QueryProcessor.process() [意图理解+改写]
+      ↓
+      create_retriever() [工厂模式]
+      ↓
+      Retriever.retrieve() [检索相关文档]
+      ↓
+      [后处理] SimilarityCutoff + Reranker
+      ↓
+      LLM.generate() [生成答案]
+      ↓
+      ResponseFormatter.format() [格式化响应]
+      ↓
+      RAGResponse {answer, sources, metadata}
+```
+
+**索引构建流程数据流**：
+```
+数据源（GitHub/本地）
+  ↓
+DataImportService.import_from_github() / import_from_directory()
+  ↓
+GitRepositoryManager.clone() / pull() [如果是 GitHub]
+  ↓
+GitHubSource / LocalFileSource.load() [获取文件列表]
+  ↓
+DocumentParser.parse_files() [解析为 LlamaDocument]
+  ↓
+IndexManager.build_index(documents)
+  ↓
+SentenceSplitter [分块为 Node]
+  ↓
+Embedding.embed_nodes() [生成向量]
+  ↓
+ChromaVectorStore [存储到 Chroma Cloud]
+  ↓
+VectorStoreIndex [索引构建完成]
+```
+
+**配置传递路径**：
+```
+前端配置（AppConfig）
+  ↓
+RAGService（构造函数参数）
+  ↓
+QueryEngine（构造函数参数）
+  ↓
+基础设施组件（通过 config 或构造函数参数）
+```
+
+#### 跨模块协作模式
+
+**工厂模式**：
+- `create_retriever()`：根据策略类型创建对应的检索器
+- `create_reranker()`：根据类型创建重排序器
+- `create_embedding()`：根据配置创建 Embedding 实例
+- `create_llm()`：创建 LLM 实例
+
+**依赖注入**：
+- 所有组件通过构造函数注入依赖
+- 示例：`RAGService(index_manager: IndexManager)`
+- 禁止静态单例或隐式全局变量
+
+**延迟加载**：
+- RAGService 中的引擎按需初始化（`@property` 装饰器）
+- 避免启动时加载所有组件，提升启动速度
+
+### 4.3 架构决策记录
+
+#### 关键架构决策
+
+**决策1：三层架构设计**
+- **问题**：如何组织代码，确保职责清晰、低耦合高内聚？
+- **决策**：采用三层架构（前端层、业务层、基础设施层）
+- **理由**：
+  - 职责清晰：每层有明确的职责边界
+  - 低耦合：单向依赖，禁止反向依赖和跨层访问
+  - 易于测试：可以独立测试每一层
+  - 易于维护：修改某一层不影响其他层
+
+**决策2：可插拔设计**
+- **问题**：如何支持不同实现之间的切换（如不同的 Embedding 模型、检索策略）？
+- **决策**：所有核心组件支持可插拔替换，通过工厂模式和抽象基类实现
+- **理由**：
+  - 灵活性：可以轻松切换不同的实现
+  - 可测试性：可以使用 Mock 实现进行测试
+  - 可扩展性：新增实现只需实现接口，无需修改现有代码
+
+**决策3：延迟加载**
+- **问题**：如何优化启动速度，避免启动时加载所有组件？
+- **决策**：RAGService 中的引擎使用延迟加载（`@property` 装饰器）
+- **理由**：
+  - 启动速度：避免启动时加载所有组件，提升用户体验
+  - 资源优化：按需加载，避免不必要的资源消耗
+  - 灵活性：可以根据实际使用情况动态加载组件
+
+**决策4：配置管理分离**
+- **问题**：如何管理配置，确保敏感信息安全？
+- **决策**：分离环境变量（`.env`）和 YAML 配置（`application.yml`）
+- **理由**：
+  - 安全性：敏感信息（API keys）存储在环境变量中，不提交到代码库
+  - 灵活性：非敏感配置存储在 YAML 中，便于修改
+  - 可维护性：配置集中管理，便于查找和修改
+
+#### 设计理念
+
+**核心设计原则**：
+1. **模块化优先**：三层架构，职责清晰，低耦合高内聚
+2. **可插拔设计**：所有核心组件支持可插拔替换
+3. **配置驱动**：集中管理配置，支持运行时切换，无需修改代码
+4. **原生组件优先**：优先使用 Streamlit 原生组件，减少自定义代码
+5. **可观测性优先**：集成 LlamaDebugHandler、RAGAS，行为透明可追踪
+6. **工程实践**：结构化日志（structlog）、类型安全（Pydantic），提升代码质量
+
+#### 技术选型理由
+
+**LlamaIndex**：
+- **理由**：成熟的 RAG 框架，提供完整的 Document、Node、Index、QueryEngine 抽象
+- **优势**：支持多种检索策略、可插拔设计、丰富的生态系统
+
+**Chroma Cloud**：
+- **理由**：云端托管，无需本地部署，支持大规模数据
+- **优势**：易于使用、自动扩展、无需维护
+
+**DeepSeek API**：
+- **理由**：支持推理链输出，适合复杂查询场景
+- **优势**：推理能力强、API 稳定、成本合理
+
+**Streamlit**：
+- **理由**：快速构建 Web 界面，原生组件丰富
+- **优势**：开发效率高、原生组件支持好、主题适配完善
+
 ---
 
 ## 5. 💾 缓存机制 (Cache System)

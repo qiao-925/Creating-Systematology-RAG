@@ -1,0 +1,370 @@
+---
+description: "全局架构认知 - 帮助AI Agent建立系统全局认知，避免局部思维"
+globs:
+  - "**/*.py"
+  - "**/*.md"
+alwaysApply: true
+priority: 5
+---
+
+# 全局架构认知规范
+
+> 帮助 AI Agent 建立对系统的全局认知，理解整体架构、数据流向、组件关系，避免局部优化导致全局问题。
+
+---
+
+## ⚠️ 核心目标
+
+**在修改任何代码前，必须理解该修改在整个系统中的位置、影响范围和依赖关系。**
+
+---
+
+## 1. 系统概览
+
+### 1.1 系统定位
+
+这是一个 **RAG（检索增强生成）系统**，核心功能是：
+- 从知识库（GitHub/本地）加载文档
+- 构建向量索引（分块 → 向量化 → 存储到 Chroma Cloud）
+- 接收用户查询，检索相关文档，生成带引用来源的答案
+
+### 1.2 核心价值
+
+- **传统 RAG**：固定检索策略，规则驱动，适合简单查询
+- **Agentic RAG**：Agent 自主决策，动态组合工具，适合复杂查询
+- **多策略检索**：向量、BM25、Grep、混合检索，根据查询类型自动选择
+
+---
+
+## 2. 三层架构全局视图
+
+### 2.1 架构分层
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  前端层（Presentation Layer）                                │
+│  - app.py → frontend/main.py                                │
+│  - 职责：用户交互、UI展示、状态管理                           │
+│  - 约束：只调用 RAGService，禁止直接访问业务层或基础设施层    │
+└───────────────────────────┬─────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│  业务层（Business Layer）                                     │
+│  - RAGService：统一服务入口                                   │
+│  - ModularQueryEngine / AgenticQueryEngine：查询引擎         │
+│  - QueryProcessor、ResponseFormatter：查询处理与格式化        │
+│  - 职责：核心业务逻辑、流程编排                               │
+│  - 约束：通过依赖注入获取基础设施能力，不包含技术细节         │
+└───────────────────────────┬─────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│  基础设施层（Infrastructure Layer）                          │
+│  - IndexManager：向量索引管理                                │
+│  - Embedding：向量化模型（可插拔）                           │
+│  - LLM：大语言模型（DeepSeek）                               │
+│  - DataLoader：数据加载（GitHub/本地）                       │
+│  - Observer：可观测性（LlamaDebugHandler、RAGAS）            │
+│  - 职责：技术基础设施，无业务逻辑                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 2.2 依赖方向
+
+**⚠️ 强制约束**：
+- 前端层 → 业务层 → 基础设施层（单向依赖）
+- **禁止反向依赖**：基础设施层不能依赖业务层或前端层
+- **禁止跨层访问**：前端层不能直接访问基础设施层
+
+---
+
+## 3. 核心组件地图
+
+### 3.1 查询流程核心组件
+
+| 组件 | 位置 | 职责 | 依赖关系 |
+|------|------|------|----------|
+| **RAGService** | `backend/business/rag_api/rag_service.py` | 统一服务入口，延迟加载引擎 | 依赖 IndexManager、QueryEngine |
+| **ModularQueryEngine** | `backend/business/rag_engine/core/engine.py` | 传统 RAG 引擎 | 依赖 IndexManager、Retriever、LLM |
+| **AgenticQueryEngine** | `backend/business/rag_engine/agentic/engine.py` | Agentic RAG 引擎（ReActAgent） | 依赖 IndexManager、Agent、Tools |
+| **QueryProcessor** | `backend/business/rag_engine/processing/query_processor.py` | 查询意图理解+改写 | 依赖 LLM |
+| **create_retriever** | `backend/business/rag_engine/retrieval/factory.py` | 检索器工厂 | 依赖 IndexManager |
+| **ResponseFormatter** | `backend/business/rag_engine/formatting/formatter.py` | 响应格式化 | 无依赖 |
+| **IndexManager** | `backend/infrastructure/indexer/core/manager.py` | 向量索引管理 | 依赖 Embedding、Chroma |
+
+### 3.2 索引构建核心组件
+
+| 组件 | 位置 | 职责 | 依赖关系 |
+|------|------|------|----------|
+| **DataImportService** | `backend/infrastructure/data_loader/service.py` | 统一数据导入入口 | 依赖 DataSource |
+| **GitRepositoryManager** | `backend/infrastructure/git/manager.py` | Git 仓库管理 | 无依赖 |
+| **DocumentParser** | `backend/infrastructure/data_loader/parser.py` | 文档解析 | 依赖 LlamaIndex |
+| **IndexManager.build_index()** | `backend/infrastructure/indexer/core/manager.py` | 索引构建 | 依赖 Embedding、Chroma |
+
+### 3.3 基础设施组件
+
+| 组件 | 位置 | 职责 | 依赖关系 |
+|------|------|------|----------|
+| **BaseEmbedding** | `backend/infrastructure/embeddings/base.py` | 向量化抽象基类 | 无依赖 |
+| **create_embedding** | `backend/infrastructure/embeddings/factory.py` | Embedding 工厂 | 依赖 BaseEmbedding |
+| **create_llm** | `backend/infrastructure/llms/factory.py` | LLM 工厂 | 依赖 DeepSeek API |
+| **ObserverManager** | `backend/infrastructure/observers/manager.py` | 可观测性管理 | 依赖 LlamaDebugHandler、RAGAS |
+| **Config** | `backend/infrastructure/config/settings.py` | 配置管理 | 无依赖 |
+
+---
+
+## 4. 数据流向全局视图
+
+### 4.1 查询流程数据流
+
+```
+用户输入（前端）
+    ↓
+frontend/main.py → handle_user_queries()
+    ↓
+RAGService.query(question, session_id)
+    ↓
+[选择引擎]
+    ├─ use_agentic_rag=True → AgenticQueryEngine.query()
+    │   └─ ReActAgent → Tools → Retriever → LLM
+    │
+    └─ use_agentic_rag=False → ModularQueryEngine.query()
+        ↓
+        QueryProcessor.process() [意图理解+改写]
+        ↓
+        [路由决策]
+        ├─ enable_auto_routing=True → QueryRouter.route()
+        │   └─ 根据查询类型选择策略
+        │
+        └─ enable_auto_routing=False → 使用固定策略
+        ↓
+        create_retriever() [工厂模式]
+        ↓
+        Retriever.retrieve() [检索相关文档]
+        ↓
+        [后处理]
+        ├─ SimilarityCutoff [相似度过滤]
+        └─ Reranker [重排序，可选]
+        ↓
+        LLM.generate() [生成答案]
+        ↓
+        ResponseFormatter.format() [格式化响应]
+        ↓
+        RAGResponse {answer, sources, metadata}
+        ↓
+        前端展示
+```
+
+### 4.2 索引构建流程数据流
+
+```
+数据源（GitHub/本地）
+    ↓
+DataImportService.import_from_github() / import_from_directory()
+    ↓
+[数据源处理]
+    ├─ GitHub → GitRepositoryManager.clone() / pull()
+    │   └─ GitHubSource.load() [获取文件列表]
+    │
+    └─ 本地 → LocalFileSource.load() [获取文件列表]
+    ↓
+DocumentParser.parse_files() [解析为 LlamaDocument]
+    ↓
+IndexManager.build_index(documents)
+    ↓
+[分块]
+    └─ SentenceSplitter [分块为 Node]
+    ↓
+[向量化]
+    └─ Embedding.embed_nodes() [生成向量]
+    ↓
+[存储]
+    └─ ChromaVectorStore [存储到 Chroma Cloud]
+    ↓
+VectorStoreIndex [索引构建完成]
+```
+
+---
+
+## 5. 关键决策点
+
+### 5.1 查询引擎选择
+
+**何时使用传统 RAG（ModularQueryEngine）**：
+- 简单查询、低延迟需求
+- 固定检索策略即可满足
+- `use_agentic_rag=False`（默认）
+
+**何时使用 Agentic RAG（AgenticQueryEngine）**：
+- 复杂查询、多意图查询
+- 需要动态组合工具
+- `use_agentic_rag=True`
+
+### 5.2 检索策略选择
+
+| 策略 | 适用场景 | 实现位置 |
+|------|----------|----------|
+| `vector` | 通用语义查询 | `retrieval/strategies/` |
+| `bm25` | 精确术语匹配 | `retrieval/strategies/` |
+| `hybrid` | 兼顾语义和关键词 | `retrieval/strategies/` |
+| `grep` | 代码、文件名查询 | `retrieval/strategies/grep.py` |
+| `multi` | 复杂查询，多策略融合 | `retrieval/strategies/multi_strategy.py` |
+
+### 5.3 配置管理
+
+**配置来源**：
+- 环境变量（`.env`）：敏感信息（API keys、tokens）
+- YAML 配置（`application.yml`）：静态非敏感配置
+- 运行时配置（`AppConfig`）：前端用户配置
+
+**配置访问**：
+- 基础设施层：`backend.infrastructure.config.config`
+- 业务层：通过构造函数参数传递
+- 前端层：`frontend/components/config_panel/models.py`
+
+---
+
+## 6. AI Agent 行为要求
+
+### 6.1 修改代码前
+
+**必须回答以下问题**：
+
+1. **位置识别**：
+   - [ ] 这个修改属于哪一层？（前端/业务/基础设施）
+   - [ ] 这个修改会影响哪些组件？
+   - [ ] 是否有跨层依赖风险？
+
+2. **影响范围**：
+   - [ ] 这个修改会影响哪些数据流？
+   - [ ] 是否有其他组件依赖这个接口？
+   - [ ] 是否需要更新相关测试？
+
+3. **架构约束**：
+   - [ ] 是否违反三层架构约束？
+   - [ ] 是否引入循环依赖？
+   - [ ] 是否符合可插拔设计原则？
+
+### 6.2 创建新组件时
+
+**必须明确**：
+
+1. **职责定位**：
+   - [ ] 这个组件属于哪一层？
+   - [ ] 这个组件的单一职责是什么？
+   - [ ] 这个组件与现有组件的关系是什么？
+
+2. **接口设计**：
+   - [ ] 是否需要抽象基类或 Protocol？
+   - [ ] 是否需要工厂模式？
+   - [ ] 是否需要注册到 ModuleRegistry？
+
+3. **依赖管理**：
+   - [ ] 依赖哪些组件？
+   - [ ] 是否可以通过依赖注入获取？
+   - [ ] 是否违反依赖方向？
+
+### 6.3 遇到架构问题时
+
+**必须升级给用户**：
+
+- 涉及跨层依赖的修改
+- 涉及核心组件接口变更
+- 涉及数据流向改变的修改
+- 涉及性能或资源消耗的重大变更
+
+---
+
+## 7. 常见架构陷阱
+
+### 7.1 违反分层约束
+
+❌ **错误示例**：
+```python
+# 基础设施层直接调用业务层
+class IndexManager:
+    def build_index(self):
+        rag_service = RAGService()  # ❌ 违反依赖方向
+```
+
+✅ **正确示例**：
+```python
+# 业务层通过依赖注入获取基础设施能力
+class RAGService:
+    def __init__(self, index_manager: IndexManager):  # ✅ 依赖注入
+        self.index_manager = index_manager
+```
+
+### 7.2 局部优化导致全局问题
+
+❌ **错误示例**：
+```python
+# 在某个组件中硬编码配置，导致无法统一管理
+class Retriever:
+    def __init__(self):
+        self.top_k = 5  # ❌ 硬编码，无法配置
+```
+
+✅ **正确示例**：
+```python
+# 通过配置系统统一管理
+class Retriever:
+    def __init__(self, top_k: int = None):
+        self.top_k = top_k or config.SIMILARITY_TOP_K  # ✅ 可配置
+```
+
+### 7.3 忽略数据流向
+
+❌ **错误示例**：
+```python
+# 在格式化阶段修改查询，导致数据流混乱
+class ResponseFormatter:
+    def format(self, response):
+        # 在格式化阶段重新查询 ❌
+        new_response = query_engine.query(response.query)
+```
+
+✅ **正确示例**：
+```python
+# 格式化阶段只负责格式化，不修改数据流
+class ResponseFormatter:
+    def format(self, response: QueryResult) -> RAGResponse:
+        # 只格式化，不查询 ✅
+        return RAGResponse(answer=response.answer, sources=response.sources)
+```
+
+---
+
+## 8. 快速参考
+
+### 8.1 核心文件路径
+
+- **服务入口**：`backend/business/rag_api/rag_service.py`
+- **查询引擎**：`backend/business/rag_engine/core/engine.py`
+- **索引管理**：`backend/infrastructure/indexer/core/manager.py`
+- **配置管理**：`backend/infrastructure/config/settings.py`
+- **前端入口**：`frontend/main.py`
+
+### 8.2 关键配置项
+
+- `RETRIEVAL_STRATEGY`：检索策略
+- `SIMILARITY_TOP_K`：检索数量
+- `ENABLE_RERANK`：重排序开关
+- `use_agentic_rag`：Agentic RAG 模式
+- `ENABLE_AUTO_ROUTING`：自动路由模式
+
+### 8.3 设计模式
+
+- **工厂模式**：`create_retriever()`, `create_reranker()`, `create_embedding()`
+- **依赖注入**：所有组件通过构造函数注入依赖
+- **延迟加载**：RAGService 中的引擎按需初始化
+- **可插拔设计**：所有核心组件支持可插拔替换
+
+---
+
+## 9. 版本信息
+
+- **创建日期**：2026-01-23
+- **版本**：v1.0
+- **目标**：帮助 AI Agent 建立全局架构认知，避免局部思维

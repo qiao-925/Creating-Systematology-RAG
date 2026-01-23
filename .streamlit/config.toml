@@ -9,6 +9,12 @@ secondaryBackgroundColor = "#f3f4f6"
 textColor = "#1f2937"
 font = "sans serif"
 
+# 侧边栏主题配置（修复控制台颜色警告）
+[theme.sidebar]
+widgetBackgroundColor = "#ffffff"
+widgetBorderColor = "#e2e8f0"
+skeletonBackgroundColor = "#f1f5f9"
+
 [server]
 # 服务器配置
 headless = true
