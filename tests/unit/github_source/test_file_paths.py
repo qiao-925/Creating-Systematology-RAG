@@ -17,8 +17,8 @@ from tests.fixtures.mocks import MockGitRepositoryManager
 class TestGitHubSourceGetFilePaths:
     """测试 GitHubSource 获取文件路径"""
     
-    @patch('src.infrastructure.data_loader.source.github.GitRepositoryManager')
-    @patch('src.infrastructure.config.config')
+    @patch('backend.infrastructure.data_loader.source.github.GitRepositoryManager')
+    @patch('backend.infrastructure.data_loader.source.github.config')
     def test_get_file_paths_success(self, mock_config, mock_git_manager_class):
         """测试成功获取文件路径"""
         mock_config.GITHUB_REPOS_PATH = Path("/tmp/repos")
@@ -53,7 +53,7 @@ class TestGitHubSourceGetFilePaths:
                 assert 'repo' in file.metadata
                 assert 'url' in file.metadata
     
-    @patch('src.infrastructure.data_loader.source.github.GitRepositoryManager', None)
+    @patch('backend.infrastructure.data_loader.source.github.GitRepositoryManager', None)
     def test_get_file_paths_no_git_manager(self):
         """测试 GitRepositoryManager 未安装时的处理"""
         source = GitHubSource(owner="test-owner", repo="test-repo")
@@ -62,8 +62,8 @@ class TestGitHubSourceGetFilePaths:
         assert files == []
         assert source.repo_path is None
     
-    @patch('src.infrastructure.data_loader.source.github.GitRepositoryManager')
-    @patch('src.infrastructure.config.config')
+    @patch('backend.infrastructure.data_loader.source.github.GitRepositoryManager')
+    @patch('backend.infrastructure.data_loader.source.github.config')
     def test_get_file_paths_git_error(self, mock_config, mock_git_manager_class):
         """测试 Git 操作失败时的处理"""
         mock_config.GITHUB_REPOS_PATH = Path("/tmp/repos")
@@ -78,8 +78,8 @@ class TestGitHubSourceGetFilePaths:
         assert files == []
         assert source.repo_path is None
     
-    @patch('src.infrastructure.data_loader.source.github.GitRepositoryManager')
-    @patch('src.infrastructure.config.config')
+    @patch('backend.infrastructure.data_loader.source.github.GitRepositoryManager')
+    @patch('backend.infrastructure.data_loader.source.github.config')
     def test_get_file_paths_with_directory_filter(self, mock_config, mock_git_manager_class):
         """测试使用目录过滤器"""
         mock_config.GITHUB_REPOS_PATH = Path("/tmp/repos")
@@ -110,8 +110,8 @@ class TestGitHubSourceGetFilePaths:
             for file in files:
                 assert 'docs' in str(file.metadata['file_path'])
     
-    @patch('src.infrastructure.data_loader.source.github.GitRepositoryManager')
-    @patch('src.infrastructure.config.config')
+    @patch('backend.infrastructure.data_loader.source.github.GitRepositoryManager')
+    @patch('backend.infrastructure.data_loader.source.github.config')
     def test_get_file_paths_with_extension_filter(self, mock_config, mock_git_manager_class):
         """测试使用扩展名过滤器"""
         mock_config.GITHUB_REPOS_PATH = Path("/tmp/repos")
@@ -140,8 +140,8 @@ class TestGitHubSourceGetFilePaths:
             for file in files:
                 assert file.path.suffix == ".md"
     
-    @patch('src.infrastructure.data_loader.source.github.GitRepositoryManager')
-    @patch('src.infrastructure.config.config')
+    @patch('backend.infrastructure.data_loader.source.github.GitRepositoryManager')
+    @patch('backend.infrastructure.data_loader.source.github.config')
     def test_get_file_paths_exception_handling(self, mock_config, mock_git_manager_class):
         """测试异常处理"""
         mock_config.GITHUB_REPOS_PATH = Path("/tmp/repos")

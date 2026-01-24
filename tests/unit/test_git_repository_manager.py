@@ -45,67 +45,74 @@ class TestGitRepositoryManager:
         
         assert url == "https://github.com/owner/repo.git"
     
+    @patch('backend.infrastructure.git.clone.subprocess.run')
     @patch('subprocess.run')
-    def test_clone_repository_success(self, mock_run, tmp_path):
+    def test_clone_repository_success(self, mock_run_init, mock_run_clone, tmp_path):
         """测试克隆仓库成功"""
-        # Mock git --version 和 git clone
-        mock_result = Mock()
-        mock_result.returncode = 0
-        mock_result.stdout = "git version 2.30.0"
-        mock_run.return_value = mock_result
+        # Mock git --version
+        mock_version_result = Mock()
+        mock_version_result.returncode = 0
+        mock_version_result.stdout = "git version 2.30.0"
+        mock_run_init.return_value = mock_version_result
         
-        manager = GitRepositoryManager(tmp_path)
+        # Mock git clone
+        mock_clone_result = Mock()
+        mock_clone_result.returncode = 0
+        mock_clone_result.stdout = ""
+        mock_run_clone.return_value = mock_clone_result
+        
+        from backend.infrastructure.git.clone import clone_repository
         
         repo_path = tmp_path / "microsoft" / "TypeScript_main"
         clone_url = "https://github.com/microsoft/TypeScript.git"
         
-        manager._clone_repository(clone_url, repo_path, "main")
+        clone_repository(clone_url, repo_path, "main")
         
-        # 验证 git clone 被调用（__init__ 会先调用 git --version，然后是 git clone）
-        assert mock_run.call_count == 2  # git --version + git clone
-        # 检查最后一次调用是 git clone
-        last_call_args = mock_run.call_args_list[-1]
-        assert last_call_args[0][0][0] == 'git'
-        assert last_call_args[0][0][1] == 'clone'
-        assert '--branch' in last_call_args[0][0]
-        assert 'main' in last_call_args[0][0]
+        # 验证 git clone 被调用
+        assert mock_run_clone.call_count >= 1
+        # 检查调用是 git clone
+        call_args = mock_run_clone.call_args_list[0]
+        assert call_args[0][0][0] == 'git'
+        assert call_args[0][0][1] == 'clone'
+        assert '--branch' in call_args[0][0]
+        assert 'main' in call_args[0][0]
     
-    @patch('subprocess.run')
+    @patch('backend.infrastructure.git.clone.subprocess.run')
     def test_clone_repository_failure(self, mock_run, tmp_path):
         """测试克隆仓库失败"""
-        manager = GitRepositoryManager(tmp_path)
-        
         # Mock git clone 失败
         mock_result = Mock()
         mock_result.returncode = 1
         mock_result.stderr = "fatal: repository not found"
         mock_run.return_value = mock_result
         
+        from backend.infrastructure.git.clone import clone_repository
+        
         repo_path = tmp_path / "owner" / "repo_main"
         clone_url = "https://github.com/owner/repo.git"
         
         with pytest.raises(RuntimeError, match="git clone 失败"):
-            manager._clone_repository(clone_url, repo_path, "main")
+            clone_repository(clone_url, repo_path, "main")
     
-    @patch('subprocess.run')
+    @patch('backend.infrastructure.git.update.subprocess.run')
     def test_update_repository_success(self, mock_run, tmp_path):
         """测试更新仓库成功"""
-        # Mock git --version, git checkout 和 git pull
+        # Mock git checkout 和 git pull
         mock_result = Mock()
         mock_result.returncode = 0
         mock_result.stdout = "Already up to date"
         mock_run.return_value = mock_result
         
-        manager = GitRepositoryManager(tmp_path)
+        from backend.infrastructure.git.update import update_repository
         
         # 创建假的仓库目录
         repo_path = tmp_path / "owner" / "repo_main"
         repo_path.mkdir(parents=True)
         
-        manager._update_repository(repo_path, "main")
+        update_repository(repo_path, "main")
         
-        # 验证 git checkout 和 git pull 被调用（__init__ 会先调用 git --version）
-        assert mock_run.call_count == 3  # git --version + git checkout + git pull
+        # 验证 git checkout 和 git pull 被调用
+        assert mock_run.call_count == 2  # git checkout + git pull
     
     @patch('subprocess.run')
     def test_get_current_commit_sha(self, mock_run, tmp_path):

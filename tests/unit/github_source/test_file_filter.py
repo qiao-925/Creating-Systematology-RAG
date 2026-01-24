@@ -25,7 +25,7 @@ class TestGitHubSourceShouldIncludeFile:
         source = GitHubSource(
             owner="test",
             repo="test",
-            filter_directories=["docs", "src"]
+            filter_directories=["docs", "backend"]
         )
         
         assert source._should_include_file("docs/guide.md") is True
