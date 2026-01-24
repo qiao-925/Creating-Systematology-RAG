@@ -9,6 +9,7 @@ RAG服务：查询功能
 from typing import Optional
 
 from backend.infrastructure.logger import get_logger
+from backend.infrastructure.embeddings.hf_stats import set_current_task_id, finish_task
 from backend.business.rag_api.models import QueryRequest, RAGResponse
 from backend.business.rag_engine.models import SourceModel
 
@@ -32,6 +33,10 @@ def execute_query(
     Returns:
         RAG响应
     """
+    # 设置当前任务 ID（用于 HF API 统计）
+    task_id = request.session_id or user_id or 'anonymous'
+    set_current_task_id(task_id)
+    
     logger.info(
         "收到查询请求",
         user_id=user_id,

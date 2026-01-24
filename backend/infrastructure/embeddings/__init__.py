@@ -31,6 +31,11 @@ __all__ = [
     'LocalEmbedding',
     'HFInferenceEmbedding',
     'create_embedding',
+    # 统计相关
+    'set_current_task_id',
+    'finish_task',
+    'get_stats',
+    'get_task_stats',
 ]
 
 
@@ -48,5 +53,8 @@ def __getattr__(name: str) -> Any:
     elif name == 'create_embedding':
         from backend.infrastructure.embeddings.factory import create_embedding
         return create_embedding
+    elif name in ('set_current_task_id', 'finish_task', 'get_stats', 'get_task_stats'):
+        from backend.infrastructure.embeddings import hf_stats
+        return getattr(hf_stats, name)
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 

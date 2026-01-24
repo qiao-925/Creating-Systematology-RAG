@@ -56,4 +56,5 @@ description: Skill 描述
 - `references/skill-format.md` - Skills 格式详细规范
 - `references/skill-authoring.md` - Skills 设计详细指南
 - `references/skill-migration.md` - Skills 迁移详细说明
+- `references/workflow-patterns.md` - 工作流设计模式（Checkpoint-Resumable 等）
 - `references/official-docs.md` - 官方文档引用

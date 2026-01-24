@@ -8,7 +8,7 @@
 """
 
 import time
-from typing import List, Tuple, Dict, Optional, TYPE_CHECKING
+from typing import List, Tuple, Dict, Optional, Callable, TYPE_CHECKING
 
 from tqdm import tqdm
 from llama_index.core import VectorStoreIndex
@@ -93,7 +93,8 @@ def build_index_normal_mode(
     index_manager,
     documents: List[LlamaDocument],
     show_progress: bool = True,
-    github_sync_manager: Optional["GitHubSyncManager"] = None
+    github_sync_manager: Optional["GitHubSyncManager"] = None,
+    progress_callback: Optional[Callable[[int, int], None]] = None
 ) -> Tuple[VectorStoreIndex, Dict[str, List[str]], Dict[str, Dict]]:
     """批量处理模式构建索引
     
@@ -108,6 +109,7 @@ def build_index_normal_mode(
         documents: 文档列表（已过滤，只包含未向量化的文档）
         show_progress: 是否显示进度
         github_sync_manager: GitHub同步管理器实例（可选）
+        progress_callback: 进度回调函数，签名 (current, total) -> None
         
     Returns:
         (索引, 向量ID映射, 文档元数据映射)
@@ -149,20 +151,73 @@ def build_index_normal_mode(
     logger.info(f"[阶段2.1]    分块参数: size={index_manager.chunk_size}, overlap={index_manager.chunk_overlap}")
     
     if need_create_new:
-        # 创建新索引 - 使用 VectorStoreIndex.from_documents（已经是批量处理）
+        # 创建新索引
         logger.info("[阶段2.1]    模式: 创建新索引（批量处理）")
         index_start_time = time.time()
         
         try:
             llama_embed_model = index_manager._get_llama_index_compatible_embedding()
             
-            # 创建索引（LlamaIndex 内部会批量处理）
-            index_manager._index = VectorStoreIndex.from_documents(
-                documents,
-                storage_context=index_manager.storage_context,
-                embed_model=llama_embed_model,
-                show_progress=show_progress,
-            )
+            if progress_callback:
+                # 有进度回调时：先分块再逐批插入（支持进度反馈）
+                from llama_index.core.node_parser import SentenceSplitter
+                node_parser_new = SentenceSplitter(
+                    chunk_size=index_manager.chunk_size,
+                    chunk_overlap=index_manager.chunk_overlap
+                )
+                all_nodes = node_parser_new.get_nodes_from_documents(documents, show_progress=show_progress)
+                total_nodes = len(all_nodes)
+                
+                logger.info(f"[阶段2.1] ✅ 分块完成: {total_nodes} 个节点")
+                
+                # 使用第一批节点创建索引
+                batch_size = config.EMBED_BATCH_SIZE * 5
+                first_batch = all_nodes[:batch_size]
+                remaining_nodes = all_nodes[batch_size:]
+                
+                # 用第一批节点创建索引（避免空索引问题）
+                index_manager._index = VectorStoreIndex(
+                    nodes=first_batch,
+                    storage_context=index_manager.storage_context,
+                    embed_model=llama_embed_model,
+                    show_progress=show_progress,
+                )
+                
+                processed_nodes = len(first_batch)
+                progress_callback(processed_nodes, total_nodes)
+                
+                if show_progress:
+                    pbar = tqdm(total=total_nodes, initial=processed_nodes, desc="插入节点", unit="node")
+                
+                # 插入剩余节点
+                for i in range(0, len(remaining_nodes), batch_size):
+                    batch_nodes = remaining_nodes[i:i + batch_size]
+                    if hasattr(index_manager._index, 'insert_nodes'):
+                        index_manager._index.insert_nodes(batch_nodes)
+                    else:
+                        for node in batch_nodes:
+                            index_manager._index.insert(node)
+                    
+                    processed_nodes += len(batch_nodes)
+                    
+                    if show_progress:
+                        pbar.update(len(batch_nodes))
+                    
+                    progress_callback(processed_nodes, total_nodes)
+                
+                if show_progress:
+                    pbar.close()
+                
+                # 最终回调确保 100%
+                progress_callback(total_nodes, total_nodes)
+            else:
+                # 无进度回调时：使用原始方式（LlamaIndex 内部批量处理）
+                index_manager._index = VectorStoreIndex.from_documents(
+                    documents,
+                    storage_context=index_manager.storage_context,
+                    embed_model=llama_embed_model,
+                    show_progress=show_progress,
+                )
             
             if hasattr(index_manager, '_collection_is_empty'):
                 delattr(index_manager, '_collection_is_empty')
@@ -202,6 +257,10 @@ def build_index_normal_mode(
             if show_progress:
                 pbar = tqdm(total=total_nodes, desc="插入节点", unit="node")
             
+            # 进度回调更新间隔（每 10 个节点）
+            callback_interval = 10
+            processed_nodes = 0
+            
             for i in range(0, total_nodes, batch_size):
                 batch_nodes = all_nodes[i:i + batch_size]
                 try:
@@ -211,8 +270,14 @@ def build_index_normal_mode(
                         for node in batch_nodes:
                             index_manager._index.insert(node)
                     
+                    processed_nodes += len(batch_nodes)
+                    
                     if show_progress:
                         pbar.update(len(batch_nodes))
+                    
+                    # 调用进度回调
+                    if progress_callback:
+                        progress_callback(processed_nodes, total_nodes)
                         
                 except Exception as insert_error:
                     logger.warning(f"批次插入失败 (批次 {i//batch_size + 1}): {insert_error}")
@@ -220,13 +285,21 @@ def build_index_normal_mode(
                     for node in batch_nodes:
                         try:
                             index_manager._index.insert(node)
+                            processed_nodes += 1
                             if show_progress:
                                 pbar.update(1)
+                            # 单节点模式下，每 callback_interval 个节点回调一次
+                            if progress_callback and processed_nodes % callback_interval == 0:
+                                progress_callback(processed_nodes, total_nodes)
                         except Exception:
                             pass
             
             if show_progress:
                 pbar.close()
+            
+            # 最终回调确保 100%
+            if progress_callback:
+                progress_callback(total_nodes, total_nodes)
             
             insert_elapsed = time.time() - insert_start
             logger.info(f"[阶段2.2] ✅ 插入完成 (耗时: {insert_elapsed:.2f}s)")

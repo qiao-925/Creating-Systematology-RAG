@@ -3,7 +3,7 @@
 """
 
 import time
-from typing import List, Optional, Tuple, Dict, TYPE_CHECKING
+from typing import List, Optional, Tuple, Dict, Callable, TYPE_CHECKING
 
 from llama_index.core.schema import Document as LlamaDocument
 
@@ -23,7 +23,8 @@ def build_index_method(
     index_manager,
     documents: List[LlamaDocument],
     show_progress: bool = True,
-    github_sync_manager: Optional["GitHubSyncManager"] = None
+    github_sync_manager: Optional["GitHubSyncManager"] = None,
+    progress_callback: Optional[Callable[[int, int], None]] = None
 ) -> Tuple:
     """构建或更新索引（IndexManager的build_index方法实现）
     
@@ -32,6 +33,7 @@ def build_index_method(
         documents: 文档列表
         show_progress: 是否显示进度
         github_sync_manager: GitHub同步管理器实例（可选）
+        progress_callback: 进度回调函数，签名 (current, total) -> None
         
     Returns:
         (索引, 向量ID映射)
@@ -95,7 +97,7 @@ def build_index_method(
     try:
         # 只使用正常模式（批处理模式已移除）
         index, new_vector_ids_map, metadata_map = build_index_normal_mode(
-            index_manager, documents, show_progress, github_sync_manager
+            index_manager, documents, show_progress, github_sync_manager, progress_callback
         )
         
         # 获取索引统计信息

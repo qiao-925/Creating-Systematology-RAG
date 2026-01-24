@@ -4,6 +4,7 @@ Hugging Face Inference API 客户端
 主要功能：
 - 处理单个和批量 API 请求
 - 重试机制和错误处理
+- API 调用统计记录
 """
 
 import time
@@ -16,6 +17,7 @@ from requests.exceptions import RequestException
 from backend.infrastructure.logger import get_logger
 from backend.infrastructure.embeddings.hf_utils import TimeMonitor
 from backend.infrastructure.embeddings.hf_thread_pool import _get_or_create_executor
+from backend.infrastructure.embeddings.hf_stats import record_api_call
 
 logger = get_logger('hf_api_client')
 
@@ -137,7 +139,10 @@ class HFAPIClient:
         try:
             # 单个文本直接处理，无需并行
             if total == 1:
+                start_time = time.time()
                 result = self.make_single_request(texts[0])
+                elapsed = time.time() - start_time
+                record_api_call(text_count=1, elapsed_time=elapsed)
                 return [result]
             
             # 多个文本使用并行处理
@@ -192,6 +197,9 @@ class HFAPIClient:
                     f"📥 并行批量完成: {total} 个文本, "
                     f"总耗时={batch_elapsed:.2f}s, 平均={avg_time:.2f}s/个"
                 )
+                
+                # 记录统计
+                record_api_call(text_count=total, elapsed_time=batch_elapsed)
                 
                 return results
                 

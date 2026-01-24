@@ -87,7 +87,7 @@ class BackgroundPreloader:
                 self._completed_modules.append(module_name)
     
     def _do_init(self) -> None:
-        """执行初始化（分步执行以实时更新进度）"""
+        """执行初始化（优化版：只初始化必需模块，延迟加载耗时组件）"""
         try:
             from backend.infrastructure.initialization.manager import InitializationManager
             from backend.infrastructure.initialization.registry import register_all_modules
@@ -97,43 +97,36 @@ class BackgroundPreloader:
             manager = InitializationManager()
             register_all_modules(manager)
             
-            # 逐个初始化模块（使用模块自身的 description 作为显示名称）
+            # 只初始化必需模块（跳过 embedding、index_manager 等耗时模块）
             for module_name in manager._topological_sort():
                 module = manager.modules[module_name]
                 display = module.description or module_name
+                
+                # 跳过非必需模块（延迟加载）
+                if not module.is_required:
+                    self._stage_details.append(f"⏭️ {display} (延迟加载)")
+                    continue
                 
                 self._update_stage(f"初始化 {display}")
                 success = manager.execute_init(module_name)
                 
                 if success:
                     self._update_stage(f"{display}", module_name)
-                elif module.is_required:
+                else:
                     self._fail(f"必需模块 {display} 初始化失败: {module.error}")
                     return
-                else:
-                    self._stage_details.append(f"⏭️ {display} (跳过)")
             
-            # 获取服务实例
-            self._update_stage("获取服务实例")
-            rag_service = manager.instances.get('rag_service')
-            chat_manager = manager.instances.get('chat_manager')
-            
-            # 延迟初始化服务
-            if not rag_service:
-                self._update_stage("初始化 RAG服务")
-                if manager.execute_init('rag_service'):
-                    rag_service = manager.instances.get('rag_service')
-                    self._update_stage("RAG服务", 'rag_service')
-            
-            if not chat_manager:
-                self._update_stage("初始化 对话管理器")
-                if manager.execute_init('chat_manager'):
-                    chat_manager = manager.instances.get('chat_manager')
-                    self._update_stage("对话管理器", 'chat_manager')
+            # 创建轻量级服务（纯 LLM 模式，不依赖 index_manager）
+            self._update_stage("创建轻量级服务")
+            rag_service, chat_manager = self._create_lightweight_services(manager)
             
             if not rag_service or not chat_manager:
                 self._fail("服务实例创建失败")
                 return
+            
+            # 存储到 manager.instances 以便后续使用
+            manager.instances['rag_service'] = rag_service
+            manager.instances['chat_manager'] = chat_manager
             
             # 成功
             summary = manager.get_status_summary()
@@ -147,6 +140,57 @@ class BackgroundPreloader:
         except Exception as e:
             self._fail(str(e))
             logger.error(f"❌ 后台预加载异常: {e}", exc_info=True)
+    
+    def _create_lightweight_services(self, manager) -> tuple:
+        """创建轻量级服务（纯 LLM 模式，首次查询时延迟初始化 RAG）
+        
+        Returns:
+            (rag_service, chat_manager)
+        """
+        import streamlit as st
+        from backend.infrastructure.config import config
+        
+        # 获取配置参数
+        enable_debug = False
+        use_agentic_rag = False
+        selected_model_id = None
+        
+        if hasattr(st, 'session_state'):
+            enable_debug = st.session_state.get('debug_mode_enabled', False)
+            use_agentic_rag = st.session_state.get('use_agentic_rag', False)
+            selected_model_id = st.session_state.get('selected_model')
+        
+        # 创建 RAGService（延迟模式）
+        from backend.business.rag_api import RAGService
+        collection_name = config.CHROMA_COLLECTION_NAME
+        if hasattr(st, 'session_state') and 'collection_name' in st.session_state:
+            collection_name = st.session_state.collection_name
+        
+        rag_service = RAGService(
+            collection_name=collection_name,
+            enable_debug=enable_debug,
+            enable_markdown_formatting=True,
+            use_agentic_rag=use_agentic_rag,
+            model_id=selected_model_id,
+        )
+        
+        # 创建 ChatManager（纯 LLM 模式，无 index_manager）
+        from backend.business.chat import ChatManager
+        chat_manager = ChatManager(
+            index_manager=None,  # 纯 LLM 模式
+            enable_debug=enable_debug,
+            enable_markdown_formatting=True,
+            use_agentic_rag=use_agentic_rag,
+            model_id=selected_model_id,
+        )
+        
+        # 缓存到 session_state
+        if hasattr(st, 'session_state'):
+            st.session_state.rag_service = rag_service
+            st.session_state.chat_manager = chat_manager
+        
+        logger.info("✅ 轻量级服务创建完成（延迟加载模式）")
+        return rag_service, chat_manager
     
     def _fail(self, error: str) -> None:
         """标记初始化失败"""

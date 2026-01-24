@@ -17,7 +17,7 @@
 - 统计信息收集
 """
 
-from typing import List, Optional, Tuple, Dict
+from typing import List, Optional, Tuple, Dict, Callable
 
 from llama_index.core import VectorStoreIndex
 from llama_index.core.schema import Document as LlamaDocument
@@ -74,19 +74,23 @@ class IndexService:
     def build_index(
         self,
         documents: List[LlamaDocument],
-        show_progress: Optional[bool] = None
+        show_progress: Optional[bool] = None,
+        github_sync_manager=None,
+        progress_callback: Optional[Callable[[int, int], None]] = None
     ) -> Tuple[VectorStoreIndex, Dict[str, List[str]]]:
         """构建或更新索引
         
         Args:
             documents: 文档列表
             show_progress: 是否显示进度（默认使用初始化时的设置）
+            github_sync_manager: GitHub同步管理器实例（可选）
+            progress_callback: 进度回调函数，签名 (current, total) -> None
             
         Returns:
             (索引实例, 向量ID映射)
         """
         show_progress = show_progress if show_progress is not None else self.show_progress
-        return self.manager.build_index(documents, show_progress)
+        return self.manager.build_index(documents, show_progress, github_sync_manager, progress_callback)
     
     def search(self, query: str, top_k: int = 5) -> List[dict]:
         """搜索相似文档

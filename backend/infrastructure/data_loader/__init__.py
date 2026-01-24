@@ -61,6 +61,10 @@ from backend.infrastructure.data_loader.github_sync import FileChange, GitHubSyn
 from backend.infrastructure.data_loader.progress import ImportStage, ImportProgressManager
 from backend.infrastructure.data_loader.github_preflight import check_repository, PreflightResult
 
+# 导出后台任务
+from backend.infrastructure.data_loader.import_task import ImportTask
+from backend.infrastructure.data_loader.sync_task import SyncTask
+
 # 便捷函数（使用统一服务）
 def load_documents_from_directory(
     directory_path: str | Path,
@@ -182,6 +186,9 @@ __all__ = [
     'ImportProgressManager',
     'check_repository',
     'PreflightResult',
+    # 后台任务
+    'ImportTask',
+    'SyncTask',
 ]
 
 # 导出为 _handle_github_error（别名）

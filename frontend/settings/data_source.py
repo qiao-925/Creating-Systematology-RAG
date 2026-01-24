@@ -1,9 +1,10 @@
 """
 设置页面数据源管理模块
 GitHub仓库、本地文件管理
-支持进度可视化和取消导入
+支持进度可视化和取消导入（后台线程 + 轮询机制）
 """
 
+import time
 import streamlit as st
 
 from backend.infrastructure.data_loader import (
@@ -11,7 +12,8 @@ from backend.infrastructure.data_loader import (
     parse_github_url,
     sync_github_repository,
     check_repository,
-    ImportProgressManager,
+    ImportTask,
+    SyncTask,
 )
 
 
@@ -19,6 +21,11 @@ def render_data_source_tab():
     """渲染数据源管理标签页"""
     st.header("📦 数据源管理")
     st.caption("配置和管理各种数据源")
+    
+    # 检查是否有正在进行的导入任务
+    if _render_import_progress():
+        # 有任务进行中，不显示其他内容
+        return
     
     # GitHub 仓库管理
     st.subheader("🐙 GitHub 仓库管理")
@@ -56,7 +63,7 @@ def render_data_source_tab():
 
 
 def _handle_add_github_repo(github_url: str):
-    """处理添加GitHub仓库（支持进度可视化和取消）"""
+    """处理添加GitHub仓库 - 启动后台任务"""
     if not github_url or not github_url.strip():
         st.error("❌ 请输入 GitHub 仓库 URL")
         return
@@ -80,136 +87,148 @@ def _handle_add_github_repo(github_url: str):
         st.error("❌ 应用未初始化，请刷新页面")
         return
     index_manager = init_result.instances.get('index_manager')
+    
+    # 按需初始化 index_manager（延迟加载）
     if not index_manager:
-        st.error("❌ 索引管理器未初始化")
+        with st.spinner("正在初始化索引管理器..."):
+            try:
+                from backend.infrastructure.initialization.registry_init import init_index_manager
+                index_manager = init_index_manager(init_result.manager)
+                init_result.instances['index_manager'] = index_manager
+            except Exception as e:
+                st.error(f"❌ 索引管理器初始化失败: {str(e)[:100]}")
+                return
+    
+    if not index_manager:
+        st.error("❌ 索引管理器初始化失败")
         return
     
-    # 创建进度管理器
-    progress_manager = ImportProgressManager(github_owner, github_repo, github_branch)
+    # 启动后台导入任务
+    task = ImportTask.start(
+        owner=github_owner,
+        repo=github_repo,
+        branch=github_branch,
+        index_manager=index_manager,
+        github_sync_manager=st.session_state.github_sync_manager
+    )
     
-    # 创建进度显示容器
-    progress_container = st.container()
+    # 保存任务到 session_state
+    st.session_state['import_task'] = task
+    st.session_state['import_task_type'] = 'import'
+    st.rerun()
+
+
+def _render_import_progress():
+    """渲染导入/同步进度（轮询模式）
     
-    with progress_container:
-        st.markdown(f"### 📦 正在导入 {github_owner}/{github_repo}")
+    支持 ImportTask 和 SyncTask，统一进度显示逻辑。
+    
+    Returns:
+        bool: 是否有正在进行的任务
+    """
+    task = st.session_state.get('import_task')
+    if not task:
+        return False
+    
+    progress = task.get_progress()
+    task_type = st.session_state.get('import_task_type', 'import')
+    
+    # 渲染进度 UI（根据任务类型显示不同标题）
+    if task_type == 'sync':
+        st.markdown(f"### 🔄 正在同步 {progress['repository']}")
+    else:
+        st.markdown(f"### 📦 正在导入 {progress['repository']}")
+    
+    # 阶段指示器
+    stages = ["预检", "克隆", "扫描", "解析", "向量"]
+    current_idx = progress['current_stage_index']
+    stage_parts = []
+    for i, name in enumerate(stages, 1):
+        if i == current_idx:
+            stage_parts.append(f"**[{name}]**")
+        elif i < current_idx:
+            stage_parts.append(f"~~{name}~~")
+        else:
+            stage_parts.append(name)
+    st.markdown(f"**阶段** [{current_idx}/{progress['total_stages']}]: " + " → ".join(stage_parts))
+    
+    # 进度条
+    if progress['is_quantifiable'] and progress['progress_total'] > 0:
+        progress_value = progress['progress_current'] / progress['progress_total']
+        progress_text = f"{progress['progress_percent']}% ({progress['progress_current']}/{progress['progress_total']})"
+        st.progress(progress_value, text=progress_text)
+    else:
+        elapsed = progress['elapsed_seconds']
+        stage_name = progress['current_stage_name']
+        if progress['is_complete']:
+            if progress['current_stage'] == 'complete':
+                st.success(f"✅ {stage_name}")
+            elif progress['current_stage'] == 'cancelled':
+                st.warning(f"⚠️ {stage_name}")
+            elif progress['current_stage'] == 'failed':
+                st.error(f"❌ {stage_name}")
+                if progress['error_message']:
+                    st.error(progress['error_message'])
+        else:
+            st.info(f"⏳ {stage_name}... (已等待 {elapsed:.0f}秒)")
+    
+    # 日志区域
+    st.markdown("**📋 操作日志**")
+    logs = progress['logs']
+    if logs:
+        with st.container(height=150):
+            for log in logs[-10:]:  # 只显示最近 10 条
+                st.text(log)
+    else:
+        st.caption("暂无日志")
+    
+    # 取消按钮
+    if not progress['is_complete']:
+        col1, col2, col3 = st.columns([2, 1, 2])
+        with col2:
+            if st.button("❌ 取消", key="cancel_import_task", use_container_width=True):
+                task.cancel()
+                st.rerun()
         
-        # 步骤 1: 仓库预检
-        stage_text = st.empty()
-        progress_bar = st.empty()
-        log_container = st.container(height=150)
-        cancel_col1, cancel_col2, cancel_col3 = st.columns([2, 1, 2])
+        # 轮询：等待后刷新
+        time.sleep(1)  # 1 秒轮询间隔
+        st.rerun()
+    else:
+        # 任务完成，显示结果并清理
+        task_type = st.session_state.get('import_task_type', 'import')
         
-        # 检查是否已请求取消
-        cancel_key = f"cancel_{github_owner}_{github_repo}"
-        if st.session_state.get(cancel_key):
-            st.warning("⚠️ 导入已取消")
-            st.session_state[cancel_key] = False
-            return
-        
-        with cancel_col2:
-            if st.button("❌ 取消", key="cancel_add_repo"):
-                st.session_state[cancel_key] = True
-                st.warning("⚠️ 正在取消...")
-                return
-        
-        try:
-            # 预检阶段
-            stage_text.markdown("**阶段 [1/5]**: 🔍 仓库预检...")
-            progress_bar.progress(0.1)
-            
-            preflight_result = check_repository(github_owner, github_repo)
-            
-            if not preflight_result.success:
-                st.error(f"❌ 预检失败: {preflight_result.error_message}")
-                return
-            
-            # 大仓库警告
-            if preflight_result.is_large:
-                st.warning(f"⚠️ 仓库较大 ({preflight_result.size_mb:.1f}MB)，克隆可能需要较长时间")
-            
-            with log_container:
-                st.text(f"✅ 预检通过 (大小: {preflight_result.size_mb:.1f}MB)")
-            
-            # 检查取消
-            if st.session_state.get(cancel_key):
-                st.warning("⚠️ 导入已取消")
-                st.session_state[cancel_key] = False
-                return
-            
-            # 克隆/同步阶段
-            stage_text.markdown("**阶段 [2/5]**: 🔄 克隆仓库...")
-            progress_bar.progress(0.2)
-            
-            documents, changes, commit_sha = sync_github_repository(
-                owner=github_owner,
-                repo=github_repo,
-                branch=github_branch,
-                github_sync_manager=st.session_state.github_sync_manager,
-                show_progress=False
-            )
-            
-            with log_container:
-                st.text(f"✅ 预检通过 (大小: {preflight_result.size_mb:.1f}MB)")
-                if commit_sha:
-                    st.text(f"✅ 仓库同步完成 (Commit: {commit_sha[:8]})")
-            
-            # 检查取消
-            if st.session_state.get(cancel_key):
-                st.warning("⚠️ 导入已取消")
-                st.session_state[cancel_key] = False
-                return
-            
-            if not documents:
-                st.warning("⚠️ 未能加载任何文件")
-                return
-            
-            # 索引构建阶段
-            stage_text.markdown(f"**阶段 [4/5]**: 🔢 构建索引 ({len(documents)} 个文档)...")
-            progress_bar.progress(0.6)
-            
-            with log_container:
-                st.text(f"✅ 预检通过 (大小: {preflight_result.size_mb:.1f}MB)")
-                st.text(f"✅ 仓库同步完成 (Commit: {commit_sha[:8]})")
-                st.text(f"🔄 正在构建索引 ({len(documents)} 个文档)...")
-            
-            index, vector_ids_map = index_manager.build_index(
-                documents, 
-                show_progress=False,
-                github_sync_manager=st.session_state.github_sync_manager
-            )
-            
-            # 保存状态
-            stage_text.markdown("**阶段 [5/5]**: 💾 保存状态...")
-            progress_bar.progress(0.9)
-            
-            st.session_state.github_sync_manager.update_repository_sync_state(
-                owner=github_owner,
-                repo=github_repo,
-                branch=github_branch,
-                documents=documents,
-                vector_ids_map=vector_ids_map,
-                commit_sha=commit_sha
-            )
+        if task.is_success:
+            # 更新仓库列表
             st.session_state.github_repos = st.session_state.github_sync_manager.list_repositories()
             st.session_state.index_built = True
             
-            # 完成
-            stage_text.markdown("**完成** ✅")
-            progress_bar.progress(1.0)
-            
-            with log_container:
-                st.text(f"✅ 预检通过 (大小: {preflight_result.size_mb:.1f}MB)")
-                st.text(f"✅ 仓库同步完成 (Commit: {commit_sha[:8]})")
-                st.text(f"✅ 索引构建完成 ({len(documents)} 个文档)")
-                st.text(f"✅ 导入完成！")
-            
-            st.success(f"✅ 成功添加 {len(documents)} 个文件！")
+            if task_type == 'sync':
+                # SyncTask 特有属性
+                if hasattr(task, 'has_changes') and not task.has_changes:
+                    st.success("✅ 已是最新版本")
+                else:
+                    changes_summary = getattr(task, 'changes_summary', '')
+                    st.success(f"✅ 同步完成！{changes_summary}")
+            else:
+                st.success(f"✅ 成功导入 {task.documents_count} 个文档！")
+        elif progress['current_stage'] == 'cancelled':
+            if task_type == 'sync':
+                st.warning("⚠️ 同步已取消")
+            else:
+                st.warning("⚠️ 导入已取消")
+        else:
+            if task_type == 'sync':
+                st.error(f"❌ 同步失败: {task.error_message or '未知错误'}")
+            else:
+                st.error(f"❌ 导入失败: {task.error_message or '未知错误'}")
+        
+        # 清理任务
+        if st.button("确定", key="clear_import_task", use_container_width=True):
+            st.session_state['import_task'] = None
+            st.session_state['import_task_type'] = None
             st.rerun()
-            
-        except Exception as e:
-            st.error(f"❌ 添加失败: {str(e)[:100]}")
-            with log_container:
-                st.text(f"❌ 错误: {str(e)[:80]}")
+    
+    return True
 
 
 def _create_delete_callback(repo: dict):
@@ -262,15 +281,27 @@ def _render_github_repos_list():
 
 
 def _handle_sync_repo(repo: dict):
-    """处理仓库同步（支持进度显示）"""
+    """处理仓库同步 - 启动后台任务"""
     # 从统一初始化系统获取 IndexManager
     init_result = st.session_state.get('init_result')
     if not init_result:
         st.error("❌ 应用未初始化，请刷新页面")
         return
     index_manager = init_result.instances.get('index_manager')
+    
+    # 按需初始化 index_manager（延迟加载，与导入逻辑一致）
     if not index_manager:
-        st.error("❌ 索引管理器未初始化")
+        with st.spinner("正在初始化索引管理器..."):
+            try:
+                from backend.infrastructure.initialization.registry_init import init_index_manager
+                index_manager = init_index_manager(init_result.manager)
+                init_result.instances['index_manager'] = index_manager
+            except Exception as e:
+                st.error(f"❌ 索引管理器初始化失败: {str(e)[:100]}")
+                return
+    
+    if not index_manager:
+        st.error("❌ 索引管理器初始化失败")
         return
     
     # 解析仓库信息
@@ -279,100 +310,19 @@ def _handle_sync_repo(repo: dict):
     branch = parts[1] if len(parts) > 1 else 'main'
     owner, repo_name = repo_part.split('/')
     
-    # 创建进度显示
-    progress_container = st.container()
+    # 启动后台同步任务
+    task = SyncTask.start(
+        owner=owner,
+        repo=repo_name,
+        branch=branch,
+        index_manager=index_manager,
+        github_sync_manager=st.session_state.github_sync_manager
+    )
     
-    with progress_container:
-        stage_text = st.empty()
-        progress_bar = st.empty()
-        log_container = st.container(height=120)
-        
-        try:
-            # 同步阶段
-            stage_text.markdown(f"**同步** 🔄 {repo['key']}...")
-            progress_bar.progress(0.2)
-            
-            with log_container:
-                st.text(f"🔄 正在同步 {owner}/{repo_name}@{branch}...")
-            
-            documents, changes, commit_sha = sync_github_repository(
-                owner=owner,
-                repo=repo_name,
-                branch=branch,
-                github_sync_manager=st.session_state.github_sync_manager,
-                show_progress=False
-            )
-            
-            progress_bar.progress(0.5)
-            
-            if changes.has_changes():
-                with log_container:
-                    st.text(f"🔄 正在同步 {owner}/{repo_name}@{branch}...")
-                    st.text(f"📝 检测到变更: {changes.summary()}")
-                
-                added_docs, modified_docs, deleted_paths = st.session_state.github_sync_manager.get_documents_by_change(
-                    documents, changes
-                )
-                
-                if added_docs or modified_docs:
-                    stage_text.markdown(f"**构建索引** 🔢 处理变更...")
-                    progress_bar.progress(0.7)
-                    
-                    index_manager.build_index(
-                        added_docs + modified_docs,
-                        show_progress=False,
-                        github_sync_manager=st.session_state.github_sync_manager
-                    )
-                
-                index_manager.incremental_update(
-                    added_docs=added_docs,
-                    modified_docs=modified_docs,
-                    deleted_file_paths=deleted_paths,
-                    github_sync_manager=st.session_state.github_sync_manager
-                )
-                
-                vector_ids_map = {}
-                for doc in documents:
-                    file_path = doc.metadata.get("file_path", "")
-                    if file_path:
-                        vector_ids = st.session_state.github_sync_manager.get_file_vector_ids(
-                            owner, repo_name, branch, file_path
-                        )
-                        vector_ids_map[file_path] = vector_ids
-                
-                st.session_state.github_sync_manager.update_repository_sync_state(
-                    owner=owner,
-                    repo=repo_name,
-                    branch=branch,
-                    documents=documents,
-                    vector_ids_map=vector_ids_map,
-                    commit_sha=commit_sha
-                )
-                st.session_state.github_repos = st.session_state.github_sync_manager.list_repositories()
-                
-                progress_bar.progress(1.0)
-                stage_text.markdown("**完成** ✅")
-                
-                with log_container:
-                    st.text(f"🔄 正在同步 {owner}/{repo_name}@{branch}...")
-                    st.text(f"📝 检测到变更: {changes.summary()}")
-                    st.text(f"✅ 同步完成！")
-                
-                st.success("✅ 仓库已同步")
-            else:
-                progress_bar.progress(1.0)
-                stage_text.markdown("**完成** ✅")
-                
-                with log_container:
-                    st.text(f"🔄 正在同步 {owner}/{repo_name}@{branch}...")
-                    st.text(f"✅ 已是最新版本")
-                
-                st.success("✅ 已是最新")
-            
-            st.rerun()
-            
-        except Exception as e:
-            st.error(f"❌ 同步失败: {str(e)[:80]}")
+    # 保存任务到 session_state（复用导入的 key，一次只能有一个任务）
+    st.session_state['import_task'] = task
+    st.session_state['import_task_type'] = 'sync'
+    st.rerun()
 
 
 def _render_local_file_upload():
