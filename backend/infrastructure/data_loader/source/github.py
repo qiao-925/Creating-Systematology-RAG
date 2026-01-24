@@ -14,15 +14,18 @@ GitHub数据源：从GitHub仓库获取文件路径
 特性：
 - 支持Git仓库管理
 - 目录和文件扩展名过滤
-- 缓存支持
+- 进度追踪和取消机制
 - 完整的错误处理
 """
 
 import os
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 from backend.infrastructure.data_loader.source.base import DataSource, SourceFile
 from backend.infrastructure.logger import get_logger
+
+if TYPE_CHECKING:
+    from backend.infrastructure.data_loader.progress import ImportProgressManager
 
 try:
     from backend.infrastructure.git import GitRepositoryManager
@@ -44,7 +47,8 @@ class GitHubSource(DataSource):
         branch: Optional[str] = None,
         filter_directories: Optional[List[str]] = None,
         filter_file_extensions: Optional[List[str]] = None,
-        show_progress: bool = True
+        show_progress: bool = True,
+        progress_manager: Optional["ImportProgressManager"] = None
     ):
         """初始化 GitHub 数据源
         
@@ -55,6 +59,7 @@ class GitHubSource(DataSource):
             filter_directories: 只包含指定目录的文件
             filter_file_extensions: 只包含指定扩展名的文件
             show_progress: 是否显示进度信息
+            progress_manager: 进度管理器（可选）
         """
         self.owner = owner
         self.repo = repo
@@ -62,6 +67,7 @@ class GitHubSource(DataSource):
         self.filter_directories = filter_directories
         self.filter_file_extensions = filter_file_extensions
         self.show_progress = show_progress
+        self.progress_manager = progress_manager
         self.repo_path: Optional[Path] = None
         self.commit_sha: Optional[str] = None
     
@@ -87,11 +93,18 @@ class GitHubSource(DataSource):
         
         if GitRepositoryManager is None:
             logger.error("[阶段1.2] GitRepositoryManager 未安装")
+            if self.progress_manager:
+                self.progress_manager.fail_import("GitRepositoryManager 未安装")
             return []
         
         try:
             # 步骤 1: 克隆或更新仓库
             logger.info(f"[阶段1.2] 开始从 GitHub 获取文件: {self.owner}/{self.repo}@{self.branch}")
+            
+            # 开始 GIT_CLONE 阶段
+            if self.progress_manager:
+                from backend.infrastructure.data_loader.progress import ImportStage
+                self.progress_manager.start_stage(ImportStage.GIT_CLONE)
             
             git_manager = GitRepositoryManager(config.GITHUB_REPOS_PATH)
             
@@ -105,18 +118,43 @@ class GitHubSource(DataSource):
                 git_elapsed = time.time() - git_start_time
                 logger.info(f"[阶段1.2] 仓库同步完成: {self.repo_path} (Commit: {self.commit_sha[:8]}, 耗时: {git_elapsed:.2f}s)")
                 
+                # 完成 GIT_CLONE 阶段
+                if self.progress_manager:
+                    self.progress_manager.complete_stage(
+                        ImportStage.GIT_CLONE, 
+                        f"克隆完成 (Commit: {self.commit_sha[:8]})"
+                    )
+                
             except RuntimeError as e:
                 logger.error(f"[阶段1.2] Git 操作失败: {e}", exc_info=True)
+                if self.progress_manager:
+                    self.progress_manager.fail_import(f"Git 操作失败: {str(e)}")
+                return []
+            
+            # 取消检查点
+            if self.progress_manager and self.progress_manager.check_cancelled():
                 return []
             
             # 步骤 2: 遍历仓库目录，获取所有文件路径
             logger.debug(f"[阶段1.2] 开始遍历仓库目录: {self.repo_path}")
+            
+            # 开始 FILE_WALK 阶段
+            if self.progress_manager:
+                self.progress_manager.start_stage(ImportStage.FILE_WALK)
+            
             walk_start_time = time.time()
             
             all_files = self._walk_repository(self.repo_path)
             walk_elapsed = time.time() - walk_start_time
             
             logger.info(f"[阶段1.2] 目录遍历完成: 找到 {len(all_files)} 个文件 (耗时: {walk_elapsed:.2f}s)")
+            
+            # 完成 FILE_WALK 阶段
+            if self.progress_manager:
+                self.progress_manager.complete_stage(
+                    ImportStage.FILE_WALK, 
+                    f"扫描完成 ({len(all_files)} 个文件)"
+                )
             
             # 步骤 3: 应用过滤器
             source_files = []

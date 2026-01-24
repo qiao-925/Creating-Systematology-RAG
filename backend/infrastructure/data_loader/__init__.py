@@ -57,6 +57,10 @@ from backend.infrastructure.data_loader.parser import DocumentParser
 # 导出GitHub同步管理
 from backend.infrastructure.data_loader.github_sync import FileChange, GitHubSyncManager
 
+# 导出进度管理
+from backend.infrastructure.data_loader.progress import ImportStage, ImportProgressManager
+from backend.infrastructure.data_loader.github_preflight import check_repository, PreflightResult
+
 # 便捷函数（使用统一服务）
 def load_documents_from_directory(
     directory_path: str | Path,
@@ -173,6 +177,11 @@ __all__ = [
     # GitHub同步管理
     'FileChange',
     'GitHubSyncManager',
+    # 进度管理
+    'ImportStage',
+    'ImportProgressManager',
+    'check_repository',
+    'PreflightResult',
 ]
 
 # 导出为 _handle_github_error（别名）

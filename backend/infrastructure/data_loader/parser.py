@@ -41,7 +41,8 @@ class DocumentParser:
         self,
         file_paths: List[Path],
         metadata_map: Optional[Dict[Path, Dict[str, Any]]] = None,
-        clean: bool = True
+        clean: bool = True,
+        progress_callback: Optional[callable] = None
     ) -> List[LlamaDocument]:
         """解析文件列表，返回文档列表
         
@@ -49,6 +50,7 @@ class DocumentParser:
             file_paths: 文件路径列表
             metadata_map: 文件路径到元数据的映射（可选）
             clean: 是否清理文本（暂不使用，保留接口）
+            progress_callback: 进度回调函数 (current, total, filename) -> None
             
         Returns:
             文档列表
@@ -70,6 +72,8 @@ class DocumentParser:
                 return []
             
             logger.info(f"[阶段1.3] 有效文件数量: {len(valid_paths)}/{len(file_paths)}")
+            total_files = len(valid_paths)
+            processed_count = 0
             
             # 对于单个文件或少量文件，逐个解析
             if len(valid_paths) <= 3:
@@ -80,6 +84,9 @@ class DocumentParser:
                     for file_path in valid_paths:
                         parsed = parse_single_file(file_path, metadata_map)
                         documents.extend(parsed)
+                        processed_count += 1
+                        if progress_callback:
+                            progress_callback(processed_count, total_files, file_path.name)
                     
                     elapsed = time.time() - start_time
                     logger.info(f"[阶段1.3] 成功解析 {len(documents)}/{len(valid_paths)} 个文档 (耗时: {elapsed:.2f}s)")
@@ -95,8 +102,12 @@ class DocumentParser:
                 try:
                     dir_docs = parse_directory_files(dir_path, files, metadata_map)
                     documents.extend(dir_docs)
+                    processed_count += len(files)
+                    if progress_callback:
+                        progress_callback(processed_count, total_files, f"{len(files)} files in {dir_path.name}")
                 except Exception as e:
                     logger.error(f"[阶段1.3] 解析目录失败 {dir_path}: {e}", exc_info=True)
+                    processed_count += len(files)  # 即使失败也计入已处理
                     continue
             
             elapsed = time.time() - start_time

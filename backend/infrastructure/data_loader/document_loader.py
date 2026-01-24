@@ -3,10 +3,11 @@
 
 主要功能：
 - 从数据源加载文档的核心流程
+- 支持进度追踪和取消机制
 """
 
 import time
-from typing import List, TYPE_CHECKING
+from typing import List, Optional, TYPE_CHECKING
 
 from llama_index.core.schema import Document as LlamaDocument
 
@@ -16,6 +17,7 @@ from backend.infrastructure.data_loader.models import ProgressReporter
 
 if TYPE_CHECKING:
     from backend.infrastructure.data_loader.source import DataSource
+    from backend.infrastructure.data_loader.progress import ImportProgressManager
 
 logger = get_logger('data_loader_service')
 
@@ -32,7 +34,8 @@ def load_documents_from_source(
     source: "DataSource",
     clean: bool = True,
     show_progress: bool = True,
-    progress_reporter: ProgressReporter = None
+    progress_reporter: ProgressReporter = None,
+    progress_manager: Optional["ImportProgressManager"] = None
 ) -> List[LlamaDocument]:
     """从数据源加载文档（核心加载流程）
     
@@ -41,6 +44,7 @@ def load_documents_from_source(
         clean: 是否清理文本
         show_progress: 是否显示进度
         progress_reporter: 进度反馈器（可选）
+        progress_manager: 进度管理器（可选）
         
     Returns:
         文档列表
@@ -69,6 +73,10 @@ def load_documents_from_source(
         logger.info(f"[阶段1.2] 数据源返回 {len(source_files)} 个文件 (耗时: {source_elapsed:.2f}s)")
         progress_reporter.print_if_enabled(f"✅ 找到 {len(source_files)} 个文件")
         
+        # 取消检查点
+        if progress_manager and progress_manager.check_cancelled():
+            return []
+        
         file_paths = [sf.path for sf in source_files]
         metadata_map = {
             sf.path: {**sf.metadata, 'source_type': sf.source_type}
@@ -77,11 +85,28 @@ def load_documents_from_source(
         
         progress_reporter.print_if_enabled("📄 正在解析文件...")
         
+        # 开始解析阶段
+        if progress_manager:
+            from backend.infrastructure.data_loader.progress import ImportStage
+            progress_manager.start_stage(ImportStage.DOC_PARSE, total=len(file_paths))
+        
         parser_start_time = time.time()
         documents = DocumentParser().parse_files(
-            file_paths, metadata_map, clean=clean
+            file_paths, metadata_map, clean=clean,
+            progress_callback=_create_progress_callback(progress_manager) if progress_manager else None
         )
         parser_elapsed = time.time() - parser_start_time
+        
+        # 完成解析阶段
+        if progress_manager:
+            progress_manager.complete_stage(
+                ImportStage.DOC_PARSE, 
+                f"解析完成 ({len(documents)} 个文档)"
+            )
+        
+        # 取消检查点
+        if progress_manager and progress_manager.check_cancelled():
+            return []
         
         if not documents:
             logger.warning(f"[阶段1.3] 解析器未返回任何文档 (输入文件数: {len(file_paths)})")
@@ -120,3 +145,10 @@ def load_documents_from_source(
         logger.error(f"[阶段1.3] 文档加载失败: {e}", exc_info=True)
         progress_reporter.report_error(f"文档加载失败: {str(e)}")
         return []
+
+
+def _create_progress_callback(progress_manager: "ImportProgressManager"):
+    """创建进度回调函数"""
+    def callback(current: int, total: int, filename: str = ""):
+        progress_manager.update_progress(current, f"解析: {filename}" if filename else None)
+    return callback

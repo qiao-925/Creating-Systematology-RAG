@@ -33,6 +33,7 @@ from backend.infrastructure.data_loader.document_loader import load_documents_fr
 
 if TYPE_CHECKING:
     from backend.infrastructure.data_loader.source import DataSource
+    from backend.infrastructure.data_loader.progress import ImportProgressManager
 
 logger = get_logger('data_loader_service')
 
@@ -78,13 +79,15 @@ class DataImportService:
     def import_from_source(
         self,
         source: "DataSource",
-        clean: bool = True
+        clean: bool = True,
+        progress_manager: Optional["ImportProgressManager"] = None
     ) -> ImportResult:
         """从数据源导入文档
         
         Args:
             source: 数据源对象（GitHubSource, LocalFileSource）
             clean: 是否清理文本
+            progress_manager: 进度管理器（可选）
             
         Returns:
             ImportResult: 导入结果（包含文档列表、统计信息、错误信息）
@@ -101,8 +104,17 @@ class DataImportService:
                 source=source,
                 clean=clean,
                 show_progress=self.show_progress,
-                progress_reporter=self.progress_reporter
+                progress_reporter=self.progress_reporter,
+                progress_manager=progress_manager
             )
+            
+            # 取消检查点
+            if progress_manager and progress_manager.check_cancelled():
+                return ImportResult(
+                    documents=[],
+                    success=False,
+                    errors=["用户取消导入"]
+                )
             
             elapsed = time.time() - start_time
             
@@ -122,6 +134,8 @@ class DataImportService:
                 self.progress_reporter.report_success(
                     f"成功导入 {len(documents)} 个文档 (耗时: {elapsed:.2f}s)"
                 )
+                if progress_manager:
+                    progress_manager.complete_import(f"成功导入 {len(documents)} 个文档")
                 return ImportResult(
                     documents=documents,
                     success=True,
@@ -145,6 +159,9 @@ class DataImportService:
             errors.append(error_msg)
             self.progress_reporter.report_error(f"导入失败: {error_msg}")
             logger.error(f"从数据源导入失败: {e}", exc_info=True)
+            
+            if progress_manager:
+                progress_manager.fail_import(error_msg)
             
             return ImportResult(
                 documents=[],
@@ -224,6 +241,8 @@ class DataImportService:
         clean: bool = True,
         filter_directories: Optional[List[str]] = None,
         filter_file_extensions: Optional[List[str]] = None,
+        skip_preflight: bool = False,
+        progress_manager: Optional["ImportProgressManager"] = None,
         **kwargs
     ) -> ImportResult:
         """从GitHub仓库导入文档
@@ -235,6 +254,8 @@ class DataImportService:
             clean: 是否清理文本
             filter_directories: 只加载指定目录（可选）
             filter_file_extensions: 只加载指定扩展名（可选）
+            skip_preflight: 是否跳过预检（默认 False）
+            progress_manager: 进度管理器（可选）
             **kwargs: 其他参数
             
         Returns:
@@ -243,6 +264,8 @@ class DataImportService:
         if not NEW_ARCHITECTURE_AVAILABLE:
             error_msg = "新架构未可用，无法使用统一服务"
             self.progress_reporter.report_error(error_msg)
+            if progress_manager:
+                progress_manager.fail_import(error_msg)
             return ImportResult(
                 documents=[],
                 success=False,
@@ -250,6 +273,48 @@ class DataImportService:
             )
         
         try:
+            # 步骤 0: 仓库预检
+            if not skip_preflight:
+                from backend.infrastructure.data_loader.github_preflight import check_repository
+                from backend.infrastructure.data_loader.progress import ImportStage
+                
+                if progress_manager:
+                    progress_manager.start_stage(ImportStage.PREFLIGHT)
+                
+                self.progress_reporter.report_stage("🔍", f"预检仓库: {owner}/{repo}")
+                preflight_result = check_repository(owner, repo)
+                
+                if not preflight_result.success:
+                    self.progress_reporter.report_error(preflight_result.error_message)
+                    if progress_manager:
+                        progress_manager.fail_import(preflight_result.error_message)
+                    return ImportResult(
+                        documents=[],
+                        success=False,
+                        errors=[preflight_result.error_message]
+                    )
+                
+                # 记录预检结果
+                size_info = f"{preflight_result.size_mb:.1f}MB"
+                self.progress_reporter.report_success(f"预检通过 (大小: {size_info})")
+                
+                if progress_manager:
+                    progress_manager.complete_stage(ImportStage.PREFLIGHT, f"预检通过 ({size_info})")
+                
+                # 大仓库警告（记录到日志，但不阻止导入）
+                if preflight_result.warning_message:
+                    self.progress_reporter.report_warning(preflight_result.warning_message)
+                    if progress_manager:
+                        progress_manager.log_warning(preflight_result.warning_message)
+                
+                # 取消检查点
+                if progress_manager and progress_manager.check_cancelled():
+                    return ImportResult(
+                        documents=[],
+                        success=False,
+                        errors=["用户取消导入"]
+                    )
+            
             self.progress_reporter.report_stage(
                 "🐙", 
                 f"从GitHub加载: {owner}/{repo}@{branch}"
@@ -261,12 +326,14 @@ class DataImportService:
                 branch=branch,
                 filter_directories=filter_directories,
                 filter_file_extensions=filter_file_extensions,
-                show_progress=self.show_progress
+                show_progress=self.show_progress,
+                progress_manager=progress_manager
             )
             
             return self.import_from_source(
                 source,
-                clean=clean
+                clean=clean,
+                progress_manager=progress_manager
             )
             
         except Exception as e:
