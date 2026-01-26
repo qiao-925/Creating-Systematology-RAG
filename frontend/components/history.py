@@ -89,38 +89,32 @@ def display_session_history(
     # 按时间分组
     grouped = group_sessions_by_time(sessions_metadata)
     
-    # 显示分组后的会话
+    # 显示分组后的会话（精简小字体样式）
     for group_name, sessions in grouped.items():
         if sessions:
-            # 分组标题
-            st.caption(f"**{group_name}**")
+            # 分组标题（小字）
+            st.markdown(
+                f'<p class="history-group">{group_name}</p>',
+                unsafe_allow_html=True
+            )
             
             for session in sessions:
                 session_id = session['session_id']
                 title = session.get('title', '未命名会话')
                 is_current = session_id == current_session_id
-                icon_emoji = _get_session_icon_emoji(title, session_id)
                 
-                button_label = f"{icon_emoji} {title}"
+                # 截断过长标题
+                display_title = title[:25] + "..." if len(title) > 25 else title
                 button_key = f"session_{session_id}"
                 
-                # 选中状态使用 disabled 按钮
-                if is_current:
-                    st.button(
-                        button_label,
-                        key=button_key,
-                        use_container_width=True,
-                        type="secondary",
-                        disabled=True
-                    )
-                else:
-                    # 未选中状态：可点击按钮
-                    if st.button(
-                        button_label,
-                        key=button_key,
-                        use_container_width=True,
-                        type="secondary"
-                    ):
-                        # 设置加载标记
+                # 统一使用 button，当前会话显示为 disabled 状态
+                if st.button(
+                    display_title,
+                    key=button_key,
+                    use_container_width=True,
+                    type="secondary",
+                    disabled=is_current
+                ):
+                    if not is_current:
                         st.session_state.load_session_id = session_id
                         st.session_state.session_loading_pending = True

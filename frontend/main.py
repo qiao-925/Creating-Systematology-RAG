@@ -101,6 +101,59 @@ section[data-testid="stSidebar"] .stSkeleton {
 
 /* 隐藏 Streamlit 默认页脚 */
 footer {visibility: hidden;}
+
+/* ===== CP3: 观察器摘要样式 ===== */
+.obs-summary {
+    font-size: 0.85rem;
+    color: #64748b;
+    margin: 4px 0 8px 0;
+    padding: 0;
+}
+
+/* ===== CP4: 引用来源样式 ===== */
+.source-title {
+    font-size: 0.9rem;
+    color: #374151;
+    font-weight: 500;
+}
+.source-preview {
+    font-size: 0.8rem;
+    color: #9ca3af;
+    margin: 2px 0 12px 16px;
+    line-height: 1.4;
+}
+
+/* ===== CP7: 历史会话样式 ===== */
+.history-group {
+    font-size: 0.7rem;
+    color: #9ca3af;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin: 12px 0 4px 0;
+    letter-spacing: 0.5px;
+}
+.history-item {
+    font-size: 0.75rem;
+    color: #6b7280;
+    padding: 6px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+.history-item:hover {
+    background-color: #f1f5f9;
+}
+.history-active {
+    background-color: #e0e7ff;
+    color: #4f46e5;
+    font-weight: 500;
+}
+
+/* 侧边栏按钮小字体 */
+section[data-testid="stSidebar"] .stButton > button {
+    font-size: 0.8rem;
+    padding: 6px 12px;
+}
 </style>
 <script>
 // 错误处理：捕获并记录未捕获的异常，避免控制台错误
@@ -146,6 +199,27 @@ footer {visibility: hidden;}
             return false;
         }
     }, true);
+})();
+
+// Ctrl+Enter / Cmd+Enter 快捷键发送
+(function() {
+    document.addEventListener('keydown', function(e) {
+        // Ctrl+Enter (Windows/Linux) 或 Cmd+Enter (Mac)
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            // 精确查找发送按钮：通过文本内容和按钮类型匹配
+            // 查找所有 primary 类型的按钮，筛选出文本为"发送"的
+            const primaryButtons = document.querySelectorAll('[data-testid="stBaseButton-primary"]');
+            for (const btn of primaryButtons) {
+                const text = btn.textContent?.trim() || '';
+                // 精确匹配"发送"文本，确保不会误触其他按钮
+                if (text === '发送' && !btn.disabled) {
+                    e.preventDefault();
+                    btn.click();
+                    return; // 找到后立即返回，避免重复点击
+                }
+            }
+        }
+    });
 })();
 </script>
 """
@@ -273,8 +347,7 @@ def _render_loading_app():
     # 禁用的输入框
     st.chat_input("正在初始化，请稍候...", disabled=True)
     
-    # 短间隔轮询，检查初始化状态
-    time.sleep(0.5)
+    # 自动轮询检查初始化状态（Streamlit 会自动处理 rerun 的时机）
     st.rerun()
 
 

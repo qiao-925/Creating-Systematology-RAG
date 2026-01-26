@@ -19,7 +19,11 @@ def _create_view_file_callback(dialog_key: str, file_path: str):
 
 
 def display_sources_below_message(sources: List[Dict[str, Any]], message_id: Optional[str] = None) -> None:
-    """在消息下方显示引用来源（使用原生组件）
+    """在消息下方显示引用来源（精简无边框样式）
+    
+    格式：
+    [1] 文档标题.md                         📖
+        预览内容前200字...
     
     Args:
         sources: 引用来源列表
@@ -35,38 +39,39 @@ def display_sources_below_message(sources: List[Dict[str, Any]], message_id: Opt
     if not sources:
         return
     
-    # 记录需要打开的对话框（只打开第一个）
+    # 记录需要打开的对话框
     dialog_to_open = None
     
-    # 单次遍历：显示来源并检查对话框状态
+    # 渲染来源列表
     for idx, source in enumerate(sources):
         citation_num = source.get('index', idx + 1)
         dialog_key = f"file_viewer_below_{message_id}_{citation_num}"
         file_path, title = extract_file_info(source)
+        text = source.get('text', '')
+        preview = text[:200] + "..." if len(text) > 200 else text
         
-        # 显示来源
-        with st.container():
-            col1, col2 = st.columns([3, 1])
-            with col1:
-                st.markdown(f"**[{citation_num}]** {title}")
-            with col2:
-                # 使用 on_click 回调
-                st.button(
-                    "📖 查看", 
-                    key=dialog_key, 
-                    use_container_width=True,
-                    on_click=_create_view_file_callback(dialog_key, file_path)
-                )
-            
-            text = source.get('text', '')
-            if len(text) > 200:
-                with st.expander(f"查看完整内容 ({len(text)} 字符)", expanded=False):
-                    st.text(text)
-                st.caption(text[:200] + "...")
-            else:
-                st.caption(text)
+        # 紧凑布局：标题 + 小图标按钮
+        col1, col2 = st.columns([10, 1])
+        with col1:
+            st.markdown(
+                f'<span class="source-title">[{citation_num}] {title}</span>',
+                unsafe_allow_html=True
+            )
+        with col2:
+            st.button(
+                "📖",
+                key=dialog_key,
+                help="查看完整内容",
+                on_click=_create_view_file_callback(dialog_key, file_path)
+            )
         
-        # 检查是否需要打开对话框（只记录第一个）
+        # 预览内容（浅色小字）
+        st.markdown(
+            f'<p class="source-preview">{preview}</p>',
+            unsafe_allow_html=True
+        )
+        
+        # 检查是否需要打开对话框
         if dialog_to_open is None and st.session_state.get(f"show_file_{dialog_key}"):
             dialog_to_open = (dialog_key, st.session_state[f"show_file_{dialog_key}"])
     
@@ -74,7 +79,6 @@ def display_sources_below_message(sources: List[Dict[str, Any]], message_id: Opt
     if dialog_to_open:
         dialog_key, file_path = dialog_to_open
         show_file_viewer_dialog(file_path)
-        # 对话框关闭后清理状态（不需要 rerun，对话框组件会自动处理）
         if st.session_state.get(f"close_file_{dialog_key}", False):
             st.session_state[f"show_file_{dialog_key}"] = None
             st.session_state[f"close_file_{dialog_key}"] = False

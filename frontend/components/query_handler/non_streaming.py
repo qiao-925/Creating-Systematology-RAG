@@ -1,7 +1,9 @@
 """
 非流式查询处理组件
+使用 st.status 组件显示查询进度
 """
 
+import time
 import streamlit as st
 from frontend.utils.sources import convert_sources_to_dict
 from frontend.utils.state import save_message_to_history
@@ -13,18 +15,23 @@ logger = get_logger('app')
 
 
 def handle_non_streaming_query(rag_service, chat_manager, prompt: str) -> None:
-    """处理非流式查询
+    """处理非流式查询（带进度展示）
     
     Args:
         rag_service: RAG服务实例
         chat_manager: 对话管理器实例
         prompt: 用户查询
     """
-    # 显示思考中的提示
     with st.chat_message("assistant"):
-        with st.spinner("🤔 思考中..."):
+        # 使用 st.status 显示进度
+        with st.status("🤔 思考中...", expanded=False) as status:
             try:
-                # 使用RAGService执行查询（新架构）
+                # 阶段 1: 理解问题
+                status.update(label="📝 理解问题...")
+                
+                # 阶段 2: 执行查询（包含检索、重排、生成）
+                status.update(label="🔍 检索相关文档...")
+                
                 response = rag_service.query(
                     question=prompt,
                     user_id=None,
@@ -34,6 +41,10 @@ def handle_non_streaming_query(rag_service, chat_manager, prompt: str) -> None:
                 answer = response.answer
                 local_sources = convert_sources_to_dict(response.sources)
                 reasoning_content = response.metadata.get('reasoning_content')
+                
+                # 阶段 3: 完成
+                sources_count = len(local_sources) if local_sources else 0
+                status.update(label=f"✅ 完成 · 检索到 {sources_count} 篇文档", state="complete")
                 
                 # 生成消息ID
                 from frontend.utils.helpers import generate_message_id
@@ -67,6 +78,7 @@ def handle_non_streaming_query(rag_service, chat_manager, prompt: str) -> None:
                 
             except Exception as e:
                 import traceback
+                status.update(label="❌ 查询失败", state="error")
                 st.error(f"❌ 查询失败: {e}")
                 st.error(traceback.format_exc())
 

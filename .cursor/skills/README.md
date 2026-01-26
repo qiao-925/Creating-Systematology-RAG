@@ -9,7 +9,7 @@
 本项目将所有 Rules 和 Commands 迁移到 Skills，实现统一的能力管理：
 
 - **Skills 是上下文+执行的一体化**：每个 Skill 包含知识（SKILL.md）和执行能力（scripts/）
-- **按功能领域组织**：15个 Skills，覆盖9个功能领域
+- **按功能领域组织**：16个 Skills，覆盖9个功能领域
 - **自动调用优先**：大部分 Skills 设置为自动调用，让 Agent 智能判断
 
 ---
@@ -39,11 +39,13 @@
 | `architecture-cognition/` | 全局架构认知 | 自动调用 | 无 |
 | `architecture-design/` | 架构设计规范 | 自动调用 | 无 |
 
-### 2.4 任务管理（2个）
+### 2.4 任务管理（4个）
 
 | Skill | 描述 | 调用方式 | Scripts |
 |-------|------|---------|---------|
+| `requirement-discovery/` | 需求发现规范（通过角色扮演探索高ROI功能方向） | 自动调用 | 无 |
 | `task-planning/` | 任务规划规范（包含需求决策和计划书创建） | 自动调用 | `generate_task_plan.py` |
+| `cross-agent-review/` | 任务执行完成后提示新开 Agent 审查 git 未提交代码（运动员不当裁判） | 自动调用 | 无 |
 | `task-closure/` | 任务收尾规范（日志生成和优化分析） | 自动调用 | `generate_task_log.py` |
 
 ### 2.5 测试与诊断（1个）
@@ -120,8 +122,10 @@ skill-name/
 - 编写 Python 代码时 → 自动应用 `python-coding-standards`
 - 创建文档时 → 自动应用 `documentation-standards`
 - 架构设计时 → 自动应用 `architecture-design`
+- 任务执行完成且有代码变更时 → 自动提示 `cross-agent-review`（运动员不当裁判）
 
 **手动调用**（用户主动触发）：
+- `/requirement-discovery` - 探索高ROI功能方向
 - `/task-planning` - 创建任务计划书
 - `/task-closure` - 生成任务日志
 - `/testing-and-diagnostics` - 运行测试工作流
@@ -130,7 +134,9 @@ skill-name/
 
 | 功能 | Skill 调用 | Script 调用 |
 |------|-----------|------------|
+| 需求发现 | `/requirement-discovery` | 无（纯对话式） |
 | 任务规划 | `/task-planning` | 通过 Skill 间接调用 `generate_task_plan.py` |
+| 多智能体审查提示 | `/cross-agent-review` | 无（任务执行完后自动提示） |
 | 任务收尾 | `/task-closure` | 通过 Skill 间接调用 `generate_task_log.py` |
 | 测试诊断 | `/testing-and-diagnostics` | 通过 Skill 间接调用 `run_test_workflow.py` 等 |
 

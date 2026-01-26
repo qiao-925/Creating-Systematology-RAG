@@ -23,8 +23,10 @@ env/
 htmlcov/
 .tox/
 
-# 环境变量
+# 环境变量与敏感配置
 .env
+.chroma_env
+.cursor/mcp.json
 
 # 应用数据
 # 向量库：只忽略非版本化的旧格式，允许 version_* 目录提交

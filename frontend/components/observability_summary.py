@@ -140,9 +140,9 @@ def _format_tokens(tokens: int) -> str:
 
 
 def render_l0_summary(debug_log: Dict[str, Any], ragas_log: Optional[Dict[str, Any]] = None) -> None:
-    """渲染 L0 指标卡片摘要
+    """渲染 L0 指标摘要（一行无边框轻量样式）
     
-    使用 st.metric 组件展示关键指标，更现代直观。
+    格式：📊 检索 0.8s · 📄 5篇 · 🎯 相关度 0.85
     
     Args:
         debug_log: LlamaDebug 日志数据
@@ -169,30 +169,27 @@ def render_l0_summary(debug_log: Dict[str, Any], ragas_log: Optional[Dict[str, A
         else:
             ragas_score = _compute_ragas_score(ragas_log)
     
-    # 使用 st.columns 创建指标卡片行
-    cols = st.columns([1, 1, 1, 1, 1])
+    # 构建一行摘要文本
+    parts = []
+    parts.append(f"📄 {sources_count} 文档")
+    parts.append(f"🤖 {llm_calls} 次调用")
+    parts.append(f"📝 {_format_tokens(total_tokens)} tokens")
+    if total_time:
+        parts.append(f"⏱️ {total_time:.1f}s")
     
-    with cols[0]:
-        st.metric(label="📊 检索", value=f"{sources_count} 文档")
+    if ragas_pending:
+        parts.append("📈 评估中...")
+    elif ragas_score is not None:
+        parts.append(f"📈 质量 {ragas_score:.2f}")
+    elif status_reason:
+        parts.append(f"{status_icon} {status_reason}")
     
-    with cols[1]:
-        st.metric(label="🤖 LLM", value=f"{llm_calls} 次")
-    
-    with cols[2]:
-        st.metric(label="📝 Tokens", value=_format_tokens(total_tokens))
-    
-    with cols[3]:
-        st.metric(label="⏱️ 耗时", value=f"{total_time:.1f}s" if total_time else "-")
-    
-    with cols[4]:
-        if ragas_pending:
-            st.metric(label="📈 质量", value="评估中...")
-        elif ragas_score is not None:
-            st.metric(label="📈 质量", value=f"{ragas_score:.2f}")
-        else:
-            # 显示状态
-            status_text = status_reason if status_reason else "正常"
-            st.metric(label="状态", value=f"{status_icon} {status_text}")
+    # 渲染一行摘要（无边框）
+    summary_text = " · ".join(parts)
+    st.markdown(
+        f'<p class="obs-summary">{summary_text}</p>',
+        unsafe_allow_html=True
+    )
 
 
 def _render_card(
