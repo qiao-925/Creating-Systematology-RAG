@@ -648,6 +648,7 @@ dependencies = [
     { name = "pyyaml" },
     { name = "requests" },
     { name = "streamlit" },
+    { name = "streamlit-iframe-event" },
     { name = "structlog" },
     { name = "tqdm" },
     { name = "uvicorn", extra = ["standard"] },
@@ -695,6 +696,7 @@ requires-dist = [
     { name = "ragas", marker = "extra == 'evaluation'", specifier = ">=0.2.0" },
     { name = "requests", specifier = ">=2.31.0" },
     { name = "streamlit", specifier = ">=1.50.0" },
+    { name = "streamlit-iframe-event", specifier = ">=0.0.9" },
     { name = "structlog", specifier = ">=24.1.0" },
     { name = "tqdm", specifier = ">=4.66.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.30.0" },
@@ -4511,6 +4513,15 @@ sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/59/6d/327ddd5fc35fcf
 wheels = [
     { url = "https://pypi.tuna.tsinghua.edu.cn/packages/39/60/868371b6482ccd9ef423c6f62650066cf8271fdb2ee84f192695ad6b7a96/streamlit-1.51.0-py3-none-any.whl", hash = "sha256:4008b029f71401ce54946bb09a6a3e36f4f7652cbb48db701224557738cfda38", size = 10171702, upload-time = "2025-10-29T17:07:35.97Z" },
 ]
+
+[[package]]
+name = "streamlit-iframe-event"
+version = "0.0.9"
+source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
+dependencies = [
+    { name = "streamlit" },
+]
+sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/7b/7d/10a6f36c42b1e34d6632f919cf1453c033e66bf382956a17c43dc8dffb3d/streamlit-iframe-event-0.0.9.tar.gz", hash = "sha256:8b321bacbc420de1c7dcfefb2dd2af1d4398d3b5f09c4d8091e20bec1a378e20", size = 109072, upload-time = "2024-04-10T14:05:28.26Z" }
 
 [[package]]
 name = "striprtf"

@@ -25,6 +25,12 @@ def handle_user_queries(rag_service, chat_manager) -> None:
     if 'selected_question' in st.session_state and st.session_state.selected_question:
         prompt = st.session_state.selected_question
         st.session_state.selected_question = None  # 清除状态
+        # 确保用户消息已添加到 messages（_on_use_question 已添加，但为了保险再检查一次）
+        if not st.session_state.messages or st.session_state.messages[-1].get("content") != prompt:
+            # 显示用户消息
+            with st.chat_message("user"):
+                st.markdown(prompt)
+            st.session_state.messages.append({"role": "user", "content": prompt})
         handle_non_streaming_query(rag_service, chat_manager, prompt)
         st.rerun()
         return

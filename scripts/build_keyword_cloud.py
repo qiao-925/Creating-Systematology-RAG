@@ -8,6 +8,7 @@
 
 import json
 import sys
+import importlib.util
 from pathlib import Path
 
 # 项目根
@@ -15,10 +16,15 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from backend.business.rag_engine.processing.keyword_extractor import (
-    extract_pdf_titles,
-    build_keywords_from_titles,
-)
+# 直接导入模块文件，避免触发包的 __init__.py
+keyword_extractor_path = ROOT / "backend" / "business" / "rag_engine" / "processing" / "keyword_extractor.py"
+spec = importlib.util.spec_from_file_location("keyword_extractor", keyword_extractor_path)
+keyword_extractor = importlib.util.module_from_spec(spec)
+sys.modules["keyword_extractor"] = keyword_extractor
+spec.loader.exec_module(keyword_extractor)
+
+extract_pdf_titles = keyword_extractor.extract_pdf_titles
+build_keywords_from_titles = keyword_extractor.build_keywords_from_titles
 
 # 计划约定：默认分析目录为 .../Creating-Systematology
 DEFAULT_INPUT_DIR = ROOT.parent / "Creating-Systematology"

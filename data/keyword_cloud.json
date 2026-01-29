@@ -1,46 +1,394 @@
 [
   {
-    "word": "钱学森",
-    "weight": 273
+    "word": "系统工程",
+    "weight": 131
+  },
+  {
+    "word": "系统科学",
+    "weight": 47
+  },
+  {
+    "word": "系统",
+    "weight": 44
   },
   {
     "word": "于景元",
     "weight": 39
   },
   {
+    "word": "科学技术",
+    "weight": 30
+  },
+  {
+    "word": "关于",
+    "weight": 28
+  },
+  {
+    "word": "科学",
+    "weight": 24
+  },
+  {
     "word": "戴汝为",
     "weight": 24
   },
   {
-    "word": "(1)",
+    "word": "技术",
+    "weight": 23
+  },
+  {
+    "word": "工程",
+    "weight": 23
+  },
+  {
+    "word": "问题",
     "weight": 21
+  },
+  {
+    "word": "研究",
+    "weight": 18
+  },
+  {
+    "word": "发展",
+    "weight": 17
+  },
+  {
+    "word": "应用",
+    "weight": 14
+  },
+  {
+    "word": "复杂巨系统",
+    "weight": 14
+  },
+  {
+    "word": "中国",
+    "weight": 14
+  },
+  {
+    "word": "贡献",
+    "weight": 13
+  },
+  {
+    "word": "方法",
+    "weight": 11
+  },
+  {
+    "word": "社会",
+    "weight": 10
+  },
+  {
+    "word": "革命",
+    "weight": 9
   },
   {
     "word": "孙东川",
     "weight": 9
   },
   {
+    "word": "讲话",
+    "weight": 9
+  },
+  {
+    "word": "社会主",
+    "weight": 9
+  },
+  {
+    "word": "方法论",
+    "weight": 8
+  },
+  {
+    "word": "法论",
+    "weight": 8
+  },
+  {
+    "word": "体系",
+    "weight": 8
+  },
+  {
+    "word": "思维",
+    "weight": 8
+  },
+  {
+    "word": "马克思主义",
+    "weight": 8
+  },
+  {
+    "word": "工作",
+    "weight": 8
+  },
+  {
+    "word": "在中",
+    "weight": 8
+  },
+  {
+    "word": "创新",
+    "weight": 7
+  },
+  {
+    "word": "开创",
+    "weight": 7
+  },
+  {
+    "word": "中国系统工",
+    "weight": 7
+  },
+  {
+    "word": "理论",
+    "weight": 6
+  },
+  {
+    "word": "开创复",
+    "weight": 6
+  },
+  {
+    "word": "现代",
+    "weight": 6
+  },
+  {
     "word": "顾基发",
     "weight": 6
+  },
+  {
+    "word": "环境系",
+    "weight": 6
+  },
+  {
+    "word": "环境",
+    "weight": 6
+  },
+  {
+    "word": "发言",
+    "weight": 6
+  },
+  {
+    "word": "水城市",
+    "weight": 6
+  },
+  {
+    "word": "城市",
+    "weight": 6
+  },
+  {
+    "word": "科技",
+    "weight": 6
+  },
+  {
+    "word": "部门",
+    "weight": 6
+  },
+  {
+    "word": "思想",
+    "weight": 5
+  },
+  {
+    "word": "从定性",
+    "weight": 5
+  },
+  {
+    "word": "从定",
+    "weight": 5
+  },
+  {
+    "word": "系统思想",
+    "weight": 5
+  },
+  {
+    "word": "系统实践",
+    "weight": 5
+  },
+  {
+    "word": "建设",
+    "weight": 5
+  },
+  {
+    "word": "现代科",
+    "weight": 5
+  },
+  {
+    "word": "分析",
+    "weight": 5
   },
   {
     "word": "经士仁",
     "weight": 5
   },
   {
-    "word": "科技情报工作的科学技术",
+    "word": "人体",
     "weight": 5
+  },
+  {
+    "word": "贺信",
+    "weight": 5
+  },
+  {
+    "word": "通信",
+    "weight": 5
+  },
+  {
+    "word": "召开",
+    "weight": 5
+  },
+  {
+    "word": "意见",
+    "weight": 5
+  },
+  {
+    "word": "报告",
+    "weight": 5
+  },
+  {
+    "word": "科技情",
+    "weight": 5
+  },
+  {
+    "word": "复杂",
+    "weight": 4
+  },
+  {
+    "word": "新领域",
+    "weight": 4
+  },
+  {
+    "word": "一个",
+    "weight": 4
+  },
+  {
+    "word": "领域",
+    "weight": 4
+  },
+  {
+    "word": "开放",
+    "weight": 4
+  },
+  {
+    "word": "设计部",
+    "weight": 4
+  },
+  {
+    "word": "计部",
+    "weight": 4
+  },
+  {
+    "word": "基础",
+    "weight": 4
+  },
+  {
+    "word": "意义",
+    "weight": 4
+  },
+  {
+    "word": "影响",
+    "weight": 4
+  },
+  {
+    "word": "纪念",
+    "weight": 4
+  },
+  {
+    "word": "周年",
+    "weight": 4
+  },
+  {
+    "word": "基于",
+    "weight": 4
+  },
+  {
+    "word": "精神",
+    "weight": 4
+  },
+  {
+    "word": "探讨",
+    "weight": 4
+  },
+  {
+    "word": "思维科",
+    "weight": 4
   },
   {
     "word": "许国志",
     "weight": 4
   },
   {
-    "word": "系统科学和系统工程的发展与应用",
+    "word": "创建",
+    "weight": 4
+  },
+  {
+    "word": "思考",
+    "weight": 4
+  },
+  {
+    "word": "我们",
+    "weight": 4
+  },
+  {
+    "word": "建议",
+    "weight": 4
+  },
+  {
+    "word": "展望",
+    "weight": 4
+  },
+  {
+    "word": "著名",
+    "weight": 4
+  },
+  {
+    "word": "认识",
+    "weight": 4
+  },
+  {
+    "word": "个问题",
+    "weight": 4
+  },
+  {
+    "word": "关于科",
+    "weight": 4
+  },
+  {
+    "word": "人体科",
+    "weight": 4
+  },
+  {
+    "word": "产业",
+    "weight": 4
+  },
+  {
+    "word": "摘要",
     "weight": 3
   },
   {
-    "word": "汪应洛",
+    "word": "术革命",
+    "weight": 3
+  },
+  {
+    "word": "钱永刚",
+    "weight": 3
+  },
+  {
+    "word": "软科",
+    "weight": 3
+  },
+  {
+    "word": "进展",
+    "weight": 3
+  },
+  {
+    "word": "0周年",
+    "weight": 3
+  },
+  {
+    "word": "慧工程",
+    "weight": 3
+  },
+  {
+    "word": "价值",
+    "weight": 3
+  },
+  {
+    "word": "基于钱",
+    "weight": 3
+  },
+  {
+    "word": "试论",
     "weight": 3
   },
   {
@@ -48,15 +396,79 @@
     "weight": 3
   },
   {
-    "word": "大学要有创新精神",
+    "word": "汪应洛",
     "weight": 3
   },
   {
-    "word": "(2)",
+    "word": "庆祝",
     "weight": 3
   },
   {
-    "word": "论技术科学",
+    "word": "0年",
+    "weight": 3
+  },
+  {
+    "word": "谈谈",
+    "weight": 3
+  },
+  {
+    "word": "致人",
+    "weight": 3
+  },
+  {
+    "word": "关于建",
+    "weight": 3
+  },
+  {
+    "word": "迎接",
+    "weight": 3
+  },
+  {
+    "word": "祝中",
+    "weight": 3
+  },
+  {
+    "word": "一个科",
+    "weight": 3
+  },
+  {
+    "word": "作报告",
+    "weight": 3
+  },
+  {
+    "word": "大部门",
+    "weight": 3
+  },
+  {
+    "word": "济学",
+    "weight": 3
+  },
+  {
+    "word": "建立",
+    "weight": 3
+  },
+  {
+    "word": "草业",
+    "weight": 3
+  },
+  {
+    "word": "园林艺",
+    "weight": 3
+  },
+  {
+    "word": "术部门",
+    "weight": 3
+  },
+  {
+    "word": "园林",
+    "weight": 3
+  },
+  {
+    "word": "础理论",
+    "weight": 3
+  },
+  {
+    "word": "马克",
     "weight": 3
   },
   {
@@ -68,79 +480,71 @@
     "weight": 3
   },
   {
-    "word": "文献和档案工作的现代化及其影响",
+    "word": "其影响",
     "weight": 3
   },
   {
-    "word": "园林艺术是我国创立的独特艺术部门",
+    "word": "文献",
     "weight": 3
   },
   {
-    "word": "一个科学新领域——开放的复杂巨系统及其方法论",
+    "word": "同志",
     "weight": 3
   },
   {
-    "word": "理论",
+    "word": "代序",
+    "weight": 3
+  },
+  {
+    "word": "大学要",
+    "weight": 3
+  },
+  {
+    "word": "新精神",
+    "weight": 3
+  },
+  {
+    "word": "大学",
+    "weight": 3
+  },
+  {
+    "word": "“学习",
     "weight": 2
   },
   {
-    "word": "技术",
+    "word": "学思想",
     "weight": 2
   },
   {
-    "word": "工程",
+    "word": "“学",
     "weight": 2
   },
   {
-    "word": "钱学森系统科学和系统工程的成就与贡献——从系统思想到系统实践的创新(下)",
+    "word": "努力建",
     "weight": 2
   },
   {
-    "word": "缅怀钱老",
+    "word": "言摘要",
     "weight": 2
   },
   {
-    "word": "推进中国系统科学",
+    "word": "努力",
     "weight": 2
   },
   {
-    "word": "钱永刚",
+    "word": "原国家",
     "weight": 2
   },
   {
-    "word": "钱学森之子",
+    "word": "副部长",
     "weight": 2
   },
   {
-    "word": "总装",
+    "word": "原国",
     "weight": 2
   },
   {
-    "word": "中国系统工程学会副理事长",
-    "weight": 2
-  },
-  {
-    "word": "钱学森系统科学和系统工程的成就与贡献——从系统思想到系统实践的创新(上)",
-    "weight": 2
-  },
-  {
-    "word": "系统工程及其理论基础",
-    "weight": 2
-  },
-  {
-    "word": "系统工程的发展与应用",
-    "weight": 2
-  },
-  {
-    "word": "“学习钱学森系统科学思想",
-    "weight": 2
-  },
-  {
-    "word": "努力建设创新型国家”座谈会发言摘要",
-    "weight": 2
-  },
-  {
-    "word": "原国家航空航天工业部副部长",
+    "word": "部长",
     "weight": 2
   },
   {
@@ -156,35 +560,127 @@
     "weight": 2
   },
   {
-    "word": "从系统工程到系统学",
+    "word": "成就",
     "weight": 2
   },
   {
-    "word": "系统工程与总体设计部",
+    "word": "成方法",
     "weight": 2
   },
   {
-    "word": "钱学森对系统科学和系统工程的贡献",
+    "word": "统学",
     "weight": 2
   },
   {
-    "word": "支持科学决策和咨询的技术——思维系统工程",
+    "word": "性研究",
     "weight": 2
   },
   {
-    "word": "谭跃进",
+    "word": "论基础",
     "weight": 2
   },
   {
-    "word": "张国伍",
+    "word": "缅怀钱老",
     "weight": 2
   },
   {
-    "word": "郭宝柱",
+    "word": "推进中",
     "weight": 2
   },
   {
-    "word": "价值可持续太空探索的系统工程——理念",
+    "word": "推进",
+    "weight": 2
+  },
+  {
+    "word": "钱学森之子",
+    "weight": 2
+  },
+  {
+    "word": "总装",
+    "weight": 2
+  },
+  {
+    "word": "理事长",
+    "weight": 2
+  },
+  {
+    "word": "事长",
+    "weight": 2
+  },
+  {
+    "word": "实意义",
+    "weight": 2
+  },
+  {
+    "word": "讨体系",
+    "weight": 2
+  },
+  {
+    "word": "从工程",
+    "weight": 2
+  },
+  {
+    "word": "从工",
+    "weight": 2
+  },
+  {
+    "word": "纪念钱",
+    "weight": 2
+  },
+  {
+    "word": "出版",
+    "weight": 2
+  },
+  {
+    "word": "认知",
+    "weight": 2
+  },
+  {
+    "word": "支持科",
+    "weight": 2
+  },
+  {
+    "word": "支持",
+    "weight": 2
+  },
+  {
+    "word": "思维系",
+    "weight": 2
+  },
+  {
+    "word": "初探",
+    "weight": 2
+  },
+  {
+    "word": "智慧",
+    "weight": 2
+  },
+  {
+    "word": "ogy",
+    "weight": 2
+  },
+  {
+    "word": "gy",
+    "weight": 2
+  },
+  {
+    "word": "综合集",
+    "weight": 2
+  },
+  {
+    "word": "综合",
+    "weight": 2
+  },
+  {
+    "word": "事理",
+    "weight": 2
+  },
+  {
+    "word": "价值可",
+    "weight": 2
+  },
+  {
+    "word": "理念",
     "weight": 2
   },
   {
@@ -196,7 +692,63 @@
     "weight": 2
   },
   {
-    "word": "系统科学与系统工程在中国",
+    "word": "观分析",
+    "weight": 2
+  },
+  {
+    "word": "航天",
+    "weight": 2
+  },
+  {
+    "word": "郭宝柱",
+    "weight": 2
+  },
+  {
+    "word": "运用",
+    "weight": 2
+  },
+  {
+    "word": "谭跃进",
+    "weight": 2
+  },
+  {
+    "word": "论系",
+    "weight": 2
+  },
+  {
+    "word": "技术科",
+    "weight": 2
+  },
+  {
+    "word": "为了",
+    "weight": 2
+  },
+  {
+    "word": "张国伍",
+    "weight": 2
+  },
+  {
+    "word": "庆祝中",
+    "weight": 2
+  },
+  {
+    "word": "步发展",
+    "weight": 2
+  },
+  {
+    "word": "点建议",
+    "weight": 2
+  },
+  {
+    "word": "试论系",
+    "weight": 2
+  },
+  {
+    "word": "国防",
+    "weight": 2
+  },
+  {
+    "word": "记钱",
     "weight": 2
   },
   {
@@ -204,43 +756,103 @@
     "weight": 2
   },
   {
-    "word": "系统科学与系统工程的发展和现况",
+    "word": "中国航",
     "weight": 2
   },
   {
-    "word": "工程和工程科学",
+    "word": "现况",
     "weight": 2
   },
   {
-    "word": "人体科学是现代科学技术体系中的一个大部门",
+    "word": "论问题",
     "weight": 2
   },
   {
-    "word": "为科技兴国而奋力工作——在中国科学技术协会成立三十周年纪念大会上的报告",
+    "word": "草原",
     "weight": 2
   },
   {
-    "word": "第六次产业革命和农业科学技术",
+    "word": "LH",
     "weight": 2
   },
   {
-    "word": "创建农业型的知识密集产业—农业",
+    "word": "伟大科",
     "weight": 2
   },
   {
-    "word": "林业",
+    "word": "伟大",
     "weight": 2
   },
   {
-    "word": "草业",
+    "word": "对人",
     "weight": 2
   },
   {
-    "word": "海业和沙业",
+    "word": "评价",
     "weight": 2
   },
   {
-    "word": "光子学",
+    "word": "快来!",
+    "weight": 2
+  },
+  {
+    "word": "术研究",
+    "weight": 2
+  },
+  {
+    "word": "浅谈",
+    "weight": 2
+  },
+  {
+    "word": "烟气",
+    "weight": 2
+  },
+  {
+    "word": "直升机",
+    "weight": 2
+  },
+  {
+    "word": "谈谈科",
+    "weight": 2
+  },
+  {
+    "word": "团结一致",
+    "weight": 2
+  },
+  {
+    "word": "迎接新",
+    "weight": 2
+  },
+  {
+    "word": "我们应",
+    "weight": 2
+  },
+  {
+    "word": "气功",
+    "weight": 2
+  },
+  {
+    "word": "电子计",
+    "weight": 2
+  },
+  {
+    "word": "字工作",
+    "weight": 2
+  },
+  {
+    "word": "电子",
+    "weight": 2
+  },
+  {
+    "word": "著名科",
+    "weight": 2
+  },
+  {
+    "word": "业革命",
+    "weight": 2
+  },
+  {
+    "word": "来信",
     "weight": 2
   },
   {
@@ -252,47 +864,215 @@
     "weight": 2
   },
   {
-    "word": "系统科学",
+    "word": "国家",
     "weight": 2
   },
   {
-    "word": "思维科学与人体科学",
+    "word": "大问题",
     "weight": 2
   },
   {
-    "word": "快来!",
+    "word": "利用",
     "weight": 2
   },
   {
-    "word": "社会主义中国应该建山水城市",
+    "word": "九十年",
     "weight": 2
   },
   {
-    "word": "关于马克思主义哲学和文艺学美学方法论的几个问题",
+    "word": "史责任",
     "weight": 2
   },
   {
-    "word": "团结一致",
+    "word": "九十",
     "weight": 2
   },
   {
-    "word": "电子计算机软件与新时期语言文字工作",
+    "word": "责任",
     "weight": 2
   },
   {
-    "word": "我们应该攻科学理论中最深层次的问题",
+    "word": "发展我",
     "weight": 2
   },
   {
-    "word": "发展我国的数学科学——在中国数学会数学教育与科研座谈会上的讲话",
+    "word": "两封信",
     "weight": 2
   },
   {
-    "word": "九十年代中国科技工作者的历史责任——在中国科学技术协会第四次全国代表大会上的工作报告",
+    "word": "为科技",
     "weight": 2
   },
   {
-    "word": "我对今日力学的认识",
+    "word": "力工作",
+    "weight": 2
+  },
+  {
+    "word": "为科",
+    "weight": 2
+  },
+  {
+    "word": "关于马",
+    "weight": 2
+  },
+  {
+    "word": "建立唯",
+    "weight": 2
+  },
+  {
+    "word": "功学",
+    "weight": 2
+  },
+  {
+    "word": "任务",
+    "weight": 2
+  },
+  {
+    "word": "用系",
+    "weight": 2
+  },
+  {
+    "word": "00年",
+    "weight": 2
+  },
+  {
+    "word": "创建农",
+    "weight": 2
+  },
+  {
+    "word": "集产业",
+    "weight": 2
+  },
+  {
+    "word": "农业",
+    "weight": 2
+  },
+  {
+    "word": "林业",
+    "weight": 2
+  },
+  {
+    "word": "海业和沙业",
+    "weight": 2
+  },
+  {
+    "word": "开展",
+    "weight": 2
+  },
+  {
+    "word": "第六次",
+    "weight": 2
+  },
+  {
+    "word": "第六",
+    "weight": 2
+  },
+  {
+    "word": "写在《",
+    "weight": 2
+  },
+  {
+    "word": "写在",
+    "weight": 2
+  },
+  {
+    "word": "后面",
+    "weight": 2
+  },
+  {
+    "word": "在上海",
+    "weight": 2
+  },
+  {
+    "word": "在上",
+    "weight": 2
+  },
+  {
+    "word": "组织管",
+    "weight": 2
+  },
+  {
+    "word": "组织",
+    "weight": 2
+  },
+  {
+    "word": "关于教",
+    "weight": 2
+  },
+  {
+    "word": "关于新",
+    "weight": 2
+  },
+  {
+    "word": "识问题",
+    "weight": 2
+  },
+  {
+    "word": "美国",
+    "weight": 2
+  },
+  {
+    "word": "评“第",
+    "weight": 2
+  },
+  {
+    "word": "革命”",
+    "weight": 2
+  },
+  {
+    "word": "评“",
+    "weight": 2
+  },
+  {
+    "word": "命”",
+    "weight": 2
+  },
+  {
+    "word": "关于思",
+    "weight": 2
+  },
+  {
+    "word": "研究社",
+    "weight": 2
+  },
+  {
+    "word": "学问",
+    "weight": 2
+  },
+  {
+    "word": "再谈",
+    "weight": 2
+  },
+  {
+    "word": "结构",
+    "weight": 2
+  },
+  {
+    "word": "系学",
+    "weight": 2
+  },
+  {
+    "word": "哲学",
+    "weight": 2
+  },
+  {
+    "word": "远程星",
+    "weight": 2
+  },
+  {
+    "word": "远程",
+    "weight": 2
+  },
+  {
+    "word": "士致人",
+    "weight": 2
+  },
+  {
+    "word": "《图书",
+    "weight": 2
+  },
+  {
+    "word": "《图",
     "weight": 2
   },
   {
@@ -300,103 +1080,87 @@
     "weight": 2
   },
   {
-    "word": "评“第四次世界工业革命”",
+    "word": "技术─",
     "weight": 2
   },
   {
-    "word": "关于教育科学的基础理论",
+    "word": "术─",
     "weight": 2
   },
   {
-    "word": "关于新技术革命的若干基本认识问题",
+    "word": "我对今",
     "weight": 2
   },
   {
-    "word": "钱学森院士致人",
+    "word": "我对",
     "weight": 2
   },
   {
-    "word": "环境系统工程创立20周年纪念大会的贺信(代序)",
-    "weight": 2
-  },
-  {
-    "word": "钱学森综合集成体系",
+    "word": "一代宗",
     "weight": 1
   },
   {
-    "word": "系统科学革命和系统工程技术革命",
+    "word": "年难遇",
     "weight": 1
   },
   {
-    "word": "关于综合集成的研究——方法",
+    "word": "一代",
     "weight": 1
   },
   {
-    "word": "钱学森系统科学思想与社会主义建设",
+    "word": "难遇",
     "weight": 1
   },
   {
-    "word": "软科学研究及其方法论",
+    "word": "学成就",
     "weight": 1
   },
   {
-    "word": "复杂性研究与系统科学",
+    "word": "案例研究",
     "weight": 1
   },
   {
-    "word": "钱学森的现代科学技术体系与综合集成方法论",
+    "word": "其应用",
     "weight": 1
   },
   {
-    "word": "开放的复杂巨系统的方法论——从定性到定量综合集成方法",
+    "word": "从综合",
     "weight": 1
   },
   {
-    "word": "创建系统学——开创复杂巨系统的科学与技术",
+    "word": "践方法",
     "weight": 1
   },
   {
-    "word": "关于复杂性研究",
+    "word": "从综",
     "weight": 1
   },
   {
-    "word": "集大成",
+    "word": "关于复",
     "weight": 1
   },
   {
-    "word": "得智慧——钱学森的系统科学成就与贡献",
+    "word": "关于综",
     "weight": 1
   },
   {
-    "word": "从定性到定量综合集成方法的实现和应用",
+    "word": "复杂性",
     "weight": 1
   },
   {
-    "word": "从定性到定量综合集成方法——案例研究",
+    "word": "复杂系",
     "weight": 1
   },
   {
-    "word": "钱学森信息革命的学术思想及其现实意义",
+    "word": "统管理",
     "weight": 1
   },
   {
-    "word": "一代宗师百年难遇——钱学森系统科学思想和系统科学成就",
+    "word": "管理",
     "weight": 1
   },
   {
-    "word": "钱学森关于开放的复杂巨系统的研究",
-    "weight": 1
-  },
-  {
-    "word": "从综合集成思想到综合集成实践方法",
-    "weight": 1
-  },
-  {
-    "word": "复杂系统管理",
-    "weight": 1
-  },
-  {
-    "word": "一个具有中国特色的管理学新领域",
+    "word": "一个具",
     "weight": 1
   },
   {
@@ -404,67 +1168,47 @@
     "weight": 1
   },
   {
-    "word": "从定性到定量综合集成方法及其应用",
+    "word": "祝贺钱",
     "weight": 1
   },
   {
-    "word": "钱学森系统科学思想和系统科学体系",
+    "word": "十华诞",
     "weight": 1
   },
   {
-    "word": "从系统思想到系统实践的创新——钱学森系统研究的成就和贡献",
+    "word": "祝贺",
     "weight": 1
   },
   {
-    "word": "钱学森的现代科学技术体系与综合集成方法论——祝贺钱学森院士九十华诞",
+    "word": "华诞",
     "weight": 1
   },
   {
-    "word": "钱学森系统工程思想和系统论",
+    "word": "系统论",
     "weight": 1
   },
   {
-    "word": "钱学森的信息革命思想及其现实意义",
+    "word": "统论",
     "weight": 1
   },
   {
-    "word": "从基于逻辑的人工智能到社会智能的发展",
+    "word": "义建设",
     "weight": 1
   },
   {
-    "word": "学习钱学森先生的爱国和科学精神",
+    "word": "学体系",
     "weight": 1
   },
   {
-    "word": "数字城市——一类开放的复杂巨系统",
+    "word": "成体系",
     "weight": 1
   },
   {
-    "word": "钱学森对系统科学",
+    "word": "集大成",
     "weight": 1
   },
   {
-    "word": "思维科学的重大贡献",
-    "weight": 1
-  },
-  {
-    "word": "从工程控制论到综合集成研讨厅体系——纪念钱学森归国50周年",
-    "weight": 1
-  },
-  {
-    "word": "现代科学技术体系下的中医药学科定位初探",
-    "weight": 1
-  },
-  {
-    "word": "石康乐",
-    "weight": 1
-  },
-  {
-    "word": "思维与智慧科学及工程",
-    "weight": 1
-  },
-  {
-    "word": "尹红风",
+    "word": "得智慧",
     "weight": 1
   },
   {
@@ -472,7 +1216,11 @@
     "weight": 1
   },
   {
-    "word": "机结合”的综合集成研讨体系",
+    "word": "机结合",
+    "weight": 1
+  },
+  {
+    "word": "机结",
     "weight": 1
   },
   {
@@ -480,23 +1228,199 @@
     "weight": 1
   },
   {
-    "word": "系统学(systematology)及系统复杂性与中医药理论研究的探讨",
+    "word": "《En",
     "weight": 1
   },
   {
-    "word": "他使国家强大——我所知道的钱学森先生",
+    "word": "ing",
     "weight": 1
   },
   {
-    "word": "工程控制论(中文版)出版周年纪念",
+    "word": "《E",
     "weight": 1
   },
   {
-    "word": "现代科学技术体系与大成智慧",
+    "word": "ng",
     "weight": 1
   },
   {
-    "word": "综合集成与决策",
+    "word": "Cyb",
+    "weight": 1
+  },
+  {
+    "word": "tic",
+    "weight": 1
+  },
+  {
+    "word": "cs》",
+    "weight": 1
+  },
+  {
+    "word": "Cy",
+    "weight": 1
+  },
+  {
+    "word": "ic",
+    "weight": 1
+  },
+  {
+    "word": "s》",
+    "weight": 1
+  },
+  {
+    "word": "在国内",
+    "weight": 1
+  },
+  {
+    "word": "在国",
+    "weight": 1
+  },
+  {
+    "word": "从基于",
+    "weight": 1
+  },
+  {
+    "word": "从基",
+    "weight": 1
+  },
+  {
+    "word": "代发展",
+    "weight": 1
+  },
+  {
+    "word": "厅体系",
+    "weight": 1
+  },
+  {
+    "word": "家强大",
+    "weight": 1
+  },
+  {
+    "word": "他使",
+    "weight": 1
+  },
+  {
+    "word": "强大",
+    "weight": 1
+  },
+  {
+    "word": "我所知",
+    "weight": 1
+  },
+  {
+    "word": "我所",
+    "weight": 1
+  },
+  {
+    "word": "先生",
+    "weight": 1
+  },
+  {
+    "word": "基于综",
+    "weight": 1
+  },
+  {
+    "word": "一门2",
+    "weight": 1
+  },
+  {
+    "word": "一门",
+    "weight": 1
+  },
+  {
+    "word": "学习",
+    "weight": 1
+  },
+  {
+    "word": "中文版",
+    "weight": 1
+  },
+  {
+    "word": "出版周",
+    "weight": 1
+  },
+  {
+    "word": "年纪念",
+    "weight": 1
+  },
+  {
+    "word": "科学在",
+    "weight": 1
+  },
+  {
+    "word": "尹红风",
+    "weight": 1
+  },
+  {
+    "word": "数字城市",
+    "weight": 1
+  },
+  {
+    "word": "一类开",
+    "weight": 1
+  },
+  {
+    "word": "一类",
+    "weight": 1
+  },
+  {
+    "word": "位初探",
+    "weight": 1
+  },
+  {
+    "word": "石康乐",
+    "weight": 1
+  },
+  {
+    "word": "成智慧",
+    "weight": 1
+  },
+  {
+    "word": "社会智",
+    "weight": 1
+  },
+  {
+    "word": "科学大",
+    "weight": 1
+  },
+  {
+    "word": "sys",
+    "weight": 1
+  },
+  {
+    "word": "yst",
+    "weight": 1
+  },
+  {
+    "word": "tem",
+    "weight": 1
+  },
+  {
+    "word": "sy",
+    "weight": 1
+  },
+  {
+    "word": "ys",
+    "weight": 1
+  },
+  {
+    "word": "te",
+    "weight": 1
+  },
+  {
+    "word": "硕果",
+    "weight": 1
+  },
+  {
+    "word": "大成智",
+    "weight": 1
+  },
+  {
+    "word": "大成",
+    "weight": 1
+  },
+  {
+    "word": "决策",
     "weight": 1
   },
   {
@@ -504,35 +1428,11 @@
     "weight": 1
   },
   {
-    "word": "钱学森先生时代前沿的“大成智慧”学术思想",
+    "word": "可视化",
     "weight": 1
   },
   {
-    "word": "科学大师钱学森对思维科学的创新与贡献",
-    "weight": 1
-  },
-  {
-    "word": "认知科学进展",
-    "weight": 1
-  },
-  {
-    "word": "复杂巨系统科学——一门21世纪的科学",
-    "weight": 1
-  },
-  {
-    "word": "从定性到定量的综合集成法的形成与现代发展",
-    "weight": 1
-  },
-  {
-    "word": "系统科学及系统复杂性研究",
-    "weight": 1
-  },
-  {
-    "word": "基于综合集成法的工程创新",
-    "weight": 1
-  },
-  {
-    "word": "综合集成研讨厅专家群体评估结果的可视化",
+    "word": "视化",
     "weight": 1
   },
   {
@@ -540,167 +1440,259 @@
     "weight": 1
   },
   {
-    "word": "《Engineering",
+    "word": "认知科",
     "weight": 1
   },
   {
-    "word": "Cybernetics》(工程控制论)在国内外的影响",
+    "word": "术思想",
     "weight": 1
   },
   {
-    "word": "思维(认知)科学在中国的创新与发展",
+    "word": "大贡献",
     "weight": 1
   },
   {
-    "word": "从工程控制论到信息空间综合集成研讨体系——系统科学的创新与进展",
+    "word": "事理系",
     "weight": 1
   },
   {
-    "word": "社会智能科学的形成和发展",
+    "word": "理学",
     "weight": 1
   },
   {
-    "word": "钱学森论大成智慧工程",
+    "word": "苗东升",
     "weight": 1
   },
   {
-    "word": "系统科学与思维科学交叉发展的硕果——大成智慧工程",
+    "word": "型应用",
     "weight": 1
   },
   {
-    "word": "系统工程内涵",
+    "word": "焦利敏",
     "weight": 1
   },
   {
-    "word": "过程及框架探讨",
+    "word": "郭伟",
     "weight": 1
   },
   {
-    "word": "林益明",
+    "word": "魏巍",
     "weight": 1
   },
   {
-    "word": "系统工程在中国如何进一步发展",
+    "word": "欣欣向荣",
     "weight": 1
   },
   {
-    "word": "——我们的几点建议",
+    "word": "后继有人",
     "weight": 1
   },
   {
-    "word": "钱学森的系统工程学科专业教育思想——国防科技大学系统工程学科专业建设的体会",
+    "word": "回顾钱",
     "weight": 1
   },
   {
-    "word": "为了最好的纪念——钱学森荣获系统工程开拓奖的故事",
+    "word": "回顾",
     "weight": 1
   },
   {
-    "word": "闫岩",
+    "word": "筹学",
     "weight": 1
   },
   {
-    "word": "从运筹学到系统工程到系统科学——怀念许国志先生的学术点滴",
+    "word": "业有感",
     "weight": 1
   },
   {
-    "word": "弘扬系统工程中国学派的一项基本举措——对于编写系统工程教材的思考",
+    "word": "有感",
     "weight": 1
   },
   {
-    "word": "钱学森院士与创建交通运输系统工程学——对钱学森院士的追思",
+    "word": "目成功",
     "weight": 1
   },
   {
-    "word": "论系统工程方法(论)由“硬”变“软”的内在根由",
+    "word": "成功",
     "weight": 1
   },
   {
-    "word": "赵佩华",
+    "word": "符志民",
     "weight": 1
   },
   {
-    "word": "系统工程与天下大势——庆祝中国系统工程学会成立30周年(上)",
+    "word": "本质",
     "weight": 1
   },
   {
-    "word": "试论系统工程的中国学派与钱学森院士的贡献",
+    "word": "曹松",
     "weight": 1
   },
   {
-    "word": "钱学森开拓的系统工程引导我国管理教育蓬勃发展",
+    "word": "蔡博",
     "weight": 1
   },
   {
-    "word": "从系统工程到开放的复杂巨系统",
+    "word": "航天组",
     "weight": 1
   },
   {
-    "word": "黄顺基",
+    "word": "谈网络",
     "weight": 1
   },
   {
-    "word": "中国系统工程学会第七届全国会员代表大会暨第十四届学术年会——庆祝钱学森院士九十五华诞会议纪要",
+    "word": "谈网",
     "weight": 1
   },
   {
-    "word": "试论系统工程的中国学派与系统科学的中国学派——钱学森院士的杰出贡献",
+    "word": "担当",
     "weight": 1
   },
   {
-    "word": "系统工程将永葆青春",
+    "word": "运用系",
     "weight": 1
   },
   {
-    "word": "系统工程与人才培养——庆祝中国系统工程学会成立30周年(下)",
+    "word": "更安全",
     "weight": 1
   },
   {
-    "word": "大型智能交通系统工程项目的开发方法",
+    "word": "安全",
     "weight": 1
   },
   {
-    "word": "智慧城市系统工程方法论",
+    "word": "姚轶崭",
     "weight": 1
   },
   {
-    "word": "李林",
+    "word": "式解析",
     "weight": 1
   },
   {
-    "word": "钱学森智库",
+    "word": "解析",
     "weight": 1
   },
   {
-    "word": "服务国家的系统工程",
+    "word": "骆长永",
     "weight": 1
   },
   {
-    "word": "本报记者",
+    "word": "启示",
     "weight": 1
   },
   {
-    "word": "白乐",
+    "word": "十周年",
     "weight": 1
   },
   {
-    "word": "中国系统工程学会第19届学术年会邀请函",
+    "word": "展历程",
     "weight": 1
   },
   {
-    "word": "系统工程助推新时代的强国梦",
+    "word": "历程",
     "weight": 1
   },
   {
-    "word": "知识系统工程与现代科学技术体系",
+    "word": "郑新华",
     "weight": 1
   },
   {
-    "word": "王众托",
+    "word": "王志超",
     "weight": 1
   },
   {
-    "word": "中国系统工程研究与应用的历史",
+    "word": "代价值",
+    "weight": 1
+  },
+  {
+    "word": "盛懿",
+    "weight": 1
+  },
+  {
+    "word": "汪长明",
+    "weight": 1
+  },
+  {
+    "word": "张维明",
+    "weight": 1
+  },
+  {
+    "word": "《论系",
+    "weight": 1
+  },
+  {
+    "word": "书前言",
+    "weight": 1
+  },
+  {
+    "word": "《论",
+    "weight": 1
+  },
+  {
+    "word": "前言",
+    "weight": 1
+  },
+  {
+    "word": "科学的春天",
+    "weight": 1
+  },
+  {
+    "word": "侧记",
+    "weight": 1
+  },
+  {
+    "word": "许春辉",
+    "weight": 1
+  },
+  {
+    "word": "试论有",
+    "weight": 1
+  },
+  {
+    "word": "李一智",
+    "weight": 1
+  },
+  {
+    "word": "用概述",
+    "weight": 1
+  },
+  {
+    "word": "概述",
+    "weight": 1
+  },
+  {
+    "word": "张一诺",
+    "weight": 1
+  },
+  {
+    "word": "将出版",
+    "weight": 1
+  },
+  {
+    "word": "云良",
+    "weight": 1
+  },
+  {
+    "word": "中国空",
+    "weight": 1
+  },
+  {
+    "word": "信研究",
+    "weight": 1
+  },
+  {
+    "word": "赵小津",
+    "weight": 1
+  },
+  {
+    "word": "邀请函",
+    "weight": 1
+  },
+  {
+    "word": "请函",
+    "weight": 1
+  },
+  {
+    "word": "历史",
     "weight": 1
   },
   {
@@ -716,11 +1708,59 @@
     "weight": 1
   },
   {
-    "word": "壮志未酬誓不休——访中国系统工程学会草业系统工程专业委员会主任钱永刚",
+    "word": "十二院",
     "weight": 1
   },
   {
-    "word": "常务副主任兼秘书长孙发政",
+    "word": "中国》",
+    "weight": 1
+  },
+  {
+    "word": "十二",
+    "weight": 1
+  },
+  {
+    "word": "国》",
+    "weight": 1
+  },
+  {
+    "word": "壮志未",
+    "weight": 1
+  },
+  {
+    "word": "誓不休",
+    "weight": 1
+  },
+  {
+    "word": "壮志",
+    "weight": 1
+  },
+  {
+    "word": "不休",
+    "weight": 1
+  },
+  {
+    "word": "访中",
+    "weight": 1
+  },
+  {
+    "word": "永刚",
+    "weight": 1
+  },
+  {
+    "word": "常务副",
+    "weight": 1
+  },
+  {
+    "word": "孙发政",
+    "weight": 1
+  },
+  {
+    "word": "常务",
+    "weight": 1
+  },
+  {
+    "word": "发政",
     "weight": 1
   },
   {
@@ -728,23 +1768,59 @@
     "weight": 1
   },
   {
-    "word": "钱学森的经济系统工程思想",
+    "word": "智慧城",
     "weight": 1
   },
   {
-    "word": "钱学森与国防科学技术大学系统工程专业的创建——技术科学思想的视角",
+    "word": "李林",
     "weight": 1
   },
   {
-    "word": "陈勇",
+    "word": "知识系",
     "weight": 1
   },
   {
-    "word": "钱学森与中国系统工程学会",
+    "word": "术体系",
     "weight": 1
   },
   {
-    "word": "系统工程中国学派蔚然成林",
+    "word": "知识",
+    "weight": 1
+  },
+  {
+    "word": "王众托",
+    "weight": 1
+  },
+  {
+    "word": "强国梦",
+    "weight": 1
+  },
+  {
+    "word": "国梦",
+    "weight": 1
+  },
+  {
+    "word": "培训",
+    "weight": 1
+  },
+  {
+    "word": "兼论钱",
+    "weight": 1
+  },
+  {
+    "word": "兼论",
+    "weight": 1
+  },
+  {
+    "word": "乐章",
+    "weight": 1
+  },
+  {
+    "word": "然成林",
+    "weight": 1
+  },
+  {
+    "word": "成林",
     "weight": 1
   },
   {
@@ -752,23 +1828,71 @@
     "weight": 1
   },
   {
-    "word": "中国空间事业发展的系统工程理论自信研究",
+    "word": "学会",
     "weight": 1
   },
   {
-    "word": "赵小津",
+    "word": "视角",
     "weight": 1
   },
   {
-    "word": "十二院与《科学》杂志合作出版专刊《系统工程在中国》",
+    "word": "陈勇",
     "weight": 1
   },
   {
-    "word": "高举系统工程大旗",
+    "word": "钱学森智库",
     "weight": 1
   },
   {
-    "word": "开创系统工程理论新天地——驳“系统工程过时论”",
+    "word": "服务",
+    "weight": 1
+  },
+  {
+    "word": "本报记者",
+    "weight": 1
+  },
+  {
+    "word": "白乐",
+    "weight": 1
+  },
+  {
+    "word": "高举系",
+    "weight": 1
+  },
+  {
+    "word": "高举",
+    "weight": 1
+  },
+  {
+    "word": "大旗",
+    "weight": 1
+  },
+  {
+    "word": "开创系",
+    "weight": 1
+  },
+  {
+    "word": "新天地",
+    "weight": 1
+  },
+  {
+    "word": "天地",
+    "weight": 1
+  },
+  {
+    "word": "驳“系",
+    "weight": 1
+  },
+  {
+    "word": "时论”",
+    "weight": 1
+  },
+  {
+    "word": "驳“",
+    "weight": 1
+  },
+  {
+    "word": "论”",
     "weight": 1
   },
   {
@@ -776,219 +1900,331 @@
     "weight": 1
   },
   {
-    "word": "钱学森智库纵论人体健康系统工程",
+    "word": "术年会",
     "weight": 1
   },
   {
-    "word": "论系统工程与干部培训——兼论钱学森院士生平的系统工程乐章",
+    "word": "年会",
     "weight": 1
   },
   {
-    "word": "钱学森系统工程体系在名老中医经验传承中的应用模式解析",
+    "word": "庆祝钱",
     "weight": 1
   },
   {
-    "word": "骆长永",
+    "word": "议纪要",
     "weight": 1
   },
   {
-    "word": "钱学森系统工程思想发展历程",
+    "word": "纪要",
     "weight": 1
   },
   {
-    "word": "郑新华",
+    "word": "为了最",
     "weight": 1
   },
   {
-    "word": "航天组织管理的系统思维与系统工程方法",
+    "word": "故事",
     "weight": 1
   },
   {
-    "word": "谈网络安全工程师的荣耀与担当——运用系统工程的思维和方法让网络世界更安全",
+    "word": "闫岩",
     "weight": 1
   },
   {
-    "word": "姚轶崭",
+    "word": "黄顺基",
     "weight": 1
   },
   {
-    "word": "系统工程的本质",
+    "word": "从运筹",
     "weight": 1
   },
   {
-    "word": "曹松",
+    "word": "从运",
     "weight": 1
   },
   {
-    "word": "基于钱学森系统工程理论的山西省公路安全系统微观分析",
+    "word": "怀念许",
     "weight": 1
   },
   {
-    "word": "魏巍",
+    "word": "术点滴",
     "weight": 1
   },
   {
-    "word": "蔡博",
+    "word": "怀念",
     "weight": 1
   },
   {
-    "word": "基于钱学森系统工程体系的智慧生活系统模型研究及典型应用",
+    "word": "点滴",
     "weight": 1
   },
   {
-    "word": "焦利敏",
+    "word": "大型智",
     "weight": 1
   },
   {
-    "word": "欣欣向荣",
+    "word": "发方法",
     "weight": 1
   },
   {
-    "word": "后继有人——回顾钱学森创导的运筹学",
+    "word": "大型",
     "weight": 1
   },
   {
-    "word": "系统工程和系统科学事业有感",
+    "word": "弘扬系",
     "weight": 1
   },
   {
-    "word": "钱学森系统工程创新教育思想的实践及启示——纪念钱学森发表《组织管理的技术——系统工程》四十周年",
+    "word": "本举措",
     "weight": 1
   },
   {
-    "word": "钱学森系统工程教育思想在专业建设中的应用",
+    "word": "弘扬",
     "weight": 1
   },
   {
-    "word": "张维明",
+    "word": "举措",
     "weight": 1
   },
   {
-    "word": "钱学森系统工程思想的时代价值",
+    "word": "对于编",
     "weight": 1
   },
   {
-    "word": "盛懿",
+    "word": "对于",
     "weight": 1
   },
   {
-    "word": "汪长明",
+    "word": "才培养",
     "weight": 1
   },
   {
-    "word": "基于钱学森系统工程理论的山西省公路安全宏观分析",
+    "word": "培养",
     "weight": 1
   },
   {
-    "word": "郭伟",
+    "word": "下大势",
     "weight": 1
   },
   {
-    "word": "系统工程与项目管理的关系及项目成功",
+    "word": "大势",
     "weight": 1
   },
   {
-    "word": "符志民",
+    "word": "内涵",
     "weight": 1
   },
   {
-    "word": "钱学森系统工程思想在OA建设中的应用",
+    "word": "架探讨",
     "weight": 1
   },
   {
-    "word": "王志超",
+    "word": "过程",
     "weight": 1
   },
   {
-    "word": "事理",
+    "word": "林益明",
     "weight": 1
   },
   {
-    "word": "事理系统工程与事理学",
+    "word": "葆青春",
     "weight": 1
   },
   {
-    "word": "苗东升",
+    "word": "青春",
     "weight": 1
   },
   {
-    "word": "运筹学",
+    "word": "由“硬",
     "weight": 1
   },
   {
-    "word": "系统工程及其在水运工程中的应用概述",
+    "word": "在根由",
     "weight": 1
   },
   {
-    "word": "张一诺",
+    "word": "由“",
     "weight": 1
   },
   {
-    "word": "试论有色金属工业系统工程的意义",
+    "word": "根由",
     "weight": 1
   },
   {
-    "word": "李一智",
+    "word": "赵佩华",
     "weight": 1
   },
   {
-    "word": "系统工程在医学教育医院和科研管理应用中的探讨",
+    "word": "学派",
     "weight": 1
   },
   {
-    "word": "许春辉",
+    "word": "出贡献",
     "weight": 1
   },
   {
-    "word": "《论系统工程》一书前言",
+    "word": "勃发展",
     "weight": 1
   },
   {
-    "word": "中国系统工程的发展",
+    "word": "育思想",
     "weight": 1
   },
   {
-    "word": "科学的春天——中国系统工程学会迎春座谈会侧记",
+    "word": "体会",
     "weight": 1
   },
   {
-    "word": "钱学森等著《论系统工程》将出版",
+    "word": "程学",
     "weight": 1
   },
   {
-    "word": "云良",
+    "word": "对钱",
     "weight": 1
   },
   {
-    "word": "系统工程基础知识讲座之一",
+    "word": "追思",
     "weight": 1
   },
   {
-    "word": "第一讲",
+    "word": "一位登",
     "weight": 1
   },
   {
-    "word": "谈谈系统工程",
+    "word": "科学家",
     "weight": 1
   },
   {
-    "word": "魏世孝",
+    "word": "一位",
     "weight": 1
   },
   {
-    "word": "把握建立系统学的契机——评钱学森等《论系统工程(增订本)》一书",
+    "word": "学家",
     "weight": 1
   },
   {
-    "word": "陈一心",
+    "word": "以人为",
     "weight": 1
   },
   {
-    "word": "系统工程的回顾与展望",
+    "word": "以人",
     "weight": 1
   },
   {
-    "word": "系统工程和新技术革命",
+    "word": "江世亮",
+    "weight": 1
+  },
+  {
+    "word": "复杂科",
+    "weight": 1
+  },
+  {
+    "word": "时代",
+    "weight": 1
+  },
+  {
+    "word": "当代中",
+    "weight": 1
+  },
+  {
+    "word": "当代",
+    "weight": 1
+  },
+  {
+    "word": "演进",
+    "weight": 1
+  },
+  {
+    "word": "法治系",
+    "weight": 1
+  },
+  {
+    "word": "法治",
+    "weight": 1
+  },
+  {
+    "word": "实现依",
+    "weight": 1
+  },
+  {
+    "word": "20年",
+    "weight": 1
+  },
+  {
+    "word": "实现",
+    "weight": 1
+  },
+  {
+    "word": "常远",
+    "weight": 1
+  },
+  {
+    "word": "理技术",
+    "weight": 1
+  },
+  {
+    "word": "专访",
+    "weight": 1
+  },
+  {
+    "word": "姚诗煌",
+    "weight": 1
+  },
+  {
+    "word": "新构建",
+    "weight": 1
+  },
+  {
+    "word": "构建",
+    "weight": 1
+  },
+  {
+    "word": "寇晓东",
+    "weight": 1
+  },
+  {
+    "word": "航天系",
+    "weight": 1
+  },
+  {
+    "word": "陈明仲",
+    "weight": 1
+  },
+  {
+    "word": "让系",
+    "weight": 1
+  },
+  {
+    "word": "辉煌",
+    "weight": 1
+  },
+  {
+    "word": "适应贯",
+    "weight": 1
+  },
+  {
+    "word": "适应",
+    "weight": 1
+  },
+  {
+    "word": "需要",
+    "weight": 1
+  },
+  {
+    "word": "加速系",
+    "weight": 1
+  },
+  {
+    "word": "科建设",
+    "weight": 1
+  },
+  {
+    "word": "加速",
+    "weight": 1
+  },
+  {
+    "word": "车宏安",
     "weight": 1
   },
   {
@@ -996,31 +2232,11 @@
     "weight": 1
   },
   {
-    "word": "谈法制系统工程的总体设计及其电子计算机应用系统的初步构想",
+    "word": "发展系",
     "weight": 1
   },
   {
-    "word": "朱斌",
-    "weight": 1
-  },
-  {
-    "word": "草原系统工程的研究",
-    "weight": 1
-  },
-  {
-    "word": "王明昶",
-    "weight": 1
-  },
-  {
-    "word": "著名运筹学和系统科学家──许国成",
-    "weight": 1
-  },
-  {
-    "word": "马仲藩",
-    "weight": 1
-  },
-  {
-    "word": "发展系统工程的理论和实践",
+    "word": "实践",
     "weight": 1
   },
   {
@@ -1028,31 +2244,23 @@
     "weight": 1
   },
   {
-    "word": "认识系统化与实践系统工程化——关于认识和实践的新观念",
+    "word": "果累累",
     "weight": 1
   },
   {
-    "word": "李树申",
+    "word": "累累",
     "weight": 1
   },
   {
-    "word": "系统工程与软科学",
+    "word": "邓有模",
     "weight": 1
   },
   {
-    "word": "系统科学与系统工程——在中国的发展",
+    "word": "我国系",
     "weight": 1
   },
   {
-    "word": "展望",
-    "weight": 1
-  },
-  {
-    "word": "用马克思主义哲学来指导系统科学的工作——记钱学森系统科学与系统工程学术思想讨论会",
-    "weight": 1
-  },
-  {
-    "word": "我国系统科学研究的发展与成就",
+    "word": "我国",
     "weight": 1
   },
   {
@@ -1060,19 +2268,47 @@
     "weight": 1
   },
   {
-    "word": "江泽民",
+    "word": "把握建",
     "weight": 1
   },
   {
-    "word": "李鹏谈系统工程及其方法",
+    "word": "把握",
     "weight": 1
   },
   {
-    "word": "哲闻",
+    "word": "契机",
     "weight": 1
   },
   {
-    "word": "控制论和系统科学与中国有不解之缘",
+    "word": "评钱",
+    "weight": 1
+  },
+  {
+    "word": "增订本",
+    "weight": 1
+  },
+  {
+    "word": "》一书",
+    "weight": 1
+  },
+  {
+    "word": "陈一心",
+    "weight": 1
+  },
+  {
+    "word": "控制论",
+    "weight": 1
+  },
+  {
+    "word": "解之缘",
+    "weight": 1
+  },
+  {
+    "word": "控制",
+    "weight": 1
+  },
+  {
+    "word": "之缘",
     "weight": 1
   },
   {
@@ -1080,7 +2316,47 @@
     "weight": 1
   },
   {
-    "word": "第11届亚运会系统工程初探",
+    "word": "江泽民",
+    "weight": 1
+  },
+  {
+    "word": "李鹏谈",
+    "weight": 1
+  },
+  {
+    "word": "其方法",
+    "weight": 1
+  },
+  {
+    "word": "李鹏",
+    "weight": 1
+  },
+  {
+    "word": "哲闻",
+    "weight": 1
+  },
+  {
+    "word": "用马克",
+    "weight": 1
+  },
+  {
+    "word": "用马",
+    "weight": 1
+  },
+  {
+    "word": "讨论会",
+    "weight": 1
+  },
+  {
+    "word": "论会",
+    "weight": 1
+  },
+  {
+    "word": "第11",
+    "weight": 1
+  },
+  {
+    "word": "第1",
     "weight": 1
   },
   {
@@ -1088,7 +2364,31 @@
     "weight": 1
   },
   {
-    "word": "系统管理的过去",
+    "word": "座之一",
+    "weight": 1
+  },
+  {
+    "word": "之一",
+    "weight": 1
+  },
+  {
+    "word": "第一讲",
+    "weight": 1
+  },
+  {
+    "word": "谈谈系",
+    "weight": 1
+  },
+  {
+    "word": "魏世孝",
+    "weight": 1
+  },
+  {
+    "word": "系统管",
+    "weight": 1
+  },
+  {
+    "word": "过去",
     "weight": 1
   },
   {
@@ -1100,299 +2400,939 @@
     "weight": 1
   },
   {
-    "word": "国防科技大学系统工程与数学系建系十年硕果累累",
+    "word": "草原系",
     "weight": 1
   },
   {
-    "word": "邓有模",
+    "word": "王明昶",
     "weight": 1
   },
   {
-    "word": "当代中国系统工程的演进",
+    "word": "著名运",
     "weight": 1
   },
   {
-    "word": "航天系统工程与总体设计部——钱学森同志在发展我国系统工程理论与实践中的贡献",
+    "word": "许国成",
     "weight": 1
   },
   {
-    "word": "陈明仲",
+    "word": "国成",
     "weight": 1
   },
   {
-    "word": "钱学森与中国航天系统工程",
+    "word": "马仲藩",
     "weight": 1
   },
   {
-    "word": "适应贯彻落实科学发展观的需要",
+    "word": "认识系",
     "weight": 1
   },
   {
-    "word": "加速系统科学和系统工程学科建设",
+    "word": "程化",
     "weight": 1
   },
   {
-    "word": "车宏安",
+    "word": "关于认",
     "weight": 1
   },
   {
-    "word": "系统工程与管理技术",
+    "word": "新观念",
     "weight": 1
   },
   {
-    "word": "一位登高望远的科学家——记钱学森与中国航天系统工程的创建",
+    "word": "观念",
     "weight": 1
   },
   {
-    "word": "让系统工程在中国早日实现其应有的辉煌",
+    "word": "李树申",
     "weight": 1
   },
   {
-    "word": "中国航天与系统工程",
+    "word": "谈法制",
     "weight": 1
   },
   {
-    "word": "系统工程与系统科学发展的几个重要理论问题——钱学森院士等接受文汇报记者专访",
+    "word": "步构想",
     "weight": 1
   },
   {
-    "word": "姚诗煌",
+    "word": "谈法",
     "weight": 1
   },
   {
-    "word": "法治系统工程",
+    "word": "构想",
     "weight": 1
   },
   {
-    "word": "实现依法治国方略的科学途径──纪念钱学森提创“法治系统工程”20年",
+    "word": "朱斌",
     "weight": 1
   },
   {
-    "word": "常远",
+    "word": "LH3",
     "weight": 1
   },
   {
-    "word": "钱学森与航天系统工程",
+    "word": "景分析",
     "weight": 1
   },
   {
-    "word": "以人为主发展大成智慧工程——钱学森谈系统工程和系统科学的发展",
+    "word": "王婷",
     "weight": 1
   },
   {
-    "word": "江世亮",
+    "word": "《钱",
     "weight": 1
   },
   {
-    "word": "系统工程科学",
+    "word": "文集",
     "weight": 1
   },
   {
-    "word": "系统工程学科体系新构建",
+    "word": "文献》",
     "weight": 1
   },
   {
-    "word": "寇晓东",
+    "word": "献》",
     "weight": 1
   },
   {
-    "word": "复杂科学时代",
+    "word": "人体是",
     "weight": 1
   },
   {
-    "word": "浅谈三轮消防车在农村消防中的应用",
+    "word": "度评价",
     "weight": 1
   },
   {
-    "word": "常康忠",
+    "word": "国产",
     "weight": 1
   },
   {
-    "word": "泵串联水灭火系统在森林防火方面的应用",
+    "word": "这里才",
     "weight": 1
   },
   {
-    "word": "大断面软岩巷道支护技术浅析",
+    "word": "这里",
     "weight": 1
   },
   {
-    "word": "动平衡热压专机精度控制研究",
+    "word": "乐园",
     "weight": 1
   },
   {
-    "word": "观山高岭土矿保护公墓群开采方案选择研究",
+    "word": "家书”",
     "weight": 1
   },
   {
-    "word": "仇小祥",
+    "word": "书”",
     "weight": 1
   },
   {
-    "word": "近距离煤层开采巷道合理位置布置与支护效果分析",
+    "word": "旨在防",
     "weight": 1
   },
   {
-    "word": "王晓东",
+    "word": "旨在",
     "weight": 1
   },
   {
-    "word": "马克思主义自然力农业学——论人人得以全面发展的基本法则",
+    "word": "烟气排",
     "weight": 1
   },
   {
-    "word": "总序",
+    "word": "配置",
     "weight": 1
   },
   {
-    "word": "发展沙产业大有作为(代序)",
+    "word": "烟气脱",
     "weight": 1
   },
   {
-    "word": "标准化和标准学研究",
+    "word": "能分析",
     "weight": 1
   },
   {
-    "word": "远程星际航行补篇",
+    "word": "化设计",
     "weight": 1
   },
   {
-    "word": "20世纪20年代",
+    "word": "直升",
     "weight": 1
   },
   {
-    "word": "从来不突击考试",
+    "word": "设计",
     "weight": 1
   },
   {
-    "word": "钱学森致钱三强的一封信",
+    "word": "杨林河",
     "weight": 1
   },
   {
-    "word": "钱学森最后一次系统谈话",
+    "word": "在“纪",
     "weight": 1
   },
   {
-    "word": "探讨中国科协学",
+    "word": "在“",
     "weight": 1
   },
   {
-    "word": "厚煤层大采高全厚开采工艺研究与应用",
+    "word": "养问题",
     "weight": 1
   },
   {
-    "word": "王学军",
+    "word": "软厚煤",
     "weight": 1
   },
   {
-    "word": "在加州理工感受创新",
+    "word": "律研究",
     "weight": 1
   },
   {
-    "word": "复函物资部科教司科技处负责人",
+    "word": "软厚",
     "weight": 1
   },
   {
-    "word": "中国科协主席钱学森同志就再生资源发表重要见解",
+    "word": "近千米",
     "weight": 1
   },
   {
-    "word": "就老年学问题给邬沧萍的信",
+    "word": "近千",
     "weight": 1
   },
   {
-    "word": "钱学森同志精释金融经济学——钱学森同志致乔培新同志的一封信",
+    "word": "近断层",
     "weight": 1
   },
   {
-    "word": "现代地理科学系统建设问题",
+    "word": "护技术",
     "weight": 1
   },
   {
-    "word": "自然辩证法要与科学技术同步发展",
+    "word": "近断",
     "weight": 1
   },
   {
-    "word": "基础科学研究应该接受马克思主义哲学的指导",
+    "word": "钱学森说",
     "weight": 1
   },
   {
-    "word": "软科学是定性与定量相结合的系统科学",
+    "word": "一名中",
     "weight": 1
   },
   {
-    "word": "要充分重视和发挥厂矿工程技术人员的作用",
+    "word": "一名",
     "weight": 1
   },
   {
-    "word": "面临世纪之交的思考",
+    "word": "自白",
     "weight": 1
   },
   {
-    "word": "关于科协改革问题",
+    "word": "中国应",
     "weight": 1
   },
   {
-    "word": "关于《实践与文化——“哲学与文化”研究提纲》的通信(三则)",
+    "word": "城市”",
     "weight": 1
   },
   {
-    "word": "社会主义文明的协调发展需要社会主义政治文明建设",
+    "word": "市”",
     "weight": 1
   },
   {
-    "word": "一切成就归于党归于集体",
+    "word": "关于人",
     "weight": 1
   },
   {
-    "word": "关于科协的改革——钱学森同志在全国直辖市",
+    "word": "技术业",
     "weight": 1
   },
   {
-    "word": "计划单列市科协协作网会议上的讲话",
+    "word": "术业",
     "weight": 1
   },
   {
-    "word": "社会主义建设的总体设计部——党和国家的咨询服务工作单位",
+    "word": "气功是",
     "weight": 1
   },
   {
-    "word": "关于地学的发展问题",
+    "word": "门砖”",
     "weight": 1
   },
   {
-    "word": "现代科学技术的六大部门",
+    "word": "砖”",
     "weight": 1
   },
   {
-    "word": "(3)",
+    "word": "文明”",
     "weight": 1
   },
   {
-    "word": "研究社会主义精神财富创造事业的学问——文化学",
+    "word": "明”",
     "weight": 1
   },
   {
-    "word": "保护环境的工程技术——环境系统工程",
+    "word": "要意见",
     "weight": 1
   },
   {
-    "word": "马克思主义哲学的结构和中医理论的现代阐述",
+    "word": "运用现",
     "weight": 1
   },
   {
-    "word": "人天观",
+    "word": "四封信",
     "weight": 1
   },
   {
-    "word": "人体科学与人体学",
+    "word": "短信",
     "weight": 1
   },
   {
-    "word": "关于思维科学",
+    "word": "体考虑",
     "weight": 1
   },
   {
-    "word": "Culturology",
+    "word": "考虑",
+    "weight": 1
+  },
+  {
+    "word": "论述",
+    "weight": 1
+  },
+  {
+    "word": "给《非",
+    "weight": 1
+  },
+  {
+    "word": "给《",
+    "weight": 1
+  },
+  {
+    "word": "迎接2",
+    "weight": 1
+  },
+  {
+    "word": "谈建设",
+    "weight": 1
+  },
+  {
+    "word": "”问题",
+    "weight": 1
+  },
+  {
+    "word": "谈建",
+    "weight": 1
+  },
+  {
+    "word": "续利用",
+    "weight": 1
+  },
+  {
+    "word": "特色",
+    "weight": 1
+  },
+  {
+    "word": "“社会论”",
+    "weight": 1
+  },
+  {
+    "word": "行为科",
+    "weight": 1
+  },
+  {
+    "word": "行为",
+    "weight": 1
+  },
+  {
+    "word": "概括",
+    "weight": 1
+  },
+  {
+    "word": "点看法",
+    "weight": 1
+  },
+  {
+    "word": "看法",
+    "weight": 1
+  },
+  {
+    "word": "奋发努力",
+    "weight": 1
+  },
+  {
+    "word": "为促进",
+    "weight": 1
+  },
+  {
+    "word": "献力量",
+    "weight": 1
+  },
+  {
+    "word": "为促",
+    "weight": 1
+  },
+  {
+    "word": "力量",
+    "weight": 1
+  },
+  {
+    "word": "对人体",
+    "weight": 1
+  },
+  {
+    "word": "点认识",
+    "weight": 1
+  },
+  {
+    "word": "些思考",
+    "weight": 1
+  },
+  {
+    "word": "对我",
+    "weight": 1
+  },
+  {
+    "word": "科技新",
+    "weight": 1
+  },
+  {
+    "word": "怎么做",
+    "weight": 1
+  },
+  {
+    "word": "么做",
+    "weight": 1
+  },
+  {
+    "word": "谈地理",
+    "weight": 1
+  },
+  {
+    "word": "究方法",
+    "weight": 1
+  },
+  {
+    "word": "谈地",
+    "weight": 1
+  },
+  {
+    "word": "在19",
+    "weight": 1
+  },
+  {
+    "word": "在1",
+    "weight": 1
+  },
+  {
+    "word": "局问题",
+    "weight": 1
+  },
+  {
+    "word": "靠科技",
+    "weight": 1
+  },
+  {
+    "word": "生产率",
+    "weight": 1
+  },
+  {
+    "word": "靠科",
+    "weight": 1
+  },
+  {
+    "word": "产率",
+    "weight": 1
+  },
+  {
+    "word": "一切成",
+    "weight": 1
+  },
+  {
+    "word": "于集体",
+    "weight": 1
+  },
+  {
+    "word": "一切",
+    "weight": 1
+  },
+  {
+    "word": "集体",
+    "weight": 1
+  },
+  {
+    "word": "关于《",
+    "weight": 1
+  },
+  {
+    "word": "文化",
+    "weight": 1
+  },
+  {
+    "word": "“哲",
+    "weight": 1
+  },
+  {
+    "word": "三则",
+    "weight": 1
+  },
+  {
+    "word": "关于地",
+    "weight": 1
+  },
+  {
+    "word": "展问题",
+    "weight": 1
+  },
+  {
+    "word": "革问题",
+    "weight": 1
+  },
+  {
+    "word": "改革",
+    "weight": 1
+  },
+  {
+    "word": "直辖市",
+    "weight": 1
+  },
+  {
+    "word": "辖市",
+    "weight": 1
+  },
+  {
+    "word": "计划单",
+    "weight": 1
+  },
+  {
+    "word": "计划",
+    "weight": 1
+  },
+  {
+    "word": "基础科",
+    "weight": 1
+  },
+  {
+    "word": "指导",
+    "weight": 1
+  },
+  {
+    "word": "复函物",
+    "weight": 1
+  },
+  {
+    "word": "负责人",
+    "weight": 1
+  },
+  {
+    "word": "复函",
+    "weight": 1
+  },
+  {
+    "word": "责人",
+    "weight": 1
+  },
+  {
+    "word": "中国科",
+    "weight": 1
+  },
+  {
+    "word": "要见解",
+    "weight": 1
+  },
+  {
+    "word": "见解",
+    "weight": 1
+  },
+  {
+    "word": "就老年",
+    "weight": 1
+  },
+  {
+    "word": "就老",
+    "weight": 1
+  },
+  {
+    "word": "现代地",
+    "weight": 1
+  },
+  {
+    "word": "设问题",
+    "weight": 1
+  },
+  {
+    "word": "作单位",
+    "weight": 1
+  },
+  {
+    "word": "单位",
+    "weight": 1
+  },
+  {
+    "word": "明建设",
+    "weight": 1
+  },
+  {
+    "word": "自然",
+    "weight": 1
+  },
+  {
+    "word": "要充分",
+    "weight": 1
+  },
+  {
+    "word": "要充",
+    "weight": 1
+  },
+  {
+    "word": "作用",
+    "weight": 1
+  },
+  {
+    "word": "面临世",
+    "weight": 1
+  },
+  {
+    "word": "面临",
+    "weight": 1
+  },
+  {
+    "word": "从中",
+    "weight": 1
+  },
+  {
+    "word": "关于发",
+    "weight": 1
+  },
+  {
+    "word": "发展地",
+    "weight": 1
+  },
+  {
+    "word": "在第二",
+    "weight": 1
+  },
+  {
+    "word": "在第",
+    "weight": 1
+  },
+  {
+    "word": "在驻西",
+    "weight": 1
+  },
+  {
+    "word": "在驻",
+    "weight": 1
+  },
+  {
+    "word": "当前气",
+    "weight": 1
+  },
+  {
+    "word": "项任务",
+    "weight": 1
+  },
+  {
+    "word": "当前",
+    "weight": 1
+  },
+  {
+    "word": "建立金",
+    "weight": 1
+  },
+  {
+    "word": "定量化",
+    "weight": 1
+  },
+  {
+    "word": "量化",
+    "weight": 1
+  },
+  {
+    "word": "艺工作",
+    "weight": 1
+  },
+  {
+    "word": "在《文",
+    "weight": 1
+  },
+  {
+    "word": "在《",
+    "weight": 1
+  },
+  {
+    "word": "美学",
+    "weight": 1
+  },
+  {
+    "word": "化建设",
+    "weight": 1
+  },
+  {
+    "word": "为了2",
+    "weight": 1
+  },
+  {
+    "word": "我想到",
+    "weight": 1
+  },
+  {
+    "word": "两件事",
+    "weight": 1
+  },
+  {
+    "word": "我想",
+    "weight": 1
+  },
+  {
+    "word": "件事",
+    "weight": 1
+  },
+  {
+    "word": "产业革",
+    "weight": 1
+  },
+  {
+    "word": "设想",
+    "weight": 1
+  },
+  {
+    "word": "关于长",
+    "weight": 1
+  },
+  {
+    "word": "创立知",
+    "weight": 1
+  },
+  {
+    "word": "业产业",
+    "weight": 1
+  },
+  {
+    "word": "创立",
+    "weight": 1
+  },
+  {
+    "word": "开展思",
+    "weight": 1
+  },
+  {
+    "word": "新技术",
+    "weight": 1
+  },
+  {
+    "word": "新技",
+    "weight": 1
+  },
+  {
+    "word": "制建设",
+    "weight": 1
+  },
+  {
+    "word": "现代化",
+    "weight": 1
+  },
+  {
+    "word": "代化",
+    "weight": 1
+  },
+  {
+    "word": "科学化",
+    "weight": 1
+  },
+  {
+    "word": "学化",
+    "weight": 1
+  },
+  {
+    "word": "道主义",
+    "weight": 1
+  },
+  {
+    "word": "主义",
+    "weight": 1
+  },
+  {
+    "word": "谈行为",
+    "weight": 1
+  },
+  {
+    "word": "谈行",
+    "weight": 1
+  },
+  {
+    "word": "六封信",
+    "weight": 1
+  },
+  {
+    "word": "闭幕词",
+    "weight": 1
+  },
+  {
+    "word": "幕词",
+    "weight": 1
+  },
+  {
+    "word": "其发展",
+    "weight": 1
+  },
+  {
+    "word": "LH2",
+    "weight": 1
+  },
+  {
+    "word": "三轮车",
+    "weight": 1
+  },
+  {
+    "word": "轮车",
+    "weight": 1
+  },
+  {
+    "word": "冯臻莹",
+    "weight": 1
+  },
+  {
+    "word": "不到园林",
+    "weight": 1
+  },
+  {
+    "word": "怎知春",
+    "weight": 1
+  },
+  {
+    "word": "色如许",
+    "weight": 1
+  },
+  {
+    "word": "怎知",
+    "weight": 1
+  },
+  {
+    "word": "如许",
+    "weight": 1
+  },
+  {
+    "word": "基之作",
+    "weight": 1
+  },
+  {
+    "word": "之作",
+    "weight": 1
+  },
+  {
+    "word": "关肇直",
+    "weight": 1
+  },
+  {
+    "word": "关肇",
+    "weight": 1
+  },
+  {
+    "word": "冷与热",
+    "weight": 1
+  },
+  {
+    "word": "科学态",
+    "weight": 1
+  },
+  {
+    "word": "结合",
+    "weight": 1
+  },
+  {
+    "word": "是创新",
+    "weight": 1
+  },
+  {
+    "word": "是创",
+    "weight": 1
+  },
+  {
+    "word": "意义深",
+    "weight": 1
+  },
+  {
+    "word": "致许",
+    "weight": 1
+  },
+  {
+    "word": "书信",
+    "weight": 1
+  },
+  {
+    "word": "《评“",
+    "weight": 1
+  },
+  {
+    "word": "命”》",
+    "weight": 1
+  },
+  {
+    "word": "《评",
+    "weight": 1
+  },
+  {
+    "word": "”》",
+    "weight": 1
+  },
+  {
+    "word": "关于“",
+    "weight": 1
+  },
+  {
+    "word": "关于撰",
+    "weight": 1
+  },
+  {
+    "word": "释文",
+    "weight": 1
+  },
+  {
+    "word": "生态经",
+    "weight": 1
+  },
+  {
+    "word": "源永续",
+    "weight": 1
+  },
+  {
+    "word": "生态",
+    "weight": 1
+  },
+  {
+    "word": "永续",
+    "weight": 1
+  },
+  {
+    "word": "美国中",
+    "weight": 1
+  },
+  {
+    "word": "革动向",
+    "weight": 1
+  },
+  {
+    "word": "动向",
+    "weight": 1
+  },
+  {
+    "word": "美国提",
+    "weight": 1
+  },
+  {
+    "word": "重读孙",
+    "weight": 1
+  },
+  {
+    "word": "重读",
+    "weight": 1
+  },
+  {
+    "word": "Cul",
+    "weight": 1
+  },
+  {
+    "word": "Cu",
     "weight": 1
   },
   {
@@ -1408,35 +3348,99 @@
     "weight": 1
   },
   {
-    "word": "Socialist",
+    "word": "Soc",
     "weight": 1
   },
   {
-    "word": "Spiritual",
+    "word": "ali",
     "weight": 1
   },
   {
-    "word": "Wealth",
+    "word": "ist",
     "weight": 1
   },
   {
-    "word": "科学革命",
+    "word": "So",
     "weight": 1
   },
   {
-    "word": "技术革命和社会发展",
+    "word": "li",
     "weight": 1
   },
   {
-    "word": "不能好心办错事",
+    "word": "st",
     "weight": 1
   },
   {
-    "word": "钱学森同志给编辑部的信",
+    "word": "Spi",
     "weight": 1
   },
   {
-    "word": "关于社会主义文艺学的两封通信",
+    "word": "ual",
+    "weight": 1
+  },
+  {
+    "word": "Sp",
+    "weight": 1
+  },
+  {
+    "word": "al",
+    "weight": 1
+  },
+  {
+    "word": "Wea",
+    "weight": 1
+  },
+  {
+    "word": "lth",
+    "weight": 1
+  },
+  {
+    "word": "We",
+    "weight": 1
+  },
+  {
+    "word": "th",
+    "weight": 1
+  },
+  {
+    "word": "不能好",
+    "weight": 1
+  },
+  {
+    "word": "办错事",
+    "weight": 1
+  },
+  {
+    "word": "不能",
+    "weight": 1
+  },
+  {
+    "word": "错事",
+    "weight": 1
+  },
+  {
+    "word": "人天观",
+    "weight": 1
+  },
+  {
+    "word": "体学",
+    "weight": 1
+  },
+  {
+    "word": "保护环",
+    "weight": 1
+  },
+  {
+    "word": "保护",
+    "weight": 1
+  },
+  {
+    "word": "关于社",
+    "weight": 1
+  },
+  {
+    "word": "封通信",
     "weight": 1
   },
   {
@@ -1444,151 +3448,159 @@
     "weight": 1
   },
   {
-    "word": "对当前学会工作的两点建议",
+    "word": "关于讨",
     "weight": 1
   },
   {
-    "word": "研究社会主义精神财富创造事业的学问——文化学(摘录)",
+    "word": "三封信",
     "weight": 1
   },
   {
-    "word": "关于讨论中医现代化的三封信",
+    "word": "对当前",
     "weight": 1
   },
   {
-    "word": "要加强“大战略”的研究",
+    "word": "对当",
     "weight": 1
   },
   {
-    "word": "钱学森同志谈“公元二○○○年的中国”的研究",
+    "word": "摘录",
     "weight": 1
   },
   {
-    "word": "软科学是新兴的科学技术",
+    "word": "科学革命",
     "weight": 1
   },
   {
-    "word": "为了2000年",
+    "word": "技术革",
     "weight": 1
   },
   {
-    "word": "我想到的两件事",
+    "word": "要加强",
     "weight": 1
   },
   {
-    "word": "开展思维科学的研究",
+    "word": "要加",
     "weight": 1
   },
   {
-    "word": "谈行为科学的体系",
+    "word": "代阐述",
     "weight": 1
   },
   {
-    "word": "交叉科学",
+    "word": "阐述",
     "weight": 1
   },
   {
-    "word": "理论和研究的展望",
+    "word": "《宇航",
     "weight": 1
   },
   {
-    "word": "社会主义现代化建设和领导决策的科学化",
+    "word": "刊祝词",
     "weight": 1
   },
   {
-    "word": "现代科学技术与法学研究和法制建设",
+    "word": "《宇",
     "weight": 1
   },
   {
-    "word": "创立知识密集型草业产业",
+    "word": "祝词",
     "weight": 1
   },
   {
-    "word": "用系统科学来促进法学研究现代化",
+    "word": "为《科",
     "weight": 1
   },
   {
-    "word": "草原",
+    "word": "刊而作",
     "weight": 1
   },
   {
-    "word": "草业和新技术革命",
+    "word": "为《",
     "weight": 1
   },
   {
-    "word": "关于建立城市学的设想",
+    "word": "而作",
     "weight": 1
   },
   {
-    "word": "科学的人道主义",
+    "word": "关于形",
     "weight": 1
   },
   {
-    "word": "新技术革命与系统工程——从系统科学看我国今后60年的社会革命",
+    "word": "再谈系",
     "weight": 1
   },
   {
-    "word": "钱学森关于思维科学研究的六封信",
+    "word": "希望",
     "weight": 1
   },
   {
-    "word": "钱学森同志在中国科协第二届全国委员会第三次会议上的闭幕词",
+    "word": "开展人",
     "weight": 1
   },
   {
-    "word": "关于长远规划编制方法和方法理论的几个问题",
+    "word": "础研究",
     "weight": 1
   },
   {
-    "word": "产业革命和中国面临的产业革命",
+    "word": "再论科",
     "weight": 1
   },
   {
-    "word": "钱学森同志谈中医学的科学水平及其发展",
+    "word": "再论",
     "weight": 1
   },
   {
-    "word": "对所谓“人类旅行的极限”的意见",
+    "word": "用科",
     "weight": 1
   },
   {
-    "word": "工程控制论",
+    "word": "蓝图",
     "weight": 1
   },
   {
-    "word": "现代力学——在一九七八年全国力学规划会议上的发言",
+    "word": "百花吐",
     "weight": 1
   },
   {
-    "word": "技术科学中的方法论问题",
+    "word": "春光好",
     "weight": 1
   },
   {
-    "word": "什么是湍流的基础理论",
+    "word": "百花",
     "weight": 1
   },
   {
-    "word": "从自己的业务中学习科学",
+    "word": "光好",
     "weight": 1
   },
   {
-    "word": "大规模的科学实验工作",
+    "word": "著名人",
     "weight": 1
   },
   {
-    "word": "答岳宗五",
+    "word": "斗任务",
     "weight": 1
   },
   {
-    "word": "胡昌国",
+    "word": "卢嘉锡",
     "weight": 1
   },
   {
-    "word": "高伯龙三同志",
+    "word": "自然辩证法",
     "weight": 1
   },
   {
-    "word": "生命是不是总是要像在地球上那样的",
+    "word": "潜力",
+    "weight": 1
+  },
+  {
+    "word": "点意见",
+    "weight": 1
+  },
+  {
+    "word": "版工作",
     "weight": 1
   },
   {
@@ -1596,11 +3608,35 @@
     "weight": 1
   },
   {
-    "word": "REMEMBER",
+    "word": "REM",
     "weight": 1
   },
   {
-    "word": "CHAIRMAN",
+    "word": "BER",
+    "weight": 1
+  },
+  {
+    "word": "RE",
+    "weight": 1
+  },
+  {
+    "word": "ER",
+    "weight": 1
+  },
+  {
+    "word": "CHA",
+    "weight": 1
+  },
+  {
+    "word": "MAN",
+    "weight": 1
+  },
+  {
+    "word": "CH",
+    "weight": 1
+  },
+  {
+    "word": "AN",
     "weight": 1
   },
   {
@@ -1608,7 +3644,19 @@
     "weight": 1
   },
   {
-    "word": "TEACHINGS",
+    "word": "TEA",
+    "weight": 1
+  },
+  {
+    "word": "NGS",
+    "weight": 1
+  },
+  {
+    "word": "TE",
+    "weight": 1
+  },
+  {
+    "word": "GS",
     "weight": 1
   },
   {
@@ -1624,687 +3672,355 @@
     "weight": 1
   },
   {
-    "word": "科学技术一定要在本世纪内赶超世界先进水平",
+    "word": "什么是",
     "weight": 1
   },
   {
-    "word": "物理力学介绍",
+    "word": "什么",
     "weight": 1
   },
   {
-    "word": "科学学",
+    "word": "从自己",
     "weight": 1
   },
   {
-    "word": "科学技术体系学",
+    "word": "从自",
     "weight": 1
   },
   {
-    "word": "马克思主义哲学",
+    "word": "大规模",
     "weight": 1
   },
   {
-    "word": "远程星际航行",
+    "word": "验工作",
     "weight": 1
   },
   {
-    "word": "组织管理社会主义建设的技术——社会工程",
+    "word": "大规",
     "weight": 1
   },
   {
-    "word": "科学技术的研究工作和外文",
+    "word": "对所谓",
     "weight": 1
   },
   {
-    "word": "航空技术的展望",
+    "word": "对所",
     "weight": 1
   },
   {
-    "word": "百花吐艳春光好——著名人士谈十二大战斗任务",
+    "word": "物理力",
     "weight": 1
   },
   {
-    "word": "卢嘉锡",
+    "word": "物理",
     "weight": 1
   },
   {
-    "word": "钱学森同志给空气动力学研究会的贺信",
+    "word": "介绍",
     "weight": 1
   },
   {
-    "word": "钱学森同志谈出版工作",
+    "word": "在一九",
     "weight": 1
   },
   {
-    "word": "用科学方法绘制国民经济现代化的蓝图",
+    "word": "在一",
     "weight": 1
   },
   {
-    "word": "再谈系统科学的体系",
+    "word": "生命是",
     "weight": 1
   },
   {
-    "word": "现代科学的结构——再论科学技术体系学",
+    "word": "生命",
     "weight": 1
   },
   {
-    "word": "《宇航学报》发刊祝词",
+    "word": "进水平",
     "weight": 1
   },
   {
-    "word": "自然辩证法",
+    "word": "水平",
     "weight": 1
   },
   {
-    "word": "思维科学和人的潜力",
+    "word": "外文",
     "weight": 1
   },
   {
-    "word": "关于形象思维问题的一封信",
+    "word": "答岳宗五",
     "weight": 1
   },
   {
-    "word": "希望",
+    "word": "高伯龙",
     "weight": 1
   },
   {
-    "word": "钱学森同志对复杂系統可靠性分析的两点意见",
+    "word": "三同志",
     "weight": 1
   },
   {
-    "word": "钱学森同志论法治系统工程与方法",
+    "word": "高伯",
     "weight": 1
   },
   {
-    "word": "钱学森同志给本刊编辑部的信",
+    "word": "社会工程",
     "weight": 1
   },
   {
-    "word": "关于建立和发展马克思主义的科学学的问题——为《科研管理》创刊而作",
+    "word": "航空技",
     "weight": 1
   },
   {
-    "word": "开展人体科学的基础研究",
+    "word": "航空",
     "weight": 1
   },
   {
-    "word": "关于思维科学研究问题的通信",
+    "word": "际航行",
     "weight": 1
   },
   {
-    "word": "关肇直同志纪念会上的讲话",
+    "word": "航行",
     "weight": 1
   },
   {
-    "word": "写在《郭永怀文集》的后面",
+    "word": "20世",
     "weight": 1
   },
   {
-    "word": "冷与热",
+    "word": "0年代",
     "weight": 1
   },
   {
-    "word": "科学态度与献身精神的结合",
+    "word": "年代",
     "weight": 1
   },
   {
-    "word": "组织管理的技术——系统工程",
+    "word": "从来不",
     "weight": 1
   },
   {
-    "word": "致许国志书信",
+    "word": "击考试",
     "weight": 1
   },
   {
-    "word": "再谈园林学",
+    "word": "从来",
     "weight": 1
   },
   {
-    "word": "在上海机械学院系统工程研究所成立大会上的讲话",
+    "word": "考试",
     "weight": 1
   },
   {
-    "word": "不到园林",
+    "word": "动平衡",
     "weight": 1
   },
   {
-    "word": "怎知春色如许——谈园林学",
+    "word": "制研究",
     "weight": 1
   },
   {
-    "word": "意义深长的两封信",
+    "word": "动平",
     "weight": 1
   },
   {
-    "word": "中国航天的奠基之作",
+    "word": "厚煤层",
     "weight": 1
   },
   {
-    "word": "LH250B细水雾消防边三轮车",
+    "word": "厚煤",
     "weight": 1
   },
   {
-    "word": "冯臻莹",
+    "word": "王学军",
     "weight": 1
   },
   {
-    "word": "学风不活",
+    "word": "有作为",
     "weight": 1
   },
   {
-    "word": "是创新人才培养的大问题",
+    "word": "作为",
     "weight": 1
   },
   {
-    "word": "钱学森同志的讲话",
+    "word": "大断面",
     "weight": 1
   },
   {
-    "word": "艺术与科学——在“纪念蒋英教授执教40周年教学研讨会”上的发言",
+    "word": "术浅析",
     "weight": 1
   },
   {
-    "word": "浅谈森林消防水灭火组合系统",
+    "word": "大断",
     "weight": 1
   },
   {
-    "word": "直升机设备安装平台的强度优化设计",
+    "word": "浅析",
     "weight": 1
   },
   {
-    "word": "杨林河",
+    "word": "探讨中",
     "weight": 1
   },
   {
-    "word": "烟气脱硫系统DCS配置及其功能分析",
+    "word": "协学",
     "weight": 1
   },
   {
-    "word": "软厚煤层大采高工作面采场覆岩运移规律研究",
+    "word": "标准化",
     "weight": 1
   },
   {
-    "word": "伟大科学家钱学森致人",
+    "word": "标准",
     "weight": 1
   },
   {
-    "word": "环境系统工程创立20周年纪念大会的贺信",
+    "word": "泵串联",
     "weight": 1
   },
   {
-    "word": "旨在防伪造的主动式IC计量技术研究",
+    "word": "泵串",
     "weight": 1
   },
   {
-    "word": "关于建筑与哲学观的通信",
+    "word": "浅谈三",
     "weight": 1
   },
   {
-    "word": "钱学森说——一名中国科技工作者的自白",
+    "word": "常康忠",
     "weight": 1
   },
   {
-    "word": "谈谈科技创新人才的培养问题",
+    "word": "观山高",
     "weight": 1
   },
   {
-    "word": "这里才是真正科学工作者的乐园——钱学森写给郭永怀的“家书”",
+    "word": "择研究",
     "weight": 1
   },
   {
-    "word": "人体是个复杂的巨系统",
+    "word": "观山",
     "weight": 1
   },
   {
-    "word": "《钱学森文集——1938",
+    "word": "仇小祥",
     "weight": 1
   },
   {
-    "word": "1956海外学术文献》",
+    "word": "近距离",
     "weight": 1
   },
   {
-    "word": "LH300ATV森林消防系统研制技术及应用前景分析",
+    "word": "果分析",
     "weight": 1
   },
   {
-    "word": "王婷",
+    "word": "近距",
     "weight": 1
   },
   {
-    "word": "近千米深井大断面软岩巷道帮底共治技术研究",
+    "word": "王晓东",
     "weight": 1
   },
   {
-    "word": "国产森林消防用高扬程水泵的应用",
+    "word": "行补篇",
     "weight": 1
   },
   {
-    "word": "烟气排放连续监测系统的配置",
+    "word": "补篇",
     "weight": 1
   },
   {
-    "word": "伟大科学家钱学森对人",
+    "word": "在加州",
     "weight": 1
   },
   {
-    "word": "环境系统工程的高度评价",
+    "word": "受创新",
     "weight": 1
   },
   {
-    "word": "近断层采动影响下巷道支护技术",
+    "word": "在加",
     "weight": 1
   },
   {
-    "word": "钱学森给许国志的信",
+    "word": "谈话",
     "weight": 1
   },
   {
-    "word": "钱学森同志写给顾孟潮的一封信——谈建设中国“山水城市”问题",
+    "word": "业学",
     "weight": 1
   },
   {
-    "word": "钱学森致函宋健谈我国资源的永续利用",
+    "word": "论人人",
     "weight": 1
   },
   {
-    "word": "钱学森先生谈植物生理学与农业的一封信",
+    "word": "本法则",
     "weight": 1
   },
   {
-    "word": "迎接21世纪大农业发展的一个重大问题",
+    "word": "论人",
     "weight": 1
   },
   {
-    "word": "钱学森谈中国城市未来与特色",
+    "word": "法则",
     "weight": 1
   },
   {
-    "word": "社会主义中国应该建设山水城市",
+    "word": "总序",
     "weight": 1
   },
   {
-    "word": "钱学森关于美术的一封信",
+    "word": "水问题",
     "weight": 1
   },
   {
-    "word": "国家杰出贡献科学家钱学森关于草业的论述",
+    "word": "从原子",
     "weight": 1
   },
   {
-    "word": "给《非理性及其研究的可能性》一文作者的信",
+    "word": "理出发",
     "weight": 1
   },
   {
-    "word": "钱学森同志给夏军研究员的信",
+    "word": "从原",
     "weight": 1
   },
   {
-    "word": "钱学森同志写给顾孟潮的一封信",
+    "word": "出发",
     "weight": 1
   },
   {
-    "word": "学点历史",
+    "word": "经由物",
     "weight": 1
   },
   {
-    "word": "学点哲学——在驻西德使馆工作人员和部分留学生会上的讲话",
+    "word": "明创造",
     "weight": 1
   },
   {
-    "word": "社会主义精神文明建设与文艺工作——在《文艺研究》编辑部举办的报告会上的讲话",
+    "word": "经由",
     "weight": 1
   },
   {
-    "word": "从中国气功想到新的科学革命",
+    "word": "创造",
     "weight": 1
   },
   {
-    "word": "建立唯象气功学——当前气功科学研究的一项任务",
+    "word": "前岭煤",
     "weight": 1
   },
   {
-    "word": "发展地理科学的建议(在第二届全国天地生相互关系学术讨论会上的发言)",
+    "word": "性预测",
     "weight": 1
   },
   {
-    "word": "建立金融经济学",
+    "word": "前岭",
     "weight": 1
   },
   {
-    "word": "钱学森给沙莲香的信",
-    "weight": 1
-  },
-  {
-    "word": "用系统科学方法使历史科学定量化",
-    "weight": 1
-  },
-  {
-    "word": "美学",
-    "weight": 1
-  },
-  {
-    "word": "社会主义文艺学和社会主义文化建设",
-    "weight": 1
-  },
-  {
-    "word": "关于发展应用原子与分子物理的建议",
-    "weight": 1
-  },
-  {
-    "word": "钱学森谈生产力经济学",
-    "weight": 1
-  },
-  {
-    "word": "迎接新的科学革命",
-    "weight": 1
-  },
-  {
-    "word": "著名科学家钱学森关于发展快餐业的重要意见",
-    "weight": 1
-  },
-  {
-    "word": "关于科学技术业",
-    "weight": 1
-  },
-  {
-    "word": "社会主义中国完全有可能避开所谓“轿车文明”",
-    "weight": 1
-  },
-  {
-    "word": "谈谈科学研究的方法",
-    "weight": 1
-  },
-  {
-    "word": "钱学森谈城市建设要有整体考虑",
-    "weight": 1
-  },
-  {
-    "word": "运用现代科学技术实现第六次产业革命——钱学森关于发展农村经济的四封信",
-    "weight": 1
-  },
-  {
-    "word": "钱学森先生给中国城市科学研究会副秘书长鲍世行同志的一封信",
-    "weight": 1
-  },
-  {
-    "word": "中国应建“山水城市”",
-    "weight": 1
-  },
-  {
-    "word": "开创复杂巨系统的科学与技术—祝中国系统工程学会第八届学术年会的召开",
-    "weight": 1
-  },
-  {
-    "word": "气功是研究人体科学的“敲门砖”",
-    "weight": 1
-  },
-  {
-    "word": "钱学森致于景元的短信",
-    "weight": 1
-  },
-  {
-    "word": "钱学森同志来信",
-    "weight": 1
-  },
-  {
-    "word": "钱学森先生给本刊吴水清主编一封信",
-    "weight": 1
-  },
-  {
-    "word": "钱学森致函中国城市科学研究会谈城市学和山水城市",
-    "weight": 1
-  },
-  {
-    "word": "关于人体科学研究的几个问题",
-    "weight": 1
-  },
-  {
-    "word": "对人体科学研究的几点认识",
-    "weight": 1
-  },
-  {
-    "word": "对我国科技事业的一些思考",
-    "weight": 1
-  },
-  {
-    "word": "钱学森同志给郁文同志的两封信",
-    "weight": 1
-  },
-  {
-    "word": "钱学森同志谈草业草产业经营体制深化改革和国务院设立草原管理局问题",
-    "weight": 1
-  },
-  {
-    "word": "钱学森主席致本刊编辑部的信",
-    "weight": 1
-  },
-  {
-    "word": "关于科学技术工作的几点看法",
-    "weight": 1
-  },
-  {
-    "word": "钱学森同志给本刊编委会的信",
-    "weight": 1
-  },
-  {
-    "word": "“社会论”——行为科学的哲学概括",
-    "weight": 1
-  },
-  {
-    "word": "奋发努力",
-    "weight": 1
-  },
-  {
-    "word": "为促进科技进步贡献力量——在中国科协三届五次全委会议上的工作报告",
-    "weight": 1
-  },
-  {
-    "word": "谈地理科学的内容及研究方法(在1991年4月6日中国地理学会“地理科学”讨论会上的发言)",
-    "weight": 1
-  },
-  {
-    "word": "靠科技来提高劳动生产率",
-    "weight": 1
-  },
-  {
-    "word": "科技新闻工作怎么做",
-    "weight": 1
-  },
-  {
-    "word": "钱学森同志的一封信",
-    "weight": 1
-  },
-  {
-    "word": "钱学森给本刊的一封信",
-    "weight": 1
-  },
-  {
-    "word": "到2000年",
-    "weight": 1
-  },
-  {
-    "word": "我们要有几万架飞机",
-    "weight": 1
-  },
-  {
-    "word": "直升机",
-    "weight": 1
-  },
-  {
-    "word": "哲学·建筑·民主kk钱学森会见鲍世行",
-    "weight": 1
-  },
-  {
-    "word": "顾孟潮",
-    "weight": 1
-  },
-  {
-    "word": "吴小亚时讲的一些意见",
-    "weight": 1
-  },
-  {
-    "word": "《图书馆与钱学森》──在西安交通大学“钱学森图书馆”揭幕典礼上的书面发言",
-    "weight": 1
-  },
-  {
-    "word": "开创复杂巨系统的科学与技术──祝中国系统工程学会第八届学术年会的召开",
-    "weight": 1
-  },
-  {
-    "word": "《图书馆与钱学森》",
-    "weight": 1
-  },
-  {
-    "word": "一封提出“科学的艺术”与“艺术的科学”的信",
-    "weight": 1
-  },
-  {
-    "word": "开发大沙漠",
-    "weight": 1
-  },
-  {
-    "word": "开创复杂巨系统的科学与技术──祝中国系统工程学会第八届学术年会召开",
-    "weight": 1
-  },
-  {
-    "word": "开创复杂巨系统的科学与技术─—祝中国系统工程学会第八届学术年会的召开",
-    "weight": 1
-  },
-  {
-    "word": "著名科学家钱学森先生再谈“山水城市",
-    "weight": 1
-  },
-  {
-    "word": "迎接新的科学革命（摘要）",
-    "weight": 1
-  },
-  {
-    "word": "钱学森同志致函朱光烈同志",
-    "weight": 1
-  },
-  {
-    "word": "建立新机制",
-    "weight": 1
-  },
-  {
-    "word": "开创复杂巨系统的科学与技术─—祝中国系统工程学会第八届学术年会召开",
-    "weight": 1
-  },
-  {
-    "word": "再谈人体科学的体系结构",
-    "weight": 1
-  },
-  {
-    "word": "建立唯象气功学",
-    "weight": 1
-  },
-  {
-    "word": "本刊《数学思维中常用的思维方法》一文得到钱学森院士的赞赏与评价",
-    "weight": 1
-  },
-  {
-    "word": "美国提出改革中学教育的意见",
-    "weight": 1
-  },
-  {
-    "word": "重读孙冶方的来信",
-    "weight": 1
-  },
-  {
-    "word": "论工程力学",
-    "weight": 1
-  },
-  {
-    "word": "写在《郭永怀论文集》的后面",
-    "weight": 1
-  },
-  {
-    "word": "关于“第五代计算机”的问题",
-    "weight": 1
-  },
-  {
-    "word": "《评“第四次世界工业革命”》",
-    "weight": 1
-  },
-  {
-    "word": "生态经济学必须关心长远的环境问题和资源永续",
-    "weight": 1
-  },
-  {
-    "word": "关于撰写中国大百料全书的释文",
-    "weight": 1
-  },
-  {
-    "word": "美国中学教育改革动向",
-    "weight": 1
-  },
-  {
-    "word": "总序(代)",
-    "weight": 1
-  },
-  {
-    "word": "人体科学也属于饮水问题",
-    "weight": 1
-  },
-  {
-    "word": "钱学森关于思维科学与教育改革的研究通信",
-    "weight": 1
-  },
-  {
-    "word": "艺术与科学──在纪念蒋英教授执教40周年教学研讨会上的发言",
-    "weight": 1
-  },
-  {
-    "word": "贺信",
-    "weight": 1
-  },
-  {
-    "word": "国家要统一管理资源的再生利用",
-    "weight": 1
-  },
-  {
-    "word": "重发钱学森关于“城市山水画”的一封信",
-    "weight": 1
-  },
-  {
-    "word": "气功可使人体达到最优功能态",
-    "weight": 1
-  },
-  {
-    "word": "钱学森论山水城市",
-    "weight": 1
-  },
-  {
-    "word": "从原子分子物理出发",
-    "weight": 1
-  },
-  {
-    "word": "经由物理力学的思路和方法搞发明创造",
-    "weight": 1
-  },
-  {
-    "word": "西部开发要以农业发展为基础",
-    "weight": 1
-  },
-  {
-    "word": "在上海理工大学系统科学与系统工程研究所成立大会上的讲话",
-    "weight": 1
-  },
-  {
-    "word": "深切怀念许国志同志",
-    "weight": 1
-  },
-  {
-    "word": "钱学森院士对《人",
-    "weight": 1
-  },
-  {
-    "word": "环境系统工程研究进展(第一卷)》的评语",
-    "weight": 1
-  },
-  {
-    "word": "前岭煤矿煤与瓦斯突出危险性预测",
+    "word": "预测",
     "weight": 1
   },
   {
@@ -2312,7 +4028,179 @@
     "weight": 1
   },
   {
-    "word": "煤炭企业脱困的思考",
+    "word": "生利用",
+    "weight": 1
+  },
+  {
+    "word": "气功可",
+    "weight": 1
+  },
+  {
+    "word": "功能态",
+    "weight": 1
+  },
+  {
+    "word": "能态",
+    "weight": 1
+  },
+  {
+    "word": "深切怀",
+    "weight": 1
+  },
+  {
+    "word": "深切",
+    "weight": 1
+  },
+  {
+    "word": "煤炭企",
+    "weight": 1
+  },
+  {
+    "word": "煤炭",
+    "weight": 1
+  },
+  {
+    "word": "艺术",
+    "weight": 1
+  },
+  {
+    "word": "西部开",
+    "weight": 1
+  },
+  {
+    "word": "为基础",
+    "weight": 1
+  },
+  {
+    "word": "西部",
+    "weight": 1
+  },
+  {
+    "word": "重发钱",
+    "weight": 1
+  },
+  {
+    "word": "重发",
+    "weight": 1
+  },
+  {
+    "word": "究通信",
+    "weight": 1
+  },
+  {
+    "word": "对《人",
+    "weight": 1
+  },
+  {
+    "word": "《人",
+    "weight": 1
+  },
+  {
+    "word": "究进展",
+    "weight": 1
+  },
+  {
+    "word": "第一卷",
+    "weight": 1
+  },
+  {
+    "word": "》的评语",
+    "weight": 1
+  },
+  {
+    "word": "森》",
+    "weight": 1
+  },
+  {
+    "word": "面发言",
+    "weight": 1
+  },
+  {
+    "word": "一封提",
+    "weight": 1
+  },
+  {
+    "word": "”的信",
+    "weight": 1
+  },
+  {
+    "word": "一封",
+    "weight": 1
+  },
+  {
+    "word": "再谈人",
+    "weight": 1
+  },
+  {
+    "word": "系结构",
+    "weight": 1
+  },
+  {
+    "word": "到20",
+    "weight": 1
+  },
+  {
+    "word": "到2",
+    "weight": 1
+  },
+  {
+    "word": "我们要",
+    "weight": 1
+  },
+  {
+    "word": "架飞机",
+    "weight": 1
+  },
+  {
+    "word": "飞机",
+    "weight": 1
+  },
+  {
+    "word": "开发大沙漠",
+    "weight": 1
+  },
+  {
+    "word": "哲学·",
+    "weight": 1
+  },
+  {
+    "word": "鲍世行",
+    "weight": 1
+  },
+  {
+    "word": "世行",
+    "weight": 1
+  },
+  {
+    "word": "顾孟潮",
+    "weight": 1
+  },
+  {
+    "word": "吴小亚",
+    "weight": 1
+  },
+  {
+    "word": "些意见",
+    "weight": 1
+  },
+  {
+    "word": "吴小",
+    "weight": 1
+  },
+  {
+    "word": "建立新机制",
+    "weight": 1
+  },
+  {
+    "word": "本刊《",
+    "weight": 1
+  },
+  {
+    "word": "本刊",
+    "weight": 1
+  },
+  {
+    "word": "烈同志",
     "weight": 1
   }
 ]
