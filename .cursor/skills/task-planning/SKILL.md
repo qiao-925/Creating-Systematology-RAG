@@ -61,5 +61,6 @@ CP1 已完成，建议更新计划书状态表：CP1: ⬜ → ✅ 已完成 | 20
 
 ## 参考资料
 
-- `references/planning-workflow.md` - 规划工作流详细说明（CP划分、状态标记、文件管理）
+- `references/planning-workflow.md` - 规划工作流详细说明（CP划分、状态标记、文件管理、文件清单格式）
 - `references/requirements-decisions.md` - 需求决策流程详细说明（需求理解、方案设计、决策确认）
+- `refactor-and-decompose/SKILL.md` - 规划时文件清单与模块边界约束

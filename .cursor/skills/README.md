@@ -9,7 +9,7 @@
 本项目将所有 Rules 和 Commands 迁移到 Skills，实现统一的能力管理：
 
 - **Skills 是上下文+执行的一体化**：每个 Skill 包含知识（SKILL.md）和执行能力（scripts/）
-- **按功能领域组织**：16个 Skills，覆盖9个功能领域
+- **按功能领域组织**：17个 Skills，覆盖9个功能领域
 - **自动调用优先**：大部分 Skills 设置为自动调用，让 Agent 智能判断
 
 ---

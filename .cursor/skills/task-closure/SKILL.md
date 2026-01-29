@@ -19,8 +19,9 @@ description: 任务收尾规范，包含日志生成和优化分析。适用于�
 
 ### 必须执行的流程
 
-1. **生成任务日志**：使用 `scripts/generate_task_log.py`
-2. **六维度优化分析**：代码质量/架构设计/性能/测试/可维护性/技术债务
+1. **结构检查（再收尾）**：本任务涉及的所有代码文件 ≤300 行（`file-size-limit`）、职责清晰且无循环依赖（`single-responsibility`）。若超限或职责不清：先拆分/重构再继续收尾；若用户选择暂不处理，在日志中记录「遗留：结构问题」及建议。
+2. **生成任务日志**：使用 `scripts/generate_task_log.py`
+3. **六维度优化分析**：代码质量/架构设计/性能/测试/可维护性/技术债务
 
 ---
 
@@ -57,4 +58,5 @@ description: 任务收尾规范，包含日志生成和优化分析。适用于�
 
 ## 参考资料
 
-- `references/closure-workflow.md` - 收尾工作流详细说明（触发条件、日志规范、六维度分析）
+- `references/closure-workflow.md` - 收尾工作流详细说明（触发条件、结构检查、日志规范、六维度分析）
+- `refactor-and-decompose/SKILL.md` - 收尾前结构检查约束
