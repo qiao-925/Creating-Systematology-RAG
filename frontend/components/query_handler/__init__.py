@@ -18,13 +18,15 @@ def handle_user_queries(rag_service, chat_manager) -> None:
         prompt = st.session_state.pending_query
         del st.session_state.pending_query  # 清除待处理标记
         handle_non_streaming_query(rag_service, chat_manager, prompt)
+        st.rerun()
         return
-    
-    # 处理默认问题点击
+
+    # 处理词云/默认问题点击（填入并发送）
     if 'selected_question' in st.session_state and st.session_state.selected_question:
         prompt = st.session_state.selected_question
         st.session_state.selected_question = None  # 清除状态
         handle_non_streaming_query(rag_service, chat_manager, prompt)
+        st.rerun()
         return
     
     # 处理用户输入
