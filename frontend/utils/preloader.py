@@ -147,24 +147,18 @@ class BackgroundPreloader:
         Returns:
             (rag_service, chat_manager)
         """
-        import streamlit as st
         from backend.infrastructure.config import config
         
-        # 获取配置参数
-        enable_debug = False
+        # 注意：后台线程中不要访问 st.session_state，避免大量警告日志
+        # 使用默认配置即可，用户配置变更后会重建服务
+        enable_debug = True  # 默认启用调试
         use_agentic_rag = False
-        selected_model_id = None
-        
-        if hasattr(st, 'session_state'):
-            enable_debug = st.session_state.get('debug_mode_enabled', False)
-            use_agentic_rag = st.session_state.get('use_agentic_rag', False)
-            selected_model_id = st.session_state.get('selected_model')
+        selected_model_id = config.get_default_llm_id()
+        collection_name = config.CHROMA_COLLECTION_NAME
         
         # 创建 RAGService（延迟模式）
+        logger.info("⏳ 开始创建 RAGService...")
         from backend.business.rag_api import RAGService
-        collection_name = config.CHROMA_COLLECTION_NAME
-        if hasattr(st, 'session_state') and 'collection_name' in st.session_state:
-            collection_name = st.session_state.collection_name
         
         rag_service = RAGService(
             collection_name=collection_name,
@@ -173,8 +167,10 @@ class BackgroundPreloader:
             use_agentic_rag=use_agentic_rag,
             model_id=selected_model_id,
         )
+        logger.info("✅ RAGService 创建完成")
         
         # 创建 ChatManager（纯 LLM 模式，无 index_manager）
+        logger.info("⏳ 开始创建 ChatManager...")
         from backend.business.chat import ChatManager
         chat_manager = ChatManager(
             index_manager=None,  # 纯 LLM 模式
@@ -183,11 +179,7 @@ class BackgroundPreloader:
             use_agentic_rag=use_agentic_rag,
             model_id=selected_model_id,
         )
-        
-        # 缓存到 session_state
-        if hasattr(st, 'session_state'):
-            st.session_state.rag_service = rag_service
-            st.session_state.chat_manager = chat_manager
+        logger.info("✅ ChatManager 创建完成")
         
         logger.info("✅ 轻量级服务创建完成（延迟加载模式）")
         return rag_service, chat_manager

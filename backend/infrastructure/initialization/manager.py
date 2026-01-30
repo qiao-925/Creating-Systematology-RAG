@@ -15,6 +15,7 @@ from datetime import datetime
 import traceback
 
 from backend.infrastructure.logger import get_logger
+from backend.infrastructure.config import config
 from backend.infrastructure.initialization.categories import (
     InitCategory,
     CATEGORY_DISPLAY_NAMES,

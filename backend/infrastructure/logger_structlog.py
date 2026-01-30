@@ -119,7 +119,7 @@ def setup_structlog() -> None:
         structlog.stdlib.add_logger_name,
         structlog.stdlib.add_log_level,
         structlog.stdlib.PositionalArgumentsFormatter(),
-        TimeStamper(fmt="iso"),
+        TimeStamper(fmt="iso", utc=False),  # 使用本地时间
         structlog.processors.StackInfoRenderer(),
         structlog.processors.format_exc_info,
     ]
@@ -204,6 +204,23 @@ def setup_structlog() -> None:
         telemetry_logger = logging.getLogger(logger_name)
         telemetry_logger.setLevel(logging.WARNING)
         telemetry_logger.propagate = False
+    
+    # 抑制 LiteLLM 的 DEBUG 日志（非常详细，对用户无用）
+    litellm_loggers = [
+        'LiteLLM',
+        'litellm',
+        'LiteLLM Proxy',
+        'LiteLLM Router',
+    ]
+    for logger_name in litellm_loggers:
+        litellm_logger = logging.getLogger(logger_name)
+        litellm_logger.setLevel(logging.WARNING)
+        litellm_logger.propagate = False
+    
+    # 抑制 Streamlit 后台线程的 ScriptRunContext 警告
+    streamlit_logger = logging.getLogger('streamlit.runtime.scriptrunner_utils.script_run_context')
+    streamlit_logger.setLevel(logging.ERROR)
+    streamlit_logger.propagate = False
     
     # 注意：chromadb、chromadb.api、chromadb.client 等保留默认日志级别
     # 这样可以看到连接成功、集合创建等有用的 INFO 级别日志

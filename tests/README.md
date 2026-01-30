@@ -6,10 +6,13 @@
 
 ## 📑 目录
 
-- [快速开始](#速开始)
+- [快速开始](#快速开始)
 - [测试结构](#测试结构)
+- [测试分层与执行说明](#测试分层与执行说明)
 - [常用命令](#常用命令)
+- [Makefile 测试命令说明](#makefile-测试命令说明)
 - [快速场景](#快速场景)
+- [如何添加或修改测试用例](#如何添加或修改测试用例)
 - [常见问题](#常见问题)
 - [子模块文档](#子模块文档)
 
@@ -62,6 +65,21 @@ tests/
 
 ---
 
+## 测试分层与执行说明
+
+| 层次 | 测什么 | 何时跑 | 命令 | 对应目录/范围 |
+|------|--------|--------|------|----------------|
+| 单元 | 单模块、mock 边界 | 改单模块后、CI | `make test-unit` / `pytest tests/unit` | [tests/unit/](unit/) |
+| 集成 | 多模块协作、RAG/API/数据管线 | 改 RAG/API/数据后、发布前、CI | `make test-integration` / `pytest tests/integration` | [tests/integration/](integration/) |
+| 性能 | 耗时与资源 | 优化或发布前 | `make test-performance` | [tests/performance/](performance/) |
+| E2E（进程内） | 核心业务流程（服务层） | 里程碑前 | `pytest tests/e2e` | [tests/e2e/](e2e/) |
+| GitHub E2E | 拉库与同步（需网络） | 按需 | `make test-github-e2e` | integration 内带标记 |
+
+- **集成层**细分（API、RAG 管线、数据层等）及对应文件见 [integration/README.md](integration/README.md)。
+- **CI**（[../.github/workflows/tests.yml](../.github/workflows/tests.yml)）当前仅跑 unit + integration，不跑 performance / e2e / github-e2e。
+
+---
+
 ## 常用命令
 
 ### 运行测试
@@ -89,6 +107,21 @@ pytest -m "not slow"         # 跳过慢速测试
 pytest tests/unit            # 只运行单元测试
 pytest -n auto               # 并行运行（需安装pytest-xdist）
 ```
+
+---
+
+## Makefile 测试命令说明
+
+| 命令 | 实际执行 |
+|------|----------|
+| `make test` | 全量 `pytest tests/` |
+| `make test-unit` | `pytest tests/unit` |
+| `make test-integration` | `pytest tests/integration` |
+| `make test-performance` | `pytest tests/performance` |
+| `make test-cov` | `pytest tests/` + 覆盖率 `--cov=src` |
+| `make test-fast` | `pytest tests/ -m "not slow"` |
+| `make test-github-e2e` | GitHub E2E（需网络，见 [Makefile](../Makefile)） |
+| `make test-api` | API 端点测试（需服务已启动：`make run`） |
 
 ---
 
@@ -120,6 +153,25 @@ pytest tests/integration/test_xxx_integration.py -v
 make test              # 运行所有测试
 make test-cov          # 生成覆盖率报告
 ```
+
+### 按场景选择命令
+
+| 场景 | 建议命令 |
+|------|----------|
+| 改完某个模块 | 跑对应 `pytest tests/unit/...` 或该模块相关 integration |
+| 改完 RAG/API/数据相关 | `make test-integration`，或 `pytest tests/integration -m "not github_e2e"` 排除慢/外部依赖 |
+| 发布/里程碑前 | `make test` 或 `make test-unit` + `make test-integration`，可选 `make test-cov` |
+| CI | 仅 unit + integration（见 [.github/workflows/tests.yml](../.github/workflows/tests.yml)） |
+
+---
+
+## 如何添加或修改测试用例
+
+- **单元测试**：放在 [tests/unit/](unit/)，命名与结构见 [unit/README.md](unit/README.md)；优先用 [conftest.py](conftest.py) 与 [fixtures/](fixtures/) 的 fixture。
+- **集成测试**：放在 [tests/integration/](integration/)，范围与风格见 [integration/README.md](integration/README.md)；通过标准与场景由人定，AI 可生成用例代码。
+- **原则**：用例的**逻辑、通过标准、目标由人指定**；实现（代码）可由 AI 编写，修改后需运行相应测试并更新文档（若有）。
+
+详细文件列表见各子目录 README。
 
 ---
 

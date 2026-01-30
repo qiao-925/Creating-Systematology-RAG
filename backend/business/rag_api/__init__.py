@@ -7,14 +7,20 @@ RAG API模块
 
 from .rag_service import RAGService
 from .models import RAGResponse, IndexResult, ChatResponse
-from .fastapi_app import app
 
 __version__ = "0.1.0"
+
+
+def get_fastapi_app():
+    """延迟加载 FastAPI 应用（避免 Streamlit 启动时不必要的开销）"""
+    from .fastapi_app import app
+    return app
+
 
 __all__ = [
     'RAGService',
     'RAGResponse',
     'IndexResult',
     'ChatResponse',
-    'app',  # FastAPI 应用实例
+    'get_fastapi_app',  # FastAPI 应用获取函数（延迟加载）
 ]
