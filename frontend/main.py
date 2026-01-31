@@ -8,6 +8,9 @@ Streamlit Web应用 - 主页入口
 - 如果后台加载未完成，显示加载进度
 """
 
+import json
+from pathlib import Path
+
 import streamlit as st
 
 # 配置应用环境（必须在导入项目模块前）
@@ -15,7 +18,6 @@ from frontend.config import configure_all
 configure_all()
 
 # 导入项目模块
-from frontend.components.sidebar import render_sidebar
 from frontend.components.chat_display import render_chat_interface
 from frontend.components.query_handler import handle_user_queries
 from frontend.utils.state import init_session_state
@@ -29,12 +31,19 @@ from frontend.utils.preloader import (
 )
 
 
-# 静态 CSS 样式（模块级别常量，避免重复创建字符串）
+# 静态 CSS 样式（单列居中布局，参考 Streamlit AI Assistant）
 _CUSTOM_CSS = """
 <style>
-/* 全局样式优化 */
+/* 全局样式 */
 .stApp {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* 主内容区居中，最大宽度限制 */
+.block-container {
+    max-width: 800px;
+    padding-left: 1rem;
+    padding-right: 1rem;
 }
 
 /* 聊天消息样式 */
@@ -48,18 +57,12 @@ _CUSTOM_CSS = """
 .streamlit-expanderHeader {
     font-size: 14px;
     font-weight: 500;
-    background-color: #f8fafc;
     border-radius: 8px;
 }
 
 /* 输入框样式 */
 .stChatInput > div {
     border-radius: 24px;
-    border: 2px solid #e2e8f0;
-}
-.stChatInput > div:focus-within {
-    border-color: #6366f1;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
 /* 按钮样式 */
@@ -70,22 +73,6 @@ _CUSTOM_CSS = """
 }
 .stButton > button:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
-
-/* 侧边栏样式 */
-section[data-testid="stSidebar"] {
-    background-color: #f8fafc;
-}
-
-/* 侧边栏组件样式（修复主题颜色警告） */
-section[data-testid="stSidebar"] .stWidget {
-    background-color: #ffffff;
-    border-color: #e2e8f0;
-}
-
-section[data-testid="stSidebar"] .stSkeleton {
-    background-color: #f1f5f9;
 }
 
 /* 成功/警告/错误提示样式 */
@@ -102,57 +89,43 @@ section[data-testid="stSidebar"] .stSkeleton {
 /* 隐藏 Streamlit 默认页脚 */
 footer {visibility: hidden;}
 
-/* ===== CP3: 观察器摘要样式 ===== */
+/* 观察器摘要样式 */
 .obs-summary {
     font-size: 0.85rem;
-    color: #64748b;
+    color: #888888;
     margin: 4px 0 8px 0;
     padding: 0;
 }
 
-/* ===== CP4: 引用来源样式 ===== */
+/* 引用来源样式 */
 .source-title {
     font-size: 0.9rem;
-    color: #374151;
     font-weight: 500;
 }
 .source-preview {
     font-size: 0.8rem;
-    color: #9ca3af;
+    color: #888888;
     margin: 2px 0 12px 16px;
     line-height: 1.4;
 }
 
-/* ===== CP7: 历史会话样式 ===== */
-.history-group {
-    font-size: 0.7rem;
-    color: #9ca3af;
-    font-weight: 600;
-    text-transform: uppercase;
-    margin: 12px 0 4px 0;
-    letter-spacing: 0.5px;
+/* st-chat 延续块：与助手气泡视觉统一 */
+.message-continuation-anchor {
+    margin: 0;
+    padding: 0;
+    height: 0;
+    line-height: 0;
+    overflow: hidden;
+    display: block;
 }
-.history-item {
-    font-size: 0.75rem;
-    color: #6b7280;
-    padding: 6px 8px;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.15s;
+[data-testid="stMarkdown"]:has(.message-continuation-anchor) {
+    margin-bottom: -8px;
 }
-.history-item:hover {
-    background-color: #f1f5f9;
-}
-.history-active {
-    background-color: #e0e7ff;
-    color: #4f46e5;
-    font-weight: 500;
-}
-
-/* 侧边栏按钮小字体 */
-section[data-testid="stSidebar"] .stButton > button {
-    font-size: 0.8rem;
-    padding: 6px 12px;
+[data-testid="stMarkdown"]:has(.message-continuation-anchor) + div .stChatMessage,
+[data-testid="stMarkdown"]:has(.message-continuation-anchor) + div [data-testid="stChatMessage"] {
+    margin-top: -8px;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
 }
 </style>
 <script>
@@ -237,33 +210,24 @@ def main():
     """主函数 - 应用入口点"""
     # 注入自定义 CSS
     _inject_custom_css()
-    
     # 初始化 UI 状态
     init_session_state()
-    
     # 优化：使用 session_state 存储服务实例，避免依赖 preloader 单例状态
     # 这样即使 preloader 因热重载丢失状态，也能正常运行
     if st.session_state.get('_services_cached'):
         _render_main_app_from_cache()
         return
-    
     # 启动后台预加载（如果尚未开始）
     start_background_init()
-    
     # 检查初始化状态
     status = get_init_status()
-    
     if status == PreloadStatus.COMPLETED:
-        # 初始化完成，缓存服务并正常运行
         _cache_services_and_render()
     elif status == PreloadStatus.IN_PROGRESS:
-        # 正在初始化，显示界面但禁用查询
         _render_loading_app()
     elif status == PreloadStatus.FAILED:
-        # 初始化失败
         _render_error_app()
     else:
-        # 未开始（不应该到这里）
         _render_loading_app()
 
 
@@ -291,7 +255,6 @@ def _render_main_app_from_cache():
     init_result = st.session_state.get('init_result')
     rag_service = st.session_state.get('_cached_rag_service')
     chat_manager = st.session_state.get('_cached_chat_manager')
-    
     if not all([init_result, rag_service, chat_manager]):
         # 缓存丢失，清除标志并重新初始化
         st.session_state._services_cached = False
@@ -301,11 +264,28 @@ def _render_main_app_from_cache():
     _render_main_app_impl(init_result, rag_service, chat_manager)
 
 
+def _debug_log(location: str, message: str, data: dict | None = None, hypothesis_id: str = "D") -> None:
+    # #region agent log
+    try:
+        log_path = Path(__file__).resolve().parent.parent / ".cursor" / "debug.log"
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps({"sessionId": "debug-session", "runId": "run1", "hypothesisId": hypothesis_id, "location": location, "message": message, "data": data or {}, "timestamp": __import__("time").time() * 1000}, ensure_ascii=False) + "\n")
+    except Exception:  # noqa: S110
+        pass
+    # #endregion
+
+
 def _render_main_app_impl(init_result, rag_service, chat_manager):
     """渲染完整应用的实际实现"""    
-    # 渲染UI和处理查询
-    render_sidebar(chat_manager)
+    # #region agent log
+    _debug_log("main.py:_render_main_app_impl", "entry", hypothesis_id="D")
+    # #endregion
+    # 渲染UI和处理查询（单列居中布局，无侧边栏）
     render_chat_interface(rag_service, chat_manager)
+    # #region agent log
+    _debug_log("main.py:before_handle_user_queries", "before handle_user_queries", hypothesis_id="D")
+    # #endregion
     handle_user_queries(rag_service, chat_manager)
 
 
@@ -315,8 +295,6 @@ def _render_loading_app():
     注意：此函数仅在首次启动时执行。一旦初始化完成并设置了 _services_cached，
     后续的用户交互（如"开启新对话"）不会再进入此函数。
     """
-    import time
-    
     # 获取详细进度
     progress_msg = get_progress_message()
     detailed = get_detailed_progress()
@@ -346,8 +324,10 @@ def _render_loading_app():
     
     # 禁用的输入框
     st.chat_input("正在初始化，请稍候...", disabled=True)
-    
     # 自动轮询检查初始化状态（Streamlit 会自动处理 rerun 的时机）
+    # #region agent log
+    _debug_log("main.py:_render_loading_app", "before st.rerun (loading)", hypothesis_id="C")
+    # #endregion
     st.rerun()
 
 

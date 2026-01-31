@@ -258,10 +258,10 @@ class Config:
     
     def get_llm_model_config(self, model_id: str) -> Optional[LLMModelConfig]:
         """根据模型 ID 获取模型配置
-        
+
         Args:
             model_id: 模型标识（如 "deepseek-chat"）
-            
+
         Returns:
             LLMModelConfig 或 None（如果未找到）
         """
@@ -269,6 +269,24 @@ class Config:
             if model.id == model_id:
                 return model
         return None
+
+    def get_llm_config(self) -> dict:
+        """获取 LLM 初始化配置（超时、重试等）
+
+        Returns:
+            包含初始化配置的字典
+        """
+        if self._model.model.llms:
+            return {
+                'initialization_timeout': self._model.model.llms.initialization_timeout,
+                'max_retries': self._model.model.llms.max_retries,
+                'retry_delay': self._model.model.llms.retry_delay,
+            }
+        return {
+            'initialization_timeout': 30.0,
+            'max_retries': 3,
+            'retry_delay': 2.0,
+        }
 
 
 # 添加COLLECTION_NAME属性（别名）

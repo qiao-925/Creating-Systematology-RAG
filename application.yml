@@ -41,6 +41,9 @@ model:
   # 多模型配置（LiteLLM 统一接口）
   llms:
     default: deepseek-chat  # 默认使用的模型 ID
+    initialization_timeout: 30.0  # 初始化超时时间（秒）
+    max_retries: 3  # 最大重试次数
+    retry_delay: 2.0  # 重试延迟（秒，指数退避）
     available:
       - id: deepseek-chat
         name: DeepSeek Chat
@@ -49,6 +52,7 @@ model:
         temperature: 0.7
         max_tokens: 4096
         supports_reasoning: false
+        request_timeout: 30.0  # API 请求超时（秒）
         
       - id: deepseek-reasoner
         name: DeepSeek Reasoner (推理)
@@ -57,6 +61,7 @@ model:
         temperature: null  # 推理模型不支持 temperature
         max_tokens: 32768
         supports_reasoning: true
+        request_timeout: 60.0  # API 请求超时（秒，推理模型需要更长时间）
         
       # 以下模型需要配置对应的 API Key 后启用
       # - id: qwen-plus

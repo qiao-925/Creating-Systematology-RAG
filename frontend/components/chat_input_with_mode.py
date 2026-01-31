@@ -9,7 +9,8 @@
 
 布局设计：
 - 输入框
-- [模型选择 ▼] [🤖 Agentic] [⚙️] ─── [发送]
+- [🤖 Agentic] [⚙️] ─── [发送]
+- 选择 AI 模型（单选，在对话框下）
 """
 
 import streamlit as st
@@ -37,22 +38,46 @@ def _on_params_click() -> None:
     st.session_state.show_params_dialog = True
 
 
-def _on_model_change() -> None:
-    """模型选择变更回调"""
-    # 更新 selected_model 状态
-    # 注意：on_change 回调执行时，selectbox 的值已更新到 session_state
-    selected_name = st.session_state.get('model_selector_compact', '')
-    if selected_name:
-        from backend.infrastructure.llms import get_available_models
-        try:
-            models = get_available_models()
-            model_options = {model.name: model.id for model in models}
-            if selected_name in model_options:
-                st.session_state.selected_model = model_options[selected_name]
-        except Exception:
-            # 如果获取模型列表失败，跳过更新
-            pass
-    rebuild_services()
+def _on_model_change_below() -> None:
+    """对话框下方模型单选变更：同步 selected_model 并重建服务"""
+    name = st.session_state.get("model_selector_below", "")
+    if not name:
+        return
+    try:
+        models = get_available_models()
+        model_options = {m.name: m.id for m in models}
+        if name in model_options:
+            st.session_state.selected_model = model_options[name]
+            rebuild_services()
+    except Exception:
+        pass
+
+
+def _render_model_selector_below() -> None:
+    """对话框下方模型选择：单选列表"""
+    try:
+        models = get_available_models()
+        if not models:
+            return
+        model_options = {m.name: m.id for m in models}
+        model_names = list(model_options.keys())
+        current_model_id = st.session_state.get("selected_model", config.get_default_llm_id())
+        current_index = 0
+        for i, (name, mid) in enumerate(model_options.items()):
+            if mid == current_model_id:
+                current_index = i
+                break
+        st.caption("选择 AI 模型：")
+        st.radio(
+            "选择 AI 模型",
+            options=model_names,
+            index=current_index,
+            key="model_selector_below",
+            label_visibility="collapsed",
+            on_change=_on_model_change_below,
+        )
+    except Exception:
+        pass
 
 
 def render_chat_input_with_mode(
@@ -64,7 +89,7 @@ def render_chat_input_with_mode(
     
     布局：
     - 上方：输入框
-    - 下方：[模型选择 ▼] [🤖 Agentic] [⚙️] ─── [发送]
+    - 下方：[🤖 Agentic] [⚙️] ─── [发送]
     
     Args:
         placeholder: 输入框占位符文本
@@ -110,6 +135,8 @@ def render_chat_input_with_mode(
             _render_input_actions(key, input_value.strip())
         else:
             _render_input_actions(key, '')
+        # 对话框下方：模型选择
+        _render_model_selector_below()
     
     # 检查是否需要显示参数配置弹窗
     if st.session_state.get("show_params_dialog", False):
@@ -122,12 +149,9 @@ def render_chat_input_with_mode(
 def _render_input_actions(input_key: str, input_value: str) -> None:
     """渲染输入区域下方的操作按钮
     
-    布局：[模型选择 ▼] [🤖 Agentic] [⚙️] ─── [发送]
+    布局：[🤖 Agentic] [⚙️] ─── [发送]
     """
-    col_model, col_agentic, col_params, col_spacer, col_send = st.columns([2, 1.5, 0.5, 2, 1])
-    
-    with col_model:
-        _render_model_selector_compact()
+    col_agentic, col_params, col_spacer, col_send = st.columns([1.5, 0.5, 2, 1])
     
     with col_agentic:
         _render_agentic_rag_toggle()
@@ -139,9 +163,7 @@ def _render_input_actions(input_key: str, input_value: str) -> None:
             help="参数配置",
             on_click=_on_params_click,
         )
-    
-    # col_spacer 为空，用于占位
-    
+
     with col_send:
         st.button(
             "发送",
@@ -152,43 +174,6 @@ def _render_input_actions(input_key: str, input_value: str) -> None:
             on_click=_on_send_click,
             args=(input_key,)
         )
-
-
-def _render_model_selector_compact() -> None:
-    """渲染紧凑版模型选择器"""
-    try:
-        models = get_available_models()
-        if not models:
-            st.caption("⚠️ 无模型")
-            return
-        
-        # 构建选项字典
-        model_options = {model.name: model.id for model in models}
-        model_names = list(model_options.keys())
-        
-        # 获取当前选择的模型
-        current_model_id = st.session_state.get('selected_model', config.get_default_llm_id())
-        
-        # 找到当前模型索引
-        current_index = 0
-        for i, (name, model_id) in enumerate(model_options.items()):
-            if model_id == current_model_id:
-                current_index = i
-                break
-        
-        # 紧凑版选择器（无标签）
-        # 注意：状态更新在 on_change 回调中处理，避免冗余
-        st.selectbox(
-            "模型",
-            options=model_names,
-            index=current_index,
-            key="model_selector_compact",
-            label_visibility="collapsed",
-            on_change=_on_model_change,
-        )
-    
-    except Exception as e:
-        st.caption(f"⚠️ {e}")
 
 
 def _render_agentic_rag_toggle() -> None:

@@ -102,15 +102,15 @@ def register_all_modules(manager: InitializationManager) -> None:
         description="索引管理器 - 延迟加载"
     )
     
-    # 7. LLM 工厂
+    # 7. LLM 工厂（延迟加载：启动时仅验证配置，首次使用时再创建实例）
     manager.register_module(
         name="llm_factory",
         category=InitCategory.CORE.value,
         check_func=lambda: check_llm_factory(),
         init_func=lambda: init_llm_factory(manager),
         dependencies=["config", "logger"],
-        is_required=True,
-        description="LLM工厂（DeepSeek）"
+        is_required=False,  # 改为可选，延迟加载
+        description="LLM工厂（DeepSeek）- 延迟加载"
     )
     
     # 8. 会话状态

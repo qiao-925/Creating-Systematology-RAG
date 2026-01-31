@@ -152,7 +152,7 @@ def display_pdf_file(file_path: Path) -> None:
         <iframe src="data:application/pdf;base64,{base64_pdf}" 
                 width="100%" 
                 height="800px" 
-                style="border: 1px solid #E5E5E0; border-radius: 8px;">
+                style="border: 1px solid #4A4A4A; border-radius: 8px;">
         </iframe>
         """
         st.markdown(pdf_display, unsafe_allow_html=True)
@@ -169,7 +169,7 @@ def display_pdf_file(file_path: Path) -> None:
         st.info("💡 提示：如果PDF文件较大，可能需要一些时间加载")
 
 
-@st.dialog("📄 文件查看", width="large")
+@st.dialog("文件查看", width="large", icon="📄")
 def show_file_viewer_dialog(file_path_str: str) -> None:
     """显示文件查看弹窗
     

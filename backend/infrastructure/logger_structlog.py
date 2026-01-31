@@ -222,6 +222,21 @@ def setup_structlog() -> None:
     streamlit_logger.setLevel(logging.ERROR)
     streamlit_logger.propagate = False
     
+    # 抑制文件监控相关日志（inotify 事件等）
+    watcher_loggers = [
+        'watchdog',
+        'watchdog.observers',
+        'watchdog.observers.inotify_buffer',
+        'watchfiles',
+        'watchfiles.main',
+        'streamlit.watcher',
+        'streamlit.watcher.local_sources_watcher',
+    ]
+    for logger_name in watcher_loggers:
+        watcher_logger = logging.getLogger(logger_name)
+        watcher_logger.setLevel(logging.WARNING)
+        watcher_logger.propagate = False
+    
     # 注意：chromadb、chromadb.api、chromadb.client 等保留默认日志级别
     # 这样可以看到连接成功、集合创建等有用的 INFO 级别日志
 

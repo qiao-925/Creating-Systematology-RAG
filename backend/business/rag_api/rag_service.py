@@ -4,15 +4,16 @@ RAG API - RAG服务核心模块
 提供查询、索引构建、对话等核心功能的统一入口
 """
 
-from typing import Optional, List, AsyncIterator, Dict, Any
+from typing import Optional, List, AsyncIterator, Dict, Any, TYPE_CHECKING
 from pathlib import Path
 
-from backend.infrastructure.indexer import IndexManager
-from backend.business.rag_engine.core.engine import ModularQueryEngine
-from backend.business.rag_engine.agentic import AgenticQueryEngine
-from backend.business.chat import ChatManager
-from backend.business.chat.session import ChatSession, ChatTurn
-from backend.business.chat.utils import get_user_sessions_metadata, load_session_from_file
+# 延迟导入：将耗时的导入移到实际使用时
+if TYPE_CHECKING:
+    from backend.infrastructure.indexer import IndexManager
+    from backend.business.rag_engine.core.engine import ModularQueryEngine
+    from backend.business.rag_engine.agentic import AgenticQueryEngine
+    from backend.business.chat import ChatManager
+
 from backend.infrastructure.logger import get_logger
 from backend.infrastructure.config import config
 from backend.business.rag_api.models import (
@@ -28,22 +29,6 @@ from backend.business.rag_api.models import (
     SessionHistoryResponse,
     SessionListResponse,
 )
-from backend.business.rag_engine.models import QueryContext, QueryResult, SourceModel
-from backend.business.rag_api.rag_service_sessions import (
-    get_chat_history as _get_chat_history,
-    clear_chat_history as _clear_chat_history,
-    start_new_session as _start_new_session,
-    get_current_session_detail as _get_current_session_detail,
-    get_session_history as _get_session_history,
-    list_sessions as _list_sessions,
-)
-from backend.business.rag_api.rag_service_index import (
-    build_index as _build_index,
-    list_collections as _list_collections,
-    delete_collection as _delete_collection,
-)
-from backend.business.rag_api.rag_service_query import execute_query as _execute_query
-from backend.business.rag_api.rag_service_chat import execute_chat as _execute_chat
 
 logger = get_logger('rag_service')
 
@@ -96,17 +81,19 @@ class RAGService:
         )
     
     @property
-    def index_manager(self) -> IndexManager:
+    def index_manager(self):
         """获取索引管理器（延迟加载）"""
         if self._index_manager is None:
+            from backend.infrastructure.indexer import IndexManager
             logger.info("初始化IndexManager", collection=self.collection_name)
             self._index_manager = IndexManager(collection_name=self.collection_name)
         return self._index_manager
     
     @property
-    def modular_query_engine(self) -> ModularQueryEngine:
+    def modular_query_engine(self):
         """获取模块化查询引擎（延迟加载）"""
         if self._modular_query_engine is None:
+            from backend.business.rag_engine.core.engine import ModularQueryEngine
             logger.info(
                 "初始化ModularQueryEngine",
                 top_k=self.similarity_top_k,
@@ -124,6 +111,7 @@ class RAGService:
         """获取查询引擎（根据 use_agentic_rag 选择）"""
         if self.use_agentic_rag:
             if self._agentic_query_engine is None:
+                from backend.business.rag_engine.agentic import AgenticQueryEngine
                 logger.info(
                     "初始化AgenticQueryEngine",
                     top_k=self.similarity_top_k,
@@ -140,9 +128,10 @@ class RAGService:
             return self.modular_query_engine
     
     @property
-    def chat_manager(self) -> ChatManager:
+    def chat_manager(self):
         """获取对话管理器（延迟加载）"""
         if self._chat_manager is None:
+            from backend.business.chat import ChatManager
             logger.info("初始化ChatManager", top_k=self.similarity_top_k, model_id=self.model_id)
             self._chat_manager = ChatManager(
                 index_manager=self.index_manager,
@@ -180,6 +169,7 @@ class RAGService:
         collect_trace: bool = False
     ) -> RAGResponse:
         """查询接口（使用 Pydantic 验证）"""
+        from backend.business.rag_api.rag_service_query import execute_query as _execute_query
         query_engine = self._get_query_engine()
         return _execute_query(query_engine, request, user_id, collect_trace)
     
@@ -223,22 +213,27 @@ class RAGService:
         user_id: Optional[str] = None
     ) -> ChatResponse:
         """对话接口（使用 Pydantic 验证）"""
+        from backend.business.rag_api.rag_service_chat import execute_chat as _execute_chat
         return _execute_chat(self.chat_manager, request, user_id)
     
     def get_chat_history(self, session_id: Optional[str] = None):
         """获取对话历史"""
+        from backend.business.rag_api.rag_service_sessions import get_chat_history as _get_chat_history
         return _get_chat_history(self.chat_manager, session_id)
-    
+
     def clear_chat_history(self, session_id: str) -> bool:
         """清空对话历史"""
+        from backend.business.rag_api.rag_service_sessions import clear_chat_history as _clear_chat_history
         return _clear_chat_history(self.chat_manager, session_id)
-    
+
     def start_new_session(self, request: CreateSessionRequest) -> Dict[str, Any]:
         """创建新会话"""
+        from backend.business.rag_api.rag_service_sessions import start_new_session as _start_new_session
         return _start_new_session(self.chat_manager, request)
-    
+
     def get_current_session_detail(self) -> SessionDetailResponse:
         """获取当前会话详情（包含完整历史）"""
+        from backend.business.rag_api.rag_service_sessions import get_current_session_detail as _get_current_session_detail
         return _get_current_session_detail(self.chat_manager)
     
     async def stream_chat(self, message: str, session_id: Optional[str] = None) -> AsyncIterator[Dict[str, Any]]:
@@ -257,18 +252,22 @@ class RAGService:
     
     def get_session_history(self, session_id: str) -> SessionHistoryResponse:
         """获取指定会话的历史记录"""
+        from backend.business.rag_api.rag_service_sessions import get_session_history as _get_session_history
         return _get_session_history(session_id)
-    
+
     def list_sessions(self, user_email: str = None) -> SessionListResponse:
         """列出用户的所有会话"""
+        from backend.business.rag_api.rag_service_sessions import list_sessions as _list_sessions
         return _list_sessions(user_email)
-    
+
     def list_collections(self) -> list:
         """列出所有向量集合"""
+        from backend.business.rag_api.rag_service_index import list_collections as _list_collections
         return _list_collections(self.index_manager)
-    
+
     def delete_collection(self, collection_name: str) -> bool:
         """删除向量集合"""
+        from backend.business.rag_api.rag_service_index import delete_collection as _delete_collection
         return _delete_collection(self.index_manager, collection_name)
     
     def close(self):

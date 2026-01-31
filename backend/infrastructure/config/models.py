@@ -63,12 +63,16 @@ class LLMModelConfig(BaseModel):
     temperature: Optional[float] = 0.7  # 温度参数
     max_tokens: Optional[int] = 4096  # 最大 token 数
     supports_reasoning: bool = False  # 是否支持推理链
+    request_timeout: Optional[float] = 30.0  # API 请求超时时间（秒）
 
 
 class LLMModelsConfig(BaseModel):
     """LLM 多模型配置"""
     default: str = "deepseek-chat"  # 默认模型 ID
     available: List[LLMModelConfig] = []  # 可用模型列表
+    initialization_timeout: float = 30.0  # 初始化超时时间（秒）
+    max_retries: int = 3  # 最大重试次数
+    retry_delay: float = 2.0  # 重试延迟（秒，指数退避）
 
 
 class ModelConfig(BaseModel):

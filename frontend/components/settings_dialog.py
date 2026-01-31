@@ -12,7 +12,7 @@ from frontend.settings import render_data_source_tab
 from frontend.components.config_panel import render_advanced_config
 
 
-@st.dialog("⚙️ 设置", width="large")
+@st.dialog("设置", width="large", icon="⚙️")
 def show_settings_dialog() -> None:
     """显示设置弹窗（数据源管理 + 高级配置）"""
     # 初始化状态

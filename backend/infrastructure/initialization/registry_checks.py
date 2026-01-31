@@ -89,14 +89,29 @@ def check_index_manager() -> bool:
 
 
 def check_llm_factory() -> bool:
-    """检查LLM工厂"""
+    """检查LLM工厂（延迟加载：仅验证配置）"""
     try:
+        # 仅验证配置，不创建实例
         if not config.DEEPSEEK_API_KEY:
+            logger.warning("未设置 DEEPSEEK_API_KEY")
             return False
-        
-        from backend.infrastructure.llms.factory import create_deepseek_llm_for_query
-        return callable(create_deepseek_llm_for_query)
-    except Exception:
+
+        # 验证默认模型配置
+        default_model_id = config.get_default_llm_id()
+        model_config = config.get_llm_model_config(default_model_id)
+        if not model_config:
+            logger.warning(f"未找到默认模型配置: {default_model_id}")
+            return False
+
+        # 验证工厂函数可用
+        from backend.infrastructure.llms.factory import create_llm
+        if not callable(create_llm):
+            logger.warning("LLM工厂函数不可用")
+            return False
+
+        return True
+    except Exception as e:
+        logger.warning(f"LLM工厂检查失败: {e}")
         return False
 
 

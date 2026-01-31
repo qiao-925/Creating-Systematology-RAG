@@ -44,12 +44,14 @@ def render_model_selector(
                 current_index = i
                 break
         
-        # 显示模型选择器
-        selected_name = st.selectbox(
-            "🤖 选择模型",
+        # 单选列表（与主区模型选择 UI 一致）
+        st.markdown("**🤖 选择模型**")
+        selected_name = st.radio(
+            "选择模型",
             options=model_names,
             index=current_index,
             key="model_selector_config",
+            label_visibility="collapsed",
             help="切换不同的 LLM 模型。切换后，当前会话的后续消息将使用新模型。"
         )
         

@@ -1,22 +1,26 @@
-# Streamlit 主题配置
+# Streamlit 主题配置（深色背景，参考 snowChat 风格）
 # 参考: https://docs.streamlit.io/get-started/fundamentals/additional-features
 
 [theme]
-# 现代 Light 模式主题
-primaryColor = "#6366f1"
-backgroundColor = "#fafafa"
-secondaryBackgroundColor = "#f3f4f6"
-textColor = "#1f2937"
+base = "dark"
+primaryColor = "#E74C3C"
+backgroundColor = "#1A1A1A"
+secondaryBackgroundColor = "#333333"
+textColor = "#ECECEC"
 font = "sans serif"
 
-# 侧边栏主题配置（修复控制台颜色警告）
+# 侧边栏深色主题（仅使用官方支持的 theme.sidebar 键）
 [theme.sidebar]
-widgetBackgroundColor = "#ffffff"
-widgetBorderColor = "#e2e8f0"
-skeletonBackgroundColor = "#f1f5f9"
+backgroundColor = "#1A1A1A"
+secondaryBackgroundColor = "#333333"
+borderColor = "#4A4A4A"
 
 [server]
 # 服务器配置
 headless = true
 runOnSave = true
+
+[logger]
+# 日志级别：抑制 inotify 文件监控事件等调试信息
+level = "warning"
 

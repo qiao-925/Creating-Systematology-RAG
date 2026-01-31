@@ -110,6 +110,7 @@ def render_rag_advanced_params(
             max_value=10,
             value=st.session_state.similarity_top_k,
             key="similarity_top_k_slider",
+            format="%d",
             help="每次检索返回的文档数量。数值越大召回越全，但可能引入噪声。"
         )
         
@@ -126,6 +127,7 @@ def render_rag_advanced_params(
             value=st.session_state.similarity_threshold,
             step=0.05,
             key="similarity_threshold_slider",
+            format="%.2f",
             help="低于此阈值的结果会被过滤。数值越低召回越多，但质量可能下降。"
         )
         

@@ -120,18 +120,26 @@ def init_index_manager(manager: InitializationManager) -> Any:
 
 
 def init_llm_factory(manager: InitializationManager) -> Any:
-    """初始化LLM工厂"""
-    from backend.infrastructure.llms.factory import create_deepseek_llm_for_query
-    
+    """初始化LLM工厂（延迟加载：仅验证配置，不创建实例）"""
+    # 仅验证配置，不创建实例（延迟到首次使用）
     if not config.DEEPSEEK_API_KEY:
         raise ValueError("未设置 DEEPSEEK_API_KEY")
-    
-    llm = create_deepseek_llm_for_query(
-        api_key=config.DEEPSEEK_API_KEY,
-        model=config.LLM_MODEL,
-    )
-    
-    return llm
+
+    # 验证模型配置
+    default_model_id = config.get_default_llm_id()
+    model_config = config.get_llm_model_config(default_model_id)
+    if not model_config:
+        raise ValueError(f"未找到默认模型配置: {default_model_id}")
+
+    logger.info(f"✅ LLM工厂配置验证成功（默认模型: {default_model_id}）")
+    logger.info("LLM实例将在首次使用时创建（延迟加载）")
+
+    # 返回配置信息而非实例
+    return {
+        'default_model_id': default_model_id,
+        'model_config': model_config,
+        'lazy_loaded': True
+    }
 
 
 def init_session_state(manager: InitializationManager) -> None:

@@ -16,7 +16,7 @@ from frontend.components.config_panel.rag_params import (
 from frontend.components.config_panel.panel import _render_display_settings
 
 
-@st.dialog("⚙️ 参数配置", width="large")
+@st.dialog("参数配置", width="large", icon="⚙️")
 def show_params_dialog() -> None:
     """显示参数配置弹窗"""
     # Tab 切换

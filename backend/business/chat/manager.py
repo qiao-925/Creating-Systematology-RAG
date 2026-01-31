@@ -19,18 +19,22 @@
 - 真正的流式输出支持（实时token输出，无模拟延迟）
 """
 
-import asyncio
-from typing import Optional, List, Tuple
+from __future__ import annotations
 
-from llama_index.core.memory import ChatMemoryBuffer
-from llama_index.core.llms import ChatMessage, MessageRole
+import asyncio
+from typing import Optional, List, Tuple, TYPE_CHECKING
+
+# 延迟导入：这些模块导入耗时较长，改为按需加载
+if TYPE_CHECKING:
+    from llama_index.core.memory import ChatMemoryBuffer
+    from llama_index.core.llms import ChatMessage, MessageRole
+    from backend.infrastructure.indexer import IndexManager
+    from backend.business.rag_engine.core.engine import ModularQueryEngine
+    from backend.business.rag_engine.agentic import AgenticQueryEngine
 
 from backend.infrastructure.config import config
-from backend.infrastructure.indexer import IndexManager
 from backend.infrastructure.logger import get_logger
 from backend.business.rag_engine.formatting import ResponseFormatter
-from backend.business.rag_engine.core.engine import ModularQueryEngine
-from backend.business.rag_engine.agentic import AgenticQueryEngine
 from backend.business.chat.session import ChatSession
 from backend.infrastructure.llms import (
     create_llm,
@@ -93,45 +97,38 @@ class ChatManager:
         self.max_history_turns = max_history_turns
         self.enable_smart_condense = enable_smart_condense
         self.min_high_quality_sources = 2  # 高质量来源的最小数量
-        
+
         # 保存 API 密钥（无论使用哪种模式都需要）
         self.api_key = api_key or config.DEEPSEEK_API_KEY
-        
+
         # 初始化响应格式化器
         self.formatter = ResponseFormatter(enable_formatting=enable_markdown_formatting)
         logger.info(f"响应格式化器已{'启用' if enable_markdown_formatting else '禁用'}")
-        
-        # 配置 LLM（优先使用 model_id，向后兼容 model）
+
+        # 保存 LLM 配置参数（延迟创建）
+        self._llm = None  # 延迟加载的 LLM 实例
+        self._model_id = model_id
+        self._model = model
+        self._temperature = temperature
+        self._max_tokens = max_tokens
+
+        # 确定模型名称（用于日志和查询引擎）
         if model_id:
-            # 使用新的多模型接口
-            logger.info(
-                f"初始化 LLM (模型 ID: {model_id}, "
-                f"temperature: {temperature}, max_tokens: {max_tokens})"
-            )
-            self.llm = create_llm(
-                model_id=model_id,
-                temperature=temperature,
-                max_tokens=max_tokens,
-            )
-            # 获取模型配置信息
             model_config = config.get_llm_model_config(model_id)
             if model_config:
                 self.model = model_config.litellm_model
             else:
                 self.model = model_id
         else:
-            # 向后兼容：使用旧的接口
             self.model = model or config.LLM_MODEL
-            
             if not self.api_key:
                 raise ValueError("未设置DEEPSEEK_API_KEY")
-            
-            logger.info(f"初始化 LLM (向后兼容模式): {self.model}")
-            self.llm = create_deepseek_llm_for_query(
-                api_key=self.api_key,
-                model=self.model,
-            )
-        
+
+        logger.info(
+            f"ChatManager 配置完成 (模型: {self.model}, "
+            f"延迟加载: True)"
+        )
+
         # 配置调试模式
         if self.enable_debug:
             from llama_index.core import Settings
@@ -139,62 +136,116 @@ class ChatManager:
             logger.info("对话管理器：启用调试模式")
             llama_debug = LlamaDebugHandler(print_trace_on_end=True)
             Settings.callback_manager = CallbackManager([llama_debug])
-        
-        # 创建记忆缓冲区
-        self.memory = ChatMemoryBuffer.from_defaults(
-            token_limit=memory_token_limit,
-        )
-        
-        # 创建查询引擎（根据 use_agentic_rag 选择）
-        if self.index_manager:
-            if use_agentic_rag:
+
+        # 延迟创建记忆缓冲区（避免导入 ChatMemoryBuffer 耗时 1.17s）
+        self._memory = None
+        self._memory_token_limit = memory_token_limit
+
+        # 保存其他参数
+        self.retrieval_strategy = retrieval_strategy
+        self.enable_rerank = enable_rerank
+        self.use_agentic_rag = use_agentic_rag
+        self.engine_kwargs = kwargs
+
+        # 延迟创建查询引擎
+        self._query_engine = None
+
+        # 当前会话
+        self.current_session: Optional[ChatSession] = None
+
+        logger.info("对话管理器初始化完成（延迟加载模式）")
+
+    @property
+    def memory(self):
+        """获取记忆缓冲区（延迟加载）"""
+        if self._memory is None:
+            from llama_index.core.memory import ChatMemoryBuffer
+            logger.debug("首次使用 memory，创建 ChatMemoryBuffer")
+            self._memory = ChatMemoryBuffer.from_defaults(
+                token_limit=self._memory_token_limit,
+            )
+        return self._memory
+
+    @property
+    def llm(self):
+        """获取 LLM 实例（延迟加载）"""
+        if self._llm is None:
+            logger.info("首次使用 LLM，开始创建实例...")
+
+            # 配置 LLM（优先使用 model_id，向后兼容 model）
+            if self._model_id:
+                # 使用新的多模型接口
+                logger.info(
+                    f"创建 LLM (模型 ID: {self._model_id}, "
+                    f"temperature: {self._temperature}, max_tokens: {self._max_tokens})"
+                )
+                self._llm = create_llm(
+                    model_id=self._model_id,
+                    temperature=self._temperature,
+                    max_tokens=self._max_tokens,
+                )
+            else:
+                # 向后兼容：使用旧的接口
+                logger.info(f"创建 LLM (向后兼容模式): {self.model}")
+                self._llm = create_deepseek_llm_for_query(
+                    api_key=self.api_key,
+                    model=self.model,
+                )
+
+            logger.info("✅ LLM 实例创建完成")
+
+        return self._llm
+
+    @property
+    def query_engine(self):
+        """获取查询引擎（延迟加载）"""
+        if self._query_engine is None and self.index_manager:
+            if self.use_agentic_rag:
+                from backend.business.rag_engine.agentic import AgenticQueryEngine
                 logger.info("创建 AgenticQueryEngine（Agent 自主选择检索策略）")
-                self.query_engine = AgenticQueryEngine(
+                self._query_engine = AgenticQueryEngine(
                     index_manager=self.index_manager,
                     api_key=self.api_key,
                     model=self.model,
                     similarity_top_k=self.similarity_top_k,
-                    enable_markdown_formatting=enable_markdown_formatting,
-                    enable_rerank=enable_rerank,
-                    **kwargs
+                    enable_markdown_formatting=True,
+                    enable_rerank=self.enable_rerank,
+                    **self.engine_kwargs
                 )
                 logger.info("AgenticQueryEngine 已创建")
             else:
+                from backend.business.rag_engine.core.engine import ModularQueryEngine
                 logger.info("创建模块化查询引擎（支持多种检索策略）")
-                self.query_engine = ModularQueryEngine(
+                self._query_engine = ModularQueryEngine(
                     index_manager=self.index_manager,
                     api_key=self.api_key,
                     model=self.model,
                     similarity_top_k=self.similarity_top_k,
-                    enable_markdown_formatting=enable_markdown_formatting,
-                    retrieval_strategy=retrieval_strategy,
-                    enable_rerank=enable_rerank,
-                    enable_debug=enable_debug,
-                    **kwargs
+                    enable_markdown_formatting=True,
+                    retrieval_strategy=self.retrieval_strategy,
+                    enable_rerank=self.enable_rerank,
+                    enable_debug=self.enable_debug,
+                    **self.engine_kwargs
                 )
-                logger.info(f"模块化查询引擎已创建（检索策略: {retrieval_strategy or config.RETRIEVAL_STRATEGY}）")
-        else:
-            self.query_engine = None
-            logger.info("纯LLM对话模式（无知识库检索）")
-        
-        # 当前会话
-        self.current_session: Optional[ChatSession] = None
-        
-        logger.info("对话管理器初始化完成")
+                logger.info(f"模块化查询引擎已创建（检索策略: {self.retrieval_strategy or config.RETRIEVAL_STRATEGY}）")
+
+        return self._query_engine
     
     def _format_history_text(self, max_turns: Optional[int] = None) -> str:
         """格式化对话历史为文本（公共方法）
-        
+
         Args:
             max_turns: 最大轮数，None表示使用self.max_history_turns
-            
+
         Returns:
             格式化的历史文本
         """
+        from llama_index.core.llms import MessageRole
+
         chat_history = self.memory.get_all()
         if not chat_history:
             return ""
-        
+
         max_turns = max_turns or self.max_history_turns
         history_text = ""
         for msg in chat_history[-max_turns:]:
@@ -204,20 +255,22 @@ class ChatManager:
     
     def _condense_query_with_history(self, current_message: str) -> str:
         """将对话历史压缩为完整查询（智能策略：短历史不压缩）
-        
+
         Args:
             current_message: 当前用户消息
-            
+
         Returns:
             压缩后的完整查询
         """
+        from llama_index.core.llms import MessageRole
+
         # 获取历史对话
         chat_history = self.memory.get_all()
-        
+
         if not chat_history or len(chat_history) == 0:
             # 没有历史，直接返回当前消息
             return current_message
-        
+
         # 计算用户消息数量（每2条消息=1轮对话）
         user_message_count = sum(1 for msg in chat_history if msg.role == MessageRole.USER)
         
@@ -350,20 +403,22 @@ class ChatManager:
         return answer, [], None
     
     def _update_memory_and_session(
-        self, 
-        message: str, 
-        answer: str, 
-        sources: List[dict], 
+        self,
+        message: str,
+        answer: str,
+        sources: List[dict],
         reasoning_content: Optional[str]
     ) -> None:
         """更新对话记忆和会话历史
-        
+
         Args:
             message: 用户消息
             answer: AI回答
             sources: 引用来源
             reasoning_content: 推理链内容
         """
+        from llama_index.core.llms import ChatMessage, MessageRole
+
         # 更新对话记忆
         self.memory.put(ChatMessage(role=MessageRole.USER, content=message))
         self.memory.put(ChatMessage(role=MessageRole.ASSISTANT, content=answer))

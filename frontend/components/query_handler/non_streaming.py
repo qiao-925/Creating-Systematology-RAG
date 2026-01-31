@@ -3,16 +3,31 @@
 使用 st.status 组件显示查询进度
 """
 
-import time
+import json
+from pathlib import Path
+
 import streamlit as st
+from streamlit_chat import message
 from frontend.utils.sources import convert_sources_to_dict
 from frontend.utils.state import save_message_to_history
 from frontend.utils.sources import format_answer_with_citation_links
-from frontend.components.query_handler.common import display_reasoning, display_sources, save_to_chat_manager
+from frontend.components.query_handler.common import save_to_chat_manager
+from frontend.components.chat_display import render_assistant_continuation
 from backend.infrastructure.logger import get_logger
 
 logger = get_logger('app')
 
+
+def _debug_log(location: str, message: str, data: dict | None = None, hypothesis_id: str = "A") -> None:
+    # #region agent log
+    try:
+        log_path = Path(__file__).resolve().parent.parent.parent.parent / ".cursor" / "debug.log"
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps({"sessionId": "debug-session", "runId": "run1", "hypothesisId": hypothesis_id, "location": location, "message": message, "data": data or {}, "timestamp": __import__("time").time() * 1000}, ensure_ascii=False) + "\n")
+    except Exception:  # noqa: S110
+        pass
+    # #endregion
 
 def handle_non_streaming_query(rag_service, chat_manager, prompt: str) -> None:
     """处理非流式查询（带进度展示）
@@ -22,63 +37,63 @@ def handle_non_streaming_query(rag_service, chat_manager, prompt: str) -> None:
         chat_manager: 对话管理器实例
         prompt: 用户查询
     """
-    with st.chat_message("assistant"):
-        # 使用 st.status 显示进度
-        with st.status("🤔 思考中...", expanded=False) as status:
-            try:
-                # 阶段 1: 理解问题
-                status.update(label="📝 理解问题...")
-                
-                # 阶段 2: 执行查询（包含检索、重排、生成）
-                status.update(label="🔍 检索相关文档...")
-                
-                response = rag_service.query(
-                    question=prompt,
-                    user_id=None,
-                    session_id=chat_manager.current_session.session_id if chat_manager.current_session else None,
+    # #region agent log
+    _debug_log("non_streaming.py:entry", "handle_non_streaming_query entry", {"prompt_len": len(prompt)})
+    # #endregion
+    with st.status("🤔 思考中...", expanded=False) as status:
+        try:
+            # #region agent log
+            _debug_log("non_streaming.py:before_first_status_update", "before first status.update", hypothesis_id="A")
+            # #endregion
+            status.update(label="📝 理解问题...")
+            status.update(label="🔍 检索相关文档...")
+            # #region agent log
+            _debug_log("non_streaming.py:before_query", "before rag_service.query", hypothesis_id="A")
+            # #endregion
+            response = rag_service.query(
+                question=prompt,
+                user_id=None,
+                session_id=chat_manager.current_session.session_id if chat_manager.current_session else None,
+            )
+            # #region agent log
+            _debug_log("non_streaming.py:after_query", "after rag_service.query", hypothesis_id="A")
+            # #endregion
+            answer = response.answer
+            local_sources = convert_sources_to_dict(response.sources)
+            reasoning_content = response.metadata.get('reasoning_content')
+            sources_count = len(local_sources) if local_sources else 0
+            # #region agent log
+            _debug_log("non_streaming.py:before_status_complete", "before status.update(complete)", hypothesis_id="A")
+            # #endregion
+            status.update(label=f"✅ 完成 · 检索到 {sources_count} 篇文档", state="complete")
+            from frontend.utils.helpers import generate_message_id
+            msg_idx = len(st.session_state.messages)
+            message_id = generate_message_id(msg_idx, answer)
+            save_message_to_history(answer, local_sources, reasoning_content)
+            save_to_chat_manager(chat_manager, prompt, answer, local_sources, reasoning_content)
+            if local_sources:
+                formatted_content = format_answer_with_citation_links(
+                    answer, local_sources, message_id=message_id
                 )
-                
-                answer = response.answer
-                local_sources = convert_sources_to_dict(response.sources)
-                reasoning_content = response.metadata.get('reasoning_content')
-                
-                # 阶段 3: 完成
-                sources_count = len(local_sources) if local_sources else 0
-                status.update(label=f"✅ 完成 · 检索到 {sources_count} 篇文档", state="complete")
-                
-                # 生成消息ID
-                from frontend.utils.helpers import generate_message_id
-                msg_idx = len(st.session_state.messages)
-                message_id = generate_message_id(msg_idx, answer)
-                
-                # 保存到消息历史
-                save_message_to_history(answer, local_sources, reasoning_content)
-                
-                # 显示观察器信息（在答案前）
-                from frontend.components.chat_display import _render_observer_info
-                _render_observer_info(msg_idx)
-                
-                # 立即显示AI回答
-                if local_sources:
-                    formatted_content = format_answer_with_citation_links(
-                        answer,
-                        local_sources,
-                        message_id=message_id
-                    )
-                    st.markdown(formatted_content, unsafe_allow_html=True)
-                else:
-                    st.markdown(answer)
-                
-                # 显示推理链和引用来源
-                display_reasoning(reasoning_content)
-                display_sources(local_sources, message_id)
-                
-                # 保存到ChatManager会话
-                save_to_chat_manager(chat_manager, prompt, answer, local_sources, reasoning_content)
-                
-            except Exception as e:
-                import traceback
-                status.update(label="❌ 查询失败", state="error")
-                st.error(f"❌ 查询失败: {e}")
-                st.error(traceback.format_exc())
+            else:
+                formatted_content = answer
+            message(formatted_content, is_user=False, key=f"msg_assistant_{message_id}", allow_html=True)
+            msg = {
+                "role": "assistant",
+                "content": answer,
+                "sources": local_sources or [],
+                "reasoning_content": reasoning_content,
+            }
+            render_assistant_continuation(msg_idx, message_id, msg)
+            # #region agent log
+            _debug_log("non_streaming.py:exit_success", "handle_non_streaming_query exit success", hypothesis_id="A")
+            # #endregion
+        except Exception as e:
+            import traceback
+            # #region agent log
+            _debug_log("non_streaming.py:exit_exception", "handle_non_streaming_query exception", {"exc_type": type(e).__name__}, hypothesis_id="A")
+            # #endregion
+            status.update(label="❌ 查询失败", state="error")
+            st.error(f"❌ 查询失败: {e}")
+            st.error(traceback.format_exc())
 

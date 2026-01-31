@@ -1,9 +1,10 @@
 """
 对话显示组件
+参考 Streamlit AI Assistant 设计：单列居中布局
 """
 
 import streamlit as st
-from typing import Optional
+from streamlit_chat import message
 from frontend.utils.helpers import get_chat_title
 from frontend.utils.sources import convert_sources_to_dict
 from frontend.utils.state import initialize_sources_map
@@ -17,10 +18,71 @@ from backend.infrastructure.logger import get_logger
 logger = get_logger('app')
 
 
+def _clear_conversation(chat_manager) -> None:
+    """清空对话的回调函数"""
+    if chat_manager:
+        chat_manager.start_session()
+    st.session_state.messages = []
+    # 清空引用来源映射
+    if 'current_sources_map' in st.session_state:
+        st.session_state.current_sources_map = {}
+    if 'current_reasoning_map' in st.session_state:
+        st.session_state.current_reasoning_map = {}
+    # 清空观察器日志
+    if 'llama_debug_logs' in st.session_state:
+        st.session_state.llama_debug_logs = []
+    if 'ragas_logs' in st.session_state:
+        st.session_state.ragas_logs = []
+
+
+def _on_settings_click() -> None:
+    """设置按钮点击回调"""
+    st.session_state.show_settings_dialog = True
+
+
+def _render_title_row(chat_manager) -> None:
+    """渲染标题行（标题 + Restart + 设置按钮）
+    
+    参考 Streamlit AI Assistant 布局：
+    - 标题居左（宽度自适应）
+    - Restart 按钮和设置按钮在右侧
+    """
+    has_messages = bool(st.session_state.get('messages'))
+    
+    title_row = st.container()
+    with title_row:
+        col_title, col_restart, col_settings = st.columns([6, 1, 1])
+        
+        with col_title:
+            st.title("✨ " + config.APP_TITLE, anchor=False)
+        
+        with col_restart:
+            if has_messages:
+                st.button(
+                    "Restart",
+                    icon=":material/refresh:",
+                    on_click=_clear_conversation,
+                    args=(chat_manager,),
+                    key="restart_button"
+                )
+        
+        with col_settings:
+            st.button(
+                "",
+                icon=":material/settings:",
+                on_click=_on_settings_click,
+                key="settings_button_top",
+                help="设置"
+            )
+
+
 def render_chat_interface(rag_service, chat_manager) -> None:
     """渲染对话界面
     
-    优化：统一处理会话加载和rerun，减少重复渲染。
+    参考 Streamlit AI Assistant 设计：
+    - 标题行（标题 + Restart + 设置）
+    - 无对话：建议问题 + 输入框
+    - 有对话：对话气泡 + 输入框
     
     Args:
         rag_service: RAG服务实例
@@ -38,11 +100,14 @@ def render_chat_interface(rag_service, chat_manager) -> None:
         st.markdown(inject_citation_script(), unsafe_allow_html=True)
         st.session_state.citation_script_injected = True
     
-    # 显示标题
-    chat_title = get_chat_title(st.session_state.messages)
-    if chat_title:
-        st.subheader(chat_title)
-        st.markdown("---")
+    # 渲染标题行（标题 + Restart + 设置按钮）
+    _render_title_row(chat_manager)
+    
+    # 检查是否需要显示设置弹窗
+    if st.session_state.get("show_settings_dialog", False):
+        from frontend.components.settings_dialog import show_settings_dialog
+        show_settings_dialog()
+        st.session_state.show_settings_dialog = False
     
     # 初始化来源映射
     initialize_sources_map()
@@ -53,57 +118,57 @@ def render_chat_interface(rag_service, chat_manager) -> None:
         render_quick_start()
         return
     
-    # 有对话历史：显示对话
+    # 有对话历史：显示对话 + 底部输入框
     render_chat_history()
+    
+    # 底部输入框（有对话历史时显示）
+    user_message = st.chat_input("输入追问...")
+    if user_message:
+        st.session_state.messages.append({"role": "user", "content": user_message})
+        st.session_state.pending_query = user_message
 
 
 def render_chat_history() -> None:
-    """渲染对话历史"""
-    # 显示对话历史
+    """渲染对话历史（st-chat 气泡 + 延续块）"""
     from frontend.utils.helpers import generate_message_id
-    for idx, message in enumerate(st.session_state.messages):
-        message_id = generate_message_id(idx, message)
-        with st.chat_message(message["role"]):
-            # 如果是AI回答，先显示观察器信息
-            if message["role"] == "assistant":
-                _render_observer_info(idx)
-            
-            # 如果是AI回答且包含引用，使用带链接的格式
-            if message["role"] == "assistant" and "sources" in message and message["sources"]:
+    for idx, msg in enumerate(st.session_state.messages):
+        message_id = generate_message_id(idx, msg)
+        role = msg["role"]
+        if role == "user":
+            message(msg["content"], is_user=True, key=f"msg_user_{message_id}")
+        else:
+            if "sources" in msg and msg["sources"]:
                 formatted_content = format_answer_with_citation_links(
-                    message["content"],
-                    message["sources"],
+                    msg["content"],
+                    msg["sources"],
                     message_id=message_id
                 )
-                st.markdown(formatted_content, unsafe_allow_html=True)
             else:
-                st.markdown(message["content"])
-            
-            # 显示推理链（始终显示，如果存在）
-            if message["role"] == "assistant":
-                reasoning_content = message.get("reasoning_content")
-                # 调试：检查推理链是否存在
-                if reasoning_content:
-                    with st.expander("🧠 推理过程", expanded=False):
-                        st.markdown(f"```\n{reasoning_content}\n```")
-                else:
-                    # 调试：显示为什么没有推理链
-                    if config.DEEPSEEK_ENABLE_REASONING_DISPLAY:
-                        # 只在启用显示时才显示调试信息
-                        logger.debug(f"消息 {message_id} 没有推理链内容")
-        
-        # 在消息下方显示引用来源（如果有）
-        if message["role"] == "assistant":
-            sources = st.session_state.current_sources_map.get(message_id, [])
-            if sources:
-                # 显示引用来源标题
-                st.markdown("#### 📚 引用来源")
-                # 显示引用来源详情
-                display_sources_below_message(sources, message_id=message_id)
-        
-        # 更新session_state中的映射（确保同步）
+                formatted_content = msg["content"]
+            message(formatted_content, is_user=False, key=f"msg_assistant_{message_id}", allow_html=True)
+            render_assistant_continuation(idx, message_id, msg)
         st.session_state.current_sources_map = st.session_state.current_sources_map
         st.session_state.current_reasoning_map = st.session_state.current_reasoning_map
+
+
+def render_assistant_continuation(message_index: int, message_id: str, msg: dict) -> None:
+    """渲染助手消息延续块（观察器、推理、引用来源），样式与气泡统一由 CP4 CSS 处理。"""
+    st.markdown(
+        f"<div class='message-continuation-anchor' data-message-id='{message_id}'></div>",
+        unsafe_allow_html=True,
+    )
+    with st.chat_message("assistant"):
+        _render_observer_info(message_index)
+        reasoning_content = msg.get("reasoning_content")
+        if reasoning_content:
+            with st.expander("🧠 推理过程", expanded=False):
+                st.markdown(f"```\n{reasoning_content}\n```")
+        elif config.DEEPSEEK_ENABLE_REASONING_DISPLAY:
+            logger.debug(f"消息 {message_id} 没有推理链内容")
+        sources = st.session_state.current_sources_map.get(message_id, [])
+        if sources:
+            st.markdown("#### 📚 引用来源")
+            display_sources_below_message(sources, message_id=message_id)
 
 
 def _render_observer_info(message_index: int) -> None:

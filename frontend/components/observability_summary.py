@@ -206,20 +206,20 @@ def _render_card(
         status: 状态级别（决定颜色）
         detail: 详细信息（可选）
     """
-    # 状态对应的颜色配置
+    # 状态对应的颜色配置（深色背景主题）
     color_map = {
-        StatusLevel.SUCCESS: {"border": "#22c55e", "bg": "#f0fdf4", "text": "#166534"},
-        StatusLevel.WARNING: {"border": "#f59e0b", "bg": "#fffbeb", "text": "#92400e"},
-        StatusLevel.ERROR: {"border": "#ef4444", "bg": "#fef2f2", "text": "#991b1b"},
+        StatusLevel.SUCCESS: {"border": "#22c55e", "bg": "#1e3a2f", "text": "#86efac"},
+        StatusLevel.WARNING: {"border": "#f59e0b", "bg": "#3d3520", "text": "#fcd34d"},
+        StatusLevel.ERROR: {"border": "#ef4444", "bg": "#3f1d1d", "text": "#fca5a5"},
     }
     colors = color_map.get(status, color_map[StatusLevel.SUCCESS])
     
     # 构建卡片 HTML
-    detail_html = f'<div style="font-size:12px;color:#6b7280;margin-top:4px;">{detail}</div>' if detail else ''
+    detail_html = f'<div style="font-size:12px;color:#888888;margin-top:4px;">{detail}</div>' if detail else ''
     
     card_html = f'''<div style="border-left:4px solid {colors["border"]};background:{colors["bg"]};padding:12px 16px;border-radius:0 8px 8px 0;margin-bottom:8px;">
 <div style="font-weight:600;color:{colors["text"]};font-size:13px;margin-bottom:4px;">{title}</div>
-<div style="color:#374151;font-size:14px;">{content}</div>{detail_html}</div>'''
+<div style="color:#CCCCCC;font-size:14px;">{content}</div>{detail_html}</div>'''
     
     st.markdown(card_html, unsafe_allow_html=True)
 
