@@ -4,14 +4,12 @@
 """
 
 import streamlit as st
-from streamlit_chat import message
-from frontend.utils.helpers import get_chat_title
-from frontend.utils.sources import convert_sources_to_dict
 from frontend.utils.state import initialize_sources_map
 from frontend.utils.sources import format_answer_with_citation_links
 from frontend.components.sources_panel import display_sources_below_message
 from frontend.components.observability_summary import render_observability_summary
 from frontend.components.observer_renderers import render_llamadebug_full_info, render_ragas_full_info
+from frontend.config import SUGGESTION_QUESTIONS
 from backend.infrastructure.config import config
 from backend.infrastructure.logger import get_logger
 
@@ -23,6 +21,22 @@ def _clear_conversation(chat_manager) -> None:
     if chat_manager:
         chat_manager.start_session()
     st.session_state.messages = []
+    if 'initial_question' in st.session_state:
+        st.session_state.initial_question = None
+    if 'initial_question_input' in st.session_state:
+        st.session_state.initial_question_input = ""
+    if 'selected_suggestion' in st.session_state:
+        st.session_state.selected_suggestion = None
+    if 'selected_question' in st.session_state:
+        st.session_state.selected_question = None
+    if 'pending_query' in st.session_state:
+        st.session_state.pending_query = None
+    if 'keyword_cloud_selected' in st.session_state:
+        st.session_state.keyword_cloud_selected = []
+    if 'keyword_cloud_generated' in st.session_state:
+        st.session_state.keyword_cloud_generated = []
+    if 'keyword_cloud_loading' in st.session_state:
+        st.session_state.keyword_cloud_loading = False
     # 清空引用来源映射
     if 'current_sources_map' in st.session_state:
         st.session_state.current_sources_map = {}
@@ -47,25 +61,38 @@ def _render_title_row(chat_manager) -> None:
     - 标题居左（宽度自适应）
     - Restart 按钮和设置按钮在右侧
     """
+    # 如果用户刚触发提问（但消息尚未写入 messages），也要立即显示 Restart
     has_messages = bool(st.session_state.get('messages'))
+    if not has_messages:
+        has_messages = any(
+            st.session_state.get(key)
+            for key in (
+                "initial_question",
+                "selected_suggestion",
+                "selected_question",
+                "pending_query",
+            )
+        )
     
     title_row = st.container()
     with title_row:
-        col_title, col_restart, col_settings = st.columns([6, 1, 1])
+        col_title, col_restart, col_settings = st.columns([8, 1, 1])
         
         with col_title:
-            st.title("✨ " + config.APP_TITLE, anchor=False)
+            st.title("✨ ")
+            st.title(config.APP_TITLE, anchor=False)
         
         with col_restart:
             if has_messages:
                 st.button(
-                    "Restart",
+                    "",
                     icon=":material/refresh:",
                     on_click=_clear_conversation,
                     args=(chat_manager,),
-                    key="restart_button"
+                    key="restart_button",
+                    help="Restart"
                 )
-        
+
         with col_settings:
             st.button(
                 "",
@@ -111,31 +138,69 @@ def render_chat_interface(rag_service, chat_manager) -> None:
     
     # 初始化来源映射
     initialize_sources_map()
-    
-    # 无对话历史：显示快速开始
+
+    # Quick start placeholder: clear stale first-screen content on reruns
+    quick_start_ph = st.empty()
+
+    # ??????????????? + ?????
     if not st.session_state.messages:
-        from frontend.components.quick_start import render_quick_start
-        render_quick_start()
-        return
-    
-    # 有对话历史：显示对话 + 底部输入框
+        user_just_asked_initial = bool(st.session_state.get("initial_question"))
+        user_just_clicked_suggestion = bool(st.session_state.get("selected_suggestion"))
+        user_just_selected_question = bool(st.session_state.get("selected_question"))
+        user_has_pending_query = bool(st.session_state.get("pending_query"))
+        user_first_interaction = (
+            user_just_asked_initial
+            or user_just_clicked_suggestion
+            or user_just_selected_question
+            or user_has_pending_query
+        )
+
+        if not user_first_interaction:
+            from frontend.components.quick_start import render_quick_start
+            with quick_start_ph.container():
+                render_quick_start()
+            # ???? demo??????????????????????????/??
+            st.stop()
+        else:
+            # ???? messages ??????????
+            quick_start_ph.empty()
+            if user_just_asked_initial:
+                prompt = st.session_state.initial_question
+            elif user_just_clicked_suggestion:
+                selected_label = st.session_state.selected_suggestion
+                prompt = SUGGESTION_QUESTIONS.get(selected_label, selected_label)
+            else:
+                prompt = None
+
+            if prompt:
+                st.session_state.messages.append({"role": "user", "content": prompt})
+                st.session_state.pending_query = prompt
+                st.session_state.initial_question = None
+                st.session_state.selected_suggestion = None
+                if 'initial_question_input' in st.session_state:
+                    st.session_state.initial_question_input = ""
+    else:
+        # ??????????????
+        quick_start_ph.empty()
+
     render_chat_history()
+
     
     # 底部输入框（有对话历史时显示）
     user_message = st.chat_input("输入追问...")
     if user_message:
-        st.session_state.messages.append({"role": "user", "content": user_message})
         st.session_state.pending_query = user_message
 
 
 def render_chat_history() -> None:
-    """渲染对话历史（st-chat 气泡 + 延续块）"""
+    """渲染对话历史（st.chat_message 气泡 + 延续块）"""
     from frontend.utils.helpers import generate_message_id
     for idx, msg in enumerate(st.session_state.messages):
         message_id = generate_message_id(idx, msg)
         role = msg["role"]
         if role == "user":
-            message(msg["content"], is_user=True, key=f"msg_user_{message_id}")
+            with st.chat_message("user"):
+                st.markdown(msg["content"])
         else:
             if "sources" in msg and msg["sources"]:
                 formatted_content = format_answer_with_citation_links(
@@ -145,7 +210,9 @@ def render_chat_history() -> None:
                 )
             else:
                 formatted_content = msg["content"]
-            message(formatted_content, is_user=False, key=f"msg_assistant_{message_id}", allow_html=True)
+            with st.chat_message("assistant"):
+                st.container()  # Fix ghost message bug.
+                st.markdown(formatted_content, unsafe_allow_html=True)
             render_assistant_continuation(idx, message_id, msg)
         st.session_state.current_sources_map = st.session_state.current_sources_map
         st.session_state.current_reasoning_map = st.session_state.current_reasoning_map

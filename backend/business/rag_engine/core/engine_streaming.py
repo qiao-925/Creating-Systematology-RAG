@@ -134,6 +134,7 @@ async def execute_stream_query(
         last_token_time = time.time()
         token_count = 0
         last_chunk = None
+        miss_log_count = 0
         
         logger.debug("🚀 开始直接流式调用 DeepSeek API")
         
@@ -164,16 +165,31 @@ async def execute_stream_query(
             # 方法1：优先使用 delta.content（增量）
             if hasattr(chunk, 'delta'):
                 delta = chunk.delta
-                if hasattr(delta, 'content') and delta.content:
+                if isinstance(delta, str):
+                    if delta:
+                        chunk_text = delta
+                elif isinstance(delta, dict):
+                    delta_content = delta.get('content')
+                    if delta_content:
+                        chunk_text = str(delta_content)
+                elif hasattr(delta, 'content') and delta.content:
                     chunk_text = str(delta.content)
                     if len(chunk_text) > 50:
                         logger.warning(f"⚠️ Delta.content 长度异常: {len(chunk_text)} 字符，可能是累加的！内容: {chunk_text[:50]}...")
+                elif hasattr(delta, 'text') and delta.text:
+                    chunk_text = str(delta.text)
             
-            # 方法2：如果没有 delta，从 message.content 计算增量
-            elif hasattr(chunk, 'message'):
+            # 方法2：如果 delta 没有命中，尝试从 message.content 计算增量
+            if not chunk_text and hasattr(chunk, 'message'):
                 message = chunk.message
-                if hasattr(message, 'content') and message.content:
-                    current_content = str(message.content)
+                current_content = None
+                if isinstance(message, str):
+                    current_content = message
+                elif hasattr(message, 'content') and message.content:
+                    current_content = message.content
+                
+                if current_content:
+                    current_content = str(current_content)
                     if full_answer and current_content.startswith(full_answer):
                         chunk_text = current_content[len(full_answer):]
                         if not chunk_text:
@@ -200,6 +216,26 @@ async def execute_stream_query(
                             chunk_text = delta.get('content', '')
                             if chunk_text:
                                 chunk_text = str(chunk_text)
+            
+            if not chunk_text and miss_log_count < 3:
+                delta_obj = getattr(chunk, 'delta', None)
+                message_obj = getattr(chunk, 'message', None)
+                raw_obj = getattr(chunk, 'raw', None)
+                msg_content = None
+                if isinstance(message_obj, str):
+                    msg_content = message_obj
+                elif hasattr(message_obj, 'content'):
+                    msg_content = message_obj.content
+                logger.debug(
+                    "stream_chunk_no_token",
+                    delta_type=type(delta_obj).__name__,
+                    delta_len=len(str(delta_obj)) if delta_obj else 0,
+                    message_type=type(message_obj).__name__,
+                    message_len=len(str(msg_content)) if msg_content else 0,
+                    raw_type=type(raw_obj).__name__,
+                    raw_keys=list(raw_obj.keys()) if isinstance(raw_obj, dict) else None,
+                )
+                miss_log_count += 1
             
             if chunk_text:
                 token_count += 1

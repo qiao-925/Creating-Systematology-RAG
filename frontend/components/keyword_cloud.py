@@ -35,6 +35,8 @@ def _ensure_state() -> None:
         st.session_state.keyword_cloud_generated = []
     if "keyword_cloud_loading" not in st.session_state:
         st.session_state.keyword_cloud_loading = False
+    if "keyword_cloud_generate_pending" not in st.session_state:
+        st.session_state.keyword_cloud_generate_pending = False
 
 
 def _on_toggle_word(word: str) -> None:
@@ -51,22 +53,8 @@ def _on_generate() -> None:
     sel = st.session_state.keyword_cloud_selected
     if not sel:
         return
-    st.session_state.keyword_cloud_loading = True
-    try:
-        from backend.business.rag_engine.processing.question_generator import generate_questions
-        model_id = st.session_state.get("selected_model")
-        questions = generate_questions(sel, model_id=model_id)
-        # 确保至少返回2个问题，如果不足则用占位符
-        if len(questions) < 2:
-            questions.extend([f"请详细解释关于{sel[0]}的内容"] * (2 - len(questions)))
-        st.session_state.keyword_cloud_generated = questions[:2]
-    except Exception as e:
-        from backend.infrastructure.logger import get_logger
-        logger = get_logger("keyword_cloud")
-        logger.exception("生成问题失败: %s", e)
-        st.session_state.keyword_cloud_generated = []
-    finally:
-        st.session_state.keyword_cloud_loading = False
+    # ?????????????????????
+    st.session_state.keyword_cloud_generate_pending = True
 
 
 def _on_use_question(question: str) -> None:
@@ -111,7 +99,7 @@ def _build_bubble_cloud_html(items: list[dict], selected: list[str]) -> str:
   .kw-box {{
     position: relative;
     width: 100%;
-    height: 320px;
+    height: clamp(280px, 38vh, 420px);
     background: linear-gradient(160deg, #0f172a 0%%, #1e293b 40%%, #334155 100%);
     border-radius: 20px;
     overflow: hidden;
@@ -133,7 +121,7 @@ def _build_bubble_cloud_html(items: list[dict], selected: list[str]) -> str:
     text-shadow: 0 1px 2px rgba(0,0,0,0.25);
     white-space: nowrap;
     transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.25s ease, filter 0.25s ease;
-    padding: 0 8px;
+    padding: 0 10px;
     border: 1px solid rgba(255,255,255,0.2);
     box-shadow: 0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.15);
   }}
@@ -150,6 +138,7 @@ def _build_bubble_cloud_html(items: list[dict], selected: list[str]) -> str:
       var colors = {colors_js};
       var maxSelected = {max_selected};
       var selected = initialSelected.slice();
+      var widthScale = 1.25;
       var box = document.getElementById('kw-box');
       if (!box || !items.length) return;
 
@@ -172,7 +161,7 @@ def _build_bubble_cloud_html(items: list[dict], selected: list[str]) -> str:
         el.textContent = w + '(' + weight + ')';
         el.setAttribute('data-word', w);
         el.style.background = 'linear-gradient(145deg, ' + colors[i % colors.length] + ' 0%, ' + darken(colors[i % colors.length], 0.25) + ' 100%)';
-        el.style.width = 'auto'; el.style.minWidth = (40 + (i % 5) * 12) + 'px'; el.style.height = (32 + (i % 4) * 6) + 'px';
+        el.style.width = 'auto'; el.style.minWidth = ((40 + (i % 5) * 12) * widthScale) + 'px'; el.style.height = (32 + (i % 4) * 6) + 'px';
         el.style.left = (8 + (i * 17) % 82) + '%'; el.style.top = (10 + (i * 23) % 72) + '%';
         el.style.animation = 'float' + (i % 4) + ' ' + (8 + i % 5) + 's ease-in-out infinite';
         el.onclick = function() {{
@@ -208,8 +197,8 @@ def render_keyword_cloud() -> None:
     generated = st.session_state.keyword_cloud_generated
     loading = st.session_state.keyword_cloud_loading
 
-    st.subheader("💡 探索知识库")
     st.caption("点击气泡选词（最多 5 个），再点击「生成问题」")
+    st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
 
     if not items:
         st.warning("未找到词云数据，请先运行 scripts/build_keyword_cloud.py 生成 data/keyword_cloud.json")
@@ -233,7 +222,7 @@ def render_keyword_cloud() -> None:
     except ImportError:
         import streamlit.components.v1 as components
 
-        components.html(bubble_html, height=340, scrolling=False)
+        components.html(bubble_html, height=460, scrolling=False)
         st.caption("气泡选词需安装 streamlit-iframe-event 才能与下方联动，请用下方多选选词。")
     st.markdown("---")
 
@@ -258,6 +247,31 @@ def render_keyword_cloud() -> None:
         on_click=_on_generate,
     )
     st.markdown("---")
+
+    # ?????????????????????????
+    if st.session_state.get("keyword_cloud_generate_pending"):
+        st.session_state.keyword_cloud_generate_pending = False
+        st.session_state.keyword_cloud_loading = True
+        with st.spinner("??????..."):
+            try:
+                from backend.business.rag_engine.processing.question_generator import generate_questions
+                model_id = st.session_state.get("selected_model")
+                questions = generate_questions(selected, model_id=model_id)
+                # ??????2?????????
+                if len(questions) < 2:
+                    questions.extend([f"???????{selected[0]}???"] * (2 - len(questions)))
+                st.session_state.keyword_cloud_generated = questions[:2]
+            except Exception as e:
+                from backend.infrastructure.logger import get_logger
+                logger = get_logger("keyword_cloud")
+                logger.exception("??????: %s", e)
+                st.session_state.keyword_cloud_generated = []
+            finally:
+                st.session_state.keyword_cloud_loading = False
+
+        # ???????????????
+        generated = st.session_state.keyword_cloud_generated
+
 
     # 生成结果：2 个问题 + 重新生成
     if generated:

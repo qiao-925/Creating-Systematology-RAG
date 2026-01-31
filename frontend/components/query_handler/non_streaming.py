@@ -7,7 +7,6 @@ import json
 from pathlib import Path
 
 import streamlit as st
-from streamlit_chat import message
 from frontend.utils.sources import convert_sources_to_dict
 from frontend.utils.state import save_message_to_history
 from frontend.utils.sources import format_answer_with_citation_links
@@ -77,7 +76,9 @@ def handle_non_streaming_query(rag_service, chat_manager, prompt: str) -> None:
                 )
             else:
                 formatted_content = answer
-            message(formatted_content, is_user=False, key=f"msg_assistant_{message_id}", allow_html=True)
+            with st.chat_message("assistant"):
+                st.container()  # Fix ghost message bug.
+                st.markdown(formatted_content, unsafe_allow_html=True)
             msg = {
                 "role": "assistant",
                 "content": answer,

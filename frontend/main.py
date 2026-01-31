@@ -9,6 +9,7 @@ Streamlit Web应用 - 主页入口
 """
 
 import json
+import time
 from pathlib import Path
 
 import streamlit as st
@@ -37,32 +38,61 @@ _CUSTOM_CSS = """
 /* 全局样式 */
 .stApp {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 16px;
 }
 
 /* 主内容区居中，最大宽度限制 */
 .block-container {
-    max-width: 800px;
-    padding-left: 1rem;
-    padding-right: 1rem;
+    max-width: clamp(320px, 35vw, 1600px);
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
 }
 
-/* 聊天消息样式 */
-.stChatMessage {
-    padding: 12px 16px;
-    border-radius: 12px;
-    margin-bottom: 8px;
+/* 标题保持单行显示 */
+.stApp h1 {
+    white-space: nowrap;
 }
 
+/* 标题区：图标单行 + 文案单行 */
 /* 折叠面板样式 */
 .streamlit-expanderHeader {
-    font-size: 14px;
+    font-size: 1rem;
     font-weight: 500;
     border-radius: 8px;
 }
 
-/* 输入框样式 */
+/* Chat input styling: align quick-start and bottom input */
+:root {
+    --chat-input-height: 48px;
+    --chat-input-radius: 999px;
+    --chat-input-pad-y: 0.6rem;
+    --chat-input-pad-x: 1.25rem;
+    --chat-input-pad-right: 3.5rem;
+    --chat-input-bg: var(--secondary-background-color);
+    --chat-input-border: rgba(255, 255, 255, 0.08);
+    --chat-input-text: var(--text-color);
+    --chat-input-placeholder: rgba(220, 220, 224, 0.6);
+}
 .stChatInput > div {
-    border-radius: 24px;
+    border-radius: var(--chat-input-radius);
+}
+.stChatInput > div > div {
+    border-radius: var(--chat-input-radius);
+}
+.stChatInput textarea,
+.stChatInput [data-baseweb="textarea"] {
+    border-radius: var(--chat-input-radius);
+    height: var(--chat-input-height);
+    min-height: var(--chat-input-height);
+    max-height: var(--chat-input-height);
+    padding: var(--chat-input-pad-y) var(--chat-input-pad-right) var(--chat-input-pad-y) var(--chat-input-pad-x);
+    background: var(--chat-input-bg);
+    border: 1px solid var(--chat-input-border);
+    color: var(--chat-input-text);
+}
+.stChatInput textarea::placeholder,
+.stChatInput [data-baseweb="textarea"]::placeholder {
+    color: var(--chat-input-placeholder);
 }
 
 /* 按钮样式 */
@@ -199,11 +229,8 @@ footer {visibility: hidden;}
 
 
 def _inject_custom_css():
-    """注入自定义 CSS 样式（仅首次执行）"""
-    # 使用 session_state 控制只注入一次，减少 DOM 操作
-    if not st.session_state.get('_css_injected', False):
-        st.markdown(_CUSTOM_CSS, unsafe_allow_html=True)
-        st.session_state._css_injected = True
+    """注入自定义 CSS 样式（每次渲染确保样式生效）"""
+    st.markdown(_CUSTOM_CSS, unsafe_allow_html=True)
 
 
 def main():
@@ -290,41 +317,62 @@ def _render_main_app_impl(init_result, rag_service, chat_manager):
 
 
 def _render_loading_app():
-    """渲染加载中界面（初始化进行中）
-    
-    注意：此函数仅在首次启动时执行。一旦初始化完成并设置了 _services_cached，
-    后续的用户交互（如"开启新对话"）不会再进入此函数。
-    """
-    # 获取详细进度
+    """Render loading screen while initialization is in progress."""
+    # Title
+    st.markdown("### ??Creating Systematology")
+
+    # Placeholders to avoid full-page flash
+    info_ph = st.empty()
+    caption_ph = st.empty()
+    progress_ph = st.empty()
+    logs_ph = st.empty()
+    stage_ph = st.empty()
+    input_ph = st.empty()
+
+    refresh_interval = 0.6  # seconds
+
+    # Disabled input (render once to avoid duplicate element IDs)
+    input_ph.chat_input("??????????????..", key="init_chat_input", disabled=True)
+
+    # Fetch progress
     progress_msg = get_progress_message()
     detailed = get_detailed_progress()
-    
-    # 主容器
-    st.markdown("### 💬 Creating Systematology RAG")
-    
-    # 加载状态指示
-    st.info(f"🚀 {progress_msg}")
-    st.caption("首次启动需要加载模型和连接数据库，请耐心等待...")
-    
-    # 进度条
+
+    # Status
+    info_ph.info(f"??{progress_msg}")
+    caption_ph.caption("??????????????????????????????????...")
+
+    # Progress bar
     module_count = detailed.get('module_count', 0)
     progress_value = min(module_count / 10, 0.95) if module_count > 0 else 0.05
-    st.progress(progress_value, text=f"已完成 {module_count} 个模块")
-    
-    # 显示日志样式的初始化记录
+    progress_ph.progress(progress_value, text=f"?????{module_count} ?????")
+
+    # Logs
     logs = detailed.get('logs', [])
     if logs:
         log_text = "\n".join(logs[-15:])
-        st.code(log_text, language=None)
-    
-    # 当前阶段
+        logs_ph.code(log_text, language=None)
+    else:
+        logs_ph.empty()
+
+    # Current stage
     stage = detailed.get('stage', '')
-    if stage and '完成' not in stage:
-        st.markdown(f"⏳ **{stage}...**")
-    
-    # 禁用的输入框
-    st.chat_input("正在初始化，请稍候...", disabled=True)
-    # 自动轮询检查初始化状态（Streamlit 会自动处理 rerun 的时机）
+    if stage and '???' not in stage:
+        stage_ph.markdown(f"??**{stage}...**")
+    else:
+        stage_ph.empty()
+
+    # If done or failed, immediately rerun to swap UI
+    status = get_init_status()
+    if status in (PreloadStatus.COMPLETED, PreloadStatus.FAILED):
+        _debug_log("main.py:_render_loading_app", "before st.rerun (loading->final)", hypothesis_id="C")
+        st.rerun()
+        return
+
+    # Short sleep to throttle polling without long blocking
+    time.sleep(refresh_interval)
+
+    # Auto rerun to poll status
     # #region agent log
     _debug_log("main.py:_render_loading_app", "before st.rerun (loading)", hypothesis_id="C")
     # #endregion
@@ -332,6 +380,7 @@ def _render_loading_app():
 
 
 def _on_retry_click():
+
     """重试按钮回调"""
     from frontend.utils.preloader import get_preloader
     get_preloader().reset()

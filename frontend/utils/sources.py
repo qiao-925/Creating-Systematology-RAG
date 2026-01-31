@@ -149,44 +149,7 @@ def format_answer_with_citation_links(answer: str, sources: list, message_id: st
     
     # 替换所有引用标签
     formatted_answer = re.sub(citation_pattern, replace_citation, answer)
-    
-    # 添加JavaScript代码用于滚动到右侧引用来源
-    js_code = f"""
-    <script>
-    function scrollToCitation(citationId) {{
-        // 使用 Streamlit 原生主色调
-        const rootStyle = getComputedStyle(document.documentElement);
-        const primaryColor = rootStyle.getPropertyValue('--primary-color').trim() || '#2563EB';
-        // 简单的黄色高亮（Light/Dark 模式通用）
-        const highlightColor = 'rgba(245, 158, 11, 0.35)';
-        
-        const element = document.getElementById(citationId);
-        if (element) {{
-            element.scrollIntoView({{ behavior: 'smooth', block: 'center' }});
-            element.style.backgroundColor = highlightColor;
-            element.style.border = '2px solid ' + primaryColor;
-            setTimeout(() => {{
-                element.style.backgroundColor = '';
-                element.style.border = '';
-            }}, 2000);
-        }} else {{
-            setTimeout(() => {{
-                const targetElement = document.getElementById(citationId);
-                if (targetElement) {{
-                    targetElement.scrollIntoView({{ behavior: 'smooth', block: 'center' }});
-                    targetElement.style.backgroundColor = highlightColor;
-                    targetElement.style.border = '2px solid ' + primaryColor;
-                    setTimeout(() => {{
-                        targetElement.style.backgroundColor = '';
-                        targetElement.style.border = '';
-                    }}, 2000);
-                }}
-            }}, 100);
-        }}
-    }}
-    </script>
-    """
-    
-    return formatted_answer + js_code
+
+    return formatted_answer
 
 

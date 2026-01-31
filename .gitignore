@@ -16,6 +16,7 @@ env/
 .vscode/
 *.swp
 *.swo
+!.vscode/mcp.json
 
 # 测试
 .pytest_cache/

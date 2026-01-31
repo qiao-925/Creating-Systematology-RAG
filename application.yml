@@ -6,7 +6,7 @@
 # 1. 应用基础配置
 # ============================================================================
 app:
-  title: Creating Systematology RAG
+  title: Creating Systematology
   port: 8501
   dev_mode: true
 

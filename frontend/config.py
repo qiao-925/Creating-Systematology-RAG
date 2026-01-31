@@ -1,4 +1,4 @@
-"""
+﻿"""
 前端配置模块
 统一管理前端应用的配置设置
 
@@ -94,8 +94,6 @@ SUGGESTION_QUESTIONS = {
     ":orange[:material/integration_instructions:] 综合集成法": "从定性到定量的综合集成法如何与马克思主义哲学结合起来理解？",
     ":violet[:material/engineering:] 系统工程应用": "系统工程在现代科学中的应用有哪些？",
 }
-
-
 def configure_all() -> None:
     """配置所有应用设置
     
