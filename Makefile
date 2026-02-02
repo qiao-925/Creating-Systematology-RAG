@@ -3,7 +3,7 @@
 # 默认目标：直接运行 make 将执行完整工作流
 .DEFAULT_GOAL := all
 
-.PHONY: help install test test-unit test-integration test-cov test-api clean run dev ready start all
+.PHONY: help install test test-unit test-integration test-cov clean run dev ready start all
 
 # ==================== 完整工作流（默认） ====================
 
@@ -39,11 +39,9 @@ help:
 	@echo "  make test-fast        - Fast tests (skip slow tests)"
 	@echo ""
 	@echo "🚀 Run Commands:"
-	@echo "  make run              - Start FastAPI and Streamlit services"
+	@echo "  make run              - Start Streamlit application"
 	@echo "  make dev              - Development mode (install + fast test)"
 	@echo ""
-	@echo "🧪 API Test Commands:"
-	@echo "  make test-api         - Test chat API endpoints (requires running server)"
 	@echo ""
 	@echo "🔄 Full Workflow:"
 	@echo "  make ready            - Ready (install + full test)"
@@ -130,18 +128,12 @@ test-performance: install-test
 
 test-cov: install-test
 	@echo "📊 Running tests and generating coverage report..."
-	uv run --no-sync pytest tests/ --cov=src --cov-report=term-missing
+	uv run --no-sync pytest tests/ --cov=backend --cov=frontend --cov-report=term-missing
 	@echo "✓ Coverage report displayed in terminal"
 
 test-fast: install-test
 	@echo "⚡ Running fast tests..."
 	uv run --no-sync pytest tests/ -v -m "not slow"
-
-test-api:
-	@echo "🧪 Testing Chat API endpoints..."
-	@echo "⚠️  Note: This requires the FastAPI server to be running (make run)"
-	@echo ""
-	uv run --no-sync python test_chat_api.py
 
 clean:
 	@echo "🧹 Cleaning generated files..."

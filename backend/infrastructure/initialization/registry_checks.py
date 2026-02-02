@@ -91,10 +91,10 @@ def check_index_manager() -> bool:
 def check_llm_factory() -> bool:
     """检查LLM工厂（延迟加载：仅验证配置）"""
     try:
-        # 仅验证配置，不创建实例
+        # 仅验证配置，不创建实例（API Key 缺失时延迟到真正调用再校验）
         if not config.DEEPSEEK_API_KEY:
-            logger.warning("未设置 DEEPSEEK_API_KEY")
-            return False
+            logger.warning("未设置 DEEPSEEK_API_KEY，已跳过 LLM 工厂校验")
+            return True
 
         # 验证默认模型配置
         default_model_id = config.get_default_llm_id()

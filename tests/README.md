@@ -32,7 +32,7 @@ make test-cov          # 生成覆盖率报告
 # 方式2: 直接使用pytest
 pytest tests/unit -v                        # 单元测试
 pytest tests/integration -v                 # 集成测试
-pytest --cov=src --cov-report=html          # 覆盖率
+pytest --cov=backend --cov=frontend --cov-report=html          # 覆盖率
 ```
 
 ---
@@ -97,7 +97,7 @@ pytest -m "not slow"         # 跳过慢速测试
 ```bash
 pytest --lf -v               # 只运行上次失败的
 pytest -vv --tb=long         # 详细错误信息
-pytest --cov=src --cov-report=html  # 生成覆盖率报告
+pytest --cov=backend --cov=frontend --cov-report=html  # 生成覆盖率报告
 ```
 
 ### 性能加速
@@ -118,10 +118,9 @@ pytest -n auto               # 并行运行（需安装pytest-xdist）
 | `make test-unit` | `pytest tests/unit` |
 | `make test-integration` | `pytest tests/integration` |
 | `make test-performance` | `pytest tests/performance` |
-| `make test-cov` | `pytest tests/` + 覆盖率 `--cov=src` |
+| `make test-cov` | `pytest tests/` + 覆盖率 `--cov=backend --cov=frontend` |
 | `make test-fast` | `pytest tests/ -m "not slow"` |
 | `make test-github-e2e` | GitHub E2E（需网络，见 [Makefile](../Makefile)） |
-| `make test-api` | API 端点测试（需服务已启动：`make run`） |
 
 ---
 
@@ -134,7 +133,7 @@ pytest -n auto               # 并行运行（需安装pytest-xdist）
 pytest tests/unit/test_xxx.py -v
 
 # 查看覆盖率
-pytest tests/unit/test_xxx.py --cov=src/xxx --cov-report=term
+pytest tests/unit/test_xxx.py --cov=backend/xxx --cov-report=term
 ```
 
 ### 添加新功能后

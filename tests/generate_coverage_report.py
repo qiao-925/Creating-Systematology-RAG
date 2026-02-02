@@ -24,7 +24,8 @@ def run_coverage_tests():
     # 运行覆盖率测试
     cmd = [
         "python", "-m", "pytest",
-        "--cov=src",
+        "--cov=backend",
+        "--cov=frontend",
         "--cov-report=html:" + str(reports_dir / "html"),
         "--cov-report=xml:" + str(reports_dir / f"coverage_{timestamp}.xml"),
         "--cov-report=term-missing",

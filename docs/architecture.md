@@ -25,9 +25,9 @@
 ┌─────────────────────────────────────────────────────────────┐
 │                        Frontend (Streamlit)                  │
 ├─────────────────────────────────────────────────────────────┤
-│                        RAG API Layer                         │
+│                        RAG Service Layer                         │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
-│  │  RAGService  │  │  FastAPI App │  │ Chat Router  │       │
+│  │  RAGService  │  │  Chat Manager │  │ Session Store  │       │
 │  └──────────────┘  └──────────────┘  └──────────────┘       │
 ├─────────────────────────────────────────────────────────────┤
 │                      RAG Engine Layer                        │
@@ -456,8 +456,8 @@ DataImportService
 ```
 [阶段4] 会话管理（多轮对话）
 └─ ChatManager [backend/business/chat/manager.py]
-      ├─ 维护会话历史
-      └─ 支持多轮对话（仅内存，不持久化）
+      ├─ 维护当前会话上下文
+      └─ 支持多轮对话（仅内存）
 ```
 
 ### 6.5 数据流向总结
@@ -557,7 +557,7 @@ Creating-Systematology-RAG/
 │   │   │   │   ├── agent/        # Agent 实现（规划 Agent、工具）
 │   │   │   │   └── prompts/      # Agent Prompt 模板
 │   │   │   └── ...                # 传统 RAG 模块
-│   │   ├── rag_api/               # RAG API
+│   │   ├── rag_api/               # RAG Service
 │   │   │   ├── models.py         # 数据模型（Pydantic）
 │   │   │   └── ...                 # API模块
 │   │   └── chat/                  # 对话管理
@@ -618,7 +618,7 @@ app.py   RAGService   Config/Logger/Embedding/LLM
 - `IndexManager.build_index()`: 索引构建，分块→向量化→存储
 - `ModularQueryEngine.query()`: 模块化查询，支持多种检索策略
 - `RAGService.query()`: 统一服务接口，协调各模块执行
-- `ChatManager.query()`: 对话管理，维护会话历史
+- `ChatManager.chat()/stream_chat()`: 对话管理，维护当前会话上下文
 
 ---
 

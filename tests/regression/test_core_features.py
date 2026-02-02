@@ -302,44 +302,6 @@ class TestChatFunctionRegression:
             except:
                 pass
     
-    def test_chat_history_persistence(
-        self, regression_documents, regression_collection_name
-    ):
-        """测试对话历史持久化"""
-        try:
-            manager = IndexManager(collection_name=regression_collection_name)
-            manager.build_index(
-                documents=regression_documents,
-                collection_name=regression_collection_name
-            )
-            
-            service = RAGService(
-                collection_name=regression_collection_name,
-                use_modular_engine=True,
-            )
-            
-            # 创建对话
-            response1 = service.chat(
-                message="什么是系统科学？",
-                user_id="regression_chat_user"
-            )
-            
-            session_id = response1.session_id
-            
-            # 获取对话历史
-            session = service.get_chat_history(session_id)
-            assert session is not None
-            assert len(session.history) >= 1
-            
-            service.close()
-            
-        finally:
-            try:
-                manager = IndexManager(collection_name)
-                manager.delete_collection(regression_collection_name)
-            except:
-                pass
-    
     def test_chat_session_management(
         self, regression_documents, regression_collection_name
     ):

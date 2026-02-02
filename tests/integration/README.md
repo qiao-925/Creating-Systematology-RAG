@@ -123,10 +123,10 @@ pytest tests/integration/test_xxx.py --pdb
 
 ```bash
 # 集成测试覆盖率
-pytest tests/integration --cov=src --cov-report=term-missing
+pytest tests/integration --cov=backend --cov=frontend --cov-report=term-missing
 
 # 生成HTML报告
-pytest tests/integration --cov=src --cov-report=html
+pytest tests/integration --cov=backend --cov=frontend --cov-report=html
 ```
 
 ---

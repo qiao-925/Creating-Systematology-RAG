@@ -4,7 +4,7 @@ RAG API - RAG服务核心模块
 提供查询、索引构建、对话等核心功能的统一入口
 """
 
-from typing import Optional, List, AsyncIterator, Dict, Any, TYPE_CHECKING
+from typing import Optional, List, AsyncIterator, Dict, Any, TYPE_CHECKING, Callable
 from pathlib import Path
 
 # 延迟导入：将耗时的导入移到实际使用时
@@ -22,12 +22,6 @@ from backend.business.rag_api.models import (
     ChatResponse,
     QueryRequest,
     ChatRequest,
-    CreateSessionRequest,
-    SessionInfo,
-    ChatTurnResponse,
-    SessionDetailResponse,
-    SessionHistoryResponse,
-    SessionListResponse,
 )
 
 logger = get_logger('rag_service')
@@ -48,6 +42,9 @@ class RAGService:
         enable_markdown_formatting: bool = True,
         use_agentic_rag: bool = False,
         model_id: Optional[str] = None,  # 新增：模型 ID
+        index_manager: Optional[IndexManager] = None,
+        chat_manager: Optional[ChatManager] = None,
+        index_manager_provider: Optional[Callable[[], IndexManager]] = None,
         **kwargs
     ):
         """初始化RAG服务
@@ -68,10 +65,11 @@ class RAGService:
         self.engine_kwargs = kwargs
         
         # 延迟初始化（按需加载）
-        self._index_manager: Optional[IndexManager] = None
+        self._index_manager: Optional[IndexManager] = index_manager
+        self._index_manager_provider = index_manager_provider
         self._modular_query_engine: Optional[ModularQueryEngine] = None
         self._agentic_query_engine: Optional[AgenticQueryEngine] = None
-        self._chat_manager: Optional[ChatManager] = None
+        self._chat_manager: Optional[ChatManager] = chat_manager
         
         logger.info(
             "RAGService初始化",
@@ -84,6 +82,11 @@ class RAGService:
     def index_manager(self):
         """获取索引管理器（延迟加载）"""
         if self._index_manager is None:
+            if self._index_manager_provider is not None:
+                shared_manager = self._index_manager_provider()
+                if shared_manager is not None:
+                    self._index_manager = shared_manager
+                    return self._index_manager
             from backend.infrastructure.indexer import IndexManager
             logger.info("初始化IndexManager", collection=self.collection_name)
             self._index_manager = IndexManager(collection_name=self.collection_name)
@@ -216,26 +219,6 @@ class RAGService:
         from backend.business.rag_api.rag_service_chat import execute_chat as _execute_chat
         return _execute_chat(self.chat_manager, request, user_id)
     
-    def get_chat_history(self, session_id: Optional[str] = None):
-        """获取对话历史"""
-        from backend.business.rag_api.rag_service_sessions import get_chat_history as _get_chat_history
-        return _get_chat_history(self.chat_manager, session_id)
-
-    def clear_chat_history(self, session_id: str) -> bool:
-        """清空对话历史"""
-        from backend.business.rag_api.rag_service_sessions import clear_chat_history as _clear_chat_history
-        return _clear_chat_history(self.chat_manager, session_id)
-
-    def start_new_session(self, request: CreateSessionRequest) -> Dict[str, Any]:
-        """创建新会话"""
-        from backend.business.rag_api.rag_service_sessions import start_new_session as _start_new_session
-        return _start_new_session(self.chat_manager, request)
-
-    def get_current_session_detail(self) -> SessionDetailResponse:
-        """获取当前会话详情（包含完整历史）"""
-        from backend.business.rag_api.rag_service_sessions import get_current_session_detail as _get_current_session_detail
-        return _get_current_session_detail(self.chat_manager)
-    
     async def stream_chat(self, message: str, session_id: Optional[str] = None) -> AsyncIterator[Dict[str, Any]]:
         """流式对话"""
         logger.info("开始流式对话", session_id=session_id, message=message[:50] if len(message) > 50 else message)
@@ -250,16 +233,6 @@ class RAGService:
         async for chunk in self.chat_manager.stream_chat(message):
             yield chunk
     
-    def get_session_history(self, session_id: str) -> SessionHistoryResponse:
-        """获取指定会话的历史记录"""
-        from backend.business.rag_api.rag_service_sessions import get_session_history as _get_session_history
-        return _get_session_history(session_id)
-
-    def list_sessions(self, user_email: str = None) -> SessionListResponse:
-        """列出用户的所有会话"""
-        from backend.business.rag_api.rag_service_sessions import list_sessions as _list_sessions
-        return _list_sessions(user_email)
-
     def list_collections(self) -> list:
         """列出所有向量集合"""
         from backend.business.rag_api.rag_service_index import list_collections as _list_collections

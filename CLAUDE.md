@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Creating-Systematology-RAG** is a multi-strategy Retrieval-Augmented Generation (RAG) system built with LlamaIndex, featuring both traditional and agentic RAG modes. The system retrieves information from a knowledge base focused on systematology (系统学) and generates answers with cited sources.
 
-**Tech Stack**: Python 3.12+, LlamaIndex, Streamlit, FastAPI, Chroma Cloud, DeepSeek API, HuggingFace Embeddings
+**Tech Stack**: Python 3.12+, LlamaIndex, Streamlit, Chroma Cloud, DeepSeek API, HuggingFace Embeddings
 
 ---
 
@@ -68,8 +68,6 @@ make run
 # Or directly with streamlit
 uv run --no-sync python -m streamlit run app.py
 
-# Start FastAPI server (if needed separately)
-uv run --no-sync uvicorn backend.business.rag_api.fastapi_app:app --reload
 ```
 
 ---
@@ -83,7 +81,7 @@ The codebase follows a strict three-layer architecture with **unidirectional dep
 ```
 Frontend Layer (Presentation)
     ↓ (calls)
-Business Layer (RAG Engine, API)
+Business Layer (RAG Engine, Services)
     ↓ (uses)
 Infrastructure Layer (Config, LLM, Embedding, Indexer, Observers)
 ```
@@ -131,7 +129,6 @@ Creating-Systematology-RAG/
 │   │   │   └── formatting/       # Response formatting
 │   │   ├── rag_api/              # RAG API
 │   │   │   ├── rag_service.py    # Unified service interface
-│   │   │   ├── fastapi_app.py    # FastAPI application
 │   │   │   └── models.py         # API data models
 │   │   └── chat/                 # Chat management
 │   │       └── manager.py        # ChatManager

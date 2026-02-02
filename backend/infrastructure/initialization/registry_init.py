@@ -123,7 +123,13 @@ def init_llm_factory(manager: InitializationManager) -> Any:
     """初始化LLM工厂（延迟加载：仅验证配置，不创建实例）"""
     # 仅验证配置，不创建实例（延迟到首次使用）
     if not config.DEEPSEEK_API_KEY:
-        raise ValueError("未设置 DEEPSEEK_API_KEY")
+        logger.warning("未设置 DEEPSEEK_API_KEY，LLM 将在首次调用时校验")
+        return {
+            'default_model_id': config.get_default_llm_id(),
+            'model_config': None,
+            'lazy_loaded': True,
+            'api_key_present': False,
+        }
 
     # 验证模型配置
     default_model_id = config.get_default_llm_id()

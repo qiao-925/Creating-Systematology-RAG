@@ -1,19 +1,14 @@
 """
-侧边栏组件 - 显示应用标题、历史会话列表
+侧边栏组件 - 显示应用标题
 
 主要功能：
 - render_sidebar(): 渲染完整侧边栏
 - _render_sidebar_footer(): 渲染底部工具栏
-
-设计说明：
-- 配置面板已移至输入框下方（符合主流产品习惯）
-- 侧边栏只保留：新对话按钮、历史会话列表、底部工具栏
 """
 
 import streamlit as st
 from backend.infrastructure.config import config
 from frontend.components.settings_dialog import show_settings_dialog
-from frontend.components.history import display_session_history
 
 
 def _render_sidebar_footer() -> None:
@@ -72,15 +67,6 @@ def render_sidebar(chat_manager) -> None:
             key="new_chat_top",
             on_click=_start_new_chat
         )
-        
-        st.divider()
-        
-        # ========== 历史会话列表 ==========
-        current_session_id = None
-        if chat_manager and chat_manager.current_session:
-            current_session_id = chat_manager.current_session.session_id
-        
-            display_session_history(current_session_id=current_session_id)
         
         st.divider()
         

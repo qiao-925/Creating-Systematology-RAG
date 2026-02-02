@@ -22,7 +22,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Optional, List, Tuple, TYPE_CHECKING
+from typing import Optional, List, Tuple, TYPE_CHECKING, Callable
 
 # 延迟导入：这些模块导入耗时较长，改为按需加载
 if TYPE_CHECKING:
@@ -51,6 +51,7 @@ class ChatManager:
     def __init__(
         self,
         index_manager: Optional[IndexManager] = None,
+        index_manager_provider: Optional[Callable[[], IndexManager]] = None,
         api_key: Optional[str] = None,
         api_base: Optional[str] = None,
         model: Optional[str] = None,
@@ -91,6 +92,7 @@ class ChatManager:
             **kwargs: 传递给查询引擎的其他参数
         """
         self.index_manager = index_manager
+        self._index_manager_provider = index_manager_provider
         self.similarity_top_k = similarity_top_k or config.SIMILARITY_TOP_K
         self.enable_debug = enable_debug
         self.similarity_threshold = similarity_threshold or config.SIMILARITY_THRESHOLD
@@ -122,7 +124,7 @@ class ChatManager:
         else:
             self.model = model or config.LLM_MODEL
             if not self.api_key:
-                raise ValueError("未设置DEEPSEEK_API_KEY")
+                logger.warning("DEEPSEEK_API_KEY not set; LLM will be validated on first use.")
 
         logger.info(
             f"ChatManager 配置完成 (模型: {self.model}, "
@@ -166,6 +168,11 @@ class ChatManager:
             )
         return self._memory
 
+    def _get_index_manager(self):
+        if self.index_manager is None and self._index_manager_provider:
+            self.index_manager = self._index_manager_provider()
+        return self.index_manager
+
     @property
     def llm(self):
         """获取 LLM 实例（延迟加载）"""
@@ -199,12 +206,13 @@ class ChatManager:
     @property
     def query_engine(self):
         """获取查询引擎（延迟加载）"""
-        if self._query_engine is None and self.index_manager:
+        index_manager = self._get_index_manager()
+        if self._query_engine is None and index_manager:
             if self.use_agentic_rag:
                 from backend.business.rag_engine.agentic import AgenticQueryEngine
                 logger.info("创建 AgenticQueryEngine（Agent 自主选择检索策略）")
                 self._query_engine = AgenticQueryEngine(
-                    index_manager=self.index_manager,
+                    index_manager=index_manager,
                     api_key=self.api_key,
                     model=self.model,
                     similarity_top_k=self.similarity_top_k,
@@ -217,7 +225,7 @@ class ChatManager:
                 from backend.business.rag_engine.core.engine import ModularQueryEngine
                 logger.info("创建模块化查询引擎（支持多种检索策略）")
                 self._query_engine = ModularQueryEngine(
-                    index_manager=self.index_manager,
+                    index_manager=index_manager,
                     api_key=self.api_key,
                     model=self.model,
                     similarity_top_k=self.similarity_top_k,
@@ -409,7 +417,7 @@ class ChatManager:
         sources: List[dict],
         reasoning_content: Optional[str]
     ) -> None:
-        """更新对话记忆和会话历史
+        """更新对话记忆和会话上下文
 
         Args:
             message: 用户消息
@@ -423,7 +431,7 @@ class ChatManager:
         self.memory.put(ChatMessage(role=MessageRole.USER, content=message))
         self.memory.put(ChatMessage(role=MessageRole.ASSISTANT, content=answer))
         
-        # 添加到会话历史
+        # 添加到会话上下文
         store_reasoning = config.DEEPSEEK_STORE_REASONING if reasoning_content else False
         if store_reasoning:
             self.current_session.add_turn(message, answer, sources, reasoning_content)
@@ -442,17 +450,7 @@ class ChatManager:
     
     def _save_session(self) -> None:
         """保存当前会话到文件"""
-        if self.current_session is None:
-            return
-        
-        try:
-            sessions_dir = config.SESSIONS_PATH / "default"
-            sessions_dir.mkdir(parents=True, exist_ok=True)
-            session_file = sessions_dir / f"{self.current_session.session_id}.json"
-            self.current_session.save(session_file)
-            logger.debug(f"会话已保存: {session_file}")
-        except Exception as e:
-            logger.warning(f"保存会话失败: {e}")
+        return
     
     def start_session(self, session_id: Optional[str] = None) -> ChatSession:
         """开始新会话"""
@@ -460,6 +458,25 @@ class ChatManager:
         self.memory.reset()
         logger.info(f"新会话开始: {self.current_session.session_id}")
         return self.current_session
+
+    def _iter_async_stream(self, async_iter):
+        """Iterate an async generator from sync code."""
+        loop = asyncio.new_event_loop()
+        try:
+            asyncio.set_event_loop(loop)
+            while True:
+                try:
+                    chunk = loop.run_until_complete(async_iter.__anext__())
+                except StopAsyncIteration:
+                    break
+                yield chunk
+        finally:
+            try:
+                loop.run_until_complete(async_iter.aclose())
+            except Exception:
+                pass
+            loop.close()
+            asyncio.set_event_loop(None)
     
     def chat(self, message: str) -> tuple[str, List[dict], Optional[str]]:
         """进行对话（使用ModularQueryEngine + 对话记忆）
@@ -472,16 +489,38 @@ class ChatManager:
         
         try:
             logger.info(f"用户消息: {message}")
-            
-            # 执行查询（RAG模式或纯LLM模式）
-            if self.query_engine:
-                answer, sources, reasoning_content = self._execute_rag_query(message)
-            else:
-                answer, sources, reasoning_content = self._execute_llm_query(message)
-            
-            # 更新记忆和会话
-            self._update_memory_and_session(message, answer, sources, reasoning_content)
-            
+
+            parts: List[str] = []
+            sources: List[dict] = []
+            reasoning_content: Optional[str] = None
+            final_answer: Optional[str] = None
+
+            async_iter = self.stream_chat(message)
+            for chunk in self._iter_async_stream(async_iter):
+                if not isinstance(chunk, dict):
+                    continue
+                chunk_type = chunk.get("type")
+                if chunk_type == "token":
+                    text = chunk.get("data") or ""
+                    if text:
+                        parts.append(text)
+                elif chunk_type == "sources":
+                    sources = chunk.get("data") or []
+                elif chunk_type == "reasoning":
+                    reasoning_content = chunk.get("data")
+                elif chunk_type == "done":
+                    data = chunk.get("data") or {}
+                    if "answer" in data:
+                        final_answer = data.get("answer")
+                    if "sources" in data:
+                        sources = data.get("sources") or sources
+                    if "reasoning_content" in data:
+                        reasoning_content = data.get("reasoning_content")
+                elif chunk_type == "error":
+                    message = (chunk.get("data") or {}).get("message", "Unknown error")
+                    raise RuntimeError(message)
+
+            answer = final_answer if final_answer is not None else "".join(parts).strip()
             return answer, sources, reasoning_content
             
         except Exception as e:
@@ -553,7 +592,7 @@ class ChatManager:
                 # 格式化答案
                 full_answer = self.formatter.format(full_answer, None)
             
-            # 更新对话记忆和会话历史
+            # 更新对话记忆和会话上下文
             self._update_memory_and_session(message, full_answer, sources, reasoning_content)
             
             # 返回完成事件

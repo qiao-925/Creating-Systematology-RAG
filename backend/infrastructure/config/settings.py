@@ -203,17 +203,6 @@ class Config:
         Returns:
             (is_valid, error_message)
         """
-        if not self.DEEPSEEK_API_KEY:
-            return False, "未设置DEEPSEEK_API_KEY环境变量"
-        
-        # Chroma Cloud 配置验证
-        if not self.CHROMA_CLOUD_API_KEY:
-            return False, "未设置CHROMA_CLOUD_API_KEY环境变量（Chroma Cloud 模式必需）"
-        if not self.CHROMA_CLOUD_TENANT:
-            return False, "未设置CHROMA_CLOUD_TENANT环境变量（Chroma Cloud 模式必需）"
-        if not self.CHROMA_CLOUD_DATABASE:
-            return False, "未设置CHROMA_CLOUD_DATABASE环境变量（Chroma Cloud 模式必需）"
-        
         # 索引配置验证（Pydantic已经验证，但这里做额外检查）
         if self.CHUNK_SIZE <= 0:
             return False, "CHUNK_SIZE必须大于0"

@@ -285,16 +285,6 @@ class TestMultiTurnConversationWorkflow:
                 assert response4.turn_count == 4
                 assert response4.answer is not None
                 
-                # 3. 验证上下文理解
-                # 获取对话历史
-                session = service.get_chat_history(session_id)
-                assert session is not None
-                assert len(session.history) >= 4
-                
-                # 验证历史记录包含所有轮次
-                history_length = len(session.history)
-                assert history_length >= 4
-                
             finally:
                 service.close()
                 

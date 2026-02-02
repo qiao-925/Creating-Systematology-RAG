@@ -222,14 +222,6 @@ def rebuild_services() -> bool:
     init_result = st.session_state.init_result
     index_manager = init_result.instances.get('index_manager')
     
-    if index_manager is None:
-        # 标记需要重新初始化
-        logger.warning("index_manager 不存在，标记需要重新初始化")
-        st.session_state.boot_ready = False
-        if 'init_result' in st.session_state:
-            del st.session_state.init_result
-        return False
-    
     # 获取当前配置
     from frontend.components.config_panel.models import AppConfig
     app_config = AppConfig.from_session_state()
@@ -255,22 +247,23 @@ def rebuild_services() -> bool:
         )
         enable_debug = app_config.debug_mode
         
-        # 重建 RAGService
-        init_result.instances['rag_service'] = RAGService(
-            collection_name=collection_name,
-            enable_debug=enable_debug,
-            enable_markdown_formatting=True,
-            use_agentic_rag=app_config.use_agentic_rag,
-            model_id=app_config.selected_model,
-            retrieval_strategy=app_config.retrieval_strategy,
-            similarity_top_k=app_config.similarity_top_k,
-            similarity_threshold=app_config.similarity_threshold,
-            enable_rerank=app_config.enable_rerank,
-        )
-        
-        # 重建 ChatManager
-        init_result.instances['chat_manager'] = ChatManager(
+        def _get_shared_index_manager():
+            existing = init_result.instances.get('index_manager')
+            if existing is not None:
+                return existing
+            manager = getattr(init_result, 'manager', None)
+            if manager and manager.execute_init('index_manager'):
+                shared_manager = manager.instances.get('index_manager')
+                if shared_manager is not None:
+                    init_result.instances['index_manager'] = shared_manager
+                return shared_manager
+            return None
+
+        index_manager_provider = _get_shared_index_manager
+
+        chat_manager = ChatManager(
             index_manager=index_manager,
+            index_manager_provider=index_manager_provider,
             user_email=None,
             enable_debug=enable_debug,
             enable_markdown_formatting=True,
@@ -283,7 +276,26 @@ def rebuild_services() -> bool:
             temperature=temperature,
             max_tokens=max_tokens,
         )
-        
+
+        rag_service = RAGService(
+            collection_name=collection_name,
+            enable_debug=enable_debug,
+            enable_markdown_formatting=True,
+            use_agentic_rag=app_config.use_agentic_rag,
+            model_id=app_config.selected_model,
+            retrieval_strategy=app_config.retrieval_strategy,
+            similarity_top_k=app_config.similarity_top_k,
+            similarity_threshold=app_config.similarity_threshold,
+            enable_rerank=app_config.enable_rerank,
+            index_manager=index_manager,
+            chat_manager=chat_manager,
+            index_manager_provider=index_manager_provider,
+        )
+
+        st.session_state._cached_rag_service = rag_service
+        st.session_state._cached_chat_manager = chat_manager
+        st.session_state._services_cached = True
+
         logger.info("✅ 服务重建完成")
         return True
         

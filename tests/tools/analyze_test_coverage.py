@@ -222,7 +222,7 @@ def print_analysis_report():
     print()
     
     print("  3. 运行覆盖率报告:")
-    print("     pytest --cov=src --cov-report=html")
+    print("     pytest --cov=backend --cov=frontend --cov-report=html")
     print()
     
     print("=" * 80)

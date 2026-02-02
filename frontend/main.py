@@ -266,7 +266,8 @@ def _cache_services_and_render():
         st.stop()
         return
     
-    init_result, rag_service, chat_manager = services
+    init_result, _, _ = services
+    rag_service, chat_manager = _build_session_services(init_result)
     
     # 缓存到 session_state（关键：确保热重载后仍可用）
     st.session_state.init_result = init_result
@@ -275,6 +276,79 @@ def _cache_services_and_render():
     st.session_state._services_cached = True
     
     _render_main_app_impl(init_result, rag_service, chat_manager)
+
+
+def _ensure_shared_index_manager(init_result, create_if_missing: bool = True):
+    """Get or initialize a shared IndexManager from init_result."""
+    from backend.infrastructure.logger import get_logger
+    logger = get_logger('frontend.services')
+
+    index_manager = init_result.instances.get('index_manager')
+    if index_manager is not None or not create_if_missing:
+        return index_manager
+
+    manager = getattr(init_result, 'manager', None)
+    if manager is None:
+        return None
+
+    try:
+        if 'index_manager' in manager.modules and manager.execute_init('index_manager'):
+            index_manager = manager.instances.get('index_manager')
+            if index_manager is not None:
+                init_result.instances['index_manager'] = index_manager
+    except Exception as e:
+        logger.warning(f"IndexManager init failed: {e}")
+        return None
+
+    return index_manager
+
+
+def _build_session_services(init_result):
+    """Create per-session RAGService/ChatManager while sharing IndexManager."""
+    from backend.infrastructure.config import config
+    from backend.business.rag_api import RAGService
+    from backend.business.chat import ChatManager
+    from frontend.components.config_panel.models import AppConfig
+
+    app_config = AppConfig.from_session_state()
+    index_manager = _ensure_shared_index_manager(init_result, create_if_missing=False)
+    index_manager_provider = lambda: _ensure_shared_index_manager(init_result, create_if_missing=True)
+
+    collection_name = st.session_state.get('collection_name', config.CHROMA_COLLECTION_NAME)
+    temperature = app_config.get_llm_temperature()
+    max_tokens = app_config.get_llm_max_tokens()
+
+    chat_manager = ChatManager(
+        index_manager=index_manager,
+        index_manager_provider=index_manager_provider,
+        enable_debug=app_config.debug_mode,
+        enable_markdown_formatting=True,
+        use_agentic_rag=app_config.use_agentic_rag,
+        model_id=app_config.selected_model,
+        retrieval_strategy=app_config.retrieval_strategy,
+        similarity_top_k=app_config.similarity_top_k,
+        similarity_threshold=app_config.similarity_threshold,
+        enable_rerank=app_config.enable_rerank,
+        temperature=temperature,
+        max_tokens=max_tokens,
+    )
+
+    rag_service = RAGService(
+        collection_name=collection_name,
+        enable_debug=app_config.debug_mode,
+        enable_markdown_formatting=True,
+        use_agentic_rag=app_config.use_agentic_rag,
+        model_id=app_config.selected_model,
+        retrieval_strategy=app_config.retrieval_strategy,
+        similarity_top_k=app_config.similarity_top_k,
+        similarity_threshold=app_config.similarity_threshold,
+        enable_rerank=app_config.enable_rerank,
+        index_manager=index_manager,
+        chat_manager=chat_manager,
+        index_manager_provider=index_manager_provider,
+    )
+
+    return rag_service, chat_manager
 
 
 def _render_main_app_from_cache():

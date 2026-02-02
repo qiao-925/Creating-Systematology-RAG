@@ -247,15 +247,6 @@ class TestRAGService:
         assert result is True
         mock_instance.delete_collection.assert_called_once_with("test_collection")
     
-    def test_clear_chat_history(self, mock_index_manager, mock_chat_manager):
-        """测试清空对话历史"""
-        mock_cm_instance = mock_chat_manager.return_value
-        
-        service = RAGService()
-        result = service.clear_chat_history("session1")
-        
-        assert result is True
-        mock_cm_instance.reset_session.assert_called_once()
     
     def test_modular_query_engine_usage(self, mock_index_manager):
         """测试使用模块化查询引擎"""
@@ -391,21 +382,6 @@ class TestRAGService:
             assert result.collection_name == "custom_collection"
             # 验证使用了指定的集合名称
             mock_instance.build_index.assert_called_once()
-    
-    def test_get_chat_history(self, mock_index_manager, mock_chat_manager):
-        """测试获取对话历史"""
-        mock_cm_instance = mock_chat_manager.return_value
-        mock_session = Mock()
-        mock_session.session_id = "test_session"
-        mock_session.history = [Mock(), Mock()]
-        
-        mock_cm_instance.get_current_session.return_value = mock_session
-        
-        service = RAGService()
-        session = service.get_chat_history("test_session")
-        
-        assert session is not None
-        assert session.session_id == "test_session"
     
     def test_context_manager_cleanup(self, mock_index_manager):
         """测试上下文管理器清理资源"""

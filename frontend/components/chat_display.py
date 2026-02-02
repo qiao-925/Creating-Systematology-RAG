@@ -115,12 +115,6 @@ def render_chat_interface(rag_service, chat_manager) -> None:
         rag_service: RAG服务实例
         chat_manager: 对话管理器实例
     """
-    # 统一处理会话加载（优化：减少 rerun 次数）
-    if st.session_state.get('session_loading_pending') or st.session_state.get('load_session_id'):
-        from frontend.components.session_loader import load_history_session
-        if load_history_session(chat_manager):
-            st.rerun()
-    
     # 注入全局JavaScript脚本（仅一次，必须在渲染任何消息前）
     if not st.session_state.get('citation_script_injected', False):
         from frontend.utils.sources import inject_citation_script

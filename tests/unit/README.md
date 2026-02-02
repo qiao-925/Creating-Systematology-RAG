@@ -118,7 +118,7 @@ pytest tests/unit -v
 pytest tests/unit/test_config.py -v
 
 # 运行并显示覆盖率
-pytest tests/unit/test_config.py --cov=src/config --cov-report=term
+pytest tests/unit/test_config.py --cov=backend/infrastructure/config --cov-report=term
 
 # 只运行失败的测试
 pytest tests/unit --lf -v
@@ -144,13 +144,13 @@ pytest tests/unit/test_xxx.py --pdb
 
 ```bash
 # 基础覆盖率
-pytest tests/unit/test_config.py --cov=src/config
+pytest tests/unit/test_config.py --cov=backend/infrastructure/config
 
 # 显示未覆盖行
-pytest tests/unit/test_config.py --cov=src/config --cov-report=term-missing
+pytest tests/unit/test_config.py --cov=backend/infrastructure/config --cov-report=term-missing
 
 # 生成HTML报告
-pytest tests/unit/test_config.py --cov=src/config --cov-report=html
+pytest tests/unit/test_config.py --cov=backend/infrastructure/config --cov-report=html
 # 然后打开 htmlcov/index.html
 ```
 
@@ -226,7 +226,7 @@ pytest tests/unit/test_config.py -v
 pytest tests/unit -k "config" -v
 
 # 查看覆盖率
-pytest tests/unit/test_config.py --cov=src/config --cov-report=term
+pytest tests/unit/test_config.py --cov=backend/infrastructure/config --cov-report=term
 ```
 
 ### 场景2: 添加新功能后
@@ -239,7 +239,7 @@ pytest tests/unit/test_data_loader.py -v
 pytest tests/integration/test_data_pipeline.py -v
 
 # 查看覆盖率
-pytest tests/unit/test_data_loader.py --cov=src/data_loader --cov-report=html
+pytest tests/unit/test_data_loader.py --cov=backend/infrastructure/data_loader --cov-report=html
 ```
 
 ### 场景3: 优化性能后

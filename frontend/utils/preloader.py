@@ -116,18 +116,6 @@ class BackgroundPreloader:
                     self._fail(f"必需模块 {display} 初始化失败: {module.error}")
                     return
             
-            # 创建轻量级服务（纯 LLM 模式，不依赖 index_manager）
-            self._update_stage("创建轻量级服务")
-            rag_service, chat_manager = self._create_lightweight_services(manager)
-            
-            if not rag_service or not chat_manager:
-                self._fail("服务实例创建失败")
-                return
-            
-            # 存储到 manager.instances 以便后续使用
-            manager.instances['rag_service'] = rag_service
-            manager.instances['chat_manager'] = chat_manager
-            
             # 成功
             summary = manager.get_status_summary()
             init_result = InitResult(
@@ -135,54 +123,11 @@ class BackgroundPreloader:
                 manager=manager, instances=manager.instances.copy(),
                 failed_modules=summary['required_failed'], summary=summary
             )
-            self._complete(init_result, rag_service, chat_manager)
+            self._complete(init_result)
             
         except Exception as e:
             self._fail(str(e))
             logger.error(f"❌ 后台预加载异常: {e}", exc_info=True)
-    
-    def _create_lightweight_services(self, manager) -> tuple:
-        """创建轻量级服务（纯 LLM 模式，首次查询时延迟初始化 RAG）
-        
-        Returns:
-            (rag_service, chat_manager)
-        """
-        from backend.infrastructure.config import config
-        
-        # 注意：后台线程中不要访问 st.session_state，避免大量警告日志
-        # 使用默认配置即可，用户配置变更后会重建服务
-        enable_debug = True  # 默认启用调试
-        use_agentic_rag = False
-        selected_model_id = config.get_default_llm_id()
-        collection_name = config.CHROMA_COLLECTION_NAME
-        
-        # 创建 RAGService（延迟模式）
-        logger.info("⏳ 开始创建 RAGService...")
-        from backend.business.rag_api import RAGService
-        
-        rag_service = RAGService(
-            collection_name=collection_name,
-            enable_debug=enable_debug,
-            enable_markdown_formatting=True,
-            use_agentic_rag=use_agentic_rag,
-            model_id=selected_model_id,
-        )
-        logger.info("✅ RAGService 创建完成")
-        
-        # 创建 ChatManager（纯 LLM 模式，无 index_manager）
-        logger.info("⏳ 开始创建 ChatManager...")
-        from backend.business.chat import ChatManager
-        chat_manager = ChatManager(
-            index_manager=None,  # 纯 LLM 模式
-            enable_debug=enable_debug,
-            enable_markdown_formatting=True,
-            use_agentic_rag=use_agentic_rag,
-            model_id=selected_model_id,
-        )
-        logger.info("✅ ChatManager 创建完成")
-        
-        logger.info("✅ 轻量级服务创建完成（延迟加载模式）")
-        return rag_service, chat_manager
     
     def _fail(self, error: str) -> None:
         """标记初始化失败"""
@@ -193,13 +138,13 @@ class BackgroundPreloader:
         self._status = PreloadStatus.FAILED
         logger.error(f"❌ {error}")
     
-    def _complete(self, init_result: Any, rag_service: Any, chat_manager: Any) -> None:
+    def _complete(self, init_result: Any) -> None:
         """标记初始化完成"""
         duration = time.perf_counter() - self._start_time
         self._update_stage("初始化完成")
         self._result = PreloadResult(
             status=PreloadStatus.COMPLETED, init_result=init_result,
-            rag_service=rag_service, chat_manager=chat_manager, duration=duration
+            rag_service=None, chat_manager=None, duration=duration
         )
         self._status = PreloadStatus.COMPLETED
         logger.info(f"✅ 后台预加载完成（耗时: {duration:.2f}s）")

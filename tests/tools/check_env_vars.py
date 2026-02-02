@@ -1,29 +1,39 @@
 #!/usr/bin/env python3
-"""测试环境变量设置"""
+"""Check environment variables before/after importing backend."""
+
+from __future__ import annotations
 
 import os
 import sys
 from pathlib import Path
 
-print("\n=== 导入 src 之前的环境变量 ===")
-print(f"HF_ENDPOINT: {os.getenv('HF_ENDPOINT', 'Not set')}")
-print(f"HUGGINGFACE_HUB_ENDPOINT: {os.getenv('HUGGINGFACE_HUB_ENDPOINT', 'Not set')}")
 
-# 导入 src 包（会触发 __init__.py）
-sys.path.insert(0, str(Path(__file__).parent))
-import src
+def main() -> int:
+    print("\n=== Before importing backend ===")
+    print(f"HF_ENDPOINT: {os.getenv('HF_ENDPOINT', 'Not set')}")
+    print(f"HUGGINGFACE_HUB_ENDPOINT: {os.getenv('HUGGINGFACE_HUB_ENDPOINT', 'Not set')}")
 
-print("\n=== 导入 src 之后的环境变量 ===")
-print(f"HF_ENDPOINT: {os.getenv('HF_ENDPOINT', 'Not set')}")
-print(f"HUGGINGFACE_HUB_ENDPOINT: {os.getenv('HUGGINGFACE_HUB_ENDPOINT', 'Not set')}")
-print(f"SENTENCE_TRANSFORMERS_HOME: {os.getenv('SENTENCE_TRANSFORMERS_HOME', 'Not set')}")
-print(f"HF_HUB_OFFLINE: {os.getenv('HF_HUB_OFFLINE', 'Not set')}")
-print(f"TRANSFORMERS_OFFLINE: {os.getenv('TRANSFORMERS_OFFLINE', 'Not set')}")
+    project_root = Path(__file__).resolve().parents[2]
+    sys.path.insert(0, str(project_root))
 
-print("\n=== 配置信息 ===")
-from backend.infrastructure.config import config
-print(f"config.HF_ENDPOINT: {config.HF_ENDPOINT}")
-print(f"config.HF_OFFLINE_MODE: {config.HF_OFFLINE_MODE}")
+    # Import backend to trigger __init__ environment setup
+    import backend  # noqa: F401
 
-print("\n✅ 测试完成")
+    print("\n=== After importing backend ===")
+    print(f"HF_ENDPOINT: {os.getenv('HF_ENDPOINT', 'Not set')}")
+    print(f"HUGGINGFACE_HUB_ENDPOINT: {os.getenv('HUGGINGFACE_HUB_ENDPOINT', 'Not set')}")
+    print(f"SENTENCE_TRANSFORMERS_HOME: {os.getenv('SENTENCE_TRANSFORMERS_HOME', 'Not set')}")
+    print(f"HF_HUB_OFFLINE: {os.getenv('HF_HUB_OFFLINE', 'Not set')}")
+    print(f"TRANSFORMERS_OFFLINE: {os.getenv('TRANSFORMERS_OFFLINE', 'Not set')}")
 
+    print("\n=== Config values ===")
+    from backend.infrastructure.config import config
+    print(f"config.HF_ENDPOINT: {config.HF_ENDPOINT}")
+    print(f"config.HF_OFFLINE_MODE: {config.HF_OFFLINE_MODE}")
+
+    print("\nOK")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

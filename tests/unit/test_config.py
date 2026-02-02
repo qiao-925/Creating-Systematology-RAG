@@ -52,9 +52,8 @@ class TestConfig:
         config = Config()
         is_valid, error = config.validate()
         
-        assert is_valid is False, "配置应该无效"
-        assert error is not None, "应该有错误消息"
-        assert "DEEPSEEK_API_KEY" in error, "错误消息应该提到API密钥"
+        assert is_valid is True, "配置应该仍然有效（API Key 延迟校验）"
+        assert error is None
     
     def test_config_invalid_chunk_size_zero(self, monkeypatch):
         """测试CHUNK_SIZE为0的情况"""
