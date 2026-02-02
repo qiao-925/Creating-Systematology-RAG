@@ -54,7 +54,6 @@ Agent 应优先查阅本文档来：
 | `test_config.py` | `src.config` | `Config` | 配置管理、环境变量、参数验证 |
 | `test_data_loader.py` | `src.data_loader` | 数据加载器 | Markdown、Web、GitHub 数据加载 |
 | `test_indexer.py` | `src.indexer` | `IndexManager` | 索引构建、向量化、检索 |
-| `test_query_engine.py` | `src.query_engine` | `QueryEngine` | 查询引擎、引用溯源 |
 | `test_chat_manager.py` | `src.chat_manager` | `ChatManager` | 对话管理、会话持久化 |
 | `test_embeddings.py` | `src.embeddings` | Embedding 模型 | 本地/API Embedding |
 | `test_data_source.py` | `src.data_source` | 数据源抽象 | 数据源接口和实现 |
@@ -66,7 +65,6 @@ Agent 应优先查阅本文档来：
 | `test_observers.py` | `src.observers` | 可观测性 | Phoenix、Debug 观察者 |
 | `test_rag_service.py` | `src.business.rag_api` | RAG服务 | RAG服务单元测试 |
 | `test_response_formatter.py` | `src.response_formatter` | 响应格式化 | 响应格式化和验证 |
-| `test_github_link.py` | `src.github_link` | GitHub链接 | GitHub链接生成器 |
 | `test_user_manager.py` | `src.user_manager` | 用户管理 | 用户注册、登录、隔离 |
 | `test_git_repository_manager.py` | `src.git_repository_manager` | Git 仓库管理 | GitHub 仓库同步 |
 | `test_wikipedia_loader.py` | `src.data_loader` | Wikipedia 加载器 | Wikipedia 数据加载 |
@@ -113,7 +111,6 @@ Agent 应优先查阅本文档来：
 |-----------|-------------|-------------|------|
 | `src/config.py` | `tests/unit/test_config.py` | - | 配置管理 |
 | `src/indexer.py` | `tests/unit/test_indexer.py` | `tests/integration/test_data_pipeline.py` | 索引构建 |
-| `src/query_engine.py` | `tests/unit/test_query_engine.py` | `tests/integration/test_query_pipeline.py` | 查询引擎 |
 | `src/chat_manager.py` | `tests/unit/test_chat_manager.py` | - | 对话管理 |
 | `src/data_loader.py` | `tests/unit/test_data_loader.py` | `tests/integration/test_data_pipeline.py` | 数据加载 |
 | `src/user_manager.py` | `tests/unit/test_user_manager.py` | - | 用户管理 |
@@ -123,7 +120,6 @@ Agent 应优先查阅本文档来：
 | 源文件路径 | 主要测试文件 | 集成测试 | 说明 |
 |-----------|-------------|---------|------|
 | `src/business/services/rag_service.py` | `tests/unit/test_rag_service.py` | `tests/integration/test_rag_service_integration.py` | RAG 服务 |
-| `src.github_link` | `tests/unit/test_github_link.py` | - | GitHub链接生成 |
 | `src.modular_query_engine` | - | `tests/integration/test_modular_query_engine.py` | 模块化查询引擎 |
 | `src/business/modular_query_engine.py` | - | `tests/integration/test_query_pipeline.py` | 模块化查询引擎 |
 
@@ -166,8 +162,8 @@ pytest tests/unit/test_indexer.py -v
 # 使用工具自动选择
 python tests/tools/agent_test_selector.py src/indexer.py
 
-# 修改了 src/query_engine.py，可能影响集成
-pytest tests/unit/test_query_engine.py tests/integration/test_query_pipeline.py -v
+# 修改了查询引擎相关代码（可能影响集成）
+pytest tests/integration/test_query_pipeline.py -v
 ```
 
 ### 场景2: 添加新功能后如何确保测试覆盖
@@ -375,7 +371,7 @@ python tests/tools/generate_test_index.py -o tests/test_index_custom.json
 - **格式**: `test_<功能>_<场景>`
 - **示例**:
   - `test_build_index_with_valid_documents` (测试使用有效文档构建索引)
-  - `test_query_engine_handles_empty_query` (测试查询引擎处理空查询)
+  - `test_query_pipeline_handles_empty_query` (测试查询链路处理空查询)
 
 **命名模式**:
 - `test_<功能>_normal` - 正常流程
@@ -393,7 +389,7 @@ python tests/tools/generate_test_index.py -o tests/test_index_custom.json
 |-----------|---------|
 | `config` | `tests/unit/test_config.py` |
 | `indexer` | `tests/unit/test_indexer.py` |
-| `query` | `tests/unit/test_query_engine.py` |
+| `query` | `tests/integration/test_query_pipeline.py` |
 | `chat` | `tests/unit/test_chat_manager.py` |
 | `data_loader` | `tests/unit/test_data_loader.py` |
 | `embedding` | `tests/unit/test_embeddings.py` |
@@ -408,7 +404,7 @@ python tests/tools/generate_test_index.py -o tests/test_index_custom.json
 |-----|---------|---------|
 | 配置管理 | Unit | `test_config.py` |
 | 索引构建 | Unit + Integration | `test_indexer.py`, `test_data_pipeline.py` |
-| 查询功能 | Unit + Integration | `test_query_engine.py`, `test_query_pipeline.py` |
+| 查询功能 | Integration | `test_query_pipeline.py`, `test_modular_query_engine.py` |
 | 对话管理 | Unit | `test_chat_manager.py` |
 | 数据加载 | Unit + Integration | `test_data_loader.py`, `test_data_pipeline.py` |
 | 多策略检索 | Unit + Integration | `test_multi_strategy_retriever.py`, `test_multi_strategy_integration.py` |

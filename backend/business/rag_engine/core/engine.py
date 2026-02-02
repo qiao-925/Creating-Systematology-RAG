@@ -7,6 +7,7 @@ RAG引擎核心模块：ModularQueryEngine类实现
 - stream_query()：流式查询，实时返回答案token
 """
 
+import time
 from typing import List, Optional, Tuple, Dict, Any
 from llama_index.core.query_engine import RetrieverQueryEngine
 
@@ -253,21 +254,80 @@ class ModularQueryEngine:
             processed_query=final_query[:50] if len(final_query) > 50 else final_query,
             processing_method=processed['processing_method']
         )
-        
-        # 执行流式查询
-        async for result in execute_stream_query(
-            self.llm,
-            self.formatter,
-            self.query_processor,
-            self.retriever,
-            self.postprocessors,
-            self.query_router,
-            self.enable_auto_routing,
-            self.retrieval_strategy,
-            self.similarity_top_k,
-            final_query,
-            understanding
-        ):
-            yield result
+
+        # 通知观察器：查询开始（与非流式 execute_query 保持一致）
+        trace_ids = self.observer_manager.on_query_start(final_query)
+        start_time = time.time()
+        errors: List[str] = []
+        warnings: List[str] = []
+        answer_buffer = ""
+        sources: List[dict] = []
+        reasoning_content = None
+        saw_done = False
+
+        try:
+            # 执行流式查询
+            async for result in execute_stream_query(
+                self.llm,
+                self.formatter,
+                self.query_processor,
+                self.retriever,
+                self.postprocessors,
+                self.query_router,
+                self.enable_auto_routing,
+                self.retrieval_strategy,
+                self.similarity_top_k,
+                final_query,
+                understanding
+            ):
+                if isinstance(result, dict):
+                    result_type = result.get("type")
+                    if result_type == "token":
+                        token = result.get("data") or ""
+                        if token:
+                            answer_buffer += token
+                    elif result_type == "sources":
+                        sources = result.get("data") or []
+                    elif result_type == "reasoning":
+                        reasoning_content = result.get("data")
+                    elif result_type == "done":
+                        data = result.get("data") or {}
+                        if "answer" in data and data.get("answer") is not None:
+                            answer_buffer = data.get("answer") or ""
+                        if "sources" in data and data.get("sources") is not None:
+                            sources = data.get("sources") or []
+                        if "reasoning_content" in data and data.get("reasoning_content") is not None:
+                            reasoning_content = data.get("reasoning_content")
+                        saw_done = True
+                    elif result_type == "error":
+                        data = result.get("data") or {}
+                        if isinstance(data, dict) and data.get("message"):
+                            errors.append(str(data.get("message")))
+                yield result
+        except Exception as e:
+            errors.append(f"{type(e).__name__}: {e}")
+            raise
+        finally:
+            if not saw_done and not errors:
+                warnings.append("stream_query cancelled before completion")
+
+            retrieval_time = time.time() - start_time
+            try:
+                self.observer_manager.on_query_end(
+                    query=final_query,
+                    answer=answer_buffer,
+                    sources=sources if isinstance(sources, list) else [],
+                    trace_ids=trace_ids,
+                    retrieval_time=retrieval_time,
+                    query_processing_result=processed,
+                    retrieval_strategy=self.retrieval_strategy,
+                    similarity_top_k=self.similarity_top_k,
+                    errors=errors,
+                    warnings=warnings,
+                    streaming=True,
+                    reasoning_content=reasoning_content,
+                )
+            except Exception as observer_error:
+                logger.warning("通知观察器失败（流式查询）", error=str(observer_error))
 
 

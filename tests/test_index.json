@@ -1002,25 +1002,6 @@
       "source_files": []
     },
     {
-      "file_path": "tests\\unit\\test_github_link.py",
-      "category": "unit",
-      "test_count": 22,
-      "description": "\nGitHub 链接生成器测试\n",
-      "target_module": "",
-      "target_class": "GitHubUrlGeneration",
-      "target_functions": [],
-      "coverage": [],
-      "dependencies": [],
-      "tags": [
-        "github",
-        "unit"
-      ],
-      "pytest_markers": [],
-      "fixtures_used": [],
-      "related_tests": [],
-      "source_files": []
-    },
-    {
       "file_path": "tests\\unit\\test_grep_retriever.py",
       "category": "unit",
       "test_count": 22,
@@ -1169,33 +1150,6 @@
       "pytest_markers": [],
       "fixtures_used": [
         "mock_config"
-      ],
-      "related_tests": [],
-      "source_files": []
-    },
-    {
-      "file_path": "tests\\unit\\test_query_engine.py",
-      "category": "unit",
-      "test_count": 16,
-      "description": "\n查询引擎模块单元测试\n",
-      "target_module": "",
-      "target_class": "QueryEngine",
-      "target_functions": [],
-      "coverage": [],
-      "dependencies": [],
-      "tags": [
-        "unit"
-      ],
-      "pytest_markers": [],
-      "fixtures_used": [
-        "mock_query_engine",
-        "mock_simple_engine",
-        "mocker",
-        "modelname",
-        "monkeypatch",
-        "real_query_engine",
-        "sample_documents",
-        "temp_vector_store"
       ],
       "related_tests": [],
       "source_files": []

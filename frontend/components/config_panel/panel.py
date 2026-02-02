@@ -2,7 +2,6 @@
 主配置面板 - 集成各子组件，提供统一的配置入口
 
 主要功能：
-- render_sidebar_config(): 侧边栏常用配置（模型、预设、检索策略）
 - render_advanced_config(): 设置弹窗高级配置（RAG 参数、显示设置）
 """
 
@@ -10,51 +9,9 @@ import streamlit as st
 from typing import Callable, Optional
 
 from backend.infrastructure.config import config
-from frontend.components.config_panel.llm_presets import (
-    render_model_selector,
-    render_llm_preset_selector,
-)
 from frontend.components.config_panel.rag_params import (
-    render_rag_basic_params,
     render_rag_advanced_params,
 )
-
-
-def render_sidebar_config(
-    on_config_change: Optional[Callable[[], None]] = None,
-) -> None:
-    """渲染侧边栏常用配置
-    
-    包含：
-    - 模型选择
-    - LLM 预设（精确/平衡/创意）
-    - 检索策略
-    - Agentic RAG 开关
-    
-    Args:
-        on_config_change: 配置变更回调（用于触发服务重建）
-    """
-    # 模型选择
-    render_model_selector(on_model_change=lambda _: _trigger_rebuild(on_config_change))
-    
-    st.divider()
-    
-    # LLM 预设
-    render_llm_preset_selector(on_preset_change=lambda _: _trigger_rebuild(on_config_change))
-    
-    st.divider()
-    
-    # RAG 基础参数
-    render_rag_basic_params(
-        on_strategy_change=lambda _: _trigger_rebuild(on_config_change),
-        on_agentic_toggle=lambda _: _trigger_rebuild(on_config_change),
-    )
-
-
-def _trigger_rebuild(callback: Optional[Callable[[], None]]) -> None:
-    """触发服务重建"""
-    if callback:
-        callback()
 
 
 def render_advanced_config(

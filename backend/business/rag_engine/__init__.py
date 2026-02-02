@@ -3,8 +3,6 @@ RAG引擎模块 - 完整的RAG流程引擎
 
 主要功能：
 - ModularQueryEngine类：模块化查询引擎（推荐使用）
-- QueryEngine类：遗留查询引擎
-- SimpleQueryEngine类：简单查询引擎
 - 检索、重排序、格式化、路由等完整RAG流程
 
 模块结构：
@@ -27,12 +25,6 @@ def __getattr__(name):
     if name == 'ModularQueryEngine':
         from backend.business.rag_engine.core.engine import ModularQueryEngine
         return ModularQueryEngine
-    elif name == 'QueryEngine':
-        from backend.business.rag_engine.core.legacy_engine import QueryEngine
-        return QueryEngine
-    elif name == 'SimpleQueryEngine':
-        from backend.business.rag_engine.core.simple_engine import SimpleQueryEngine
-        return SimpleQueryEngine
     elif name == 'ResponseFormatter':
         from backend.business.rag_engine.formatting import ResponseFormatter
         return ResponseFormatter
@@ -98,8 +90,6 @@ def __getattr__(name):
 __all__ = [
     # 核心引擎
     'ModularQueryEngine',
-    'QueryEngine',  # 遗留实现（推荐使用 ModularQueryEngine）
-    'SimpleQueryEngine',
     # 格式化
     'ResponseFormatter',
     # 检索

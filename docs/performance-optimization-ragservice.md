@@ -93,7 +93,6 @@ def modular_query_engine(self):
 **修改前**：
 ```python
 from backend.business.rag_engine.core.engine import ModularQueryEngine
-from backend.business.rag_engine.core.legacy_engine import QueryEngine
 from backend.business.rag_engine.formatting import ResponseFormatter
 # ... 更多导入
 ```
@@ -105,9 +104,6 @@ def __getattr__(name):
     if name == 'ModularQueryEngine':
         from backend.business.rag_engine.core.engine import ModularQueryEngine
         return ModularQueryEngine
-    elif name == 'QueryEngine':
-        from backend.business.rag_engine.core.legacy_engine import QueryEngine
-        return QueryEngine
     # ... 其他模块
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 ```

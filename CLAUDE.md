@@ -101,7 +101,6 @@ Creating-Systematology-RAG/
 │   ├── main.py                    # Main application entry
 │   ├── components/                # UI components
 │   │   ├── chat_display.py       # Chat message rendering
-│   │   ├── chat_input_with_mode.py # Input with RAG/Chat mode
 │   │   ├── config_panel/         # Configuration panel
 │   │   │   ├── models.py         # AppConfig data model
 │   │   │   ├── llm_presets.py    # LLM preset configurations

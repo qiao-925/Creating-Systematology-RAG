@@ -201,7 +201,7 @@ def render_keyword_cloud() -> None:
     st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
 
     if not items:
-        st.warning("未找到词云数据，请先运行 scripts/build_keyword_cloud.py 生成 data/keyword_cloud.json")
+        st.warning("未找到词云数据（离线生成脚本已移除，请改用其他方式生成 data/keyword_cloud.json）")
         return
 
     # 词云区：streamlit-iframe-event + data URL，点击气泡 postMessage 回传选中词，组件返回值同步到 session_state

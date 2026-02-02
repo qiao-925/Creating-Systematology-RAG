@@ -57,7 +57,6 @@ pytest -m unit -v
 | `test_config.py` | `src.config` | ~15 | 配置管理、环境变量、参数验证 |
 | `test_data_loader.py` | `src.data_loader` | ~20 | Markdown、Web、GitHub 数据加载 |
 | `test_indexer.py` | `src.indexer` | ~15 | 索引构建、向量化、检索 |
-| `test_query_engine.py` | `src.query_engine` | ~8 | 查询引擎、引用溯源 |
 | `test_chat_manager.py` | `src.chat_manager` | ~15 | 对话管理、会话持久化 |
 
 ### Embedding 和数据处理
@@ -89,7 +88,6 @@ pytest -m unit -v
 | 测试文件 | 目标模块 | 测试数量 | 说明 |
 |---------|---------|---------|------|
 | `test_response_formatter.py` | `src.response_formatter` | ~6 | 响应格式化和验证 |
-| `test_github_link.py` | `src.github_link` | ~8 | GitHub链接生成器测试 |
 
 ### 可观测性
 

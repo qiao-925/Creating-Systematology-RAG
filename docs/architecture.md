@@ -186,7 +186,7 @@ LLM 响应生成 (DeepSeek)
 ```
 前端层
   └─→ RAGService（业务层）
-        └─→ IndexManager、QueryEngine（基础设施层）
+        └─→ IndexManager、RAG 引擎（基础设施层）
 ```
 
 **业务层内部依赖**：
@@ -530,7 +530,6 @@ Creating-Systematology-RAG/
 │   ├── main.py                    # 主入口（单页应用）
 │   ├── components/               # UI组件（优先使用 Streamlit 原生组件）
 │   │   ├── chat_display.py       # 聊天显示（含可观测性信息）
-│   │   ├── chat_input_with_mode.py # 聊天输入（支持 Agentic 模式切换）
 │   │   ├── config_panel/         # 配置面板模块（统一配置管理）
 │   │   │   ├── models.py         # AppConfig 数据模型 + LLM 预设
 │   │   │   ├── panel.py          # 主配置面板
@@ -538,7 +537,6 @@ Creating-Systematology-RAG/
 │   │   │   └── rag_params.py     # RAG 参数面板（Top-K、相似度阈值等）
 │   │   ├── file_viewer.py        # 文件查看（弹窗）
 │   │   ├── observability_summary.py # 可观测性摘要展示
-│   │   ├── sidebar.py             # 侧边栏
 │   │   ├── sources_panel.py      # 引用来源面板
 │   │   └── settings_dialog.py   # 设置弹窗（使用 st.dialog()）
 │   ├── settings/                  # 设置模块

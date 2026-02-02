@@ -15,3 +15,5 @@
 “调试模式”下强制走非流式（让日志恢复）。
 增加开关，允许在 UI 里切换“是否显示观测信息 + 是否强制非流式”。
 你想用哪一种？
+
+已选方案（2026-02-02）：补齐流式链路的 Observer 回调（在 `ModularQueryEngine.stream_query()` 调用 `observer_manager.on_query_start/on_query_end`），让 `llama_debug_logs / ragas_logs` 在流式模式下也能写入并被 UI 渲染。

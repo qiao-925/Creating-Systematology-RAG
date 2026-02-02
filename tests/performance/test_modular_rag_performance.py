@@ -12,7 +12,6 @@ from pathlib import Path
 
 from backend.infrastructure.indexer import IndexManager
 from backend.business.rag_engine.core.engine import ModularQueryEngine
-QueryEngine = None  # legacy QueryEngine 已移除
 from backend.business.rag_api.rag_service import RAGService
 from llama_index.core.schema import Document as LlamaDocument
 
@@ -36,38 +35,6 @@ def benchmark_index_manager():
 
 class TestQueryEnginePerformance:
     """查询引擎性能测试"""
-    
-    def test_old_query_engine_baseline(self, benchmark_index_manager):
-        """测试旧QueryEngine性能基线"""
-        engine = QueryEngine(
-            index_manager=benchmark_index_manager,
-            similarity_top_k=5,
-        )
-        
-        query = "系统科学是什么？"
-        
-        # 预热
-        engine.query(query)
-        
-        # 性能测试
-        times = []
-        for _ in range(10):
-            start = time.time()
-            answer, sources, _ = engine.query(query)
-            elapsed = time.time() - start
-            times.append(elapsed)
-        
-        avg_time = statistics.mean(times)
-        median_time = statistics.median(times)
-        
-        print(f"\n旧QueryEngine性能:")
-        print(f"  平均耗时: {avg_time:.3f}s")
-        print(f"  中位数耗时: {median_time:.3f}s")
-        print(f"  最快: {min(times):.3f}s")
-        print(f"  最慢: {max(times):.3f}s")
-        
-        # 性能断言（可以根据实际情况调整）
-        assert avg_time < 5.0, "查询耗时过长"
     
     def test_modular_query_engine_vector(self, benchmark_index_manager):
         """测试ModularQueryEngine向量检索性能"""
@@ -164,17 +131,7 @@ class TestQueryEnginePerformance:
     def test_performance_comparison(self, benchmark_index_manager):
         """性能对比测试"""
         query = "系统科学是什么？"
-        
-        # 旧引擎
-        old_engine = QueryEngine(index_manager=benchmark_index_manager)
-        old_engine.query(query)  # 预热
-        
-        old_times = []
-        for _ in range(10):
-            start = time.time()
-            old_engine.query(query)
-            old_times.append(time.time() - start)
-        
+                
         # 新引擎
         new_engine = ModularQueryEngine(
             index_manager=benchmark_index_manager,
@@ -188,16 +145,10 @@ class TestQueryEnginePerformance:
             new_engine.query(query)
             new_times.append(time.time() - start)
         
-        old_avg = statistics.mean(old_times)
         new_avg = statistics.mean(new_times)
         
         print(f"\n性能对比:")
-        print(f"  旧QueryEngine: {old_avg:.3f}s")
-        print(f"  新ModularQueryEngine: {new_avg:.3f}s")
-        print(f"  性能变化: {((new_avg - old_avg) / old_avg * 100):+.1f}%")
-        
-        # 新引擎不应该比旧引擎慢太多（允许20%的性能下降）
-        assert new_avg <= old_avg * 1.2, "新引擎性能下降超过20%"
+        print(f"  ModularQueryEngine: {new_avg:.3f}s")
 
 
 class TestRAGServicePerformance:
@@ -328,35 +279,6 @@ class TestRetrievalStrategiesPerformance:
                 print(f"  {strategy}: {avg_time:.3f}s")
             else:
                 print(f"  {strategy}: N/A")
-
-
-class TestMemoryUsage:
-    """内存使用测试"""
-    
-    def test_memory_usage_comparison(self, benchmark_index_manager):
-        """测试内存使用对比"""
-        import psutil
-        import os
-        
-        process = psutil.Process(os.getpid())
-        
-        # 旧引擎内存
-        old_engine = QueryEngine(index_manager=benchmark_index_manager)
-        old_engine.query("测试")  # 触发加载
-        old_memory = process.memory_info().rss / 1024 / 1024  # MB
-        
-        # 新引擎内存
-        new_engine = ModularQueryEngine(index_manager=benchmark_index_manager)
-        new_engine.query("测试")  # 触发加载
-        new_memory = process.memory_info().rss / 1024 / 1024  # MB
-        
-        print(f"\n内存使用对比:")
-        print(f"  旧QueryEngine: {old_memory:.1f} MB")
-        print(f"  新ModularQueryEngine: {new_memory:.1f} MB")
-        print(f"  内存变化: {((new_memory - old_memory) / old_memory * 100):+.1f}%")
-        
-        # 新引擎内存不应该增加太多（允许50%的增长）
-        assert new_memory <= old_memory * 1.5, "新引擎内存使用增加超过50%"
 
 
 if __name__ == "__main__":

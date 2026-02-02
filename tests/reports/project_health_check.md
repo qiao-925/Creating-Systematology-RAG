@@ -53,13 +53,7 @@
 
 **影响**: 索引构建功能无法测试，但代码结构正常
 
-### 2. 查询引擎测试 (`tests/unit/test_query_engine.py`)
-
-**问题**: 间接依赖 `chromadb`（通过 indexer 模块）
-
-**影响**: 查询功能无法测试
-
-### 3. 对话管理测试 (`tests/unit/test_chat_manager.py`)
+### 2. 对话管理测试 (`tests/unit/test_chat_manager.py`)
 
 **问题**: 间接依赖 `chromadb`（通过 indexer 模块）
 
