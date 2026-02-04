@@ -4,6 +4,8 @@ RAG API - RAG服务核心模块
 提供查询、索引构建、对话等核心功能的统一入口
 """
 
+from __future__ import annotations
+
 from typing import Optional, List, AsyncIterator, Dict, Any, TYPE_CHECKING, Callable
 from pathlib import Path
 

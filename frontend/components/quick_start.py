@@ -86,8 +86,7 @@ def render_quick_start() -> None:
     with col_send:
         st.markdown('<div class="quickstart-send-btn">', unsafe_allow_html=True)
         submitted = st.button(
-            "",
-            icon=":material/arrow_upward:",
+            "⬆️",
             type="secondary",
             use_container_width=False,
             disabled=not prompt.strip(),

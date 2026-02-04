@@ -232,7 +232,6 @@ def render_keyword_cloud() -> None:
     st.multiselect(
         "已选词",
         options=options,
-        default=selected,
         max_selections=MAX_SELECTED,
         key="keyword_cloud_selected",
         label_visibility="collapsed",

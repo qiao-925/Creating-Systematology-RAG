@@ -85,8 +85,7 @@ def _render_title_row(chat_manager) -> None:
         with col_restart:
             if has_messages:
                 st.button(
-                    "",
-                    icon=":material/refresh:",
+                    "🔄",
                     on_click=_clear_conversation,
                     args=(chat_manager,),
                     key="restart_button",
@@ -95,8 +94,7 @@ def _render_title_row(chat_manager) -> None:
 
         with col_settings:
             st.button(
-                "",
-                icon=":material/settings:",
+                "⚙️",
                 on_click=_on_settings_click,
                 key="settings_button_top",
                 help="设置"
