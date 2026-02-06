@@ -88,11 +88,14 @@ def get_file_search_paths() -> list[Path]:
 
 # 建议问题配置（用于 st.pills 显示）
 # 格式：{显示标签: 实际问题}
+USER_AVATAR = "🙂"
+ASSISTANT_AVATAR = "🤖"
+
 SUGGESTION_QUESTIONS = {
-    ":blue[:material/local_library:] 什么是系统科学？": "什么是系统科学？它的核心思想是什么？",
-    ":green[:material/person:] 钱学森的贡献": "钱学森对系统科学有哪些贡献？",
-    ":orange[:material/integration_instructions:] 综合集成法": "从定性到定量的综合集成法如何与马克思主义哲学结合起来理解？",
-    ":violet[:material/engineering:] 系统工程应用": "系统工程在现代科学中的应用有哪些？",
+    "📚 什么是系统科学？": "什么是系统科学？它的核心思想是什么？",
+    "👤 钱学森的贡献": "钱学森对系统科学有哪些贡献？",
+    "🧩 综合集成法": "从定性到定量的综合集成法如何与马克思主义哲学结合起来理解？",
+    "🛠️ 系统工程应用": "系统工程在现代科学中的应用有哪些？",
 }
 def configure_all() -> None:
     """配置所有应用设置

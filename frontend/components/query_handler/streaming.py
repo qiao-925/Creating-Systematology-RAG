@@ -1,6 +1,6 @@
-﻿"""
-娴佸紡鏌ヨ澶勭悊缁勪欢
-鍩轰簬 rag_service.stream_chat 瀹炵幇 st.write_stream 娴佸紡杈撳嚭
+"""
+流式查询处理组件
+基于 rag_service.stream_chat 实现 st.write_stream 流式输出
 """
 
 import asyncio
@@ -11,6 +11,7 @@ from typing import Any, Dict, Iterable, Optional
 import streamlit as st
 
 from backend.infrastructure.logger import get_logger
+from frontend.config import ASSISTANT_AVATAR
 from frontend.utils.sources import convert_sources_to_dict
 from frontend.utils.state import save_message_to_history
 from frontend.components.query_handler.common import save_to_chat_manager
@@ -111,7 +112,7 @@ def handle_streaming_query(rag_service, chat_manager, prompt: str) -> bool:
     }
 
     try:
-        with st.chat_message("assistant"):
+        with st.chat_message("assistant", avatar=ASSISTANT_AVATAR):
             with st.spinner("思考中..."):
                 if hasattr(st, "write_stream"):
                     st.write_stream(_stream_answer_tokens(rag_service, prompt, session_id, stream_state))

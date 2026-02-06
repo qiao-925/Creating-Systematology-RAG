@@ -9,7 +9,7 @@ from frontend.utils.sources import format_answer_with_citation_links
 from frontend.components.sources_panel import display_sources_below_message
 from frontend.components.observability_summary import render_observability_summary
 from frontend.components.observer_renderers import render_llamadebug_full_info, render_ragas_full_info
-from frontend.config import SUGGESTION_QUESTIONS
+from frontend.config import SUGGESTION_QUESTIONS, USER_AVATAR, ASSISTANT_AVATAR
 from backend.infrastructure.config import config
 from backend.infrastructure.logger import get_logger
 
@@ -74,31 +74,28 @@ def _render_title_row(chat_manager) -> None:
             )
         )
     
-    title_row = st.container()
+    title_row = st.container(horizontal=True, vertical_alignment="center")
     with title_row:
-        col_title, col_restart, col_settings = st.columns([8, 1, 1])
-        
-        with col_title:
-            st.title("✨ ")
-            st.title(config.APP_TITLE, anchor=False)
-        
-        with col_restart:
-            if has_messages:
-                st.button(
-                    "🔄",
-                    on_click=_clear_conversation,
-                    args=(chat_manager,),
-                    key="restart_button",
-                    help="Restart"
-                )
+        title_block = st.container(width="stretch")
+        with title_block:
+            st.title("✨", anchor=False, width="content")
+            st.title(config.APP_TITLE, anchor=False, width="stretch")
 
-        with col_settings:
+        if has_messages:
             st.button(
-                "⚙️",
-                on_click=_on_settings_click,
-                key="settings_button_top",
-                help="设置"
+                "🔄",
+                on_click=_clear_conversation,
+                args=(chat_manager,),
+                key="restart_button",
+                help="Restart",
             )
+
+        st.button(
+            "⚙️",
+            on_click=_on_settings_click,
+            key="settings_button_top",
+            help="设置",
+        )
 
 
 def render_chat_interface(rag_service, chat_manager) -> None:
@@ -131,10 +128,6 @@ def render_chat_interface(rag_service, chat_manager) -> None:
     # 初始化来源映射
     initialize_sources_map()
 
-    # Quick start placeholder: clear stale first-screen content on reruns
-    quick_start_ph = st.empty()
-
-    # ??????????????? + ?????
     if not st.session_state.messages:
         user_just_asked_initial = bool(st.session_state.get("initial_question"))
         user_just_clicked_suggestion = bool(st.session_state.get("selected_suggestion"))
@@ -149,13 +142,9 @@ def render_chat_interface(rag_service, chat_manager) -> None:
 
         if not user_first_interaction:
             from frontend.components.quick_start import render_quick_start
-            with quick_start_ph.container():
-                render_quick_start()
-            # ???? demo??????????????????????????/??
+            render_quick_start()
             st.stop()
         else:
-            # ???? messages ??????????
-            quick_start_ph.empty()
             if user_just_asked_initial:
                 prompt = st.session_state.initial_question
             elif user_just_clicked_suggestion:
@@ -171,9 +160,6 @@ def render_chat_interface(rag_service, chat_manager) -> None:
                 st.session_state.selected_suggestion = None
                 if 'initial_question_input' in st.session_state:
                     st.session_state.initial_question_input = ""
-    else:
-        # ??????????????
-        quick_start_ph.empty()
 
     render_chat_history()
 
@@ -191,7 +177,7 @@ def render_chat_history() -> None:
         message_id = generate_message_id(idx, msg)
         role = msg["role"]
         if role == "user":
-            with st.chat_message("user"):
+            with st.chat_message("user", avatar=USER_AVATAR):
                 st.markdown(msg["content"])
         else:
             if "sources" in msg and msg["sources"]:
@@ -202,7 +188,7 @@ def render_chat_history() -> None:
                 )
             else:
                 formatted_content = msg["content"]
-            with st.chat_message("assistant"):
+            with st.chat_message("assistant", avatar=ASSISTANT_AVATAR):
                 st.container()  # Fix ghost message bug.
                 st.markdown(formatted_content, unsafe_allow_html=True)
             render_assistant_continuation(idx, message_id, msg)
@@ -216,7 +202,7 @@ def render_assistant_continuation(message_index: int, message_id: str, msg: dict
         f"<div class='message-continuation-anchor' data-message-id='{message_id}'></div>",
         unsafe_allow_html=True,
     )
-    with st.chat_message("assistant"):
+    with st.chat_message("assistant", avatar=ASSISTANT_AVATAR):
         _render_observer_info(message_index)
         reasoning_content = msg.get("reasoning_content")
         if reasoning_content:

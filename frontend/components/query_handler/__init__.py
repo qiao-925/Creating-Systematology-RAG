@@ -1,5 +1,5 @@
-﻿"""
-鏌ヨ澶勭悊缁勪欢妯″潡
+"""
+查询处理组件模块
 """
 
 import json
@@ -7,6 +7,7 @@ from pathlib import Path
 
 import streamlit as st
 from frontend.components.query_handler.streaming import handle_streaming_query
+from frontend.config import USER_AVATAR
 from frontend.utils.throttle import throttle_requests
 
 
@@ -39,7 +40,7 @@ def handle_user_queries(rag_service, chat_manager) -> None:
             st.session_state.messages.append({"role": "user", "content": prompt})
             should_render_inline = True
         if should_render_inline:
-            with st.chat_message("user"):
+            with st.chat_message("user", avatar=USER_AVATAR):
                 st.markdown(prompt)
 
         # 仅在真正发起请求时节流，且在 UI 已渲染后执行
@@ -60,7 +61,7 @@ def handle_user_queries(rag_service, chat_manager) -> None:
         # #endregion
         if not st.session_state.messages or st.session_state.messages[-1].get("content") != prompt:
             user_msg = {"role": "user", "content": prompt}
-            with st.chat_message("user"):
+            with st.chat_message("user", avatar=USER_AVATAR):
                 st.markdown(prompt)
             st.session_state.messages.append(user_msg)
         # 仅在真正发起请求时节流，且在 UI 已渲染后执行

@@ -20,7 +20,6 @@ Embedding工厂函数：根据配置创建合适的Embedding实例
 import os
 from typing import Optional
 from backend.infrastructure.embeddings.base import BaseEmbedding
-from backend.infrastructure.embeddings.local_embedding import LocalEmbedding
 from backend.infrastructure.config import config
 from backend.infrastructure.logger import get_logger
 
@@ -70,6 +69,7 @@ def create_embedding(
     
     match embedding_type:
         case "local":
+            from backend.infrastructure.embeddings.local_embedding import LocalEmbedding
             _global_embedding_instance = LocalEmbedding(
                 model_name=model_name,
                 **kwargs

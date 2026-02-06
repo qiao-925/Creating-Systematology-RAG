@@ -43,14 +43,36 @@ _CUSTOM_CSS = """
 
 /* 主内容区居中，最大宽度限制 */
 .block-container {
-    max-width: clamp(320px, 35vw, 1600px);
-    padding-left: 1.25rem;
-    padding-right: 1.25rem;
+    width: min(1200px, 100%);
+    max-width: 100%;
+    margin: 0 auto;
+    padding-left: clamp(0.75rem, 2vw, 1.25rem);
+    padding-right: clamp(0.75rem, 2vw, 1.25rem);
 }
 
 /* 标题保持单行显示 */
 .stApp h1 {
-    white-space: nowrap;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    margin: 0 0 0.35rem 0;
+    line-height: 1.1;
+}
+
+@media (min-width: 1100px) {
+    .stApp h1 {
+        white-space: nowrap;
+    }
+}
+
+@media (max-width: 768px) {
+    .block-container {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+    .stApp h1 {
+        font-size: 2rem;
+        line-height: 1.15;
+    }
 }
 
 /* 标题区：图标单行 + 文案单行 */
@@ -61,38 +83,31 @@ _CUSTOM_CSS = """
     border-radius: 8px;
 }
 
-/* Chat input styling: align quick-start and bottom input */
-:root {
-    --chat-input-height: 48px;
-    --chat-input-radius: 999px;
-    --chat-input-pad-y: 0.6rem;
-    --chat-input-pad-x: 1.25rem;
-    --chat-input-pad-right: 3.5rem;
-    --chat-input-bg: var(--secondary-background-color);
-    --chat-input-border: rgba(255, 255, 255, 0.08);
-    --chat-input-text: var(--text-color);
-    --chat-input-placeholder: rgba(220, 220, 224, 0.6);
+/* Chat input fine-tuning (safe):
+   - Rounder corners
+   - Slightly smaller vertical height
+   Keep structure untouched to avoid layered artifacts. */
+[data-testid="stChatInput"] textarea,
+[data-testid="stChatInput"] [data-baseweb="textarea"] {
+    border-radius: 999px !important;
 }
-.stChatInput > div {
-    border-radius: var(--chat-input-radius);
+[data-testid="stChatInput"] [data-baseweb="textarea"] {
+    min-height: 40px !important;
+    max-height: 40px !important;
+    border-radius: 999px !important;
 }
-.stChatInput > div > div {
-    border-radius: var(--chat-input-radius);
+[data-testid="stChatInput"] [data-testid="stChatInputTextArea"] {
+    min-height: 38px !important;
+    max-height: 38px !important;
+    border-radius: 999px !important;
+    padding-top: 0.35rem !important;
+    padding-bottom: 0.35rem !important;
 }
-.stChatInput textarea,
-.stChatInput [data-baseweb="textarea"] {
-    border-radius: var(--chat-input-radius);
-    height: var(--chat-input-height);
-    min-height: var(--chat-input-height);
-    max-height: var(--chat-input-height);
-    padding: var(--chat-input-pad-y) var(--chat-input-pad-right) var(--chat-input-pad-y) var(--chat-input-pad-x);
-    background: var(--chat-input-bg);
-    border: 1px solid var(--chat-input-border);
-    color: var(--chat-input-text);
-}
-.stChatInput textarea::placeholder,
-.stChatInput [data-baseweb="textarea"]::placeholder {
-    color: var(--chat-input-placeholder);
+[data-testid="stChatInput"] [data-testid="stChatInputSubmitButton"] {
+    width: 30px !important;
+    min-width: 30px !important;
+    height: 30px !important;
+    border-radius: 999px !important;
 }
 
 /* 按钮样式 */
@@ -393,7 +408,7 @@ def _render_main_app_impl(init_result, rag_service, chat_manager):
 def _render_loading_app():
     """Render loading screen while initialization is in progress."""
     # Title
-    st.markdown("### ??Creating Systematology")
+    st.markdown("### 💬 Creating Systematology")
 
     # Placeholders to avoid full-page flash
     info_ph = st.empty()
@@ -406,20 +421,20 @@ def _render_loading_app():
     refresh_interval = 0.6  # seconds
 
     # Disabled input (render once to avoid duplicate element IDs)
-    input_ph.chat_input("??????????????..", key="init_chat_input", disabled=True)
+    input_ph.chat_input("正在初始化，请稍候...", key="init_chat_input", disabled=True)
 
     # Fetch progress
     progress_msg = get_progress_message()
     detailed = get_detailed_progress()
 
     # Status
-    info_ph.info(f"??{progress_msg}")
-    caption_ph.caption("??????????????????????????????????...")
+    info_ph.info(f"🚀 {progress_msg}")
+    caption_ph.caption("首次启动需要加载模型和连接数据库，请耐心等待...")
 
     # Progress bar
     module_count = detailed.get('module_count', 0)
     progress_value = min(module_count / 10, 0.95) if module_count > 0 else 0.05
-    progress_ph.progress(progress_value, text=f"?????{module_count} ?????")
+    progress_ph.progress(progress_value, text=f"已完成 {module_count} 个模块")
 
     # Logs
     logs = detailed.get('logs', [])
@@ -431,8 +446,8 @@ def _render_loading_app():
 
     # Current stage
     stage = detailed.get('stage', '')
-    if stage and '???' not in stage:
-        stage_ph.markdown(f"??**{stage}...**")
+    if stage and '完成' not in stage:
+        stage_ph.markdown(f"⏳ **{stage}...**")
     else:
         stage_ph.empty()
 

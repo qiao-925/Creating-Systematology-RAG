@@ -53,7 +53,7 @@ def _on_generate() -> None:
     sel = st.session_state.keyword_cloud_selected
     if not sel:
         return
-    # ?????????????????????
+    # 延迟生成，避免按钮回调中执行耗时任务
     st.session_state.keyword_cloud_generate_pending = True
 
 
@@ -247,28 +247,28 @@ def render_keyword_cloud() -> None:
     )
     st.markdown("---")
 
-    # ?????????????????????????
+    # 延迟生成问题（避免回调阻塞 UI）
     if st.session_state.get("keyword_cloud_generate_pending"):
         st.session_state.keyword_cloud_generate_pending = False
         st.session_state.keyword_cloud_loading = True
-        with st.spinner("??????..."):
+        with st.spinner("正在生成问题..."):
             try:
                 from backend.business.rag_engine.processing.question_generator import generate_questions
                 model_id = st.session_state.get("selected_model")
                 questions = generate_questions(selected, model_id=model_id)
-                # ??????2?????????
+                # 确保至少返回 2 个问题，不足则用占位符
                 if len(questions) < 2:
-                    questions.extend([f"???????{selected[0]}???"] * (2 - len(questions)))
+                    questions.extend([f"请详细解释关于{selected[0]}的内容"] * (2 - len(questions)))
                 st.session_state.keyword_cloud_generated = questions[:2]
             except Exception as e:
                 from backend.infrastructure.logger import get_logger
                 logger = get_logger("keyword_cloud")
-                logger.exception("??????: %s", e)
+                logger.exception("生成问题失败: %s", e)
                 st.session_state.keyword_cloud_generated = []
             finally:
                 st.session_state.keyword_cloud_loading = False
 
-        # ???????????????
+        # 同步生成结果
         generated = st.session_state.keyword_cloud_generated
 
 

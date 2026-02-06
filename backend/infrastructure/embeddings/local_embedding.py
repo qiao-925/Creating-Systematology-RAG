@@ -22,7 +22,6 @@
 import os
 from pathlib import Path
 from typing import List, Optional
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 
 from backend.infrastructure.embeddings.base import BaseEmbedding
 from backend.infrastructure.config import config, get_gpu_device, is_gpu_available
@@ -103,6 +102,14 @@ class LocalEmbedding(BaseEmbedding):
         }
         
         # 创建HuggingFaceEmbedding实例
+        try:
+            from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+        except ImportError as e:
+            raise ImportError(
+                "LocalEmbedding 需要安装可选依赖 `llama-index-embeddings-huggingface`（以及其底层依赖如 torch/sentence-transformers）。\n"
+                "请运行：`uv sync --extra local` 或 `pip install .[local]`。"
+            ) from e
+
         self._model = HuggingFaceEmbedding(
             model_name=self.model_name,
             embed_batch_size=self.embed_batch_size,
