@@ -100,11 +100,11 @@ def _build_bubble_cloud_html(items: list[dict], selected: list[str]) -> str:
     position: relative;
     width: 100%;
     height: clamp(280px, 38vh, 420px);
-    background: linear-gradient(160deg, #0f172a 0%%, #1e293b 40%%, #334155 100%);
-    border-radius: 20px;
+    background: #F7F8FA;
+    border-radius: 14px;
     overflow: hidden;
-    border: 1px solid rgba(148,163,184,0.2);
-    box-shadow: 0 4px 24px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.05);
+    border: 1px solid #E7ECF3;
+    box-shadow: none;
   }}
   .kw-bubble {{
     position: absolute;
@@ -240,7 +240,7 @@ def render_keyword_cloud() -> None:
     if loading:
         st.info("🤔 正在生成问题...")
     st.button(
-        "✨ 生成问题",
+        "🧭 生成问题",
         key="keyword_cloud_generate_btn",
         disabled=not selected or loading,
         on_click=_on_generate,

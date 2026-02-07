@@ -78,7 +78,7 @@ def _render_title_row(chat_manager) -> None:
     with title_row:
         title_block = st.container(width="stretch")
         with title_block:
-            st.title("✨", anchor=False, width="content")
+            st.title("🧭", anchor=False, width=12)
             st.title(config.APP_TITLE, anchor=False, width="stretch")
 
         if has_messages:
@@ -265,4 +265,3 @@ def _render_observer_info(message_index: int) -> None:
             if ragas_log:
                 st.divider()
                 render_ragas_full_info(ragas_log)
-

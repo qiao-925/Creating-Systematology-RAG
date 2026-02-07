@@ -37,15 +37,26 @@ _CUSTOM_CSS = """
 <style>
 /* 全局样式 */
 .stApp {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Source Sans Pro', 'Source Sans 3', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: 16px;
+    color: #31333F;
+}
+
+html,
+body,
+.stApp,
+[data-testid="stAppViewContainer"],
+[data-testid="stMain"],
+header[data-testid="stHeader"] {
+    background-color: #F7F8FA !important;
 }
 
 /* 主内容区居中，最大宽度限制 */
 .block-container {
-    width: min(1200px, 100%);
-    max-width: 100%;
+    width: min(736px, 100%);
+    max-width: 736px;
     margin: 0 auto;
+    padding-top: 0.75rem !important;
     padding-left: clamp(0.75rem, 2vw, 1.25rem);
     padding-right: clamp(0.75rem, 2vw, 1.25rem);
 }
@@ -56,6 +67,9 @@ _CUSTOM_CSS = """
     overflow-wrap: anywhere;
     margin: 0 0 0.35rem 0;
     line-height: 1.1;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: #31333F;
 }
 
 @media (min-width: 1100px) {
@@ -66,6 +80,7 @@ _CUSTOM_CSS = """
 
 @media (max-width: 768px) {
     .block-container {
+        padding-top: 0.5rem !important;
         padding-left: 0.75rem;
         padding-right: 0.75rem;
     }
@@ -83,31 +98,127 @@ _CUSTOM_CSS = """
     border-radius: 8px;
 }
 
-/* Chat input fine-tuning (safe):
-   - Rounder corners
-   - Slightly smaller vertical height
-   Keep structure untouched to avoid layered artifacts. */
+/* Chat input fine-tuning (Streamlit 1.53):
+   - Force pill corners on outer + inner wrappers
+   - Compress vertical size for a denser single-line look */
+[data-testid="stChatInput"],
+[data-testid="stChatInput"] > div,
+[data-testid="stChatInput"] > div > div,
+[data-testid="stChatInput"] [data-baseweb="textarea"],
 [data-testid="stChatInput"] textarea,
-[data-testid="stChatInput"] [data-baseweb="textarea"] {
-    border-radius: 999px !important;
-}
-[data-testid="stChatInput"] [data-baseweb="textarea"] {
-    min-height: 40px !important;
-    max-height: 40px !important;
-    border-radius: 999px !important;
-}
 [data-testid="stChatInput"] [data-testid="stChatInputTextArea"] {
-    min-height: 38px !important;
-    max-height: 38px !important;
     border-radius: 999px !important;
-    padding-top: 0.35rem !important;
-    padding-bottom: 0.35rem !important;
+}
+[data-testid="stChatInput"] {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+}
+[data-testid="stChatInput"] > div {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    min-height: 36px !important;
+    overflow: hidden !important;
+    background-color: #FFFFFF !important;
+    border: 1px solid #E5EAF2 !important;
+    box-shadow: none !important;
+}
+[data-testid="stChatInput"] > div > div {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    min-height: 36px !important;
+    overflow: hidden !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+[data-testid="stChatInput"] [data-baseweb="textarea"] {
+    min-height: 36px !important;
+    max-height: 36px !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+[data-testid="stChatInput"] [data-baseweb="textarea"] > div,
+[data-testid="stChatInput"] [data-baseweb="textarea"] > div > div {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+[data-testid="stChatInput"] [data-testid="stChatInputTextArea"],
+[data-testid="stChatInput"] textarea {
+    min-height: 34px !important;
+    max-height: 34px !important;
+    line-height: 34px !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    padding-left: 0.6rem !important;
+    padding-right: 0.4rem !important;
+    margin: 0 !important;
+    color: #31333F !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+[data-testid="stChatInput"] textarea::placeholder {
+    line-height: 34px !important;
+    color: #8B93A7 !important;
 }
 [data-testid="stChatInput"] [data-testid="stChatInputSubmitButton"] {
-    width: 30px !important;
-    min-width: 30px !important;
-    height: 30px !important;
+    width: 28px !important;
+    min-width: 28px !important;
+    height: 28px !important;
     border-radius: 999px !important;
+    background-color: #E8ECF4 !important;
+    border: none !important;
+    color: #8B93A7 !important;
+}
+[data-testid="stChatInput"] [data-testid="stChatInputSubmitButton"]:hover {
+    background-color: #DDE4F0 !important;
+}
+
+/* Pills（建议问题） */
+[data-testid="stPills"] [role="radiogroup"] > * {
+    background: #F7F8FA !important;
+    border: 1px solid #E1E6EF !important;
+    border-radius: 999px !important;
+    color: #475063 !important;
+}
+[data-testid="stPills"] [role="radiogroup"] [aria-checked="true"] {
+    background: #F1F4FA !important;
+    border-color: #D7E1F2 !important;
+    color: #2E3A52 !important;
+}
+
+/* 词云 iframe 容器与主背景一致 */
+[data-testid="stIFrame"],
+[data-testid="stIFrame"] > div,
+[data-testid="stIFrame"] iframe {
+    background: #F7F8FA !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* 关键词选择下拉框 */
+.stMultiSelect [data-baseweb="select"] > div,
+.stSelectbox [data-baseweb="select"] > div {
+    background: #F5F7FB !important;
+    border: 1px solid #E5EAF2 !important;
+    border-radius: 10px !important;
+    box-shadow: none !important;
+}
+
+/* 分割线 */
+hr {
+    border: 0;
+    border-top: 1px solid #E7ECF3;
 }
 
 /* 按钮样式 */

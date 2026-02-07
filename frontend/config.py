@@ -62,7 +62,7 @@ def configure_streamlit() -> None:
     """
     st.set_page_config(
         page_title="Creating Systematology RAG",
-        page_icon="✨",
+        page_icon="🧭",
     )
 
 
@@ -112,4 +112,3 @@ def configure_all() -> None:
     configure_encoding()
     configure_exit_hooks()
     configure_streamlit()
-
