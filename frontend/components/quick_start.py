@@ -8,7 +8,7 @@
 
 import streamlit as st
 
-from frontend.components.keyword_cloud import render_keyword_cloud
+from frontend.components.keyword_cloud import render_keyword_cloud_entry
 from frontend.config import SUGGESTION_QUESTIONS
 
 
@@ -18,16 +18,18 @@ def render_quick_start() -> None:
     # Streamlit 1.53 renders root-level chat_input at page bottom by design.
     col, = st.columns([1])
     with col:
-        prompt = st.chat_input("输入问题...", key="initial_question")
+        prompt = st.chat_input("Ask a question...", key="initial_question")
 
     if prompt:
         return
 
-    st.pills(
-        label="试试这些问题",
-        options=list(SUGGESTION_QUESTIONS.keys()),
-        key="selected_suggestion",
-        label_visibility="collapsed",
-    )
-
-    render_keyword_cloud()
+    pills_col, action_col = st.columns([8, 2], vertical_alignment="center")
+    with pills_col:
+        st.pills(
+            label="试试这些问题",
+            options=list(SUGGESTION_QUESTIONS.keys()),
+            key="selected_suggestion",
+            label_visibility="collapsed",
+        )
+    with action_col:
+        render_keyword_cloud_entry(button_label="> 组词", use_container_width=True)

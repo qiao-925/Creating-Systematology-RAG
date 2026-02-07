@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1260 170" fill="none">
+  <defs>
+    <linearGradient id="neonInk" x1="0" y1="0" x2="1120" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#B7FFD0"/>
+      <stop offset="0.42" stop-color="#96F2B7"/>
+      <stop offset="1" stop-color="#63DA90"/>
+    </linearGradient>
+    <filter id="halo" x="-12%" y="-80%" width="124%" height="320%">
+      <feDropShadow dx="0" dy="0" stdDeviation="1.8" flood-color="#C9FFD7" flood-opacity="0.65"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="5.8" flood-color="#5CDB90" flood-opacity="0.35"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="13" flood-color="#39BF76" flood-opacity="0.22"/>
+    </filter>
+  </defs>
+
+  <text x="0" y="98" fill="#DFFFF0" fill-opacity="0.2" font-family="JetBrains Mono, SFMono-Regular, Menlo, Consolas, monospace" font-size="72" font-weight="800" letter-spacing="-1.2">
+    CREATING_SYSTEMATOLOGY
+  </text>
+
+  <text x="0" y="98" fill="url(#neonInk)" filter="url(#halo)" font-family="JetBrains Mono, SFMono-Regular, Menlo, Consolas, monospace" font-size="72" font-weight="800" letter-spacing="-1.2">
+    CREATING_SYSTEMATOLOGY
+  </text>
+
+  <text x="0" y="148" fill="#80D7A2" fill-opacity="0.82" font-family="JetBrains Mono, SFMono-Regular, Menlo, Consolas, monospace" font-size="19" font-weight="600" letter-spacing="2.4">
+    [ SYSTEM SCIENCE · TERMINAL MODE ]
+  </text>
+
+  <rect x="1139" y="44" width="14" height="56" rx="1.8" fill="#B3FFCB" filter="url(#halo)">
+    <animate attributeName="opacity" values="1;1;0;0;1" dur="1.05s" repeatCount="indefinite"/>
+  </rect>
+</svg>

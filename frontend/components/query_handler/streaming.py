@@ -113,6 +113,7 @@ def handle_streaming_query(rag_service, chat_manager, prompt: str) -> bool:
 
     try:
         with st.chat_message("assistant", avatar=ASSISTANT_AVATAR):
+            st.markdown("<span class='chat-role-assistant-marker'></span>", unsafe_allow_html=True)
             with st.spinner("思考中..."):
                 if hasattr(st, "write_stream"):
                     st.write_stream(_stream_answer_tokens(rag_service, prompt, session_id, stream_state))

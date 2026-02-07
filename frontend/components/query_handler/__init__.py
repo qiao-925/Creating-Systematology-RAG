@@ -41,6 +41,7 @@ def handle_user_queries(rag_service, chat_manager) -> None:
             should_render_inline = True
         if should_render_inline:
             with st.chat_message("user", avatar=USER_AVATAR):
+                st.markdown("<span class='chat-role-user-marker'></span>", unsafe_allow_html=True)
                 st.markdown(prompt)
 
         # 仅在真正发起请求时节流，且在 UI 已渲染后执行
@@ -62,6 +63,7 @@ def handle_user_queries(rag_service, chat_manager) -> None:
         if not st.session_state.messages or st.session_state.messages[-1].get("content") != prompt:
             user_msg = {"role": "user", "content": prompt}
             with st.chat_message("user", avatar=USER_AVATAR):
+                st.markdown("<span class='chat-role-user-marker'></span>", unsafe_allow_html=True)
                 st.markdown(prompt)
             st.session_state.messages.append(user_msg)
         # 仅在真正发起请求时节流，且在 UI 已渲染后执行

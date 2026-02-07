@@ -11,9 +11,12 @@ import streamlit as st
 from backend.infrastructure.config import config
 
 # 词云展示数量、已选上限
-MAX_CLOUD_ITEMS = 30
+MAX_CLOUD_ITEMS = 90
 MAX_SELECTED = 5
 KEYWORD_CLOUD_PATH = "data/keyword_cloud.json"
+BUBBLE_CLOUD_HEIGHT_PX = 720
+BUBBLE_COMPONENT_HEIGHT_PX = 800
+KEYWORD_IFRAME_VERSION = "v3"
 
 
 def _load_keyword_cloud() -> list[dict]:
@@ -37,6 +40,13 @@ def _ensure_state() -> None:
         st.session_state.keyword_cloud_loading = False
     if "keyword_cloud_generate_pending" not in st.session_state:
         st.session_state.keyword_cloud_generate_pending = False
+    if "show_keyword_cloud_dialog" not in st.session_state:
+        st.session_state.show_keyword_cloud_dialog = False
+
+
+def _on_open_keyword_cloud_dialog() -> None:
+    """打开组词弹窗。"""
+    st.session_state.show_keyword_cloud_dialog = True
 
 
 def _on_toggle_word(word: str) -> None:
@@ -66,18 +76,18 @@ def _on_use_question(question: str) -> None:
     st.session_state.messages.append({"role": "user", "content": question})
     # 设置待处理的问题（query_handler 会检测并处理）
     st.session_state.selected_question = question
+    # 关闭弹窗
+    st.session_state.show_keyword_cloud_dialog = False
 
 
 def _on_regenerate() -> None:
     _on_generate()
 
 
-# 气泡配色（与 iframe 内一致）
+# 终端主题气泡配色（深浅绿）
 _BUBBLE_COLORS = [
-    "#7c3aed", "#6366f1", "#3b82f6", "#0ea5e9", "#06b6d4",
-    "#14b8a6", "#10b981", "#22c55e", "#84cc16", "#eab308",
-    "#f59e0b", "#f97316", "#ef4444", "#ec4899", "#d946ef",
-    "#a855f7", "#8b5cf6", "#6366f1", "#4f46e5", "#2563eb",
+    "#1E9E61", "#2AA66A", "#33AE73", "#2F9B67", "#3CB87D",
+    "#46C086", "#3FAF79", "#2F8E5F", "#57C991", "#2B7E56",
 ]
 
 
@@ -95,16 +105,24 @@ def _build_bubble_cloud_html(items: list[dict], selected: list[str]) -> str:
 <meta charset="utf-8">
 <style>
   * {{ box-sizing: border-box; }}
-  body {{ margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }}
+  body {{
+    margin: 0;
+    font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+    background: #0F1825;
+  }}
   .kw-box {{
     position: relative;
     width: 100%;
-    height: clamp(280px, 38vh, 420px);
-    background: #F7F8FA;
-    border-radius: 14px;
+    height: {BUBBLE_CLOUD_HEIGHT_PX}px;
+    background:
+      linear-gradient(180deg, rgba(15,24,37,0.98) 0%, rgba(10,16,24,0.99) 100%),
+      linear-gradient(90deg, rgba(147,229,164,0.04) 1px, transparent 1px),
+      linear-gradient(0deg, rgba(147,229,164,0.04) 1px, transparent 1px);
+    background-size: 100% 100%, 22px 22px, 22px 22px;
+    border-radius: 10px;
     overflow: hidden;
-    border: 1px solid #E7ECF3;
-    box-shadow: none;
+    border: 1px solid #2B3D52;
+    box-shadow: inset 0 0 0 1px rgba(147,229,164,0.08);
   }}
   .kw-bubble {{
     position: absolute;
@@ -115,18 +133,26 @@ def _build_bubble_cloud_html(items: list[dict], selected: list[str]) -> str:
     cursor: pointer;
     user-select: none;
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 600;
     letter-spacing: 0.02em;
-    color: rgba(255,255,255,0.95);
-    text-shadow: 0 1px 2px rgba(0,0,0,0.25);
+    color: #d8ffe5;
+    text-shadow: 0 0 6px rgba(99, 218, 138, 0.25);
     white-space: nowrap;
-    transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.25s ease, filter 0.25s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
     padding: 0 10px;
-    border: 1px solid rgba(255,255,255,0.2);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.15);
+    border: 1px solid rgba(157, 246, 184, 0.42);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25), inset 0 0 0 1px rgba(0,0,0,0.08);
   }}
-  .kw-bubble:hover {{ transform: scale(1.1); box-shadow: 0 6px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2); filter: brightness(1.1); }}
-  .kw-bubble.selected {{ box-shadow: 0 0 0 2px rgba(255,255,255,0.95), 0 0 20px rgba(99,102,241,0.5), 0 4px 12px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.25); transform: scale(1.06); filter: brightness(1.05); }}
+  .kw-bubble:hover {{
+    transform: scale(1.08);
+    box-shadow: 0 0 0 1px rgba(147,229,164,0.4), 0 0 14px rgba(93, 215, 134, 0.33);
+    filter: brightness(1.08);
+  }}
+  .kw-bubble.selected {{
+    box-shadow: 0 0 0 2px rgba(147,229,164,0.95), 0 0 20px rgba(99,218,138,0.55), 0 4px 12px rgba(0,0,0,0.35);
+    transform: scale(1.06);
+    filter: brightness(1.06);
+  }}
 </style>
 </head>
 <body>
@@ -197,96 +223,152 @@ def render_keyword_cloud() -> None:
     generated = st.session_state.keyword_cloud_generated
     loading = st.session_state.keyword_cloud_loading
 
-    st.caption("点击气泡选词（最多 5 个），再点击「生成问题」")
-    st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
+    with st.expander("[终端模块] 组词器", expanded=True):
+        st.caption("$ 点击词气泡（最多 5 个）并生成问题")
+        st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
 
-    if not items:
-        st.warning("未找到词云数据（离线生成脚本已移除，请改用其他方式生成 data/keyword_cloud.json）")
-        return
+        if not items:
+            st.warning("未找到词云数据（请生成 data/keyword_cloud.json）")
+            return
 
-    # 词云区：streamlit-iframe-event + data URL，点击气泡 postMessage 回传选中词，组件返回值同步到 session_state
-    bubble_html = _build_bubble_cloud_html(items, selected)
-    try:
-        from streamlit_iframe_event import st_iframe_event
+        # 词云区：streamlit-iframe-event + data URL，点击气泡 postMessage 回传选中词
+        bubble_html = _build_bubble_cloud_html(items, selected)
+        st.markdown(
+            f"""
+<style>
+.st-key-keyword_cloud_frame_shell iframe,
+[data-testid="stDialog"] iframe[title="InnerSSO"] {{
+    min-height: {BUBBLE_COMPONENT_HEIGHT_PX}px !important;
+    height: {BUBBLE_COMPONENT_HEIGHT_PX}px !important;
+}}
 
-        data_url = "data:text/html;base64," + base64.b64encode(bubble_html.encode("utf-8")).decode("ascii")
-        event_value = st_iframe_event(data_url, key="keyword_cloud_iframe", default_width="100%")
-        if event_value is not None and isinstance(event_value, dict) and "token" in event_value:
-            try:
-                new_selected = json.loads(event_value["token"])
-                if isinstance(new_selected, list):
-                    st.session_state.keyword_cloud_selected = new_selected
-                    selected = st.session_state.keyword_cloud_selected
-            except (TypeError, ValueError):
-                pass
-    except ImportError:
-        import streamlit.components.v1 as components
-
-        components.html(bubble_html, height=460, scrolling=False)
-        st.caption("气泡选词需安装 streamlit-iframe-event 才能与下方联动，请用下方多选选词。")
-    st.markdown("---")
-
-    # 已选词：从 URL 同步后与 session_state 一致，可在此勾选或依赖上方气泡
-    st.caption("已选词（最多 5 个，可点击上方气泡或在此勾选）")
-    options = [item.get("word", "") for item in items if item.get("word")]
-    st.multiselect(
-        "已选词",
-        options=options,
-        max_selections=MAX_SELECTED,
-        key="keyword_cloud_selected",
-        label_visibility="collapsed",
-    )
-    selected = st.session_state.keyword_cloud_selected
-    if loading:
-        st.info("🤔 正在生成问题...")
-    st.button(
-        "🧭 生成问题",
-        key="keyword_cloud_generate_btn",
-        disabled=not selected or loading,
-        on_click=_on_generate,
-    )
-    st.markdown("---")
-
-    # 延迟生成问题（避免回调阻塞 UI）
-    if st.session_state.get("keyword_cloud_generate_pending"):
-        st.session_state.keyword_cloud_generate_pending = False
-        st.session_state.keyword_cloud_loading = True
-        with st.spinner("正在生成问题..."):
-            try:
-                from backend.business.rag_engine.processing.question_generator import generate_questions
-                model_id = st.session_state.get("selected_model")
-                questions = generate_questions(selected, model_id=model_id)
-                # 确保至少返回 2 个问题，不足则用占位符
-                if len(questions) < 2:
-                    questions.extend([f"请详细解释关于{selected[0]}的内容"] * (2 - len(questions)))
-                st.session_state.keyword_cloud_generated = questions[:2]
-            except Exception as e:
-                from backend.infrastructure.logger import get_logger
-                logger = get_logger("keyword_cloud")
-                logger.exception("生成问题失败: %s", e)
-                st.session_state.keyword_cloud_generated = []
-            finally:
-                st.session_state.keyword_cloud_loading = False
-
-        # 同步生成结果
-        generated = st.session_state.keyword_cloud_generated
-
-
-    # 生成结果：2 个问题 + 重新生成
-    if generated:
-        st.caption("生成结果：点击问题将填入并发送")
-        for idx, q in enumerate(generated, 1):
-            st.button(
-                f"💬 {q}",
-                key=f"gen_q_{hash(q)}_{idx}",
-                use_container_width=True,
-                on_click=_on_use_question,
-                args=(q,),
-            )
-        st.button(
-            "💬 重新生成",
-            key="keyword_cloud_regenerate",
-            use_container_width=True,
-            disabled=loading,
-            on_click=_on_regenerate,
+.st-key-keyword_cloud_iframe iframe,
+.st-key-keyword_cloud_iframe [data-testid="stIFrame"] iframe,
+.st-key-keyword_cloud_iframe [data-testid="stCustomComponentV1"] iframe {{
+    min-height: {BUBBLE_COMPONENT_HEIGHT_PX}px !important;
+    height: {BUBBLE_COMPONENT_HEIGHT_PX}px !important;
+}}
+</style>
+            """,
+            unsafe_allow_html=True,
         )
+        try:
+            from streamlit_iframe_event import st_iframe_event
+
+            data_url = "data:text/html;base64," + base64.b64encode(bubble_html.encode("utf-8")).decode("ascii")
+            try:
+                with st.container(key="keyword_cloud_frame_shell"):
+                    event_value = st_iframe_event(
+                        data_url,
+                        key=f"keyword_cloud_iframe_{KEYWORD_IFRAME_VERSION}",
+                        default_width="100%",
+                        default_height=f"{BUBBLE_COMPONENT_HEIGHT_PX}px",
+                    )
+            except TypeError:
+                with st.container(key="keyword_cloud_frame_shell"):
+                    event_value = st_iframe_event(
+                        data_url,
+                        key=f"keyword_cloud_iframe_{KEYWORD_IFRAME_VERSION}",
+                        default_width="100%",
+                    )
+            if event_value is not None and isinstance(event_value, dict) and "token" in event_value:
+                try:
+                    new_selected = json.loads(event_value["token"])
+                    if isinstance(new_selected, list):
+                        st.session_state.keyword_cloud_selected = new_selected
+                        selected = st.session_state.keyword_cloud_selected
+                except (TypeError, ValueError):
+                    pass
+        except ImportError:
+            import streamlit.components.v1 as components
+
+            components.html(bubble_html, height=BUBBLE_COMPONENT_HEIGHT_PX, scrolling=False)
+            st.caption("[hint] 安装 streamlit-iframe-event 后可点击气泡与下方联动")
+
+        st.markdown("---")
+        st.caption("$ 选择关键词（最多 5 个）")
+        options = [item.get("word", "") for item in items if item.get("word")]
+        st.multiselect(
+            "已选词",
+            options=options,
+            max_selections=MAX_SELECTED,
+            key="keyword_cloud_selected",
+            placeholder="请选择关键词",
+            label_visibility="collapsed",
+        )
+        selected = st.session_state.keyword_cloud_selected
+        if loading:
+            st.info("[thinking] 正在生成问题...")
+        st.button(
+            "> 生成问题",
+            key="keyword_cloud_generate_btn",
+            disabled=not selected or loading,
+            on_click=_on_generate,
+        )
+
+        st.markdown("---")
+
+        # 延迟生成问题（避免回调阻塞 UI）
+        if st.session_state.get("keyword_cloud_generate_pending"):
+            st.session_state.keyword_cloud_generate_pending = False
+            st.session_state.keyword_cloud_loading = True
+            with st.spinner("生成中..."):
+                try:
+                    from backend.business.rag_engine.processing.question_generator import generate_questions
+                    model_id = st.session_state.get("selected_model")
+                    questions = generate_questions(selected, model_id=model_id)
+                    # 确保至少返回 2 个问题，不足则用占位符
+                    if len(questions) < 2:
+                        questions.extend([f"请详细解释关于{selected[0]}的内容"] * (2 - len(questions)))
+                    st.session_state.keyword_cloud_generated = questions[:2]
+                except Exception as e:
+                    from backend.infrastructure.logger import get_logger
+                    logger = get_logger("keyword_cloud")
+                    logger.exception("生成问题失败: %s", e)
+                    st.session_state.keyword_cloud_generated = []
+                finally:
+                    st.session_state.keyword_cloud_loading = False
+
+            generated = st.session_state.keyword_cloud_generated
+
+        # 生成结果：2 个问题 + 重新生成
+        if generated:
+            st.caption("$ 候选问题")
+            for idx, q in enumerate(generated, 1):
+                st.button(
+                    f"> {q}",
+                    key=f"gen_q_{hash(q)}_{idx}",
+                    use_container_width=True,
+                    on_click=_on_use_question,
+                    args=(q,),
+                )
+            st.button(
+                "> 重新生成",
+                key="keyword_cloud_regenerate",
+                use_container_width=True,
+                disabled=loading,
+                on_click=_on_regenerate,
+            )
+
+
+@st.dialog("组词", width="large", icon="🧭")
+def show_keyword_cloud_dialog() -> None:
+    """显示组词弹窗。"""
+    render_keyword_cloud()
+
+
+def render_keyword_cloud_entry(
+    button_label: str = "> 组词",
+    use_container_width: bool = True,
+) -> None:
+    """渲染组词入口按钮，并按需打开弹窗。"""
+    _ensure_state()
+    st.button(
+        button_label,
+        key="open_keyword_cloud_dialog_btn",
+        use_container_width=use_container_width,
+        on_click=_on_open_keyword_cloud_dialog,
+    )
+    if st.session_state.get("show_keyword_cloud_dialog", False):
+        show_keyword_cloud_dialog()
+        st.session_state.show_keyword_cloud_dialog = False

@@ -15,10 +15,47 @@
 import sys
 import os
 import atexit
+import base64
 from pathlib import Path
 import streamlit as st
 
 from frontend.utils.cleanup import cleanup_resources
+
+APP_TITLE_ICON = "❉"
+APP_TITLE_SVG = "title-system-network.svg"
+APP_TITLE_SVG_SIZE_PX = 56
+APP_TITLE_TEXT_SVG = "title-text-creating-systematology.svg"
+APP_TITLE_TEXT_SVG_HEIGHT_PX = 74
+APP_TITLE_ICON_OPTIONS = [
+    "🧭",
+    "🧠",
+    "🔬",
+    "🧪",
+    "⚗️",
+    "🧮",
+    "📊",
+    "📘",
+    "🌐",
+    "🛰️",
+    "🗺️",
+    "🧩",
+    "🔭",
+    "⚙️",
+    "📐",
+]
+APP_TITLE_SVG_OPTIONS = [
+    "network-nodes.svg",
+    "system-rings.svg",
+    "mesh-star.svg",
+    "title-system-network.svg",
+]
+APP_TITLE_TEXT_SVG_OPTIONS = [
+    "title-text-creating-systematology.svg",
+]
+SETTINGS_ICON_SVG = "settings-gear.svg"
+SETTINGS_ICON_SIZE_PX = 36
+RESTART_ICON_SVG = "restart-refresh.svg"
+RESTART_ICON_SIZE_PX = 30
 
 
 def configure_paths() -> None:
@@ -62,8 +99,84 @@ def configure_streamlit() -> None:
     """
     st.set_page_config(
         page_title="Creating Systematology RAG",
-        page_icon="🧭",
+        page_icon=APP_TITLE_ICON,
     )
+
+
+def get_title_svg_data_uri() -> str | None:
+    """读取并编码标题 SVG 图标，供前端内联渲染。"""
+    svg_name = APP_TITLE_SVG
+    if not svg_name:
+        return None
+
+    svg_path = Path(__file__).parent / "assets" / "icons" / svg_name
+    if not svg_path.exists():
+        return None
+
+    try:
+        svg_text = svg_path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+
+    encoded = base64.b64encode(svg_text.encode("utf-8")).decode("ascii")
+    return f"data:image/svg+xml;base64,{encoded}"
+
+
+def get_settings_icon_svg_data_uri() -> str | None:
+    """读取并编码设置按钮 SVG 图标，供前端内联渲染。"""
+    svg_name = SETTINGS_ICON_SVG
+    if not svg_name:
+        return None
+
+    svg_path = Path(__file__).parent / "assets" / "icons" / svg_name
+    if not svg_path.exists():
+        return None
+
+    try:
+        svg_text = svg_path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+
+    encoded = base64.b64encode(svg_text.encode("utf-8")).decode("ascii")
+    return f"data:image/svg+xml;base64,{encoded}"
+
+
+def get_title_text_svg_data_uri() -> str | None:
+    """读取并编码标题文字 SVG，供前端内联渲染。"""
+    svg_name = APP_TITLE_TEXT_SVG
+    if not svg_name:
+        return None
+
+    svg_path = Path(__file__).parent / "assets" / "icons" / svg_name
+    if not svg_path.exists():
+        return None
+
+    try:
+        svg_text = svg_path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+
+    encoded = base64.b64encode(svg_text.encode("utf-8")).decode("ascii")
+    return f"data:image/svg+xml;base64,{encoded}"
+
+
+def get_restart_icon_svg_data_uri() -> str | None:
+    """读取并编码重置按钮 SVG 图标，供前端内联渲染。"""
+    svg_name = RESTART_ICON_SVG
+    if not svg_name:
+        return None
+
+    svg_path = Path(__file__).parent / "assets" / "icons" / svg_name
+    if not svg_path.exists():
+        return None
+
+    try:
+        svg_text = svg_path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+
+    encoded = base64.b64encode(svg_text.encode("utf-8")).decode("ascii")
+    return f"data:image/svg+xml;base64,{encoded}"
 
 
 def get_file_search_paths() -> list[Path]:
