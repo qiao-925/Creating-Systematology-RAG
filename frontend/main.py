@@ -884,7 +884,7 @@ def _render_loading_app():
     """Render loading screen while initialization is in progress."""
     _set_loading_layout_mode(True)
     st.markdown(
-        "<div style='height: clamp(110px, 22vh, 260px);'></div>",
+        "<div style='height: clamp(140px, 28vh, 320px);'></div>",
         unsafe_allow_html=True,
     )
     # Title
