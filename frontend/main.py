@@ -372,6 +372,12 @@ header[data-testid="stHeader"] {
     min-height: calc(100vh - 0.8rem);
 }
 
+.block-container:has(.loading-center-marker) {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+}
+
 .block-container::before {
     content: none !important;
     display: none !important;
@@ -799,6 +805,7 @@ def _render_main_app_impl(init_result, rag_service, chat_manager):
 
 def _render_loading_app():
     """Render loading screen while initialization is in progress."""
+    st.markdown('<div class="loading-center-marker"></div>', unsafe_allow_html=True)
     # Title
     st.markdown("### 💬 Creating Systematology")
 
