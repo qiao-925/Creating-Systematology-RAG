@@ -320,11 +320,12 @@ footer {visibility: hidden;}
     --term-green-strong: #B8F6C4;
     --term-green-dim: #74C18B;
     --term-green-muted: #5FA977;
+    --term-font-stack: 'JetBrains Mono', 'Cascadia Mono', 'SFMono-Regular', Menlo, Consolas, 'Microsoft YaHei UI', 'PingFang SC', 'Noto Sans CJK SC', monospace;
 }
 
 .stApp {
     color: var(--term-green) !important;
-    font-family: 'JetBrains Mono', 'SFMono-Regular', Menlo, Consolas, 'Source Code Pro', monospace !important;
+    font-family: var(--term-font-stack) !important;
 }
 
 .stApp,
@@ -412,7 +413,12 @@ header[data-testid="stHeader"] {
 [data-testid="stChatInput"] textarea {
     color: var(--term-green-strong) !important;
     padding-left: 1.35rem !important;
-    font-family: 'JetBrains Mono', 'SFMono-Regular', Menlo, Consolas, monospace !important;
+    font-family: var(--term-font-stack) !important;
+}
+
+[data-testid="stChatInput"] [data-testid="stChatInputTextArea"] *,
+[data-testid="stChatInput"] [contenteditable="true"] {
+    font-family: var(--term-font-stack) !important;
 }
 
 [data-testid="stChatInput"] textarea::placeholder {
@@ -436,7 +442,11 @@ header[data-testid="stHeader"] {
     border: 1px solid var(--term-border) !important;
     border-radius: 8px !important;
     color: var(--term-green) !important;
-    font-family: 'JetBrains Mono', 'SFMono-Regular', Menlo, Consolas, monospace !important;
+    font-family: var(--term-font-stack) !important;
+}
+
+[data-testid="stPills"] [role="radiogroup"] > * * {
+    font-family: var(--term-font-stack) !important;
 }
 
 [data-testid="stPills"] [role="radiogroup"] [aria-checked="true"] {
