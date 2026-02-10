@@ -372,6 +372,14 @@ header[data-testid="stHeader"] {
     min-height: calc(100vh - 0.8rem);
 }
 
+body.loading-screen-mode [data-testid="stAppViewContainer"] .block-container {
+    min-height: 100vh !important;
+    padding-top: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+}
+
 .block-container::before {
     content: none !important;
     display: none !important;
@@ -517,9 +525,10 @@ hr {
 }
 
 [data-testid="stChatMessage"] {
-    border: 1px solid #2F4A61 !important;
-    background: rgba(12, 19, 30, 0.88) !important;
+    border: 1px solid var(--term-border) !important;
+    background: rgba(14, 22, 34, 0.88) !important;
     border-radius: 8px !important;
+    box-shadow: 0 0 0 1px rgba(110, 231, 135, 0.14) inset !important;
 }
 
 [data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] {
@@ -543,10 +552,56 @@ hr {
 
 [data-testid="stChatMessage"]:has(.chat-role-user-marker) {
     flex-direction: row-reverse !important;
+    margin-left: 8% !important;
+    margin-right: 0 !important;
 }
 
 [data-testid="stChatMessage"]:has(.chat-role-assistant-marker) {
     flex-direction: row !important;
+    margin-right: 8% !important;
+    margin-left: 0 !important;
+}
+
+[data-testid="stChatMessageAvatarUser"],
+[data-testid="stChatMessageAvatarAssistant"] {
+    width: 46px !important;
+    min-width: 46px !important;
+    height: 30px !important;
+    border-radius: 8px !important;
+    border: 1px solid var(--term-border) !important;
+    background: rgba(14, 22, 34, 0.92) !important;
+    box-shadow: 0 0 0 1px rgba(110, 231, 135, 0.14) inset !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    position: relative !important;
+}
+
+[data-testid="stChatMessageAvatarUser"] *,
+[data-testid="stChatMessageAvatarAssistant"] * {
+    opacity: 0 !important;
+}
+
+[data-testid="stChatMessageAvatarUser"]::after,
+[data-testid="stChatMessageAvatarAssistant"]::after {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--term-font-stack) !important;
+    font-size: 10px;
+    letter-spacing: 0.03em;
+    text-transform: lowercase;
+    color: var(--term-green-strong);
+}
+
+[data-testid="stChatMessageAvatarUser"]::after {
+    content: "user";
+}
+
+[data-testid="stChatMessageAvatarAssistant"]::after {
+    content: "system";
 }
 
 .chat-role-user-marker,
@@ -638,6 +693,33 @@ hr {
 def _inject_custom_css():
     """注入自定义 CSS 样式（每次渲染确保样式生效）"""
     st.markdown(_CUSTOM_CSS, unsafe_allow_html=True)
+
+
+def _set_loading_layout_mode(enabled: bool) -> None:
+    """Toggle loading layout mode by patching block-container inline styles."""
+    display = "flex" if enabled else ""
+    flex_direction = "column" if enabled else ""
+    justify_content = "center" if enabled else ""
+    min_height = "100vh" if enabled else ""
+    padding_top = "0" if enabled else ""
+    st.markdown(
+        f"""
+<script>
+(function() {{
+  const doc = window.parent?.document || document;
+  const container = doc?.querySelector('[data-testid="stAppViewContainer"] .block-container');
+  if (container) {{
+    container.style.display = '{display}';
+    container.style.flexDirection = '{flex_direction}';
+    container.style.justifyContent = '{justify_content}';
+    container.style.minHeight = '{min_height}';
+    container.style.paddingTop = '{padding_top}';
+  }}
+}})();
+</script>
+""",
+        unsafe_allow_html=True,
+    )
 
 
 def main():
@@ -786,6 +868,7 @@ def _debug_log(location: str, message: str, data: dict | None = None, hypothesis
 
 def _render_main_app_impl(init_result, rag_service, chat_manager):
     """渲染完整应用的实际实现"""    
+    _set_loading_layout_mode(False)
     # #region agent log
     _debug_log("main.py:_render_main_app_impl", "entry", hypothesis_id="D")
     # #endregion
@@ -799,16 +882,9 @@ def _render_main_app_impl(init_result, rag_service, chat_manager):
 
 def _render_loading_app():
     """Render loading screen while initialization is in progress."""
+    _set_loading_layout_mode(True)
     st.markdown(
-        """
-<style>
-[data-testid="stAppViewContainer"] .block-container {
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: center !important;
-}
-</style>
-""",
+        "<div style='height: clamp(110px, 22vh, 260px);'></div>",
         unsafe_allow_html=True,
     )
     # Title
@@ -875,12 +951,14 @@ def _render_loading_app():
 def _on_retry_click():
 
     """重试按钮回调"""
+    _set_loading_layout_mode(False)
     from frontend.utils.preloader import get_preloader
     get_preloader().reset()
 
 
 def _render_error_app():
     """渲染错误界面（初始化失败）"""
+    _set_loading_layout_mode(False)
     from frontend.utils.preloader import get_preloader
     
     st.error("❌ 应用初始化失败")
