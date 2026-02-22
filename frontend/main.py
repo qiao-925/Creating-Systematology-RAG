@@ -290,7 +290,7 @@ footer {visibility: hidden;}
     line-height: 1.4;
 }
 
-/* st-chat 延续块：与助手气泡视觉统一 */
+/* st-chat 延续块：与上方消息无缝衔接 */
 .message-continuation-anchor {
     margin: 0;
     padding: 0;
@@ -300,13 +300,14 @@ footer {visibility: hidden;}
     display: block;
 }
 [data-testid="stMarkdown"]:has(.message-continuation-anchor) {
-    margin-bottom: -8px;
+    margin-bottom: -1px;
 }
 [data-testid="stMarkdown"]:has(.message-continuation-anchor) + div .stChatMessage,
 [data-testid="stMarkdown"]:has(.message-continuation-anchor) + div [data-testid="stChatMessage"] {
-    margin-top: -8px;
-    border-top-left-radius: 0;
-    border-top-right-radius: 0;
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none !important;
+    border-bottom: 1px solid rgba(43, 61, 82, 0.4) !important;
 }
 
 /* Terminal theme overrides */
@@ -360,7 +361,7 @@ header[data-testid="stHeader"] {
     max-width: 980px !important;
     margin: 0 auto !important;
     padding-top: 0.95rem !important;
-    padding-bottom: 1rem !important;
+    padding-bottom: 5rem !important;
     padding-left: clamp(0.8rem, 2.2vw, 1.4rem) !important;
     padding-right: clamp(0.8rem, 2.2vw, 1.4rem) !important;
     border: none !important;
@@ -403,6 +404,31 @@ body.loading-screen-mode [data-testid="stAppViewContainer"] .block-container {
     border: 1px solid var(--term-border) !important;
     border-radius: 9px !important;
     box-shadow: 0 0 0 1px rgba(110, 231, 135, 0.14) inset !important;
+}
+
+/* 输入框常驻底部 */
+[data-testid="stBottom"],
+[data-testid="stChatFloatingBottom"],
+.stBottom {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 999 !important;
+    background: linear-gradient(0deg, #0A1018 60%, transparent 100%) !important;
+    padding: 0.6rem clamp(0.8rem, 2.2vw, 1.4rem) 0.8rem !important;
+}
+
+[data-testid="stBottom"] > div,
+[data-testid="stChatFloatingBottom"] > div,
+.stBottom > div {
+    max-width: 980px !important;
+    margin: 0 auto !important;
+}
+
+/* 给消息列表底部留出输入框空间 */
+.block-container {
+    padding-bottom: 5rem !important;
 }
 
 [data-testid="stChatInput"] > div::before {
@@ -524,89 +550,124 @@ hr {
     margin: 0 !important;
 }
 
+/* ===== 对话布局：ChatGPT/Claude 风格，垂直堆叠，全宽 ===== */
+
+/* 隐藏 Streamlit 原生 avatar（多重选择器兜底） */
+[data-testid="stChatMessageAvatarUser"],
+[data-testid="stChatMessageAvatarAssistant"],
+[data-testid*="chatAvatarIcon"],
+[data-testid*="ChatMessageAvatar"],
+.stChatMessage > div:first-child:has(img),
+.stChatMessage > div:first-child:has(span[style]),
+[data-testid="stChatMessage"] > div:first-child:has(img) {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
+}
+
+/* 消息容器：垂直堆叠，左侧色条区分说话人 */
 [data-testid="stChatMessage"] {
-    border: 1px solid var(--term-border) !important;
-    background: rgba(14, 22, 34, 0.88) !important;
-    border-radius: 8px !important;
-    box-shadow: 0 0 0 1px rgba(110, 231, 135, 0.14) inset !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    padding: 0.7rem 0 0.7rem 14px !important;
+    margin: 6px 0 !important;
+    border-left: 2px solid var(--term-border) !important;
+    border-bottom: none !important;
+    gap: 0 !important;
+}
+
+/* SYSTEM 消息：亮绿色条 */
+[data-testid="stChatMessage"]:has(.chat-role-assistant-marker) {
+    border-left: 2px solid #63DA90 !important;
+    flex-direction: column !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+/* USER 消息：右对齐，右侧色条 */
+[data-testid="stChatMessage"]:has(.chat-role-user-marker) {
+    border-left: none !important;
+    border-right: 2px solid #3A6B50 !important;
+    padding: 0.7rem 14px 0.7rem 0 !important;
+    margin-left: 20% !important;
+    margin-right: 0 !important;
+    flex-direction: column !important;
+    align-items: flex-end !important;
+    text-align: right !important;
+}
+
+[data-testid="stChatMessage"]:has(.chat-role-user-marker) [data-testid="stMarkdownContainer"] {
+    text-align: right !important;
+}
+
+/* 消息内容区：全宽 */
+[data-testid="stChatMessage"] > div:last-child,
+[data-testid="stChatMessage"] [data-testid="stChatMessageContent"] {
+    width: 100% !important;
+    max-width: 100% !important;
 }
 
 [data-testid="stChatMessage"] [data-testid="stMarkdownContainer"] {
     color: var(--term-green-strong) !important;
 }
 
-/* 聊天对话布局：用户在右，助手在左 */
-[data-testid="stChatMessage"] {
-    display: flex !important;
-    align-items: flex-start !important;
-    gap: 10px !important;
-    justify-content: flex-start !important;
-    flex-direction: row !important;
-}
-
-[data-testid="stChatMessage"] > div:last-child,
-[data-testid="stChatMessage"] [data-testid="stChatMessageContent"] {
-    width: auto !important;
-    max-width: min(76%, 780px) !important;
-}
-
-[data-testid="stChatMessage"]:has(.chat-role-user-marker) {
-    flex-direction: row-reverse !important;
-    margin-left: 8% !important;
-    margin-right: 0 !important;
-}
-
-[data-testid="stChatMessage"]:has(.chat-role-assistant-marker) {
-    flex-direction: row !important;
-    margin-right: 8% !important;
-    margin-left: 0 !important;
-}
-
-[data-testid="stChatMessageAvatarUser"],
-[data-testid="stChatMessageAvatarAssistant"] {
-    width: 46px !important;
-    min-width: 46px !important;
-    height: 30px !important;
-    border-radius: 8px !important;
-    border: 1px solid var(--term-border) !important;
-    background: rgba(14, 22, 34, 0.92) !important;
-    box-shadow: 0 0 0 1px rgba(110, 231, 135, 0.14) inset !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    position: relative !important;
-}
-
-[data-testid="stChatMessageAvatarUser"] *,
-[data-testid="stChatMessageAvatarAssistant"] * {
-    opacity: 0 !important;
-}
-
-[data-testid="stChatMessageAvatarUser"]::after,
-[data-testid="stChatMessageAvatarAssistant"]::after {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: var(--term-font-stack) !important;
-    font-size: 10px;
-    letter-spacing: 0.03em;
-    text-transform: lowercase;
-    color: var(--term-green-strong);
-}
-
-[data-testid="stChatMessageAvatarUser"]::after {
-    content: "user";
-}
-
-[data-testid="stChatMessageAvatarAssistant"]::after {
-    content: "system";
-}
-
+/* 角色文本标签 */
 .chat-role-user-marker,
 .chat-role-assistant-marker {
-    display: none !important;
+    display: inline-block !important;
+    font-family: var(--term-font-stack) !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    letter-spacing: 1.6px !important;
+    text-transform: uppercase !important;
+    margin-bottom: 4px !important;
+    line-height: 1 !important;
+}
+
+.chat-role-assistant-marker {
+    background: linear-gradient(90deg, #B7FFD0 0%, #96F2B7 42%, #63DA90 100%) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+    filter: drop-shadow(0 0 1.8px rgba(201,255,215,0.6))
+            drop-shadow(0 0 5px rgba(92,219,144,0.28)) !important;
+}
+
+.chat-role-user-marker {
+    color: var(--term-green-dim) !important;
+    -webkit-text-fill-color: var(--term-green-dim) !important;
+    filter: none !important;
+    opacity: 0.85 !important;
+}
+
+/* 聊天消息内标题缩小 */
+[data-testid="stChatMessage"] h1 {
+    font-size: 1.8rem !important;
+    margin: 0.6rem 0 0.3rem !important;
+    line-height: 1.3 !important;
+}
+[data-testid="stChatMessage"] h2 {
+    font-size: 1.5rem !important;
+    margin: 0.5rem 0 0.25rem !important;
+    line-height: 1.3 !important;
+}
+[data-testid="stChatMessage"] h3 {
+    font-size: 1.3rem !important;
+    margin: 0.4rem 0 0.2rem !important;
+    line-height: 1.3 !important;
+}
+[data-testid="stChatMessage"] h4,
+[data-testid="stChatMessage"] h5,
+[data-testid="stChatMessage"] h6 {
+    font-size: 1.15rem !important;
+    margin: 0.35rem 0 0.15rem !important;
+    line-height: 1.3 !important;
 }
 
 [data-testid="stCodeBlock"],
@@ -664,6 +725,33 @@ hr {
             return false;
         }
     }, true);
+})();
+
+// 隐藏 Streamlit 原生 avatar（JS 兜底，CSS 选择器可能不匹配新版 DOM）
+(function() {
+    function hideAvatars() {
+        document.querySelectorAll('[data-testid="stChatMessage"]').forEach(function(msg) {
+            // avatar 是 chat message 的第一个子 div，包含 img 或 emoji span
+            var firstChild = msg.children[0];
+            if (!firstChild) return;
+            // 如果第一个子元素包含 img 或者不包含 stMarkdown/stChatMessageContent，就是 avatar
+            var hasImg = firstChild.querySelector('img');
+            var isContent = firstChild.hasAttribute('data-testid') &&
+                (firstChild.getAttribute('data-testid').includes('Content') ||
+                 firstChild.getAttribute('data-testid').includes('Markdown'));
+            if (hasImg || (!isContent && !firstChild.classList.contains('stMarkdown'))) {
+                // 检查是否是 avatar 容器（通常很小，不含文本内容）
+                var text = firstChild.textContent.trim();
+                if (text.length <= 2 || hasImg) {
+                    firstChild.style.display = 'none';
+                }
+            }
+        });
+    }
+    // 初始执行 + MutationObserver 持续监听
+    hideAvatars();
+    var observer = new MutationObserver(hideAvatars);
+    observer.observe(document.body, { childList: true, subtree: true });
 })();
 
 // Ctrl+Enter / Cmd+Enter 快捷键发送

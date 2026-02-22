@@ -379,7 +379,7 @@ def render_chat_history() -> None:
         role = msg["role"]
         if role == "user":
             with st.chat_message("user", avatar=USER_AVATAR):
-                st.markdown("<span class='chat-role-user-marker'></span>", unsafe_allow_html=True)
+                st.markdown("<span class='chat-role-user-marker'>User:</span>", unsafe_allow_html=True)
                 st.markdown(msg["content"])
         else:
             if "sources" in msg and msg["sources"]:
@@ -391,7 +391,7 @@ def render_chat_history() -> None:
             else:
                 formatted_content = msg["content"]
             with st.chat_message("assistant", avatar=ASSISTANT_AVATAR):
-                st.markdown("<span class='chat-role-assistant-marker'></span>", unsafe_allow_html=True)
+                st.markdown("<span class='chat-role-assistant-marker'>System:</span>", unsafe_allow_html=True)
                 st.container()  # Fix ghost message bug.
                 st.markdown(formatted_content, unsafe_allow_html=True)
             render_assistant_continuation(idx, message_id, msg)
@@ -406,7 +406,7 @@ def render_assistant_continuation(message_index: int, message_id: str, msg: dict
         unsafe_allow_html=True,
     )
     with st.chat_message("assistant", avatar=ASSISTANT_AVATAR):
-        st.markdown("<span class='chat-role-assistant-marker'></span>", unsafe_allow_html=True)
+        st.markdown("<span class='chat-role-assistant-marker'>System:</span>", unsafe_allow_html=True)
         _render_observer_info(message_index)
         reasoning_content = msg.get("reasoning_content")
         if reasoning_content:

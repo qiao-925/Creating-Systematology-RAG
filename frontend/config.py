@@ -201,8 +201,10 @@ def get_file_search_paths() -> list[Path]:
 
 # 建议问题配置（用于 st.pills 显示）
 # 格式：{显示标签: 实际问题}
-USER_AVATAR = "🙂"
-ASSISTANT_AVATAR = "🤖"
+# 透明 1x1 像素 PNG，让 Streamlit avatar 不可见（角色标签由 CSS marker 渲染）
+_TRANSPARENT_PIXEL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVQI12NgAAIABQABNjN9GQAAAABJRkJggg=="
+USER_AVATAR = _TRANSPARENT_PIXEL
+ASSISTANT_AVATAR = _TRANSPARENT_PIXEL
 
 SUGGESTION_QUESTIONS = {
     "📚 什么是系统科学？": "什么是系统科学？它的核心思想是什么？",
