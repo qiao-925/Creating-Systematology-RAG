@@ -216,6 +216,7 @@ def _inject_landing_center_css() -> None:
     justify-content: center !important;
     width: 100% !important;
     padding-bottom: 6vh !important;
+    transition: opacity 0.12s ease-out;
 }
 
 @media (max-width: 768px) {
@@ -225,6 +226,31 @@ def _inject_landing_center_css() -> None:
     }
 }
 </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def _inject_landing_hide_script() -> None:
+    """在 landing 内容渲染完毕后注入即时隐藏脚本，消除 rerun 期间虚影。"""
+    st.markdown(
+        """
+<script>
+requestAnimationFrame(function(){
+  var shell = document.querySelector('.st-key-landing_center_shell');
+  if (!shell) return;
+  function hide(){ shell.style.opacity='0'; shell.style.pointerEvents='none'; }
+  var ta = shell.querySelector('textarea');
+  if(ta) ta.addEventListener('keydown', function(e){
+    if(e.key==='Enter' && !e.shiftKey && ta.value.trim()) hide();
+  });
+  var btn = shell.querySelector('[data-testid="stChatInputSubmitButton"]');
+  if(btn) btn.addEventListener('click', function(){ if(ta && ta.value.trim()) hide(); });
+  shell.querySelectorAll('[data-testid="stPills"] [role="radio"]').forEach(function(p){
+    p.addEventListener('click', hide);
+  });
+});
+</script>
         """,
         unsafe_allow_html=True,
     )
@@ -325,6 +351,7 @@ def render_chat_interface(rag_service, chat_manager) -> None:
             from frontend.components.quick_start import render_quick_start
 
             render_quick_start()
+        _inject_landing_hide_script()
         st.stop()
 
     # 渲染标题行（标题 + Restart + 设置按钮）
@@ -339,28 +366,6 @@ def render_chat_interface(rag_service, chat_manager) -> None:
 
     # 初始化来源映射
     initialize_sources_map()
-
-    if not has_messages:
-        if not user_first_interaction:
-            from frontend.components.quick_start import render_quick_start
-            render_quick_start()
-            st.stop()
-        else:
-            if user_just_asked_initial:
-                prompt = st.session_state.initial_question
-            elif user_just_clicked_suggestion:
-                selected_label = st.session_state.selected_suggestion
-                prompt = SUGGESTION_QUESTIONS.get(selected_label, selected_label)
-            else:
-                prompt = None
-
-            if prompt:
-                st.session_state.messages.append({"role": "user", "content": prompt})
-                st.session_state.pending_query = prompt
-                st.session_state.initial_question = None
-                st.session_state.selected_suggestion = None
-                if 'initial_question_input' in st.session_state:
-                    st.session_state.initial_question_input = ""
 
     render_chat_history()
 

@@ -575,7 +575,7 @@ hr {
     border-radius: 0 !important;
     box-shadow: none !important;
     background: transparent !important;
-    padding: 0.7rem 0 0.7rem 14px !important;
+    padding: 0.05rem 0 0.7rem 14px !important;
     margin: 6px 0 !important;
     border-left: 2px solid var(--term-border) !important;
     border-bottom: none !important;
@@ -594,9 +594,8 @@ hr {
 [data-testid="stChatMessage"]:has(.chat-role-user-marker) {
     border-left: none !important;
     border-right: 2px solid #3A6B50 !important;
-    padding: 0.7rem 14px 0.7rem 0 !important;
-    margin-left: 20% !important;
-    margin-right: 0 !important;
+    padding: 0.05rem 14px 0.7rem 0 !important;
+    margin-left: 0 !important;
     flex-direction: column !important;
     align-items: flex-end !important;
     text-align: right !important;
@@ -954,12 +953,40 @@ def _debug_log(location: str, message: str, data: dict | None = None, hypothesis
     # #endregion
 
 
+def _flush_initial_input() -> None:
+    """将 initial_question / selected_suggestion 提前转为 messages + pending_query。
+
+    在 render_chat_interface 之前调用，确保进入渲染时 has_messages 已为 True，
+    避免出现"跳过 landing 但还没有消息"的中间态虚影。
+    """
+    if st.session_state.get("messages"):
+        return
+
+    prompt = None
+    if st.session_state.get("initial_question"):
+        prompt = st.session_state.initial_question
+        st.session_state.initial_question = None
+        if 'initial_question_input' in st.session_state:
+            st.session_state.initial_question_input = ""
+    elif st.session_state.get("selected_suggestion"):
+        from frontend.config import SUGGESTION_QUESTIONS
+        label = st.session_state.selected_suggestion
+        prompt = SUGGESTION_QUESTIONS.get(label, label)
+        st.session_state.selected_suggestion = None
+
+    if prompt:
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        st.session_state.pending_query = prompt
+
+
 def _render_main_app_impl(init_result, rag_service, chat_manager):
-    """渲染完整应用的实际实现"""    
+    """渲染完整应用的实际实现"""
     _set_loading_layout_mode(False)
     # #region agent log
     _debug_log("main.py:_render_main_app_impl", "entry", hypothesis_id="D")
     # #endregion
+    # 提前消费首次输入，避免 render_chat_interface 看到中间态
+    _flush_initial_input()
     # 渲染UI和处理查询（单列居中布局，无侧边栏）
     render_chat_interface(rag_service, chat_manager)
     # #region agent log
