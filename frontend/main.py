@@ -897,7 +897,7 @@ def _build_session_services(init_result):
     chat_manager = ChatManager(
         index_manager=index_manager,
         index_manager_provider=index_manager_provider,
-        enable_debug=app_config.debug_mode,
+        enable_debug=False,
         enable_markdown_formatting=True,
         use_agentic_rag=app_config.use_agentic_rag,
         model_id=app_config.selected_model,
@@ -911,7 +911,7 @@ def _build_session_services(init_result):
 
     rag_service = RAGService(
         collection_name=collection_name,
-        enable_debug=app_config.debug_mode,
+        enable_debug=False,
         enable_markdown_formatting=True,
         use_agentic_rag=app_config.use_agentic_rag,
         model_id=app_config.selected_model,
@@ -959,12 +959,21 @@ def _flush_initial_input() -> None:
     在 render_chat_interface 之前调用，确保进入渲染时 has_messages 已为 True，
     避免出现"跳过 landing 但还没有消息"的中间态虚影。
     """
-    if st.session_state.get("messages"):
+    from backend.infrastructure.logger import get_logger
+    logger = get_logger('flush_initial_input')
+
+    # 确保 messages 已初始化
+    if 'messages' not in st.session_state:
+        st.session_state.messages = []
+
+    if st.session_state.messages:
+        logger.debug("已有消息，跳过 flush", messages_count=len(st.session_state.messages))
         return
 
     prompt = None
     if st.session_state.get("initial_question"):
         prompt = st.session_state.initial_question
+        logger.debug("检测到 initial_question", prompt=prompt)
         st.session_state.initial_question = None
         if 'initial_question_input' in st.session_state:
             st.session_state.initial_question_input = ""
@@ -972,11 +981,15 @@ def _flush_initial_input() -> None:
         from frontend.config import SUGGESTION_QUESTIONS
         label = st.session_state.selected_suggestion
         prompt = SUGGESTION_QUESTIONS.get(label, label)
+        logger.debug("检测到 selected_suggestion", label=label, prompt=prompt)
         st.session_state.selected_suggestion = None
 
     if prompt:
         st.session_state.messages.append({"role": "user", "content": prompt})
         st.session_state.pending_query = prompt
+        logger.debug("已添加消息到 messages 和 pending_query", prompt=prompt)
+    else:
+        logger.debug("未检测到任何输入")
 
 
 def _render_main_app_impl(init_result, rag_service, chat_manager):

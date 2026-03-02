@@ -157,11 +157,11 @@ batch_processing:
 # ============================================================================
 observability:
   llama_debug:
-    enable: true  # 默认启用
+    enable: false  # 默认禁用
     print_trace: true
 
 ragas:
-  enable: true  # 默认启用
+  enable: false  # 默认禁用
   metrics:
     - faithfulness
     - context_precision

@@ -17,8 +17,6 @@
 - 统一的观察器管理
 """
 
-from typing import List, Optional
-from backend.infrastructure.observers.base import BaseObserver
 from backend.infrastructure.observers.llama_debug_observer import LlamaDebugObserver
 from backend.infrastructure.observers.ragas_evaluator import RAGASEvaluator
 from backend.infrastructure.observers.manager import ObserverManager
@@ -78,10 +76,11 @@ def create_default_observers(
 
 
 def create_observer_from_config() -> ObserverManager:
-    """创建观察器管理器（默认全部启用）"""
+    """创建观察器管理器（按配置启用）"""
     return create_default_observers(
-        enable_debug=True,
-        enable_ragas=True,
-        print_trace=True,
+        enable_debug=config.ENABLE_DEBUG_HANDLER,
+        enable_ragas=config.ENABLE_RAGAS,
+        print_trace=config.DEBUG_PRINT_TRACE,
+        ragas_metrics=config.RAGAS_METRICS,
+        ragas_batch_size=config.RAGAS_BATCH_SIZE,
     )
-

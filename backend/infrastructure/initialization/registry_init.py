@@ -181,8 +181,6 @@ def init_rag_service(manager: InitializationManager) -> Any:
         collection_name = st.session_state.collection_name
     
     enable_debug = False
-    if hasattr(st, 'session_state') and 'debug_mode_enabled' in st.session_state:
-        enable_debug = st.session_state.debug_mode_enabled
     
     use_agentic_rag = False
     if hasattr(st, 'session_state') and 'use_agentic_rag' in st.session_state:
@@ -231,8 +229,6 @@ def init_chat_manager(manager: InitializationManager) -> Any:
             return st.session_state.chat_manager
     
     enable_debug = False
-    if hasattr(st, 'session_state') and 'debug_mode_enabled' in st.session_state:
-        enable_debug = st.session_state.debug_mode_enabled
     
     use_agentic_rag = False
     if hasattr(st, 'session_state') and 'use_agentic_rag' in st.session_state:

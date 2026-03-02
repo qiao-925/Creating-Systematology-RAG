@@ -74,7 +74,6 @@ class AppConfig:
     
     # 显示配置
     show_reasoning: bool = True
-    debug_mode: bool = False
     
     @classmethod
     def from_session_state(cls) -> "AppConfig":
@@ -100,7 +99,6 @@ class AppConfig:
             show_reasoning=st.session_state.get(
                 'show_reasoning', config.DEEPSEEK_ENABLE_REASONING_DISPLAY
             ),
-            debug_mode=st.session_state.get('debug_mode_enabled', False),
         )
     
     def save_to_session_state(self) -> None:
@@ -113,7 +111,6 @@ class AppConfig:
         st.session_state.similarity_threshold = self.similarity_threshold
         st.session_state.enable_rerank = self.enable_rerank
         st.session_state.show_reasoning = self.show_reasoning
-        st.session_state.debug_mode_enabled = self.debug_mode
     
     def get_llm_temperature(self) -> Optional[float]:
         """获取当前预设的 temperature

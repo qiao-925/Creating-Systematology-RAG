@@ -211,7 +211,7 @@ def check_llama_debug() -> bool:
 def check_ragas() -> bool:
     """检查RAGAS评估器"""
     try:
-        if not config.RAGAS_ENABLE:
+        if not config.ENABLE_RAGAS:
             return False
         
         from backend.infrastructure.observers.ragas_evaluator import RAGASEvaluator

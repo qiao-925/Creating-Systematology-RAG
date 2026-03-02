@@ -52,10 +52,6 @@ def init_session_state() -> None:
         # 从同步状态中加载已存在的仓库列表
         st.session_state.github_repos = st.session_state.github_sync_manager.list_repositories()
     
-    # 调试模式与可观测性（默认开启）
-    if 'debug_mode_enabled' not in st.session_state:
-        st.session_state.debug_mode_enabled = True
-    
     # 追踪信息默认启用，无需配置
     if 'collect_trace' not in st.session_state:
         st.session_state.collect_trace = True
@@ -245,7 +241,6 @@ def rebuild_services() -> bool:
         collection_name = st.session_state.get(
             'collection_name', config.CHROMA_COLLECTION_NAME
         )
-        enable_debug = app_config.debug_mode
         
         def _get_shared_index_manager():
             existing = init_result.instances.get('index_manager')
@@ -265,7 +260,7 @@ def rebuild_services() -> bool:
             index_manager=index_manager,
             index_manager_provider=index_manager_provider,
             user_email=None,
-            enable_debug=enable_debug,
+            enable_debug=False,
             enable_markdown_formatting=True,
             use_agentic_rag=app_config.use_agentic_rag,
             model_id=app_config.selected_model,
@@ -279,7 +274,7 @@ def rebuild_services() -> bool:
 
         rag_service = RAGService(
             collection_name=collection_name,
-            enable_debug=enable_debug,
+            enable_debug=False,
             enable_markdown_formatting=True,
             use_agentic_rag=app_config.use_agentic_rag,
             model_id=app_config.selected_model,
@@ -302,4 +297,3 @@ def rebuild_services() -> bool:
     except Exception as e:
         logger.error(f"❌ 服务重建失败: {e}", exc_info=True)
         return False
-

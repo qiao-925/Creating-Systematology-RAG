@@ -21,7 +21,7 @@ def render_advanced_config(
     
     包含：
     - RAG 高级参数（Top-K、阈值、重排序）
-    - 显示设置（推理过程、调试模式）
+    - 显示设置（推理过程）
     
     Args:
         on_config_change: 配置变更回调
@@ -44,8 +44,6 @@ def _render_display_settings(
     # 初始化状态
     if 'show_reasoning' not in st.session_state:
         st.session_state.show_reasoning = config.DEEPSEEK_ENABLE_REASONING_DISPLAY
-    if 'debug_mode_enabled' not in st.session_state:
-        st.session_state.debug_mode_enabled = False
     
     # 推理过程显示
     new_show_reasoning = st.toggle(
@@ -57,18 +55,5 @@ def _render_display_settings(
     
     if new_show_reasoning != st.session_state.show_reasoning:
         st.session_state.show_reasoning = new_show_reasoning
-        if on_config_change:
-            on_config_change()
-    
-    # 调试模式
-    new_debug_mode = st.toggle(
-        "调试模式",
-        value=st.session_state.debug_mode_enabled,
-        key="debug_mode_toggle",
-        help="启用后，会显示详细的检索和处理日志。"
-    )
-    
-    if new_debug_mode != st.session_state.debug_mode_enabled:
-        st.session_state.debug_mode_enabled = new_debug_mode
         if on_config_change:
             on_config_change()
