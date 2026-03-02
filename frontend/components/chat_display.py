@@ -154,13 +154,16 @@ def render_chat_interface(rag_service, chat_manager) -> None:
         will_show_landing=(not has_messages) and (not user_first_interaction)
     )
 
-    # 如果有首次交互，立即注入 CSS 隐藏 landing shell，防止残影
-    if user_first_interaction:
+    # 如果有首次交互或已有消息，立即注入 CSS 隐藏 landing shell，防止残影
+    if user_first_interaction or has_messages:
         st.markdown(
             """
             <style>
             .st-key-landing_center_shell {
                 display: none !important;
+                opacity: 0 !important;
+                visibility: hidden !important;
+                pointer-events: none !important;
             }
             </style>
             """,
