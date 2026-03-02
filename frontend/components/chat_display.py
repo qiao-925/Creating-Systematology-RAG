@@ -154,6 +154,19 @@ def render_chat_interface(rag_service, chat_manager) -> None:
         will_show_landing=(not has_messages) and (not user_first_interaction)
     )
 
+    # 如果有首次交互，立即注入 CSS 隐藏 landing shell，防止残影
+    if user_first_interaction:
+        st.markdown(
+            """
+            <style>
+            .st-key-landing_center_shell {
+                display: none !important;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True
+        )
+
     # 仅首屏（无对话、无待处理输入）上下居中，进入对话后恢复顶部布局
     if (not has_messages) and (not user_first_interaction):
         inject_landing_center_css()
