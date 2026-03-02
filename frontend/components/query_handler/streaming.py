@@ -146,7 +146,7 @@ def handle_streaming_query(rag_service, chat_manager, prompt: str) -> bool:
                 "sources": sources or [],
                 "reasoning_content": reasoning_content,
             }
-            render_assistant_continuation(msg_idx, message_id, msg)
+            render_assistant_continuation(message_id, msg)
         _debug_log("streaming.py:exit_success", "handle_streaming_query exit success", hypothesis_id="S")
         return True
     except Exception as e:
