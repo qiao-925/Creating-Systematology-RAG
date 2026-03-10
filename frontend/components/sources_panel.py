@@ -14,7 +14,9 @@ from typing import List, Optional, Dict, Any
 def _create_view_file_callback(dialog_key: str, file_path: str):
     """创建查看文件按钮的回调"""
     def callback():
-        st.session_state[f"show_file_{dialog_key}"] = file_path
+        # 分离“是否打开弹窗”与“文件路径”，避免空路径时按钮失效
+        st.session_state[f"show_file_{dialog_key}"] = True
+        st.session_state[f"show_file_path_{dialog_key}"] = file_path
     return callback
 
 
@@ -45,7 +47,7 @@ def display_sources_below_message(sources: List[Dict[str, Any]], message_id: Opt
     # 渲染来源列表
     for idx, source in enumerate(sources):
         citation_num = source.get('index', idx + 1)
-        dialog_key = f"file_viewer_below_{message_id}_{citation_num}"
+        dialog_key = f"file_viewer_below_{message_id}_{idx}_{citation_num}"
         file_path, title = extract_file_info(source)
         text = source.get('text', '')
         preview = text[:200] + "..." if len(text) > 200 else text
@@ -72,13 +74,15 @@ def display_sources_below_message(sources: List[Dict[str, Any]], message_id: Opt
         )
         
         # 检查是否需要打开对话框
-        if dialog_to_open is None and st.session_state.get(f"show_file_{dialog_key}"):
-            dialog_to_open = (dialog_key, st.session_state[f"show_file_{dialog_key}"])
+        if dialog_to_open is None and st.session_state.get(f"show_file_{dialog_key}", False):
+            dialog_to_open = (dialog_key, st.session_state.get(f"show_file_path_{dialog_key}", ""))
     
     # 打开对话框（如果有）
     if dialog_to_open:
         dialog_key, file_path = dialog_to_open
         show_file_viewer_dialog(file_path)
+        # 每次触发后立即复位，防止弹窗在后续 rerun 中反复自动打开
+        st.session_state[f"show_file_{dialog_key}"] = False
+        st.session_state[f"show_file_path_{dialog_key}"] = None
         if st.session_state.get(f"close_file_{dialog_key}", False):
-            st.session_state[f"show_file_{dialog_key}"] = None
             st.session_state[f"close_file_{dialog_key}"] = False

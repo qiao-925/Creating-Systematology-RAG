@@ -1,23 +1,58 @@
-"""
-文件查看工具函数
-提供文件路径解析和文件内容显示的工具函数
-
-主要功能：
-- resolve_file_path()：解析文件路径，支持相对路径、绝对路径和仅文件名
-- get_relative_path()：获取文件相对于项目根目录的相对路径
-- display_file_info()：显示文件信息（文件名、路径、复制功能）
-- display_markdown_file()：显示Markdown文件内容
-- display_pdf_file()：显示PDF文件内容
-- show_file_viewer_dialog()：显示文件查看弹窗（使用 @st.dialog 装饰器）
-
-注意：页面版本 render_file_viewer_page() 已删除，所有文件查看功能通过弹窗实现
-"""
+"""文件查看工具：路径解析 + Markdown/PDF 预览弹窗。"""
 
 import streamlit as st
 from pathlib import Path
+from functools import lru_cache
 from typing import Optional
 from backend.infrastructure.config import config
 from frontend.config import get_file_search_paths
+
+
+def _iter_fallback_roots(possible_roots: list[Path]) -> list[Path]:
+    """构造回退搜索根目录列表（去重，保持顺序）"""
+    roots = list(possible_roots)
+    roots.append(config.PROJECT_ROOT.parent)
+    unique_roots: list[Path] = []
+    seen: set[str] = set()
+    for root in roots:
+        root_str = str(root.resolve()) if root.exists() else str(root)
+        if root_str in seen:
+            continue
+        seen.add(root_str)
+        unique_roots.append(root)
+    return unique_roots
+
+
+@lru_cache(maxsize=128)
+def _search_filename_under_root(root_str: str, file_name: str) -> tuple[str, ...]:
+    """在给定根目录下递归搜索文件名（带缓存）"""
+    root = Path(root_str)
+    if not root.exists():
+        return ()
+    try:
+        return tuple(
+            str(path)
+            for path in root.rglob(file_name)
+            if path.is_file()
+        )
+    except (OSError, PermissionError):
+        return ()
+
+
+def _suffix_match_score(candidate: Path, requested_parts: list[str]) -> int:
+    """计算候选路径与请求路径从尾部开始的匹配段数"""
+    candidate_parts = [part.lower() for part in candidate.parts if part]
+    target_parts = [part.lower() for part in requested_parts if part]
+    if not candidate_parts or not target_parts:
+        return 0
+
+    score = 0
+    max_len = min(len(candidate_parts), len(target_parts))
+    while score < max_len:
+        if candidate_parts[-(score + 1)] != target_parts[-(score + 1)]:
+            break
+        score += 1
+    return score
 
 
 def resolve_file_path(file_path_str: str) -> Optional[Path]:
@@ -32,17 +67,12 @@ def resolve_file_path(file_path_str: str) -> Optional[Path]:
     if not file_path_str:
         return None
     
-    # 转换为Path对象
     file_path = Path(file_path_str)
-    
-    # 如果是绝对路径，直接返回
     if file_path.is_absolute():
         if file_path.exists():
             return file_path
         return None
-    
-    # 如果是相对路径，尝试多个可能的根目录
-    # 首先尝试直接路径匹配
+
     possible_roots = get_file_search_paths()
     for root in possible_roots:
         if not root.exists():
@@ -50,23 +80,45 @@ def resolve_file_path(file_path_str: str) -> Optional[Path]:
         full_path = root / file_path
         if full_path.exists():
             return full_path
-    
-    # 如果直接路径匹配失败，且路径看起来像文件名（没有路径分隔符），尝试递归搜索
+
     if '/' not in file_path_str and '\\' not in file_path_str:
         file_name = file_path.name
         for root in possible_roots:
             if not root.exists():
                 continue
-            # 递归搜索文件
             found_files = list(root.rglob(file_name))
             if found_files:
-                # 返回第一个找到的文件
                 return found_files[0]
-    
-    # 尝试直接相对于项目根目录
+
     full_path = config.PROJECT_ROOT / file_path
     if full_path.exists():
         return full_path
+
+    # 兜底：按文件名递归搜索，优先匹配请求路径后缀
+    file_name = file_path.name
+    if file_name:
+        requested_parts = [part for part in Path(file_path_str).parts if part not in (".",)]
+        matched_files: list[Path] = []
+        for root in _iter_fallback_roots(possible_roots):
+            found = _search_filename_under_root(str(root), file_name)
+            matched_files.extend(Path(path_str) for path_str in found)
+
+        if matched_files:
+            dedup: dict[str, Path] = {}
+            for path in matched_files:
+                dedup[str(path)] = path
+            unique_matches = list(dedup.values())
+            if len(unique_matches) == 1:
+                return unique_matches[0]
+            ranked = sorted(
+                unique_matches,
+                key=lambda p: (-_suffix_match_score(p, requested_parts), len(str(p))),
+            )
+            best = ranked[0]
+            best_score = _suffix_match_score(best, requested_parts)
+            if best_score > 0:
+                return best
+            return ranked[0]
     
     return None
 
@@ -76,16 +128,11 @@ def get_relative_path(file_path: Path) -> Optional[str]:
     
     Args:
         file_path: 文件的绝对路径
-        
-    Returns:
-        相对路径字符串，如果文件不在项目根目录下则返回绝对路径
     """
     try:
-        # 尝试计算相对路径
         relative = file_path.relative_to(config.PROJECT_ROOT)
         return str(relative)
     except ValueError:
-        # 如果文件不在项目根目录下，返回绝对路径
         return str(file_path)
 
 
@@ -95,18 +142,12 @@ def display_file_info(file_path: Path) -> None:
     Args:
         file_path: 文件路径对象
     """
-    # 文件名
     st.markdown(f"### {file_path.name}")
-    
-    # 相对路径
     relative_path = get_relative_path(file_path)
     if relative_path and relative_path != str(file_path):
         st.caption(f"📁 {relative_path}")
-    
-    # 完整路径（可折叠）
     with st.expander("📋 查看完整路径", expanded=False):
         st.code(str(file_path), language=None)
-        # Streamlit 的 st.code 自带复制功能
 
 
 def display_markdown_file(file_path: Path) -> None:
@@ -118,10 +159,8 @@ def display_markdown_file(file_path: Path) -> None:
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             content = f.read()
-        
         st.markdown(content)
     except UnicodeDecodeError:
-        # 尝试其他编码
         try:
             with open(file_path, 'r', encoding='gbk') as f:
                 content = f.read()
@@ -139,15 +178,10 @@ def display_pdf_file(file_path: Path) -> None:
         file_path: 文件路径对象
     """
     try:
-        # 读取PDF文件并转换为base64
         import base64
-        
         with open(file_path, 'rb') as f:
             pdf_bytes = f.read()
-        
         base64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
-        
-        # 使用iframe显示PDF（使用 Streamlit 原生样式）
         pdf_display = f"""
         <iframe src="data:application/pdf;base64,{base64_pdf}" 
                 width="100%" 
@@ -156,8 +190,6 @@ def display_pdf_file(file_path: Path) -> None:
         </iframe>
         """
         st.markdown(pdf_display, unsafe_allow_html=True)
-        
-        # 同时提供下载链接
         st.download_button(
             label="📥 下载PDF文件",
             data=pdf_bytes,
@@ -176,41 +208,27 @@ def show_file_viewer_dialog(file_path_str: str) -> None:
     Args:
         file_path_str: 文件路径字符串
     """
-    # 解析文件路径
     file_path = resolve_file_path(file_path_str)
-    
     if not file_path:
         st.error(f"❌ 文件不存在: {file_path_str}")
         st.info("💡 提示：文件可能已被移动或删除")
-        
-        # 显示搜索路径信息（帮助调试）
         with st.expander("🔍 搜索路径信息", expanded=False):
             st.text("已搜索以下目录：")
             for root in get_file_search_paths():
                 exists = "✅" if root.exists() else "❌"
                 st.text(f"  {exists} {root}")
         return
-    
     if not file_path.exists():
         st.error(f"❌ 文件不存在: {file_path}")
         return
-    
-    # 显示文件信息
     display_file_info(file_path)
-    
     st.divider()
-    
-    # 根据文件类型显示内容
     file_ext = file_path.suffix.lower()
-    
     if file_ext == '.md' or file_ext == '.markdown':
-        # Markdown文件
         display_markdown_file(file_path)
     elif file_ext == '.pdf':
-        # PDF文件
         display_pdf_file(file_path)
     else:
-        # 其他文件类型，尝试作为文本显示
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
@@ -218,8 +236,6 @@ def show_file_viewer_dialog(file_path_str: str) -> None:
         except:
             st.warning(f"⚠️  不支持的文件类型: {file_ext}")
             st.info("💡 当前仅支持Markdown和PDF文件查看")
-            
-            # 提供下载链接
             try:
                 with open(file_path, 'rb') as f:
                     file_bytes = f.read()
@@ -230,6 +246,4 @@ def show_file_viewer_dialog(file_path_str: str) -> None:
                 )
             except:
                 pass
-
-
 
