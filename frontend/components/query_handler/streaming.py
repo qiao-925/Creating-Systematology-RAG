@@ -5,6 +5,7 @@
 
 import asyncio
 import json
+import time
 from pathlib import Path
 from typing import Any, Dict, Iterable, Optional
 
@@ -18,6 +19,12 @@ from frontend.components.query_handler.common import save_to_chat_manager
 from frontend.components.chat_display import render_assistant_continuation
 
 logger = get_logger('app')
+
+# 逐字输入体验参数（保持轻量，避免整体响应过慢）
+_TYPEWRITER_BASE_DELAY_SEC = 0.006
+_TYPEWRITER_PUNCTUATION_DELAY_SEC = 0.016
+_TYPEWRITER_CHAR_BUDGET = 1200
+_TYPEWRITER_PUNCTUATION = set("，。！？；：,.!?;:\n")
 
 
 def _debug_log(location: str, message: str, data: dict | None = None, hypothesis_id: str = "S") -> None:
@@ -52,6 +59,38 @@ def _iter_async_stream(async_iter: Any) -> Iterable[Dict[str, Any]]:
         asyncio.set_event_loop(None)
 
 
+def _yield_typewriter_text(text: str, stream_state: dict) -> Iterable[str]:
+    """将文本按字符平滑输出，模拟逐字输入观感。"""
+    if not text:
+        return
+
+    typed_chars = stream_state.get("typed_chars", 0)
+    remaining_budget = max(_TYPEWRITER_CHAR_BUDGET - typed_chars, 0)
+
+    # 超出预算后直接整段输出，避免长回答过慢
+    if remaining_budget == 0:
+        yield text
+        stream_state["typed_chars"] = typed_chars + len(text)
+        return
+
+    typed_part = text[:remaining_budget]
+    rest_part = text[remaining_budget:]
+
+    for char in typed_part:
+        yield char
+        typed_chars += 1
+        delay = (
+            _TYPEWRITER_PUNCTUATION_DELAY_SEC
+            if char in _TYPEWRITER_PUNCTUATION
+            else _TYPEWRITER_BASE_DELAY_SEC
+        )
+        time.sleep(delay)
+
+    stream_state["typed_chars"] = typed_chars + len(rest_part)
+    if rest_part:
+        yield rest_part
+
+
 def _stream_answer_tokens(rag_service, prompt: str, session_id: Optional[str], stream_state: dict) -> Iterable[str]:
     """把 stream_chat 事件流转换为文本 token 迭代器，供 st.write_stream 使用。"""
     async_iter = rag_service.stream_chat(prompt, session_id=session_id)
@@ -66,7 +105,8 @@ def _stream_answer_tokens(rag_service, prompt: str, session_id: Optional[str], s
             if text:
                 stream_state["parts"].append(text)
                 token_count += 1
-                yield text
+                for piece in _yield_typewriter_text(text, stream_state):
+                    yield piece
         elif chunk_type == "sources":
             stream_state["sources"] = chunk.get("data") or []
         elif chunk_type == "reasoning":
@@ -81,7 +121,8 @@ def _stream_answer_tokens(rag_service, prompt: str, session_id: Optional[str], s
                 stream_state["reasoning"] = data.get("reasoning_content")
             if token_count == 0 and stream_state.get("final_answer"):
                 # 若无 token 但 done 中有答案，至少输出一次
-                yield stream_state["final_answer"]
+                for piece in _yield_typewriter_text(stream_state["final_answer"], stream_state):
+                    yield piece
         elif chunk_type == "error":
             message = (chunk.get("data") or {}).get("message", "Unknown error")
             stream_state["error"] = message
@@ -109,6 +150,7 @@ def handle_streaming_query(rag_service, chat_manager, prompt: str) -> bool:
         "reasoning": None,
         "final_answer": None,
         "error": None,
+        "typed_chars": 0,
     }
 
     try:
