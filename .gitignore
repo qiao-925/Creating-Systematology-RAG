@@ -25,6 +25,7 @@ env/
 .agent/prompts/*
 !.agent/prompts/execute-plan.md
 !.agent/prompts/review-checkpoint.md
+!.agent/prompts/recover-failure.md
 
 # 测试
 .pytest_cache/
@@ -47,6 +48,8 @@ sessions/
 data/processed/
 data/users.json
 data/github_metadata.json
+data/github_repos/**
+!data/github_repos/.gitkeep
 
 # 系统文件
 .DS_Store

@@ -1,0 +1,49 @@
+name: nightshift-recover
+
+on:
+  workflow_dispatch:
+    inputs:
+      failed_run_id:
+        description: "Failed execute run id"
+        required: true
+      push_ref:
+        description: "Branch to recover on"
+        required: true
+      issue_number:
+        description: "Issue number that holds the plan"
+        required: false
+
+jobs:
+  recover:
+    runs-on: self-hosted
+    timeout-minutes: 240
+    concurrency:
+      group: nightshift-recover-${{ inputs.push_ref }}
+      cancel-in-progress: false
+    permissions:
+      actions: write
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Checkout recovery branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.push_ref }}
+
+      - name: Run recovery worker
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          args=(
+            --repo "$GITHUB_WORKSPACE"
+            --failed-run-id "${{ inputs.failed_run_id }}"
+            --push-ref "${{ inputs.push_ref }}"
+            --commit
+            --push
+          )
+          if [ -n "${{ inputs.issue_number }}" ]; then
+            args+=(--issue-number "${{ inputs.issue_number }}")
+          fi
+          agent-nightshift run-failure-recovery "${args[@]}"
