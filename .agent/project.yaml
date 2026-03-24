@@ -33,6 +33,13 @@ tasks:
   review_checkpoint:
     prompt_file: .agent/prompts/review-checkpoint.md
     sandbox: read-only
+  recover_failure:
+    prompt_file: .agent/prompts/recover-failure.md
+    sandbox: workspace-write
+    instructions:
+    - 先读取 .agent/runtime/failed-run.log 与 .agent/runtime/failed-run.json。
+    - 优先修复导致上一轮失败的阻塞点，修复后再继续推进一小步。
+    - verify 通过后再调用 agent-nightshift checkpoint。
 policy:
   allow_dependency_changes: false
   allow_schema_changes: false

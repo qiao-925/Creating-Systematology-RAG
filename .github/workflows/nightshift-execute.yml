@@ -31,6 +31,26 @@ jobs:
       issues: write
       pull-requests: write
     steps:
+      - name: Persist dispatch context
+        run: |
+          mkdir -p .nightshift-dispatch
+          cat > .nightshift-dispatch/context.json <<EOF
+          {
+            "issue_number": "${{ inputs.issue_number }}",
+            "push_ref": "${{ inputs.push_ref }}",
+            "task": "${{ inputs.task }}",
+            "time_budget_hours": "${{ inputs.time_budget_hours }}"
+          }
+          EOF
+
+      - name: Upload dispatch context
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightshift-dispatch-context
+          path: .nightshift-dispatch/context.json
+          if-no-files-found: error
+
       - name: Checkout target branch
         uses: actions/checkout@v4
         with:
