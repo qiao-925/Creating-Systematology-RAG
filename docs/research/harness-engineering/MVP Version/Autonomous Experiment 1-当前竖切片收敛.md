@@ -191,6 +191,11 @@
   - `open_tensions`
   - `next_question`
   - `stop_reason`
+  - `recommended_action`
+- `recommended_action` 当前显式区分三类最小研究决策：
+  - `continue_gathering_evidence`
+  - `synthesize_answer`
+  - `stop_due_to_insufficient_evidence`
 - 这层能力当前只作为内部 trace 扩展存在，不改变公开返回签名
 
 这意味着：
@@ -212,13 +217,14 @@
 
 ### 这个最小结构应至少包含
 
-建议下一轮先把内部结构收敛成下面 5 个字段：
+建议下一轮先把内部结构收敛成下面 6 个字段：
 
 - `current_judgment`
 - `supporting_evidence`
 - `open_tensions`
 - `next_question`
 - `stop_reason`
+- `recommended_action`
 
 注意：
 

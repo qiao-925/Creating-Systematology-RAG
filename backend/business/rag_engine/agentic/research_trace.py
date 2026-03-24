@@ -44,6 +44,7 @@ def build_research_trace(
         "open_tensions": open_tensions,
         "next_question": _build_next_question(question, stop_reason, open_tensions),
         "stop_reason": stop_reason,
+        "recommended_action": _build_recommended_action(stop_reason),
         "has_reasoning_trace": bool(reasoning_content),
     }
 
@@ -108,6 +109,14 @@ def _build_next_question(
         tension = open_tensions[0] if open_tensions else question
         return f"要消除“{tension}”这类不确定性，下一步应补什么证据？"
     return "是否存在反例、边界条件或时间条件，会改变当前阶段性判断？"
+
+
+def _build_recommended_action(stop_reason: str) -> str:
+    if stop_reason == "insufficient_evidence":
+        return "stop_due_to_insufficient_evidence"
+    if stop_reason == "needs_more_evidence":
+        return "continue_gathering_evidence"
+    return "synthesize_answer"
 
 
 def _extract_current_judgment(answer: str, question: str) -> str:
