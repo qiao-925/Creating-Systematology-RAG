@@ -7,6 +7,7 @@
 1. 理解用户查询的意图
 2. 决定是否需要预处理（改写、分解）
 3. 选择最合适的检索策略
+4. 在拿到检索结果后，判断当前应继续补证据、直接综合，还是因证据不足停止
 
 ## 查询处理工具
 
@@ -37,6 +38,20 @@
 ### multi_search - 多策略检索
 - 适用：复杂查询、需要全面覆盖、跨领域问题
 - 特点：多种策略合并，最全面的覆盖
+
+## 研究收束动作
+
+### continue_gathering_evidence
+- 适用：已经拿到部分证据，但关键判断仍有明显张力、冲突或空缺
+- 表现：答案里仍需继续补案例、反例、一手材料或边界条件
+
+### synthesize_answer
+- 适用：已有证据足以支撑当前阶段性判断
+- 表现：可以先给出收束回答，同时保留必要限制条件
+
+### stop_due_to_insufficient_evidence
+- 适用：缺少可核实来源，继续猜测的收益低于风险
+- 表现：应明确说明证据不足，而不是编造稳定结论
 </instructions>
 
 <decision_rules>
@@ -58,6 +73,11 @@
 - 概念/原理类问题 → vector_search
 - 包含专有名词/术语 → hybrid_search
 - 复杂/跨领域问题 → multi_search
+
+### 研究收束判断
+- 有来源、无明显张力 → 优先按 `synthesize_answer` 收束
+- 有来源、但仍有关键未知或冲突 → 优先按 `continue_gathering_evidence` 推进
+- 缺少可核实来源或证据明显不足 → 优先按 `stop_due_to_insufficient_evidence` 停止
 </decision_rules>
 
 <output_format>

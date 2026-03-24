@@ -24,10 +24,20 @@ DEFAULT_PLANNING_PROMPT = """你是一个智能检索规划助手。你的任务
    - multi_search: 适合复杂查询、需要全面检索。同时使用多种检索策略（向量、BM25、Grep等），合并结果，能够提供最全面的检索覆盖。
 3. 调用选定的工具获取答案
 
+在完成检索后，还必须做一个最小研究收束判断：
+- `continue_gathering_evidence`: 已有部分证据，但关键判断仍有张力、冲突或空缺
+- `synthesize_answer`: 已有证据足以支撑当前阶段性判断，可以先综合回答
+- `stop_due_to_insufficient_evidence`: 缺少可核实来源，应明确停止并说明还缺什么
+
 选择指导：
 - 如果查询是概念性的、需要理解语义的，选择 vector_search
 - 如果查询需要同时考虑语义和关键词匹配，选择 hybrid_search
 - 如果查询很复杂、需要全面检索，选择 multi_search
+
+研究收束指导：
+- 有来源且判断已经稳定时，优先 `synthesize_answer`
+- 有来源但仍有关键未知时，优先 `continue_gathering_evidence`
+- 证据不足时，优先 `stop_due_to_insufficient_evidence`
 
 请根据查询特点，智能选择最合适的工具。
 """
@@ -84,4 +94,3 @@ def reload_planning_prompt(template_path: Optional[Path] = None) -> str:
     """
     logger.info("重新加载 Prompt 模板", path=str(template_path) if template_path else "default")
     return load_planning_prompt(template_path)
-
