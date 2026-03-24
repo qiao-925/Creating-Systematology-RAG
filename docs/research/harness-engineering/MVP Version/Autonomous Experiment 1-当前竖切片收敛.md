@@ -180,6 +180,25 @@
 
 不改 public API，不新增依赖，不改三层结构，只补一个最小研究内核外壳。
 
+### 恢复后已落地的一小步
+
+当前工作树已经把这一步先以内聚、低风险的方式落下：
+
+- 在 `AgenticQueryEngine.query(..., collect_trace=True)` 的 trace 中新增 `research` 结构
+- 结构当前包含：
+  - `current_judgment`
+  - `supporting_evidence`
+  - `open_tensions`
+  - `next_question`
+  - `stop_reason`
+- 这层能力当前只作为内部 trace 扩展存在，不改变公开返回签名
+
+这意味着：
+
+- 现有 Agentic 查询链已经不只是“给出回答”
+- 它开始能把一次查询收敛成“当前判断 + 依据 + 未决点 + 下一步问题”的最小研究单元
+- 但它还不是完整研究状态机，也还没有跨轮证据账本
+
 ### 推荐落点
 
 优先在业务层的 Agentic 查询主链上补一层轻量结构化结果，而不是改前端或基础设施层。
