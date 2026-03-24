@@ -78,7 +78,9 @@ def execute_query(
         
         if collect_trace and trace_info:
             metadata['trace_info'] = trace_info
-        
+            if isinstance(trace_info, dict) and trace_info.get('research') is not None:
+                metadata['research'] = trace_info['research']
+
         response = RAGResponse(
             answer=answer,
             sources=source_models,

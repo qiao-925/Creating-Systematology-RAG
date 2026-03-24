@@ -62,6 +62,7 @@ class TestRAGServiceTrace:
         )
 
         assert response.metadata["trace_info"] == trace_info
+        assert response.metadata["research"] == trace_info["research"]
         assert response.metadata["trace_info"]["research"]["recommended_action"] == "continue_gathering_evidence"
         assert response.metadata["reasoning_content"] == "先检索，再综合。"
         mock_agentic_engine.return_value.query.assert_called_once_with(
@@ -86,9 +87,34 @@ class TestRAGServiceTrace:
         response = service.query("研究问题", collect_trace=False)
 
         assert "trace_info" not in response.metadata
+        assert "research" not in response.metadata
         assert response.metadata["reasoning_content"] == "推理过程"
         mock_agentic_engine.return_value.query.assert_called_once_with(
             "研究问题",
             collect_trace=False,
+        )
+        mock_index_manager.assert_called_once()
+
+    def test_collect_trace_without_research_trace_does_not_add_research_metadata(
+        self,
+        mock_index_manager,
+        mock_agentic_engine,
+    ):
+        trace_info = {"total_time": 0.78}
+        mock_agentic_engine.return_value.query.return_value = (
+            "阶段性回答",
+            [make_source()],
+            "推理过程",
+            trace_info,
+        )
+
+        service = RAGService(collection_name="research-test", use_agentic_rag=True)
+        response = service.query("研究问题", collect_trace=True)
+
+        assert response.metadata["trace_info"] == trace_info
+        assert "research" not in response.metadata
+        mock_agentic_engine.return_value.query.assert_called_once_with(
+            "研究问题",
+            collect_trace=True,
         )
         mock_index_manager.assert_called_once()
