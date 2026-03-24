@@ -1,0 +1,58 @@
+name: nightshift-watchdog
+
+on:
+  workflow_run:
+    workflows:
+      - nightshift-execute
+    types:
+      - completed
+
+jobs:
+  dispatch-recovery:
+    if: >-
+      ${{
+        github.event.workflow_run.conclusion == 'failure' &&
+        startsWith(github.event.workflow_run.head_branch, 'nightshift/')
+      }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Download dispatch context
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p /tmp/nightshift-dispatch
+          gh run download "${{ github.event.workflow_run.id }}" \
+            --repo "${{ github.repository }}" \
+            --name nightshift-dispatch-context \
+            --dir /tmp/nightshift-dispatch || true
+          if [ ! -f /tmp/nightshift-dispatch/context.json ]; then
+            echo '{}' > /tmp/nightshift-dispatch/context.json
+          fi
+          cat /tmp/nightshift-dispatch/context.json
+
+      - name: Dispatch recovery workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          push_ref="$(jq -r '.push_ref // empty' /tmp/nightshift-dispatch/context.json)"
+          issue_number="$(jq -r '.issue_number // empty' /tmp/nightshift-dispatch/context.json)"
+          if [ -z "$push_ref" ]; then
+            push_ref="${{ github.event.workflow_run.head_branch }}"
+          fi
+
+          args=(
+            workflow run nightshift-recover.yml
+            --repo "${{ github.repository }}"
+            -f "failed_run_id=${{ github.event.workflow_run.id }}"
+            -f "push_ref=$push_ref"
+          )
+          if [ -n "$issue_number" ]; then
+            args+=(-f "issue_number=$issue_number")
+          fi
+
+          gh "${args[@]}"
