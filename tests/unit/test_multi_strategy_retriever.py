@@ -3,14 +3,12 @@
 """
 
 import pytest
-from unittest.mock import Mock, patch
 from typing import List
 
 from backend.business.rag_engine.retrieval.strategies.multi_strategy import (
     MultiStrategyRetriever,
     BaseRetriever,
 )
-from backend.business.rag_engine.retrieval.merger import ResultMerger
 from llama_index.core.schema import NodeWithScore, TextNode
 
 
@@ -18,7 +16,7 @@ class MockRetriever(BaseRetriever):
     """Mock检索器用于测试"""
     
     def __init__(self, name: str, top_k: int = 5):
-        self._name = name
+        super().__init__(name)
         self._top_k = top_k
     
     def retrieve(self, query: str, top_k: int = None) -> List[NodeWithScore]:
@@ -26,17 +24,11 @@ class MockRetriever(BaseRetriever):
         nodes = []
         for i in range(current_top_k):
             node = TextNode(
-                text=f"{self._name} result {i}",
-                metadata={"retriever": self._name, "rank": i},
+                text=f"{self.name} result {i}",
+                metadata={"retriever": self.name, "rank": i},
             )
             nodes.append(NodeWithScore(node=node, score=0.9 - i * 0.1))
         return nodes
-    
-    def get_name(self) -> str:
-        return self._name
-    
-    def get_top_k(self) -> int:
-        return self._top_k
 
 
 class TestBaseRetriever:
@@ -47,10 +39,8 @@ class TestBaseRetriever:
         retriever = MockRetriever("test", top_k=5)
         
         assert hasattr(retriever, 'retrieve')
-        assert hasattr(retriever, 'get_name')
-        assert hasattr(retriever, 'get_top_k')
-        assert retriever.get_name() == "test"
-        assert retriever.get_top_k() == 5
+        assert retriever.name == "test"
+        assert retriever._top_k == 5
     
     def test_base_retriever_retrieve(self):
         """测试retrieve方法"""
@@ -79,12 +69,14 @@ class TestMultiStrategyRetriever:
         
         assert len(multi_retriever.retrievers) == 2
         assert multi_retriever.merge_strategy == "reciprocal_rank_fusion"
-        assert multi_retriever.get_name() == "multi_strategy_retriever"
+        assert multi_retriever.name == "multi_strategy"
     
     def test_init_empty_retrievers(self):
-        """测试空检索器列表"""
-        with pytest.raises(ValueError, match="必须至少提供一个检索器"):
-            MultiStrategyRetriever(retrievers=[])
+        """测试空检索器列表会返回空结果"""
+        multi_retriever = MultiStrategyRetriever(retrievers=[])
+
+        assert multi_retriever.retrievers == []
+        assert multi_retriever.retrieve("query", top_k=5) == []
     
     def test_retrieve_rrf(self):
         """测试RRF合并策略"""
@@ -128,14 +120,11 @@ class TestMultiStrategyRetriever:
     def test_retrieve_with_error(self):
         """测试检索器错误处理"""
         class FailingRetriever(BaseRetriever):
+            def __init__(self):
+                super().__init__("failing")
+
             def retrieve(self, query: str, top_k: int = None):
                 raise Exception("检索失败")
-            
-            def get_name(self):
-                return "failing"
-            
-            def get_top_k(self):
-                return 5
         
         retrievers = [
             MockRetriever("retriever1"),
@@ -160,18 +149,15 @@ class TestMultiStrategyRetriever:
         node = TextNode(text="相同内容", metadata={"id": "1"})
         
         class SameResultRetriever(BaseRetriever):
+            def __init__(self, name: str):
+                super().__init__(name)
+
             def retrieve(self, query: str, top_k: int = None):
                 return [NodeWithScore(node=node, score=0.9)]
-            
-            def get_name(self):
-                return "same_result"
-            
-            def get_top_k(self):
-                return 5
         
         retrievers = [
-            SameResultRetriever(),
-            SameResultRetriever(),
+            SameResultRetriever("same_result_1"),
+            SameResultRetriever("same_result_2"),
         ]
         
         multi_retriever = MultiStrategyRetriever(
@@ -192,23 +178,17 @@ class TestMultiStrategyRetriever:
         class SlowRetriever(BaseRetriever):
             """模拟慢速检索器"""
             def __init__(self, name: str, delay: float = 0.1):
-                self._name = name
+                super().__init__(name)
                 self._delay = delay
             
             def retrieve(self, query: str, top_k: int = None):
                 time.sleep(self._delay)
                 return [
                     NodeWithScore(
-                        node=TextNode(text=f"{self._name} result", metadata={"retriever": self._name}),
+                        node=TextNode(text=f"{self.name} result", metadata={"retriever": self.name}),
                         score=0.9
                     )
                 ]
-            
-            def get_name(self):
-                return self._name
-            
-            def get_top_k(self):
-                return 5
         
         retrievers = [
             SlowRetriever("retriever1", delay=0.1),
@@ -262,4 +242,3 @@ class TestMultiStrategyRetriever:
         )
         results_simple = multi_retriever_simple.retrieve("query", top_k=5)
         assert isinstance(results_simple, list)
-

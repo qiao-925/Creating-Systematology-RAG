@@ -191,6 +191,9 @@ class QueryProcessor:
             "simple" | "medium" | "complex"
         """
         query_lower = query.lower()
+        medium_indicators = [
+            "介绍", "概述", "总结", "背景", "历史", "发展", "发展历程",
+        ]
         
         # 简单查询的特征
         simple_indicators = [
@@ -211,10 +214,30 @@ class QueryProcessor:
         
         if any(complex_indicators):
             return "complex"
+        elif any(keyword in query_lower for keyword in medium_indicators):
+            return "medium"
         elif any(simple_indicators):
             return "simple"
         else:
             return "medium"
+
+    def _render_prompt(self, query: str, domain_context: str) -> str:
+        """渲染提示词模板。
+
+        文件模板里可能直接包含 JSON 示例的花括号，这里在保留 `{query}` 占位符的同时
+        兼容未转义的 JSON 块，避免 `str.format()` 将示例 JSON 误识别为占位符。
+        """
+        try:
+            prompt = self.template.format(query=query)
+        except KeyError:
+            escaped_template = (
+                self.template
+                .replace("{", "{{")
+                .replace("}", "}}")
+                .replace("{{query}}", "{query}")
+            )
+            prompt = escaped_template.format(query=query)
+        return prompt + domain_context
     
     def process(
         self, 
@@ -281,7 +304,7 @@ class QueryProcessor:
                 domain_context = f"\n领域关键词：{', '.join(self.domain_keywords)}"
             
             # 使用加载的模板（支持从文件加载）
-            prompt = self.template.format(query=query) + domain_context
+            prompt = self._render_prompt(query=query, domain_context=domain_context)
             
             # 调用LLM
             response = self._llm.complete(prompt)

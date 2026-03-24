@@ -5,11 +5,11 @@ DeepSeek 推理链多轮对话验证测试
 """
 
 import pytest
-from unittest.mock import Mock, MagicMock, patch
+from types import SimpleNamespace
 from llama_index.core.llms import ChatMessage, MessageRole
 
 from backend.infrastructure.llms.reasoning import clean_messages_for_api, extract_reasoning_content
-from backend.business.chat.session import ChatTurn, ChatSession
+from backend.business.chat.session import ChatTurn
 
 
 class TestChatMessageStructure:
@@ -49,12 +49,12 @@ class TestCleanMessagesForAPI:
         cleaned = clean_messages_for_api(messages)
         
         assert len(cleaned) == 2
-        assert cleaned[0]['role'] == 'user'
-        assert cleaned[0]['content'] == "问题1"
-        assert 'reasoning_content' not in cleaned[0]
-        assert cleaned[1]['role'] == 'assistant'
-        assert cleaned[1]['content'] == "回答1"
-        assert 'reasoning_content' not in cleaned[1]
+        assert cleaned[0].role == MessageRole.USER
+        assert cleaned[0].content == "问题1"
+        assert not hasattr(cleaned[0], 'reasoning_content')
+        assert cleaned[1].role == MessageRole.ASSISTANT
+        assert cleaned[1].content == "回答1"
+        assert not hasattr(cleaned[1], 'reasoning_content')
     
     def test_clean_dict_messages(self):
         """测试清理字典格式的消息"""
@@ -66,12 +66,12 @@ class TestCleanMessagesForAPI:
         cleaned = clean_messages_for_api(messages)
         
         assert len(cleaned) == 2
-        assert cleaned[0]['role'] == 'user'
-        assert cleaned[0]['content'] == "问题1"
-        assert 'reasoning_content' not in cleaned[0]
-        assert cleaned[1]['role'] == 'assistant'
-        assert cleaned[1]['content'] == "回答1"
-        assert 'reasoning_content' not in cleaned[1]  # 应该被移除
+        assert cleaned[0].role == MessageRole.USER
+        assert cleaned[0].content == "问题1"
+        assert not hasattr(cleaned[0], 'reasoning_content')
+        assert cleaned[1].role == MessageRole.ASSISTANT
+        assert cleaned[1].content == "回答1"
+        assert not hasattr(cleaned[1], 'reasoning_content')  # 应该被移除
     
     def test_clean_messages_removes_reasoning_content(self):
         """测试清理函数移除 reasoning_content"""
@@ -82,9 +82,9 @@ class TestCleanMessagesForAPI:
         cleaned = clean_messages_for_api(messages)
         
         assert len(cleaned) == 1
-        assert 'reasoning_content' not in cleaned[0]
-        assert cleaned[0]['role'] == 'assistant'
-        assert cleaned[0]['content'] == '回答'
+        assert not hasattr(cleaned[0], 'reasoning_content')
+        assert cleaned[0].role == MessageRole.ASSISTANT
+        assert cleaned[0].content == '回答'
 
 
 class TestChatTurnStructure:
@@ -153,13 +153,7 @@ class TestChatTurnStructure:
         turn = ChatTurn.from_dict(data)
         
         assert turn.reasoning_content == "推理过程"
-
-
-        # 验证 ChatMessage 不包含 reasoning_content
-        assert not hasattr(memory_messages[0], 'reasoning_content')
-        assert not hasattr(memory_messages[1], 'reasoning_content')
-        # 验证 assistant 消息的 content 不包含推理链
-        assert "推理过程1" not in memory_messages[1].content
+        assert turn.to_dict()["reasoning_content"] == "推理过程"
 
 
 class TestExtractReasoningContent:
@@ -168,10 +162,9 @@ class TestExtractReasoningContent:
     def test_extract_reasoning_from_chat_response(self):
         """测试从 ChatResponse 提取推理链"""
         # 模拟包含 reasoning_content 的响应
-        mock_response = Mock()
-        mock_message = Mock()
-        mock_message.reasoning_content = "推理过程"
-        mock_response.message = mock_message
+        mock_response = SimpleNamespace(
+            message=SimpleNamespace(reasoning_content="推理过程")
+        )
         
         reasoning = extract_reasoning_content(mock_response)
         
@@ -179,14 +172,15 @@ class TestExtractReasoningContent:
     
     def test_extract_reasoning_from_raw_response(self):
         """测试从原始响应提取推理链"""
-        mock_response = Mock()
-        mock_response.raw = {
-            'choices': [{
-                'message': {
-                    'reasoning_content': '推理过程'
-                }
-            }]
-        }
+        mock_response = SimpleNamespace(
+            raw={
+                'choices': [{
+                    'message': {
+                        'reasoning_content': '推理过程'
+                    }
+                }]
+            }
+        )
         
         reasoning = extract_reasoning_content(mock_response)
         
@@ -194,10 +188,9 @@ class TestExtractReasoningContent:
     
     def test_extract_reasoning_no_reasoning(self):
         """测试没有推理链的情况"""
-        mock_response = Mock()
-        mock_message = Mock()
-        mock_message.reasoning_content = None
-        mock_response.message = mock_message
+        mock_response = SimpleNamespace(
+            message=SimpleNamespace(reasoning_content=None)
+        )
         
         reasoning = extract_reasoning_content(mock_response)
         
@@ -206,4 +199,3 @@ class TestExtractReasoningContent:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
-

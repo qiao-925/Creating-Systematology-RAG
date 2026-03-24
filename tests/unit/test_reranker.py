@@ -1,183 +1,193 @@
 """
-Reranker模块单元测试
+Reranker unit tests using offline test doubles.
 """
 
-import pytest
-from unittest.mock import Mock, patch, MagicMock
-from llama_index.core.schema import NodeWithScore, TextNode, QueryBundle
+from __future__ import annotations
 
+import sys
+import types
+from unittest.mock import Mock, patch
+
+import pytest
+from llama_index.core.schema import NodeWithScore, QueryBundle, TextNode
+
+import backend.business.rag_engine.reranking.factory as reranker_factory
 from backend.business.rag_engine.reranking.base import BaseReranker
-from backend.business.rag_engine.reranking.factory import create_reranker
-from backend.business.rag_engine.reranking.strategies.sentence_transformer import SentenceTransformerReranker
+from backend.business.rag_engine.reranking.factory import clear_reranker_cache, create_reranker
 from backend.business.rag_engine.reranking.strategies.bge import BGEReranker
+from backend.business.rag_engine.reranking.strategies.sentence_transformer import (
+    SentenceTransformerReranker,
+)
+
+
+@pytest.fixture(autouse=True)
+def reset_reranker_cache():
+    clear_reranker_cache()
+    yield
+    clear_reranker_cache()
+
+
+@pytest.fixture
+def sample_nodes():
+    nodes = []
+    for i in range(5):
+        node = TextNode(text=f"文档{i}的内容", metadata={"id": i})
+        nodes.append(NodeWithScore(node=node, score=0.9 - i * 0.1))
+    return nodes
+
+
+@pytest.fixture
+def mock_sentence_transformer_rerank():
+    rerank_impl = Mock()
+    with patch(
+        "backend.business.rag_engine.reranking.strategies.sentence_transformer.SentenceTransformerRerank",
+        return_value=rerank_impl,
+    ) as mock_cls:
+        yield mock_cls, rerank_impl
+
+
+@pytest.fixture
+def mock_flag_embedding_reranker():
+    module = types.ModuleType("llama_index.postprocessor.flag_embedding_reranker")
+    rerank_impl = Mock()
+    mock_cls = Mock(return_value=rerank_impl)
+    module.FlagEmbeddingReranker = mock_cls
+
+    parent = sys.modules.get("llama_index.postprocessor") or types.ModuleType("llama_index.postprocessor")
+    parent.flag_embedding_reranker = module
+
+    with patch.dict(
+        sys.modules,
+        {
+            "llama_index.postprocessor": parent,
+            "llama_index.postprocessor.flag_embedding_reranker": module,
+        },
+    ):
+        yield mock_cls, rerank_impl
 
 
 class TestBaseReranker:
-    """BaseReranker接口测试"""
-    
     def test_base_reranker_interface(self):
-        """测试BaseReranker接口"""
-        # BaseReranker是抽象类，不能直接实例化
-        assert hasattr(BaseReranker, 'rerank')
-        assert hasattr(BaseReranker, 'get_reranker_name')
-        assert hasattr(BaseReranker, 'get_top_n')
-        assert hasattr(BaseReranker, 'get_llama_index_postprocessor')
+        assert hasattr(BaseReranker, "rerank")
+        assert hasattr(BaseReranker, "get_reranker_name")
+        assert hasattr(BaseReranker, "get_top_n")
+        assert hasattr(BaseReranker, "get_llama_index_postprocessor")
 
 
 class TestRerankerFactory:
-    """Reranker工厂函数测试"""
-    
     def test_create_reranker_none(self):
-        """测试创建None（不启用重排序）"""
-        reranker = create_reranker(reranker_type="none")
-        
-        assert reranker is None
-    
+        assert create_reranker(reranker_type="none") is None
+
     def test_create_reranker_sentence_transformer(self):
-        """测试创建SentenceTransformerReranker"""
-        try:
+        with patch.object(reranker_factory, "SentenceTransformerReranker") as mock_cls:
+            instance = Mock(spec=BaseReranker)
+            mock_cls.return_value = instance
+
             reranker = create_reranker(
                 reranker_type="sentence-transformer",
                 top_n=3,
+                use_cache=False,
             )
-            
-            assert isinstance(reranker, SentenceTransformerReranker)
-            assert reranker.get_top_n() == 3
-        except Exception as e:
-            pytest.skip(f"SentenceTransformerReranker初始化失败: {e}")
-    
+
+        assert reranker is instance
+        mock_cls.assert_called_once_with(model=None, top_n=3)
+
     def test_create_reranker_bge(self):
-        """测试创建BGEReranker"""
-        try:
-            reranker = create_reranker(
-                reranker_type="bge",
-                top_n=5,
-            )
-            
-            assert isinstance(reranker, BGEReranker)
-            assert reranker.get_top_n() == 5
-        except Exception as e:
-            pytest.skip(f"BGEReranker初始化失败: {e}")
-    
-    def test_create_reranker_invalid_type(self):
-        """测试无效类型"""
-        reranker = create_reranker(reranker_type="invalid_type")
-        
-        assert reranker is None
-    
-    def test_create_reranker_default_config(self):
-        """测试使用默认配置"""
-        try:
-            reranker = create_reranker()
-            
-            # 应该使用配置中的默认类型
-            assert reranker is not None or reranker is None
-        except Exception as e:
-            pytest.skip(f"重排序器初始化失败: {e}")
+        with patch.object(reranker_factory, "BGEReranker") as mock_cls:
+            instance = Mock(spec=BaseReranker)
+            mock_cls.return_value = instance
+
+            reranker = create_reranker(reranker_type="bge", top_n=5, use_cache=False)
+
+        assert reranker is instance
+        mock_cls.assert_called_once_with(model=None, top_n=5)
+
+    def test_create_reranker_invalid_type_falls_back_to_sentence_transformer(self):
+        with patch.object(reranker_factory, "SentenceTransformerReranker") as mock_cls:
+            instance = Mock(spec=BaseReranker)
+            mock_cls.return_value = instance
+
+            reranker = create_reranker(reranker_type="invalid_type", use_cache=False)
+
+        assert reranker is instance
+        mock_cls.assert_called_once_with(model=None, top_n=None)
+
+    def test_create_reranker_default_config(self, monkeypatch):
+        mock_config = Mock()
+        mock_config.RERANKER_TYPE = "sentence-transformer"
+        monkeypatch.setattr(reranker_factory, "config", mock_config)
+
+        with patch.object(reranker_factory, "SentenceTransformerReranker") as mock_cls:
+            instance = Mock(spec=BaseReranker)
+            mock_cls.return_value = instance
+
+            reranker = create_reranker(use_cache=False)
+
+        assert reranker is instance
+        mock_cls.assert_called_once_with(model=None, top_n=None)
 
 
 class TestSentenceTransformerReranker:
-    """SentenceTransformerReranker测试"""
-    
-    @pytest.fixture
-    def sample_nodes(self):
-        """创建示例节点"""
-        nodes = []
-        for i in range(5):
-            node = TextNode(
-                text=f"文档{i}的内容",
-                metadata={"id": i},
-            )
-            nodes.append(NodeWithScore(node=node, score=0.9 - i * 0.1))
-        return nodes
-    
-    def test_init(self):
-        """测试初始化"""
-        try:
-            reranker = SentenceTransformerReranker(
-                model="BAAI/bge-reranker-base",
-                top_n=3,
-            )
-            
-            assert reranker.get_top_n() == 3
-            assert reranker.get_reranker_name() is not None
-        except Exception as e:
-            pytest.skip(f"SentenceTransformerReranker初始化失败: {e}")
-    
-    def test_rerank(self, sample_nodes):
-        """测试重排序"""
-        try:
-            reranker = SentenceTransformerReranker(top_n=3)
-            query = QueryBundle(query_str="测试查询")
-            
-            reranked = reranker.rerank(sample_nodes, query)
-            
-            assert isinstance(reranked, list)
-            assert len(reranked) <= 3
-            assert all(isinstance(r, NodeWithScore) for r in reranked)
-        except Exception as e:
-            pytest.skip(f"重排序测试失败: {e}")
-    
-    def test_get_llama_index_postprocessor(self):
-        """测试获取LlamaIndex Postprocessor"""
-        try:
-            reranker = SentenceTransformerReranker()
-            postprocessor = reranker.get_llama_index_postprocessor()
-            
-            assert postprocessor is not None
-        except Exception as e:
-            pytest.skip(f"SentenceTransformerReranker初始化失败: {e}")
+    def test_init(self, mock_sentence_transformer_rerank):
+        mock_cls, rerank_impl = mock_sentence_transformer_rerank
+
+        reranker = SentenceTransformerReranker(model="BAAI/bge-reranker-base", top_n=3)
+
+        assert reranker.get_top_n() == 3
+        assert reranker.get_reranker_name() == "BAAI/bge-reranker-base"
+        assert reranker.get_llama_index_postprocessor() is rerank_impl
+        mock_cls.assert_called_once_with(model="BAAI/bge-reranker-base", top_n=3)
+
+    def test_rerank(self, sample_nodes, mock_sentence_transformer_rerank):
+        _mock_cls, rerank_impl = mock_sentence_transformer_rerank
+        rerank_impl.postprocess_nodes.return_value = sample_nodes[:3]
+
+        reranker = SentenceTransformerReranker(top_n=3)
+        query = QueryBundle(query_str="测试查询")
+
+        reranked = reranker.rerank(sample_nodes, query)
+
+        assert reranked == sample_nodes[:3]
+        rerank_impl.postprocess_nodes.assert_called_once_with(sample_nodes, query)
+
+    def test_get_llama_index_postprocessor(self, mock_sentence_transformer_rerank):
+        _mock_cls, rerank_impl = mock_sentence_transformer_rerank
+
+        reranker = SentenceTransformerReranker()
+
+        assert reranker.get_llama_index_postprocessor() is rerank_impl
 
 
 class TestBGEReranker:
-    """BGEReranker测试"""
-    
-    @pytest.fixture
-    def sample_nodes(self):
-        """创建示例节点"""
-        nodes = []
-        for i in range(5):
-            node = TextNode(
-                text=f"文档{i}的内容",
-                metadata={"id": i},
-            )
-            nodes.append(NodeWithScore(node=node, score=0.9 - i * 0.1))
-        return nodes
-    
-    def test_init(self):
-        """测试初始化"""
-        try:
-            reranker = BGEReranker(
-                model="BAAI/bge-reranker-base",
-                top_n=5,
-            )
-            
-            assert reranker.get_top_n() == 5
-            assert reranker.get_reranker_name() == "BAAI/bge-reranker-base"
-        except Exception as e:
-            pytest.skip(f"BGEReranker初始化失败: {e}")
-    
-    def test_rerank(self, sample_nodes):
-        """测试重排序"""
-        try:
-            reranker = BGEReranker(top_n=3)
-            query = QueryBundle(query_str="测试查询")
-            
-            reranked = reranker.rerank(sample_nodes, query)
-            
-            assert isinstance(reranked, list)
-            assert len(reranked) <= 3
-            assert all(isinstance(r, NodeWithScore) for r in reranked)
-        except Exception as e:
-            pytest.skip(f"重排序测试失败: {e}")
-    
-    def test_get_llama_index_postprocessor(self):
-        """测试获取LlamaIndex Postprocessor"""
-        try:
-            reranker = BGEReranker()
-            postprocessor = reranker.get_llama_index_postprocessor()
-            
-            assert postprocessor is not None
-        except Exception as e:
-            pytest.skip(f"BGEReranker初始化失败: {e}")
+    def test_init(self, mock_flag_embedding_reranker):
+        mock_cls, rerank_impl = mock_flag_embedding_reranker
 
+        reranker = BGEReranker(model="BAAI/bge-reranker-base", top_n=5)
+
+        assert reranker.get_top_n() == 5
+        assert reranker.get_reranker_name() == "BAAI/bge-reranker-base"
+        assert reranker.get_llama_index_postprocessor() is rerank_impl
+        mock_cls.assert_called_once_with(
+            model="BAAI/bge-reranker-base",
+            top_n=5,
+            use_fp16=True,
+        )
+
+    def test_rerank(self, sample_nodes, mock_flag_embedding_reranker):
+        _mock_cls, rerank_impl = mock_flag_embedding_reranker
+        rerank_impl.postprocess_nodes.return_value = sample_nodes[:3]
+
+        reranker = BGEReranker(top_n=3)
+        query = QueryBundle(query_str="测试查询")
+
+        reranked = reranker.rerank(sample_nodes, query)
+
+        assert reranked == sample_nodes[:3]
+        rerank_impl.postprocess_nodes.assert_called_once_with(sample_nodes, query)
+
+    def test_get_llama_index_postprocessor(self, mock_flag_embedding_reranker):
+        _mock_cls, rerank_impl = mock_flag_embedding_reranker
+
+        reranker = BGEReranker()
+
+        assert reranker.get_llama_index_postprocessor() is rerank_impl

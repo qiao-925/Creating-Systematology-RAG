@@ -70,7 +70,7 @@ def build_index(
         return IndexResult(
             success=False,
             message=f"加载文档失败: {error}",
-            document_count=0,
+            doc_count=0,
             collection_name=collection_name or index_manager.collection_name
         )
     
@@ -78,7 +78,7 @@ def build_index(
         return IndexResult(
             success=False,
             message="未找到任何文档",
-            document_count=0,
+            doc_count=0,
             collection_name=collection_name or index_manager.collection_name
         )
     
@@ -97,7 +97,7 @@ def build_index(
         return IndexResult(
             success=True,
             message=f"成功构建索引，包含 {document_count} 个文档",
-            document_count=document_count,
+            doc_count=document_count,
             collection_name=index_manager.collection_name
         )
     except Exception as e:
@@ -105,7 +105,7 @@ def build_index(
         return IndexResult(
             success=False,
             message=f"索引构建失败: {str(e)}",
-            document_count=0,
+            doc_count=0,
             collection_name=collection_name or index_manager.collection_name
         )
 

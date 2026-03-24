@@ -4,6 +4,8 @@
 提供索引管理器、向量存储等测试 fixtures。
 """
 
+from __future__ import annotations
+
 import pytest
 from pathlib import Path
 
@@ -70,6 +72,36 @@ class IndexManagerFactory:
 def index_manager_factory():
     """索引管理器工厂 fixture"""
     return IndexManagerFactory
+
+
+@pytest.fixture(autouse=True)
+def mock_indexer_embedding(request, monkeypatch):
+    """为非 embedding 专项测试注入离线可用的 MockEmbedding。"""
+    nodeid = request.node.nodeid.replace("\\", "/")
+    embedding_tests = (
+        "tests/unit/test_embeddings.py",
+        "tests/unit/test_embeddings_factory.py",
+        "tests/unit/test_hf_inference_embedding.py",
+        "tests/unit/embeddings/",
+    )
+
+    if any(path in nodeid for path in embedding_tests):
+        yield
+        return
+
+    from llama_index.core.embeddings import MockEmbedding
+    from backend.infrastructure.embeddings.factory import clear_embedding_cache
+
+    mock_embedding = MockEmbedding(embed_dim=384)
+    monkeypatch.setattr("backend.infrastructure.indexer.core.init.get_embedding_instance", lambda: None)
+    monkeypatch.setattr(
+        "backend.infrastructure.indexer.core.init.create_embedding",
+        lambda *args, **kwargs: mock_embedding,
+    )
+
+    clear_embedding_cache()
+    yield
+    clear_embedding_cache()
 
 
 # ==================== Query Engine Mocks ====================

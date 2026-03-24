@@ -10,6 +10,26 @@ from unittest.mock import Mock, AsyncMock, MagicMock
 from backend.business.chat import ChatTurn, ChatSession, ChatManager
 
 
+def _mock_stream_query(answer="Mock答案", sources=None, reasoning_content=None):
+    sources = sources or []
+
+    async def _stream_query(_query):
+        if reasoning_content is not None:
+            yield {"type": "reasoning", "data": reasoning_content}
+        if sources:
+            yield {"type": "sources", "data": sources}
+        yield {
+            "type": "done",
+            "data": {
+                "answer": answer,
+                "sources": sources,
+                "reasoning_content": reasoning_content,
+            },
+        }
+
+    return _stream_query
+
+
 @pytest.mark.fast
 class TestChatTurn:
     """ChatTurn数据类测试"""
@@ -166,6 +186,7 @@ class TestChatManager:
         # Mock ModularQueryEngine
         mock_engine = mocker.Mock(spec=ModularQueryEngine)
         mock_engine.query.return_value = ("Mock答案", [], None, {})
+        mock_engine.stream_query = mocker.Mock(side_effect=_mock_stream_query("Mock答案"))
         
         monkeypatch.setattr(
             'backend.business.chat.manager.create_deepseek_llm_for_query',
@@ -173,7 +194,7 @@ class TestChatManager:
         )
         
         mocker.patch(
-            'backend.business.chat.manager.ModularQueryEngine',
+            'backend.business.rag_engine.core.engine.ModularQueryEngine',
             return_value=mock_engine
         )
         
@@ -308,6 +329,12 @@ class TestChatManagerNewFeatures:
             None,
             {}
         )
+        mock_agentic_engine.stream_query = Mock(
+            side_effect=_mock_stream_query(
+                "Agentic答案",
+                sources=[{"file_name": "test.md", "content": "测试内容"}],
+            )
+        )
         
         # Mock create_deepseek_llm_for_query
         monkeypatch.setattr(
@@ -317,7 +344,7 @@ class TestChatManagerNewFeatures:
         
         # Mock AgenticQueryEngine 的创建
         mocker.patch(
-            'backend.business.chat.manager.AgenticQueryEngine',
+            'backend.business.rag_engine.agentic.AgenticQueryEngine',
             return_value=mock_agentic_engine
         )
         
@@ -336,7 +363,7 @@ class TestChatManagerNewFeatures:
         answer, sources, _ = chat_manager.chat("测试问题")
         
         # 验证调用了 AgenticQueryEngine
-        mock_agentic_engine.query.assert_called_once()
+        mock_agentic_engine.stream_query.assert_called_once()
         assert answer == "Agentic答案"
     
     def test_agentic_rag_vs_modular(self, mock_index_manager, mock_llm, mocker, monkeypatch):
@@ -347,10 +374,12 @@ class TestChatManagerNewFeatures:
         # Mock AgenticQueryEngine
         mock_agentic = Mock(spec=AgenticQueryEngine)
         mock_agentic.query.return_value = ("Agentic答案", [], None, {})
-        
+        mock_agentic.stream_query = Mock(side_effect=_mock_stream_query("Agentic答案"))
+
         # Mock ModularQueryEngine
         mock_modular = Mock(spec=ModularQueryEngine)
         mock_modular.query.return_value = ("Modular答案", [], None, {})
+        mock_modular.stream_query = Mock(side_effect=_mock_stream_query("Modular答案"))
         
         monkeypatch.setattr(
             'backend.business.chat.manager.create_deepseek_llm_for_query',
@@ -359,7 +388,7 @@ class TestChatManagerNewFeatures:
         
         # 测试 Agentic 模式
         mocker.patch(
-            'backend.business.chat.manager.AgenticQueryEngine',
+            'backend.business.rag_engine.agentic.AgenticQueryEngine',
             return_value=mock_agentic
         )
         chat_manager_agentic = ChatManager(
@@ -370,7 +399,7 @@ class TestChatManagerNewFeatures:
         
         # 测试 Modular 模式
         mocker.patch(
-            'backend.business.chat.manager.ModularQueryEngine',
+            'backend.business.rag_engine.core.engine.ModularQueryEngine',
             return_value=mock_modular
         )
         chat_manager_modular = ChatManager(
@@ -405,7 +434,7 @@ class TestChatManagerNewFeatures:
         )
         
         mocker.patch(
-            'backend.business.chat.manager.ModularQueryEngine',
+            'backend.business.rag_engine.core.engine.ModularQueryEngine',
             return_value=mock_engine
         )
         
@@ -450,7 +479,7 @@ class TestChatManagerNewFeatures:
         )
         
         mocker.patch(
-            'backend.business.chat.manager.ModularQueryEngine',
+            'backend.business.rag_engine.core.engine.ModularQueryEngine',
             return_value=mock_engine
         )
         
@@ -492,7 +521,7 @@ class TestChatManagerNewFeatures:
         )
         
         mocker.patch(
-            'backend.business.chat.manager.ModularQueryEngine',
+            'backend.business.rag_engine.core.engine.ModularQueryEngine',
             return_value=mock_engine
         )
         
@@ -531,7 +560,7 @@ class TestChatManagerNewFeatures:
         )
         
         mocker.patch(
-            'backend.business.chat.manager.ModularQueryEngine',
+            'backend.business.rag_engine.core.engine.ModularQueryEngine',
             return_value=mock_engine
         )
         
@@ -555,6 +584,7 @@ class TestChatManagerNewFeatures:
         
         mock_engine = Mock(spec=ModularQueryEngine)
         mock_engine.query.return_value = ("答案", [], None, {})
+        mock_engine.stream_query = Mock(side_effect=_mock_stream_query("答案"))
         
         monkeypatch.setattr(
             'backend.business.chat.manager.create_deepseek_llm_for_query',
@@ -562,7 +592,7 @@ class TestChatManagerNewFeatures:
         )
         
         mocker.patch(
-            'backend.business.chat.manager.ModularQueryEngine',
+            'backend.business.rag_engine.core.engine.ModularQueryEngine',
             return_value=mock_engine
         )
         
@@ -581,7 +611,7 @@ class TestChatManagerNewFeatures:
         chat_manager.chat("问题2")
         
         # 验证 query 被调用，但 LLM.complete 不应该被调用（因为短历史不压缩）
-        assert mock_engine.query.call_count == 2
+        assert mock_engine.stream_query.call_count == 2
         # 短历史时，_condense_query_with_history 应该直接拼接，不调用 LLM
         # 但由于我们 Mock 了 query，无法直接验证，所以只验证 query 被调用了
     
@@ -591,6 +621,7 @@ class TestChatManagerNewFeatures:
         
         mock_engine = Mock(spec=ModularQueryEngine)
         mock_engine.query.return_value = ("答案", [], None, {})
+        mock_engine.stream_query = Mock(side_effect=_mock_stream_query("答案"))
         
         monkeypatch.setattr(
             'backend.business.chat.manager.create_deepseek_llm_for_query',
@@ -598,7 +629,7 @@ class TestChatManagerNewFeatures:
         )
         
         mocker.patch(
-            'backend.business.chat.manager.ModularQueryEngine',
+            'backend.business.rag_engine.core.engine.ModularQueryEngine',
             return_value=mock_engine
         )
         
@@ -615,7 +646,7 @@ class TestChatManagerNewFeatures:
             chat_manager.chat(f"问题{i+1}")
         
         # 验证 query 被调用了4次
-        assert mock_engine.query.call_count == 4
+        assert mock_engine.stream_query.call_count == 4
     
     def test_smart_condense_long_history(self, mock_index_manager, mock_llm, mocker, monkeypatch):
         """测试长历史（≥5轮）LLM 压缩"""
@@ -623,6 +654,7 @@ class TestChatManagerNewFeatures:
         
         mock_engine = Mock(spec=ModularQueryEngine)
         mock_engine.query.return_value = ("答案", [], None, {})
+        mock_engine.stream_query = Mock(side_effect=_mock_stream_query("答案"))
         
         # Mock LLM 的 complete 方法（用于查询压缩）
         mock_llm.complete.return_value.text = "压缩后的查询"
@@ -633,7 +665,7 @@ class TestChatManagerNewFeatures:
         )
         
         mocker.patch(
-            'backend.business.chat.manager.ModularQueryEngine',
+            'backend.business.rag_engine.core.engine.ModularQueryEngine',
             return_value=mock_engine
         )
         
@@ -650,7 +682,7 @@ class TestChatManagerNewFeatures:
             chat_manager.chat(f"问题{i+1}")
         
         # 验证 query 被调用了6次
-        assert mock_engine.query.call_count == 6
+        assert mock_engine.stream_query.call_count == 6
         # 验证 LLM.complete 被调用（用于压缩长历史）
         assert mock_llm.complete.call_count > 0
     
@@ -660,6 +692,7 @@ class TestChatManagerNewFeatures:
         
         mock_engine = Mock(spec=ModularQueryEngine)
         mock_engine.query.return_value = ("答案", [], None, {})
+        mock_engine.stream_query = Mock(side_effect=_mock_stream_query("答案"))
         
         monkeypatch.setattr(
             'backend.business.chat.manager.create_deepseek_llm_for_query',
@@ -667,7 +700,7 @@ class TestChatManagerNewFeatures:
         )
         
         mocker.patch(
-            'backend.business.chat.manager.ModularQueryEngine',
+            'backend.business.rag_engine.core.engine.ModularQueryEngine',
             return_value=mock_engine
         )
         
@@ -684,76 +717,43 @@ class TestChatManagerNewFeatures:
             chat_manager.chat(f"问题{i+1}")
         
         # 验证 query 被调用
-        assert mock_engine.query.call_count == 3
+        assert mock_engine.stream_query.call_count == 3
     
     def test_retrieval_quality_evaluation_high(self, mock_index_manager, mock_llm, mocker, monkeypatch, caplog):
         """测试高质量检索的日志记录"""
-        from backend.business.rag_engine.core.engine import ModularQueryEngine
-        
         # 高质量 sources（相似度 >= threshold）
         high_quality_sources = [
             {"file_name": "doc1.md", "score": 0.85},
             {"file_name": "doc2.md", "score": 0.82},
             {"file_name": "doc3.md", "score": 0.78}
         ]
-        
-        mock_engine = Mock(spec=ModularQueryEngine)
-        mock_engine.query.return_value = ("答案", high_quality_sources, None, {})
-        
-        monkeypatch.setattr(
-            'backend.business.chat.manager.create_deepseek_llm_for_query',
-            lambda **kwargs: mock_llm
-        )
-        
-        mocker.patch(
-            'backend.business.chat.manager.ModularQueryEngine',
-            return_value=mock_engine
-        )
-        
+
         chat_manager = ChatManager(
             index_manager=mock_index_manager,
             similarity_threshold=0.7,
             api_key="test_key"
         )
-        
-        chat_manager.start_session()
-        chat_manager.chat("测试问题")
+
+        chat_manager._evaluate_retrieval_quality(high_quality_sources)
         
         # 验证日志中包含质量良好的信息
         assert "检索质量良好" in caplog.text or "高质量结果" in caplog.text
     
     def test_retrieval_quality_evaluation_low(self, mock_index_manager, mock_llm, mocker, monkeypatch, caplog):
         """测试低质量检索的警告日志"""
-        from backend.business.rag_engine.core.engine import ModularQueryEngine
-        
         # 低质量 sources（相似度 < threshold）
         low_quality_sources = [
             {"file_name": "doc1.md", "score": 0.5},
             {"file_name": "doc2.md", "score": 0.4}
         ]
-        
-        mock_engine = Mock(spec=ModularQueryEngine)
-        mock_engine.query.return_value = ("答案", low_quality_sources, None, {})
-        
-        monkeypatch.setattr(
-            'backend.business.chat.manager.create_deepseek_llm_for_query',
-            lambda **kwargs: mock_llm
-        )
-        
-        mocker.patch(
-            'backend.business.chat.manager.ModularQueryEngine',
-            return_value=mock_engine
-        )
-        
+
         chat_manager = ChatManager(
             index_manager=mock_index_manager,
             similarity_threshold=0.7,
             api_key="test_key"
         )
-        
-        chat_manager.start_session()
-        chat_manager.chat("测试问题")
+
+        chat_manager._evaluate_retrieval_quality(low_quality_sources)
         
         # 验证日志中包含质量较低的警告
         assert "检索质量较低" in caplog.text or "最高相似度" in caplog.text
-

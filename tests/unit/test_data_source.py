@@ -250,6 +250,7 @@ class TestGitHubSource:
         assert source._should_include_file("docs/readme.md") is True
 
 
+@pytest.mark.skip(reason="WebSource 已从当前数据源实现中移除")
 class TestWebSource:
     """WebSource测试"""
     
@@ -336,7 +337,6 @@ class TestDataSourceIntegration:
         sources = [
             LocalFileSource(source="/tmp/test"),
             GitHubSource(owner="test", repo="test"),
-            WebSource(urls=["https://example.com"])
         ]
         
         for source in sources:
@@ -355,5 +355,4 @@ class TestDataSourceIntegration:
             assert hasattr(file, 'source_type')
             assert hasattr(file, 'metadata')
             assert isinstance(file.metadata, dict)
-
 

@@ -141,7 +141,7 @@ class TestQueryRouter:
         ]
         
         for query in file_queries:
-            decision = router._analyze_query(query)
+            decision, _reason = router._analyze_query(query)
             # 包含文件名关键词且包含"的"、"内容"等，应该路由到metadata
             if "的" in query or "内容" in query:
                 assert decision == "files_via_metadata"
@@ -161,7 +161,7 @@ class TestQueryRouter:
         ]
         
         for query in broad_queries:
-            decision = router._analyze_query(query)
+            decision, _reason = router._analyze_query(query)
             assert decision == "files_via_content"
     
     def test_get_retriever_caching(self, mock_index_manager):
@@ -197,4 +197,3 @@ class TestQueryRouter:
         except (TypeError, AttributeError):
             # 预期的异常类型（None作为查询可能引发异常）
             pass
-

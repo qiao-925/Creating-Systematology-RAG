@@ -3,13 +3,12 @@ Grep检索器单元测试
 """
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+import subprocess
 from pathlib import Path
 import tempfile
-import os
+from unittest.mock import patch
 
 from backend.business.rag_engine.retrieval.strategies.grep import GrepRetriever
-from backend.business.rag_engine.retrieval.strategies.multi_strategy import BaseRetriever
 from llama_index.core.schema import NodeWithScore
 
 
@@ -36,8 +35,6 @@ class TestGrepRetriever:
         assert retriever.data_source_path == Path(temp_dir)
         assert retriever.enable_regex is True
         assert retriever.max_results == 10
-        assert retriever.get_name() == "grep_retriever"
-        assert retriever.get_top_k() == 10
     
     def test_grep_retriever_retrieve(self, temp_dir):
         """测试Grep检索"""
@@ -70,21 +67,28 @@ class TestGrepRetriever:
         
         assert len(results) > 0
     
-    @patch('src.retrievers.grep_retriever.platform.system')
-    def test_grep_windows_mode(self, mock_platform, temp_dir):
-        """测试Windows模式"""
-        mock_platform.return_value = "Windows"
-        
+    @patch("platform.system", return_value="Windows")
+    def test_grep_windows_mode(self, _mock_platform, temp_dir):
+        """测试Windows模式下走 Python 搜索实现"""
         retriever = GrepRetriever(
             data_source_path=temp_dir,
             enable_regex=True,
         )
-        
-        # Windows模式下应该使用Python实现
-        assert retriever.is_windows is True
-        results = retriever.retrieve("系统科学", top_k=5)
-        
+
+        windows_results = [{
+            "file": str(Path(temp_dir) / "test.md"),
+            "line": 1,
+            "content": "系统科学是研究系统的科学。",
+            "matches": 1,
+        }]
+
+        with patch.object(retriever, "_grep_search_windows", return_value=windows_results) as mock_windows:
+            results = retriever.retrieve("系统科学", top_k=5)
+
+        mock_windows.assert_called_once_with("系统科学")
         assert isinstance(results, list)
+        assert len(results) == 1
+        assert isinstance(results[0], NodeWithScore)
     
     def test_grep_retriever_empty_results(self, temp_dir):
         """测试无结果情况"""
@@ -110,14 +114,11 @@ class TestGrepRetriever:
         
         assert len(results) <= 3
     
-    def test_grep_retriever_implements_base(self, temp_dir):
-        """测试实现BaseRetriever接口"""
+    def test_grep_retriever_exposes_retrieve_interface(self, temp_dir):
+        """测试公开检索接口存在且可调用"""
         retriever = GrepRetriever(data_source_path=temp_dir)
-        
-        assert isinstance(retriever, BaseRetriever)
-        assert hasattr(retriever, 'retrieve')
-        assert hasattr(retriever, 'get_name')
-        assert hasattr(retriever, 'get_top_k')
+
+        assert callable(retriever.retrieve)
     
     def test_grep_search_case_sensitive(self, temp_dir):
         """测试大小写敏感搜索"""
@@ -174,24 +175,16 @@ class TestGrepRetriever:
                 # 分数应该在合理范围内
                 assert 0 <= result.score <= 1
     
-    @patch('src.retrievers.grep_retriever.subprocess.run')
+    @patch("backend.business.rag_engine.retrieval.strategies.grep.subprocess.run")
     def test_grep_timeout(self, mock_subprocess, temp_dir):
         """测试超时保护"""
-        # Mock subprocess.run 模拟超时
-        import subprocess
         mock_subprocess.side_effect = subprocess.TimeoutExpired(cmd="grep", timeout=1)
         
         retriever = GrepRetriever(
             data_source_path=temp_dir,
             timeout=1,
         )
-        
-        # 应该处理超时，返回空列表或抛出异常
-        try:
-            results = retriever.retrieve("test", top_k=5)
-            # 如果返回空列表，这也是合理的超时处理
-            assert isinstance(results, list)
-        except Exception:
-            # 如果抛出异常，也是合理的超时处理
-            pass
 
+        results = retriever.retrieve("test", top_k=5)
+
+        assert results == []

@@ -116,6 +116,6 @@ class TestAPIEmbedding:
             api_key="test-token"
         )
         
-        with patch('src.infrastructure.embeddings.hf_inference_embedding.time.sleep'):  # Mock sleep
+        with patch("backend.infrastructure.embeddings.hf_api_client.time.sleep"):
             with pytest.raises(RuntimeError):
                 embedding.get_query_embedding("test")

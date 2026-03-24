@@ -591,6 +591,9 @@ class ChatManager:
                 
                 # 格式化答案
                 full_answer = self.formatter.format(full_answer, None)
+
+            if self.query_engine:
+                self._evaluate_retrieval_quality(sources)
             
             # 更新对话记忆和会话上下文
             self._update_memory_and_session(message, full_answer, sources, reasoning_content)
@@ -623,4 +626,3 @@ class ChatManager:
             self.current_session.clear_history()
         self.memory.reset()
         logger.info("会话已重置")
-

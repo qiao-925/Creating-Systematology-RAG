@@ -26,19 +26,19 @@ class TestResultMerger:
     def test_init(self):
         """测试初始化"""
         merger = ResultMerger(
-            merge_strategy="reciprocal_rank_fusion",
+            strategy="reciprocal_rank_fusion",
             weights={"retriever1": 1.0, "retriever2": 0.8},
             enable_deduplication=True,
         )
         
-        assert merger.merge_strategy == "reciprocal_rank_fusion"
+        assert merger.strategy == "reciprocal_rank_fusion"
         assert merger.weights == {"retriever1": 1.0, "retriever2": 0.8}
         assert merger.enable_deduplication is True
     
     def test_reciprocal_rank_fusion(self, sample_nodes):
         """测试RRF合并"""
         merger = ResultMerger(
-            merge_strategy="reciprocal_rank_fusion",
+            strategy="reciprocal_rank_fusion",
             rrf_k=60,
         )
         
@@ -47,7 +47,7 @@ class TestResultMerger:
             "retriever2": sample_nodes[2:5],
         }
         
-        merged = merger.merge_results(results_by_retriever, top_k=5)
+        merged = merger.merge(results_by_retriever, top_k=5)
         
         assert isinstance(merged, list)
         assert len(merged) <= 5
@@ -59,7 +59,7 @@ class TestResultMerger:
     def test_weighted_score_fusion(self, sample_nodes):
         """测试加权分数融合"""
         merger = ResultMerger(
-            merge_strategy="weighted_score",
+            strategy="weighted_score",
             weights={"retriever1": 1.0, "retriever2": 0.5},
         )
         
@@ -68,7 +68,7 @@ class TestResultMerger:
             "retriever2": sample_nodes[2:5],
         }
         
-        merged = merger.merge_results(results_by_retriever, top_k=5)
+        merged = merger.merge(results_by_retriever, top_k=5)
         
         assert isinstance(merged, list)
         assert len(merged) <= 5
@@ -83,7 +83,7 @@ class TestResultMerger:
         ]
         
         merger = ResultMerger(
-            merge_strategy="reciprocal_rank_fusion",
+            strategy="reciprocal_rank_fusion",
             enable_deduplication=True,
         )
         
@@ -92,16 +92,16 @@ class TestResultMerger:
             "retriever2": duplicate_nodes,
         }
         
-        merged = merger.merge_results(results_by_retriever, top_k=5)
+        merged = merger.merge(results_by_retriever, top_k=5)
         
         # 去重后应该只有1个唯一节点
         unique_ids = {r.node.node_id for r in merged}
         assert len(unique_ids) == 1
     
     def test_deduplication_disabled(self, sample_nodes):
-        """测试禁用去重"""
+        """测试关闭额外去重步骤时仍能正常合并"""
         merger = ResultMerger(
-            merge_strategy="reciprocal_rank_fusion",
+            strategy="reciprocal_rank_fusion",
             enable_deduplication=False,
         )
         
@@ -111,16 +111,16 @@ class TestResultMerger:
             "retriever2": sample_nodes[:2],
         }
         
-        merged = merger.merge_results(results_by_retriever, top_k=5)
+        merged = merger.merge(results_by_retriever, top_k=5)
         
-        # 不去重时可能包含重复节点（取决于合并策略）
         assert isinstance(merged, list)
+        assert len(merged) == 2
     
     def test_empty_results(self):
         """测试空结果"""
         merger = ResultMerger()
         
-        merged = merger.merge_results({}, top_k=5)
+        merged = merger.merge({}, top_k=5)
         
         assert isinstance(merged, list)
         assert len(merged) == 0
@@ -134,19 +134,19 @@ class TestResultMerger:
             "retriever2": sample_nodes,
         }
         
-        merged = merger.merge_results(results_by_retriever, top_k=3)
+        merged = merger.merge(results_by_retriever, top_k=3)
         
         assert len(merged) <= 3
     
     def test_rrf_k_parameter(self, sample_nodes):
         """测试RRF K参数"""
         merger1 = ResultMerger(
-            merge_strategy="reciprocal_rank_fusion",
+            strategy="reciprocal_rank_fusion",
             rrf_k=60,
         )
         
         merger2 = ResultMerger(
-            merge_strategy="reciprocal_rank_fusion",
+            strategy="reciprocal_rank_fusion",
             rrf_k=100,
         )
         
@@ -155,8 +155,8 @@ class TestResultMerger:
             "retriever2": sample_nodes[:3],
         }
         
-        merged1 = merger1.merge_results(results_by_retriever, top_k=5)
-        merged2 = merger2.merge_results(results_by_retriever, top_k=5)
+        merged1 = merger1.merge(results_by_retriever, top_k=5)
+        merged2 = merger2.merge(results_by_retriever, top_k=5)
         
         # 不同K值可能产生不同排序
         assert isinstance(merged1, list)
@@ -165,7 +165,7 @@ class TestResultMerger:
     def test_simple_concatenation(self, sample_nodes):
         """测试简单拼接策略"""
         merger = ResultMerger(
-            merge_strategy="simple",
+            strategy="simple",
             enable_deduplication=False,
         )
         
@@ -174,7 +174,7 @@ class TestResultMerger:
             "retriever2": sample_nodes[2:4],
         }
         
-        merged = merger.merge_results(results_by_retriever, top_k=5)
+        merged = merger.merge(results_by_retriever, top_k=5)
         
         assert isinstance(merged, list)
         # 简单拼接应该包含所有结果（可能超过top_k限制）
@@ -198,11 +198,10 @@ class TestResultMerger:
             "retriever1": nodes,
         }
         
-        merged = merger.merge_results(results_by_retriever, top_k=5)
+        merged = merger.merge(results_by_retriever, top_k=5)
         
         # 验证节点ID被正确生成和使用
         assert len(merged) > 0
         for result in merged:
             assert hasattr(result.node, 'node_id')
             assert result.node.node_id is not None
-

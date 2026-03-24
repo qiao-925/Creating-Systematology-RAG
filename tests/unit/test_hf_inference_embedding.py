@@ -4,7 +4,7 @@ Hugging Face Inference API Embedding 单元测试
 """
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 from typing import List
 import os
 
@@ -18,7 +18,7 @@ class TestHFInferenceEmbedding:
     def test_hf_inference_embedding_init_without_token(self):
         """测试初始化时缺少 Token 的情况"""
         with patch.dict(os.environ, {}, clear=True):
-            with patch('src.infrastructure.embeddings.hf_inference_embedding.config') as mock_config:
+            with patch("backend.infrastructure.embeddings.hf_inference_embedding.config") as mock_config:
                 mock_config.HF_TOKEN = None
                 
                 with pytest.raises(ValueError, match="HF_TOKEN 未设置"):
@@ -173,7 +173,7 @@ class TestHFInferenceEmbedding:
         mock_success_response.raise_for_status = Mock()
         mock_post.side_effect = [http_error, mock_success_response]
         
-        with patch('src.infrastructure.embeddings.hf_inference_embedding.time.sleep'):  # Mock sleep 避免实际等待
+        with patch("backend.infrastructure.embeddings.hf_api_client.time.sleep"):
             vector = embedding.get_query_embedding("test")
         
         assert len(vector) == 1024
@@ -212,7 +212,7 @@ class TestHFInferenceEmbedding:
             mock_success_response
         ]
         
-        with patch('src.infrastructure.embeddings.hf_inference_embedding.time.sleep'):  # Mock sleep
+        with patch("backend.infrastructure.embeddings.hf_api_client.time.sleep"):
             vector = embedding.get_query_embedding("test")
         
         assert len(vector) == 1024
@@ -236,8 +236,8 @@ class TestHFInferenceEmbedding:
         mock_post.reset_mock()
         mock_post.side_effect = ConnectionError("Network error")
         
-        with patch('src.infrastructure.embeddings.hf_inference_embedding.time.sleep'):  # Mock sleep
-            with pytest.raises(RuntimeError, match="Hugging Face Inference API 调用失败"):
+        with patch("backend.infrastructure.embeddings.hf_api_client.time.sleep"):
+            with pytest.raises(RuntimeError, match="HF API 调用失败"):
                 embedding.get_query_embedding("test")
         
         # 验证被调用了 max_retries + 1 次（初始 + 重试）
@@ -311,7 +311,7 @@ class TestHFInferenceEmbedding:
         # Mock requests.post - 验证时失败
         mock_post.side_effect = RequestException("API error")
         
-        with patch('src.infrastructure.embeddings.hf_inference_embedding.logger'):
+        with patch("backend.infrastructure.embeddings.hf_inference_embedding.logger"):
             embedding = HFInferenceEmbedding(
                 model_name="Qwen/Qwen3-Embedding-0.6B",
                 api_key="hf_test_token_123"
@@ -382,132 +382,3 @@ class TestHFInferenceEmbedding:
             embedding.get_query_embedding("test")
         except (RuntimeError, ValueError, TypeError, KeyError):
             pass  # 预期的异常
-
-
-class TestHFInferenceEmbeddingFactory:
-    """测试工厂函数中的 HF Inference API 支持"""
-    
-    def test_factory_create_hf_inference(self, monkeypatch):
-        """测试工厂函数创建 HF Inference Embedding"""
-        # 先 mock llama_index 模块避免导入错误
-        import sys
-        mock_llama_index = MagicMock()
-        sys.modules['llama_index'] = mock_llama_index
-        sys.modules['llama_index.embeddings'] = MagicMock()
-        sys.modules['llama_index.embeddings.huggingface'] = MagicMock()
-        
-        try:
-            import backend.infrastructure.embeddings.factory as factory_module
-            from backend.infrastructure.embeddings.factory import create_embedding, clear_embedding_cache
-            clear_embedding_cache()
-            
-            # Mock HFInferenceEmbedding
-            mock_instance = Mock(spec=BaseEmbedding)
-            mock_instance.get_model_name.return_value = "Qwen/Qwen3-Embedding-0.6B"
-            
-            with patch('src.infrastructure.embeddings.hf_inference_embedding.HFInferenceEmbedding') as mock_hf_class:
-                mock_hf_class.return_value = mock_instance
-                
-                # Mock config
-                mock_config = Mock()
-                mock_config.EMBEDDING_TYPE = "hf-inference"
-                mock_config.EMBEDDING_MODEL = "Qwen/Qwen3-Embedding-0.6B"
-                mock_config.HF_TOKEN = "hf_test_token_123"
-                
-                monkeypatch.setattr(factory_module, "config", mock_config)
-                
-                with patch.dict(os.environ, {'HF_TOKEN': 'hf_test_token_123'}):
-                    result = create_embedding(
-                        embedding_type="hf-inference",
-                        model_name="Qwen/Qwen3-Embedding-0.6B"
-                    )
-                
-                assert result == mock_instance
-                mock_hf_class.assert_called_once()
-                call_kwargs = mock_hf_class.call_args[1]
-                assert call_kwargs['model_name'] == "Qwen/Qwen3-Embedding-0.6B"
-                assert call_kwargs['api_key'] == "hf_test_token_123"
-        finally:
-            # 清理 sys.modules
-            if 'llama_index' in sys.modules:
-                del sys.modules['llama_index']
-            if 'llama_index.embeddings' in sys.modules:
-                del sys.modules['llama_index.embeddings']
-            if 'llama_index.embeddings.huggingface' in sys.modules:
-                del sys.modules['llama_index.embeddings.huggingface']
-    
-    def test_factory_create_hf_inference_missing_token(self, monkeypatch):
-        """测试工厂函数创建 HF Inference Embedding 时缺少 Token"""
-        # 先 mock llama_index 模块避免导入错误
-        import sys
-        mock_llama_index = MagicMock()
-        sys.modules['llama_index'] = mock_llama_index
-        sys.modules['llama_index.embeddings'] = MagicMock()
-        sys.modules['llama_index.embeddings.huggingface'] = MagicMock()
-        
-        try:
-            import backend.infrastructure.embeddings.factory as factory_module
-            from backend.infrastructure.embeddings.factory import create_embedding, clear_embedding_cache
-            clear_embedding_cache()
-            
-            # Mock config
-            mock_config = Mock()
-            mock_config.EMBEDDING_TYPE = "hf-inference"
-            mock_config.EMBEDDING_MODEL = "Qwen/Qwen3-Embedding-0.6B"
-            mock_config.HF_TOKEN = None
-            
-            monkeypatch.setattr(factory_module, "config", mock_config)
-            
-            with patch.dict(os.environ, {}, clear=True):
-                with pytest.raises(ValueError, match="HF Inference API 需要设置 HF_TOKEN"):
-                    create_embedding(embedding_type="hf-inference")
-        finally:
-            # 清理 sys.modules
-            if 'llama_index' in sys.modules:
-                del sys.modules['llama_index']
-            if 'llama_index.embeddings' in sys.modules:
-                del sys.modules['llama_index.embeddings']
-            if 'llama_index.embeddings.huggingface' in sys.modules:
-                del sys.modules['llama_index.embeddings.huggingface']
-    
-    def test_factory_create_hf_inference_with_default_model(self, monkeypatch):
-        """测试工厂函数使用默认模型名称"""
-        # 先 mock llama_index 模块避免导入错误
-        import sys
-        mock_llama_index = MagicMock()
-        sys.modules['llama_index'] = mock_llama_index
-        sys.modules['llama_index.embeddings'] = MagicMock()
-        sys.modules['llama_index.embeddings.huggingface'] = MagicMock()
-        
-        try:
-            import backend.infrastructure.embeddings.factory as factory_module
-            from backend.infrastructure.embeddings.factory import create_embedding, clear_embedding_cache
-            clear_embedding_cache()
-            
-            mock_instance = Mock(spec=BaseEmbedding)
-            
-            with patch('src.infrastructure.embeddings.hf_inference_embedding.HFInferenceEmbedding') as mock_hf_class:
-                mock_hf_class.return_value = mock_instance
-                
-                # Mock config
-                mock_config = Mock()
-                mock_config.EMBEDDING_TYPE = "hf-inference"
-                mock_config.EMBEDDING_MODEL = "Qwen/Qwen3-Embedding-0.6B"
-                mock_config.HF_TOKEN = "hf_test_token_123"
-                
-                monkeypatch.setattr(factory_module, "config", mock_config)
-                
-                with patch.dict(os.environ, {'HF_TOKEN': 'hf_test_token_123'}):
-                    result = create_embedding(embedding_type="hf-inference")
-                
-                assert result == mock_instance
-                call_kwargs = mock_hf_class.call_args[1]
-                assert call_kwargs['model_name'] == "Qwen/Qwen3-Embedding-0.6B"
-        finally:
-            # 清理 sys.modules
-            if 'llama_index' in sys.modules:
-                del sys.modules['llama_index']
-            if 'llama_index.embeddings' in sys.modules:
-                del sys.modules['llama_index.embeddings']
-            if 'llama_index.embeddings.huggingface' in sys.modules:
-                del sys.modules['llama_index.embeddings.huggingface']

@@ -12,6 +12,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from tests.fixtures.chroma_fake import FakeChromaClient
+
 
 # Ensure project root is importable
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -173,27 +175,17 @@ def mock_env_vars(monkeypatch):
 def mock_chromadb_client(monkeypatch):
     try:
         import chromadb
+        from backend.infrastructure.indexer.core.chroma_client import ChromaClientManager
+        from tests.fixtures.chroma_fake import FakeChromaClient
 
-        def create_mock_cloud_client(*_args, **_kwargs):
-            mock_client = MagicMock()
-            mock_collection = MagicMock()
-            mock_collection.count.return_value = 0
-            mock_collection.get.return_value = {"ids": [], "documents": [], "metadatas": []}
-            mock_collection.query.return_value = {"ids": [], "documents": [], "metadatas": []}
-            mock_collection.add.return_value = None
-            mock_collection.update.return_value = None
-            mock_collection.delete.return_value = None
-            mock_client.get_or_create_collection.return_value = mock_collection
-            mock_client.get_collection.return_value = mock_collection
-            mock_client.list_collections.return_value = []
-            mock_client.delete_collection.return_value = None
-            return mock_client
-
-        monkeypatch.setattr(chromadb, "CloudClient", create_mock_cloud_client)
-        monkeypatch.setattr(chromadb, "PersistentClient", create_mock_cloud_client)
-        monkeypatch.setattr(chromadb, "Client", create_mock_cloud_client)
+        ChromaClientManager.reset()
+        monkeypatch.setattr(chromadb, "CloudClient", FakeChromaClient)
+        monkeypatch.setattr(chromadb, "PersistentClient", FakeChromaClient)
+        monkeypatch.setattr(chromadb, "Client", FakeChromaClient)
+        yield
+        ChromaClientManager.reset()
     except ImportError:
-        pass
+        yield
 
 
 # -------------------- pytest hooks --------------------
@@ -235,3 +227,37 @@ pytest_plugins = [
     "tests.fixtures.llm",
     "tests.fixtures.mocks",
 ]
+
+
+def _uses_real_embedding_tests(nodeid: str) -> bool:
+    normalized = nodeid.replace("\\", "/")
+    file_nodeid = normalized.split("::", 1)[0]
+    return (
+        "tests/unit/embeddings/" in normalized
+        or file_nodeid.endswith("tests/unit/test_embeddings_factory.py")
+        or file_nodeid.endswith("tests/unit/test_hf_inference_embedding.py")
+    )
+
+
+@pytest.fixture(autouse=True)
+def mock_indexer_embeddings(request, monkeypatch):
+    """为非 embedding 专项测试提供离线 embedding，避免依赖 HF_TOKEN/network。"""
+    if _uses_real_embedding_tests(request.node.nodeid):
+        yield
+        return
+
+    from llama_index.core.embeddings import MockEmbedding
+    import backend.infrastructure.indexer.core.init as indexer_init
+    import backend.infrastructure.embeddings.factory as embedding_factory
+
+    embedding = MockEmbedding(embed_dim=8, model_name="test-mock-embedding")
+
+    monkeypatch.setattr(indexer_init, "get_embedding_instance", lambda: None)
+    monkeypatch.setattr(indexer_init, "create_embedding", lambda *args, **kwargs: embedding)
+    monkeypatch.setattr(embedding_factory, "get_embedding_instance", lambda: None)
+    monkeypatch.setattr(embedding_factory, "create_embedding", lambda *args, **kwargs: embedding)
+    embedding_factory.clear_embedding_cache()
+
+    yield
+
+    embedding_factory.clear_embedding_cache()

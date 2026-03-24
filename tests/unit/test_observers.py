@@ -325,7 +325,7 @@ class TestObserverFactory:
         assert isinstance(manager, ObserverManager)
         # 观察器数量取决于依赖是否安装
     
-    @patch('src.infrastructure.observers.factory.config')
+    @patch('backend.infrastructure.observers.factory.config')
     def test_create_observer_from_config(self, mock_config):
         """测试从配置创建观察器"""
         mock_config.ENABLE_DEBUG_HANDLER = True
@@ -371,5 +371,4 @@ class TestObserverIntegration:
         
         observer.enable()
         assert observer.is_enabled() is True
-
 

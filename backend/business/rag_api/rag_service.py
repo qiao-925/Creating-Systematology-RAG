@@ -197,7 +197,7 @@ class RAGService:
         return IndexResult(
             success=result.success,
             collection_name=result.collection_name,
-            doc_count=result.document_count,
+            doc_count=result.doc_count,
             message=result.message
         )
     

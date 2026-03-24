@@ -19,6 +19,7 @@ from backend.infrastructure.indexer.utils.stats import get_stats
 from backend.infrastructure.indexer.utils.cleanup import clear_index, clear_collection_cache
 from backend.infrastructure.indexer.utils.incremental import incremental_update
 from backend.infrastructure.indexer.utils.lifecycle import close
+from backend.infrastructure.indexer.utils.ids import get_vector_ids_by_metadata, get_vector_ids_batch
 from backend.infrastructure.indexer.build.builder import build_index_method
 
 if TYPE_CHECKING:
@@ -127,6 +128,10 @@ class IndexManager:
     def get_embedding_instance(self) -> Optional[BaseEmbedding]:
         """获取统一的Embedding实例"""
         return self._embedding_instance
+
+    def _get_vector_ids_by_metadata(self, file_path: str) -> List[str]:
+        """为文件级检索策略暴露按文件路径查询向量 ID 的兼容接口。"""
+        return get_vector_ids_by_metadata(self, file_path)
     
     def _get_llama_index_compatible_embedding(self):
         """获取LlamaIndex兼容的Embedding实例
@@ -255,7 +260,15 @@ class IndexManager:
     def get_stats(self) -> dict:
         """获取索引统计信息"""
         return get_stats(self)
-    
+
+    def _get_vector_ids_by_metadata(self, file_path: str) -> List[str]:
+        """向后兼容的向量 ID 查询入口。"""
+        return get_vector_ids_by_metadata(self, file_path)
+
+    def _get_vector_ids_batch(self, file_paths: List[str]) -> Dict[str, List[str]]:
+        """向后兼容的批量向量 ID 查询入口。"""
+        return get_vector_ids_batch(self, file_paths)
+
     def search(self, query: str, top_k: int = 5) -> List[dict]:
         """搜索相似文档"""
         if self._index is None:

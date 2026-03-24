@@ -1,148 +1,213 @@
 """
-DeepSeek LLM 工厂函数单元测试
+LLM 工厂函数单元测试
 
-测试 LLM 工厂函数的创建逻辑、配置处理、JSON Output 等功能。
+对齐当前 LiteLLM 工厂实现以及旧 DeepSeek 兼容包装层。
 """
 
-import pytest
-from unittest.mock import Mock, patch, MagicMock
+import os
+from unittest.mock import Mock, patch
 
+import pytest
+
+from backend.infrastructure.config.models import LLMModelConfig
 from backend.infrastructure.llms.factory import (
     create_deepseek_llm,
     create_deepseek_llm_for_query,
     create_deepseek_llm_for_structure,
+    create_llm,
 )
-from backend.infrastructure.config import config
 
 
-class TestCreateDeepSeekLLM:
-    """测试 create_deepseek_llm 函数"""
-    
-    @patch('src.infrastructure.llms.factory.DeepSeek')
-    @patch('src.infrastructure.llms.factory.wrap_deepseek')
-    def test_create_with_default_config(self, mock_wrap, mock_deepseek):
-        """测试使用默认配置创建 LLM"""
-        mock_instance = Mock()
-        mock_deepseek.return_value = mock_instance
-        mock_wrap.return_value = mock_instance
-        
-        llm = create_deepseek_llm()
-        
-        # 验证 DeepSeek 被调用
-        mock_deepseek.assert_called_once()
-        call_kwargs = mock_deepseek.call_args[1]
-        
-        # 验证参数
-        assert call_kwargs['api_key'] == config.DEEPSEEK_API_KEY
-        assert call_kwargs['model'] == config.LLM_MODEL
-        assert call_kwargs['max_tokens'] == 32768
-        
-        # 验证没有 JSON Output（默认）
-        assert 'response_format' not in call_kwargs
-        
-        # 验证被包装
-        mock_wrap.assert_called_once_with(mock_instance)
-    
-    @patch('src.infrastructure.llms.factory.DeepSeek')
-    @patch('src.infrastructure.llms.factory.wrap_deepseek')
-    def test_create_with_json_output(self, mock_wrap, mock_deepseek):
-        """测试启用 JSON Output"""
-        mock_instance = Mock()
-        mock_deepseek.return_value = mock_instance
-        mock_wrap.return_value = mock_instance
-        
-        llm = create_deepseek_llm(use_json_output=True)
-        
-        call_kwargs = mock_deepseek.call_args[1]
-        
-        # 验证 JSON Output 被启用
-        assert 'response_format' in call_kwargs
-        assert call_kwargs['response_format'] == {"type": "json_object"}
-    
-    @patch('src.infrastructure.llms.factory.DeepSeek')
-    @patch('src.infrastructure.llms.factory.wrap_deepseek')
-    def test_create_with_custom_parameters(self, mock_wrap, mock_deepseek):
-        """测试使用自定义参数创建 LLM"""
-        mock_instance = Mock()
-        mock_deepseek.return_value = mock_instance
-        mock_wrap.return_value = mock_instance
-        
-        llm = create_deepseek_llm(
-            api_key="test_key",
-            model="test-model",
-            max_tokens=1000
+def _make_model_config(
+    *,
+    model_id: str = "deepseek-chat",
+    litellm_model: str = "deepseek/deepseek-chat",
+    api_key_env: str = "DEEPSEEK_API_KEY",
+    temperature: float | None = 0.7,
+    max_tokens: int | None = 4096,
+    supports_reasoning: bool = False,
+    request_timeout: float | None = 30.0,
+) -> LLMModelConfig:
+    return LLMModelConfig(
+        id=model_id,
+        name=model_id,
+        litellm_model=litellm_model,
+        api_key_env=api_key_env,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        supports_reasoning=supports_reasoning,
+        request_timeout=request_timeout,
+    )
+
+
+def _make_config_mock(
+    model_config: LLMModelConfig,
+    *,
+    default_model_id: str | None = None,
+    max_retries: int = 3,
+    retry_delay: float = 2.0,
+) -> Mock:
+    config_mock = Mock()
+    config_mock.LLM_MODEL = default_model_id or model_config.id
+    config_mock.get_default_llm_id.return_value = default_model_id or model_config.id
+    config_mock.get_llm_model_config.side_effect = (
+        lambda model_id: model_config if model_id == model_config.id else None
+    )
+    config_mock.get_available_llm_models.return_value = [model_config]
+    config_mock.get_llm_config.return_value = {
+        "initialization_timeout": 30.0,
+        "max_retries": max_retries,
+        "retry_delay": retry_delay,
+    }
+    return config_mock
+
+
+class TestCreateLLM:
+    """测试当前 LiteLLM 工厂入口。"""
+
+    def test_create_llm_with_default_model(self):
+        model_config = _make_model_config()
+        config_mock = _make_config_mock(model_config)
+        llm_instance = Mock()
+
+        with (
+            patch("backend.infrastructure.llms.factory.config", config_mock),
+            patch.dict(os.environ, {"DEEPSEEK_API_KEY": "test-key"}, clear=True),
+            patch("llama_index.llms.litellm.LiteLLM", return_value=llm_instance) as mock_litellm,
+        ):
+            result = create_llm()
+
+        assert result is llm_instance
+        mock_litellm.assert_called_once_with(
+            model="deepseek/deepseek-chat",
+            api_key="test-key",
+            request_timeout=30.0,
+            max_tokens=4096,
+            temperature=0.7,
         )
-        
-        call_kwargs = mock_deepseek.call_args[1]
-        
-        assert call_kwargs['api_key'] == "test_key"
-        assert call_kwargs['model'] == "test-model"
-        assert call_kwargs['max_tokens'] == 1000
-    
-    @patch('src.infrastructure.llms.factory.DeepSeek')
-    @patch('src.infrastructure.llms.factory.wrap_deepseek')
-    def test_create_without_api_key_raises_error(self, mock_wrap, mock_deepseek):
-        """测试没有 API 密钥时抛出错误"""
-        with patch('src.infrastructure.llms.factory.config') as mock_config:
-            mock_config.DEEPSEEK_API_KEY = ""
-            
+
+    def test_create_llm_omits_temperature_for_reasoning_model(self):
+        model_config = _make_model_config(
+            model_id="deepseek-reasoner",
+            litellm_model="deepseek/deepseek-reasoner",
+            temperature=None,
+            max_tokens=32768,
+            supports_reasoning=True,
+            request_timeout=60.0,
+        )
+        config_mock = _make_config_mock(model_config)
+
+        with (
+            patch("backend.infrastructure.llms.factory.config", config_mock),
+            patch.dict(os.environ, {"DEEPSEEK_API_KEY": "test-key"}, clear=True),
+            patch("llama_index.llms.litellm.LiteLLM") as mock_litellm,
+            patch("backend.infrastructure.llms.factory.logger") as mock_logger,
+        ):
+            create_llm(model_id="deepseek-reasoner", temperature=0.1)
+
+        call_kwargs = mock_litellm.call_args.kwargs
+        assert "temperature" not in call_kwargs
+        assert call_kwargs["model"] == "deepseek/deepseek-reasoner"
+        assert call_kwargs["max_tokens"] == 32768
+        mock_logger.debug.assert_called()
+
+    def test_create_llm_raises_when_api_key_missing(self):
+        model_config = _make_model_config()
+        config_mock = _make_config_mock(model_config)
+
+        with (
+            patch("backend.infrastructure.llms.factory.config", config_mock),
+            patch.dict(os.environ, {}, clear=True),
+        ):
             with pytest.raises(ValueError, match="未设置 DEEPSEEK_API_KEY"):
-                create_deepseek_llm()
+                create_llm()
+
+    def test_create_llm_retries_on_initialization_failure(self):
+        model_config = _make_model_config()
+        config_mock = _make_config_mock(model_config, max_retries=2, retry_delay=0.0)
+        llm_instance = Mock()
+
+        with (
+            patch("backend.infrastructure.llms.factory.config", config_mock),
+            patch.dict(os.environ, {"DEEPSEEK_API_KEY": "test-key"}, clear=True),
+            patch(
+                "llama_index.llms.litellm.LiteLLM",
+                side_effect=[RuntimeError("boom"), llm_instance],
+            ) as mock_litellm,
+            patch("backend.infrastructure.llms.factory.time.sleep") as mock_sleep,
+        ):
+            result = create_llm()
+
+        assert result is llm_instance
+        assert mock_litellm.call_count == 2
+        mock_sleep.assert_called_once_with(0.0)
 
 
-class TestCreateDeepSeekLLMForQuery:
-    """测试 create_deepseek_llm_for_query 函数"""
-    
-    @patch('src.infrastructure.llms.factory.create_deepseek_llm')
-    def test_create_for_query_no_json_output(self, mock_create):
-        """测试创建用于查询的 LLM（不使用 JSON Output）"""
-        mock_llm = Mock()
-        mock_create.return_value = mock_llm
-        
-        llm = create_deepseek_llm_for_query()
-        
-        # 验证调用 create_deepseek_llm 时 use_json_output=False
-        mock_create.assert_called_once()
-        call_kwargs = mock_create.call_args[1]
-        assert call_kwargs['use_json_output'] is False
+class TestDeepSeekCompatibilityWrappers:
+    """测试向后兼容的 DeepSeek 包装函数。"""
 
-
-class TestCreateDeepSeekLLMForStructure:
-    """测试 create_deepseek_llm_for_structure 函数"""
-    
-    @patch('src.infrastructure.llms.factory.create_deepseek_llm')
-    def test_create_for_structure_with_json_output(self, mock_create):
-        """测试创建用于结构化输出的 LLM（使用 JSON Output）"""
-        mock_llm = Mock()
-        mock_create.return_value = mock_llm
-        
-        llm = create_deepseek_llm_for_structure()
-        
-        # 验证调用 create_deepseek_llm 时 use_json_output=True
-        mock_create.assert_called_once()
-        call_kwargs = mock_create.call_args[1]
-        assert call_kwargs['use_json_output'] is True
-
-
-class TestModelConfiguration:
-    """测试模型配置"""
-    
-    @patch('src.infrastructure.llms.factory.DeepSeek')
-    @patch('src.infrastructure.llms.factory.wrap_deepseek')
-    @patch('src.infrastructure.llms.factory.logger')
-    def test_warning_for_non_reasoner_model(self, mock_logger, mock_wrap, mock_deepseek):
-        """测试使用非推理模型时发出警告"""
+    @patch("backend.infrastructure.llms.factory.create_llm")
+    def test_create_deepseek_llm_enables_json_output(self, mock_create_llm):
         mock_instance = Mock()
-        mock_deepseek.return_value = mock_instance
-        mock_wrap.return_value = mock_instance
-        
-        create_deepseek_llm(model="deepseek-chat")
-        
-        # 验证发出警告
-        warning_calls = [call for call in mock_logger.warning.call_args_list 
-                        if 'deepseek-reasoner' in str(call)]
-        assert len(warning_calls) > 0
+        mock_create_llm.return_value = mock_instance
 
+        result = create_deepseek_llm(use_json_output=True)
 
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+        assert result is mock_instance
+        mock_create_llm.assert_called_once_with(
+            model_id="deepseek-chat",
+            temperature=None,
+            max_tokens=None,
+            response_format={"type": "json_object"},
+        )
+
+    @patch("backend.infrastructure.llms.factory.create_llm")
+    def test_create_deepseek_llm_maps_reasoner_model(self, mock_create_llm):
+        mock_instance = Mock()
+        mock_create_llm.return_value = mock_instance
+
+        result = create_deepseek_llm(model="deepseek-reasoner", max_tokens=1024)
+
+        assert result is mock_instance
+        mock_create_llm.assert_called_once_with(
+            model_id="deepseek-reasoner",
+            temperature=None,
+            max_tokens=1024,
+        )
+
+    @patch("backend.infrastructure.llms.factory.create_llm")
+    def test_create_deepseek_llm_falls_back_to_chat_for_unknown_model(self, mock_create_llm):
+        create_deepseek_llm(model="custom-model")
+
+        mock_create_llm.assert_called_once_with(
+            model_id="deepseek-chat",
+            temperature=None,
+            max_tokens=None,
+        )
+
+    @pytest.mark.parametrize(
+        ("factory_fn", "expected_json_output"),
+        [
+            (create_deepseek_llm_for_query, False),
+            (create_deepseek_llm_for_structure, True),
+        ],
+    )
+    @patch("backend.infrastructure.llms.factory.create_deepseek_llm")
+    def test_query_and_structure_wrappers_delegate(
+        self,
+        mock_create_deepseek_llm,
+        factory_fn,
+        expected_json_output,
+    ):
+        mock_instance = Mock()
+        mock_create_deepseek_llm.return_value = mock_instance
+
+        result = factory_fn(max_tokens=2048)
+
+        assert result is mock_instance
+        mock_create_deepseek_llm.assert_called_once_with(
+            api_key=None,
+            model=None,
+            max_tokens=2048,
+            use_json_output=expected_json_output,
+        )
