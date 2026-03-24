@@ -18,6 +18,13 @@ env/
 *.swo
 !.vscode/mcp.json
 .codex/
+!.agent/
+.agent/*
+!.agent/project.yaml
+!.agent/prompts/
+.agent/prompts/*
+!.agent/prompts/execute-plan.md
+!.agent/prompts/review-checkpoint.md
 
 # 测试
 .pytest_cache/
