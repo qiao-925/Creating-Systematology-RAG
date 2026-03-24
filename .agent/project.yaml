@@ -1,0 +1,50 @@
+version: 1
+project:
+  name: Creating-Systematology-RAG
+  default_branch: main
+workspace:
+  strategy: worktree
+  writable_paths:
+  - app.py
+  - application.yml
+  - backend
+  - frontend
+  - tests
+  - docs
+  - prompts
+  - scripts
+  - .agent
+  - .github
+  - README.md
+commands:
+  setup:
+  # 如果 runner 机器依赖手工安装的 CUDA 版 PyTorch，请按该机器实际情况覆盖此命令。
+  - uv sync --extra test
+  verify:
+  - uv run --no-sync pytest tests/unit tests/integration -v -m "not slow and not github_e2e"
+  build: []
+tasks:
+  execute_plan:
+    prompt_file: .agent/prompts/execute-plan.md
+    sandbox: workspace-write
+    instructions:
+    - 始终优先读取 .agent/runtime/issue-plan.md。
+    - 阶段完成并且 verify 通过时，调用 agent-nightshift checkpoint。
+  review_checkpoint:
+    prompt_file: .agent/prompts/review-checkpoint.md
+    sandbox: read-only
+policy:
+  allow_dependency_changes: false
+  allow_schema_changes: false
+  require_human_for:
+  - database_schema
+  - public_api_change
+  - auth_logic_change
+checkpoint:
+  issue_comment: true
+  pr_comment: true
+  trigger_review: true
+github:
+  default_task: execute_plan
+  review_task: review_checkpoint
+  review_workflow: nightshift-review.yml

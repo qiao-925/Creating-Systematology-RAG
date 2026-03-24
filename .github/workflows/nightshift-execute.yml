@@ -1,0 +1,47 @@
+name: nightshift-execute
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: "Issue number that holds the plan"
+        required: true
+      push_ref:
+        description: "Branch to execute on"
+        required: true
+      task:
+        description: "Task key from .agent/project.yaml"
+        required: true
+        default: execute_plan
+      time_budget_hours:
+        description: "Soft time budget in hours"
+        required: true
+        default: "6"
+
+jobs:
+  execute:
+    runs-on: self-hosted
+    timeout-minutes: 480
+    concurrency:
+      group: nightshift-execute-${{ inputs.push_ref }}
+      cancel-in-progress: false
+    permissions:
+      actions: write
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Checkout target branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.push_ref }}
+
+      - name: Run execute worker
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          agent-nightshift run-github-event \
+            --repo "$GITHUB_WORKSPACE" \
+            --commit \
+            --push

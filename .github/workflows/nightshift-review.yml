@@ -1,0 +1,54 @@
+name: nightshift-review
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: "Issue number that holds the plan"
+        required: false
+      push_ref:
+        description: "Branch to review"
+        required: true
+      checkpoint_phase:
+        description: "Phase label from the checkpoint"
+        required: false
+      checkpoint_sha:
+        description: "Commit sha from the checkpoint"
+        required: false
+
+jobs:
+  review:
+    runs-on: self-hosted
+    timeout-minutes: 120
+    concurrency:
+      group: nightshift-review-${{ inputs.push_ref }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Checkout checkpoint branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.push_ref }}
+
+      - name: Run review worker
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          args=(
+            --repo "$GITHUB_WORKSPACE"
+            --push-ref "${{ inputs.push_ref }}"
+          )
+          if [ -n "${{ inputs.issue_number }}" ]; then
+            args+=(--issue-number "${{ inputs.issue_number }}")
+          fi
+          if [ -n "${{ inputs.checkpoint_phase }}" ]; then
+            args+=(--checkpoint-phase "${{ inputs.checkpoint_phase }}")
+          fi
+          if [ -n "${{ inputs.checkpoint_sha }}" ]; then
+            args+=(--checkpoint-sha "${{ inputs.checkpoint_sha }}")
+          fi
+          agent-nightshift run-review "${args[@]}"

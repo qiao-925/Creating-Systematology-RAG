@@ -1,0 +1,50 @@
+name: Nightshift Plan
+description: Create a long-running plan for the nightshift execution worker.
+title: "[nightshift] "
+labels:
+  - nightshift
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this issue as the canonical plan and checkpoint ledger for one long-running initiative.
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What outcome should this initiative produce?
+      placeholder: Ship X with Y constraints.
+    validations:
+      required: true
+  - type: textarea
+    id: current_phase
+    attributes:
+      label: Current Phase
+      description: What should tonight's execution focus on?
+      placeholder: "Phase 1: implement parser hardening and make verify green."
+    validations:
+      required: true
+  - type: textarea
+    id: done_definition
+    attributes:
+      label: Done Definition
+      description: What counts as done for the current phase?
+      placeholder: Tests pass, no API changes, parser handles malformed input.
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints
+      description: What must not change?
+      placeholder: No dependency changes, no schema migration, no auth logic edits.
+    validations:
+      required: true
+  - type: textarea
+    id: review_focus
+    attributes:
+      label: Review Focus
+      description: What should the review worker pay extra attention to?
+      placeholder: Parser edge cases, regression risk in import pipeline.
+    validations:
+      required: false
