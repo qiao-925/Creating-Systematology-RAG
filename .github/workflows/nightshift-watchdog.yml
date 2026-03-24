@@ -6,14 +6,11 @@ on:
       - nightshift-execute
     types:
       - completed
+  schedule:
+    - cron: "*/5 * * * *"
 
 jobs:
   dispatch-recovery:
-    if: >-
-      ${{
-        github.event.workflow_run.conclusion == 'failure' &&
-        startsWith(github.event.workflow_run.head_branch, 'nightshift/')
-      }}
     runs-on: ubuntu-latest
     permissions:
       actions: write
@@ -21,12 +18,61 @@ jobs:
       issues: write
       pull-requests: write
     steps:
+      - name: Resolve candidate failed run
+        id: candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
+          WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
+          WORKFLOW_RUN_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/nightshift-watchdog
+
+          if [ "$EVENT_NAME" = "workflow_run" ]; then
+            if [ "$WORKFLOW_RUN_CONCLUSION" != "failure" ]; then
+              echo "should_dispatch=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            gh api "repos/$REPO/actions/runs/$WORKFLOW_RUN_ID" \
+              > /tmp/nightshift-watchdog/failed-run.json
+          else
+            gh api "repos/$REPO/actions/workflows/nightshift-execute.yml/runs?per_page=20" \
+              > /tmp/nightshift-watchdog/execute-runs.json
+
+            active_execute_count="$(jq '[.workflow_runs[] | select(.status == "queued" or .status == "in_progress")] | length' /tmp/nightshift-watchdog/execute-runs.json)"
+            if [ "$active_execute_count" -gt 0 ]; then
+              echo "发现 execute 正在运行，跳过本次 schedule 巡检。"
+              echo "should_dispatch=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+
+            latest_failed_run_id="$(jq -r '[.workflow_runs[]] | sort_by(.created_at) | reverse | .[0].id // empty' /tmp/nightshift-watchdog/execute-runs.json)"
+            latest_failed_run_conclusion="$(jq -r '[.workflow_runs[]] | sort_by(.created_at) | reverse | .[0].conclusion // empty' /tmp/nightshift-watchdog/execute-runs.json)"
+            if [ -z "$latest_failed_run_id" ] || [ "$latest_failed_run_conclusion" != "failure" ]; then
+              echo "最近一次 execute 不是 failure，跳过本次 schedule 巡检。"
+              echo "should_dispatch=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+
+            gh api "repos/$REPO/actions/runs/$latest_failed_run_id" \
+              > /tmp/nightshift-watchdog/failed-run.json
+          fi
+
+          echo "should_dispatch=true" >> "$GITHUB_OUTPUT"
+          echo "failed_run_id=$(jq -r '.id' /tmp/nightshift-watchdog/failed-run.json)" >> "$GITHUB_OUTPUT"
+          echo "failed_head_branch=$(jq -r '.head_branch // empty' /tmp/nightshift-watchdog/failed-run.json)" >> "$GITHUB_OUTPUT"
+          echo "failed_updated_at=$(jq -r '.updated_at // empty' /tmp/nightshift-watchdog/failed-run.json)" >> "$GITHUB_OUTPUT"
+
       - name: Download dispatch context
+        if: steps.candidate.outputs.should_dispatch == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p /tmp/nightshift-dispatch
-          gh run download "${{ github.event.workflow_run.id }}" \
+          rm -f /tmp/nightshift-dispatch/context.json
+          gh run download "${{ steps.candidate.outputs.failed_run_id }}" \
             --repo "${{ github.repository }}" \
             --name nightshift-dispatch-context \
             --dir /tmp/nightshift-dispatch || true
@@ -36,19 +82,45 @@ jobs:
           cat /tmp/nightshift-dispatch/context.json
 
       - name: Dispatch recovery workflow
+        if: steps.candidate.outputs.should_dispatch == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          FAILED_HEAD_BRANCH: ${{ steps.candidate.outputs.failed_head_branch }}
+          FAILED_RUN_ID: ${{ steps.candidate.outputs.failed_run_id }}
+          FAILED_UPDATED_AT: ${{ steps.candidate.outputs.failed_updated_at }}
+          REPO: ${{ github.repository }}
         run: |
+          set -euo pipefail
           push_ref="$(jq -r '.push_ref // empty' /tmp/nightshift-dispatch/context.json)"
           issue_number="$(jq -r '.issue_number // empty' /tmp/nightshift-dispatch/context.json)"
           if [ -z "$push_ref" ]; then
-            push_ref="${{ github.event.workflow_run.head_branch }}"
+            push_ref="$FAILED_HEAD_BRANCH"
+          fi
+
+          if [ -z "$push_ref" ]; then
+            echo "无法解析 push_ref，跳过 recovery dispatch。"
+            exit 0
+          fi
+
+          if [[ "$push_ref" != nightshift/* ]]; then
+            echo "push_ref=$push_ref 不在 nightshift/* 命名空间内，跳过 recovery dispatch。"
+            exit 0
+          fi
+
+          gh api "repos/$REPO/actions/workflows/nightshift-recover.yml/runs?per_page=20" \
+            > /tmp/nightshift-dispatch/recover-runs.json
+          active_recover_count="$(jq '[.workflow_runs[] | select(.status == "queued" or .status == "in_progress")] | length' /tmp/nightshift-dispatch/recover-runs.json)"
+          recent_recover_count="$(jq '[.workflow_runs[] | select(.status == "completed" and (.created_at | fromdateiso8601) >= (now - (20 * 60)))] | length' /tmp/nightshift-dispatch/recover-runs.json)"
+          if [ "$active_recover_count" -gt 0 ] || [ "$recent_recover_count" -gt 0 ]; then
+            echo "检测到最近已有 recovery 在执行或刚执行完成，跳过重复 dispatch。"
+            exit 0
           fi
 
           args=(
             workflow run nightshift-recover.yml
-            --repo "${{ github.repository }}"
-            -f "failed_run_id=${{ github.event.workflow_run.id }}"
+            --repo "$REPO"
+            --ref "$push_ref"
+            -f "failed_run_id=$FAILED_RUN_ID"
             -f "push_ref=$push_ref"
           )
           if [ -n "$issue_number" ]; then
