@@ -32,7 +32,7 @@ _ALLOWED_STOP_REASONS = {
     "evidence_sufficient_for_now",
 }
 _RESEARCH_DECISION_PATTERN = re.compile(
-    r"<research_decision>\s*(\{.*?\})\s*</research_decision>",
+    r"<research_decision>\s*(.*?)\s*</research_decision>",
     re.IGNORECASE | re.DOTALL,
 )
 
@@ -53,7 +53,11 @@ def build_research_trace(
     supporting_evidence = _build_supporting_evidence(sources)
     normalized_decision = _normalize_research_decision(research_decision)
     heuristic_open_tensions = _build_open_tensions(answer, supporting_evidence)
-    open_tensions = normalized_decision.get("open_tensions") or heuristic_open_tensions
+    open_tensions = (
+        normalized_decision["open_tensions"]
+        if "open_tensions" in normalized_decision
+        else heuristic_open_tensions
+    )
     stop_reason = normalized_decision.get("stop_reason") or _classify_stop_reason(
         supporting_evidence,
         open_tensions,
@@ -176,6 +180,7 @@ def _normalize_text(value: str) -> str:
 
 
 def _safe_parse_research_decision(text: str) -> dict[str, Any] | None:
+    text = _strip_markdown_code_fence(text)
     try:
         parsed = json.loads(text)
     except json.JSONDecodeError:
@@ -204,8 +209,7 @@ def _normalize_research_decision(research_decision: dict[str, Any] | None) -> di
             for item in open_tensions
             if _normalize_text(str(item))
         ]
-        if normalized_tensions:
-            normalized["open_tensions"] = normalized_tensions[:2]
+        normalized["open_tensions"] = normalized_tensions[:2]
 
     next_question = research_decision.get("next_question")
     if isinstance(next_question, str):
@@ -228,6 +232,13 @@ def _map_action_to_stop_reason(recommended_action: str) -> str:
     if recommended_action == "continue_gathering_evidence":
         return "needs_more_evidence"
     return "evidence_sufficient_for_now"
+
+
+def _strip_markdown_code_fence(text: str) -> str:
+    match = re.fullmatch(r"\s*```(?:json)?\s*(.*?)\s*```\s*", text, re.DOTALL)
+    if match:
+        return match.group(1)
+    return text
 
 
 def _clean_research_decision_block(answer: str, match: re.Match[str]) -> str:
