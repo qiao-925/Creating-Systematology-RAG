@@ -28,6 +28,10 @@ DEFAULT_PLANNING_PROMPT = """你是一个智能检索规划助手。你的任务
 - `continue_gathering_evidence`: 已有部分证据，但关键判断仍有张力、冲突或空缺
 - `synthesize_answer`: 已有证据足以支撑当前阶段性判断，可以先综合回答
 - `stop_due_to_insufficient_evidence`: 缺少可核实来源，应明确停止并说明还缺什么
+- 三者只能选一个，不要输出模糊折中态
+- 若推荐 `continue_gathering_evidence`，`stop_reason` 必须为 `needs_more_evidence`
+- 若推荐 `synthesize_answer`，`stop_reason` 必须为 `evidence_sufficient_for_now`
+- 若推荐 `stop_due_to_insufficient_evidence`，`stop_reason` 必须为 `insufficient_evidence`
 
 最终回答正文之后，必须追加一个 `<research_decision>...</research_decision>` JSON 块，只包含：
 - `recommended_action`
@@ -41,6 +45,7 @@ DEFAULT_PLANNING_PROMPT = """你是一个智能检索规划助手。你的任务
 - 如果查询很复杂、需要全面检索，选择 multi_search
 
 研究收束指导：
+- 先判断是否缺少可核实来源，其次判断是否仍有关键张力，最后才考虑直接综合
 - 有来源且判断已经稳定时，优先 `synthesize_answer`
 - 有来源但仍有关键未知时，优先 `continue_gathering_evidence`
 - 证据不足时，优先 `stop_due_to_insufficient_evidence`

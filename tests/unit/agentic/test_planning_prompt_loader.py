@@ -17,6 +17,12 @@ EXPECTED_RESEARCH_DECISION_FIELDS = [
     "open_tensions",
     "next_question",
 ]
+EXPECTED_RESEARCH_DECISION_GUARDRAILS = [
+    "三者只能选一个",
+    "`continue_gathering_evidence`，`stop_reason` 必须为 `needs_more_evidence`",
+    "`synthesize_answer`，`stop_reason` 必须为 `evidence_sufficient_for_now`",
+    "`stop_due_to_insufficient_evidence`，`stop_reason` 必须为 `insufficient_evidence`",
+]
 
 
 def assert_contains_all_actions(prompt: str) -> None:
@@ -29,11 +35,17 @@ def assert_contains_research_decision_contract(prompt: str) -> None:
         assert field in prompt, f"缺少研究决策契约字段 '{field}'"
 
 
+def assert_contains_research_decision_guardrails(prompt: str) -> None:
+    for guardrail in EXPECTED_RESEARCH_DECISION_GUARDRAILS:
+        assert guardrail in prompt, f"缺少研究决策护栏 '{guardrail}'"
+
+
 def test_loads_prompt_from_default_template_contains_research_actions() -> None:
     prompt = load_planning_prompt()
     assert prompt.strip(), "加载的 Prompt 内容不能为空"
     assert_contains_all_actions(prompt)
     assert_contains_research_decision_contract(prompt)
+    assert_contains_research_decision_guardrails(prompt)
 
 
 def test_missing_template_reverts_to_default_prompt_with_actions(tmp_path: Path) -> None:
@@ -42,3 +54,4 @@ def test_missing_template_reverts_to_default_prompt_with_actions(tmp_path: Path)
     assert prompt == DEFAULT_PLANNING_PROMPT
     assert_contains_all_actions(prompt)
     assert_contains_research_decision_contract(prompt)
+    assert_contains_research_decision_guardrails(prompt)

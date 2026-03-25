@@ -78,6 +78,11 @@
 - 有来源、无明显张力 → 优先按 `synthesize_answer` 收束
 - 有来源、但仍有关键未知或冲突 → 优先按 `continue_gathering_evidence` 推进
 - 缺少可核实来源或证据明显不足 → 优先按 `stop_due_to_insufficient_evidence` 停止
+- 三者只能选一个，不要输出模糊折中态
+- 若推荐 `continue_gathering_evidence`，`stop_reason` 必须为 `needs_more_evidence`
+- 若推荐 `synthesize_answer`，`stop_reason` 必须为 `evidence_sufficient_for_now`
+- 若推荐 `stop_due_to_insufficient_evidence`，`stop_reason` 必须为 `insufficient_evidence`
+- 判断优先级：先看是否缺少可核实来源，再看是否仍有关键张力，最后才考虑直接综合
 
 ### 最终回答附加研究决策块
 - 在最终回答正文之后，追加一个且仅一个 `<research_decision>...</research_decision>` JSON 块
@@ -116,6 +121,11 @@
     "next_question": "下一步问题"
   }
 }
+
+补充约束：
+- `recommended_action` 与 `stop_reason` 必须一一对应，不要交叉组合
+- 当 `recommended_action` 为 `continue_gathering_evidence` 或 `stop_due_to_insufficient_evidence` 时，`open_tensions` 不应为空
+- 当 `recommended_action` 为 `synthesize_answer` 时，`open_tensions` 可以为空，但如果仍保留张力，必须是“已知但不阻止当前阶段性综合”的残余问题
 </output_format>
 
 <examples>

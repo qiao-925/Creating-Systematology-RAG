@@ -19,9 +19,9 @@ workspace:
 commands:
   setup:
   # 如果 runner 机器依赖手工安装的 CUDA 版 PyTorch，请按该机器实际情况覆盖此命令。
-  - uv sync --extra test
+  - UV_CACHE_DIR=/tmp/uv-cache uv sync --extra test
   verify:
-  - uv run --no-sync pytest tests/unit tests/integration -v -m "not slow and not github_e2e"
+  - UV_CACHE_DIR=/tmp/uv-cache uv run --no-sync pytest tests/unit tests/integration -v -m "not slow and not github_e2e"
   build: []
 tasks:
   execute_plan:
