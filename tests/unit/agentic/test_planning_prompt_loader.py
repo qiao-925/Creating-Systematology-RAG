@@ -10,6 +10,13 @@ EXPECTED_RESEARCH_ACTIONS = [
     "synthesize_answer",
     "stop_due_to_insufficient_evidence",
 ]
+EXPECTED_RESEARCH_DECISION_FIELDS = [
+    "<research_decision>",
+    "recommended_action",
+    "stop_reason",
+    "open_tensions",
+    "next_question",
+]
 
 
 def assert_contains_all_actions(prompt: str) -> None:
@@ -17,10 +24,16 @@ def assert_contains_all_actions(prompt: str) -> None:
         assert action in prompt, f"缺少研究动作 '{action}'"
 
 
+def assert_contains_research_decision_contract(prompt: str) -> None:
+    for field in EXPECTED_RESEARCH_DECISION_FIELDS:
+        assert field in prompt, f"缺少研究决策契约字段 '{field}'"
+
+
 def test_loads_prompt_from_default_template_contains_research_actions() -> None:
     prompt = load_planning_prompt()
     assert prompt.strip(), "加载的 Prompt 内容不能为空"
     assert_contains_all_actions(prompt)
+    assert_contains_research_decision_contract(prompt)
 
 
 def test_missing_template_reverts_to_default_prompt_with_actions(tmp_path: Path) -> None:
@@ -28,3 +41,4 @@ def test_missing_template_reverts_to_default_prompt_with_actions(tmp_path: Path)
     prompt = load_planning_prompt(missing_template)
     assert prompt == DEFAULT_PLANNING_PROMPT
     assert_contains_all_actions(prompt)
+    assert_contains_research_decision_contract(prompt)

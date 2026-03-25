@@ -78,6 +78,17 @@
 - 有来源、无明显张力 → 优先按 `synthesize_answer` 收束
 - 有来源、但仍有关键未知或冲突 → 优先按 `continue_gathering_evidence` 推进
 - 缺少可核实来源或证据明显不足 → 优先按 `stop_due_to_insufficient_evidence` 停止
+
+### 最终回答附加研究决策块
+- 在最终回答正文之后，追加一个且仅一个 `<research_decision>...</research_decision>` JSON 块
+- 这个块供系统解析，正文里不要解释这个块
+- JSON 结构固定为：
+{
+  "recommended_action": "continue_gathering_evidence | synthesize_answer | stop_due_to_insufficient_evidence",
+  "stop_reason": "needs_more_evidence | evidence_sufficient_for_now | insufficient_evidence",
+  "open_tensions": ["最多 2 条仍未解决的关键张力"],
+  "next_question": "最值得继续追问的下一步问题"
+}
 </decision_rules>
 
 <output_format>
@@ -97,6 +108,12 @@
   "retrieval": {
     "strategy": "vector_search | hybrid_search | multi_search",
     "reasoning": "选择该策略的原因"
+  },
+  "research_decision": {
+    "recommended_action": "continue_gathering_evidence | synthesize_answer | stop_due_to_insufficient_evidence",
+    "stop_reason": "needs_more_evidence | evidence_sufficient_for_now | insufficient_evidence",
+    "open_tensions": ["最多 2 条关键张力"],
+    "next_question": "下一步问题"
   }
 }
 </output_format>
@@ -120,6 +137,12 @@
   "retrieval": {
     "strategy": "vector_search",
     "reasoning": "概念定义类问题，语义检索即可"
+  },
+  "research_decision": {
+    "recommended_action": "synthesize_answer",
+    "stop_reason": "evidence_sufficient_for_now",
+    "open_tensions": [],
+    "next_question": "是否存在反例、边界条件或时间条件，会改变当前阶段性判断？"
   }
 }
 
@@ -141,6 +164,12 @@
   "retrieval": {
     "strategy": "hybrid_search",
     "reasoning": "包含专有术语，需要关键词匹配确保精度"
+  },
+  "research_decision": {
+    "recommended_action": "continue_gathering_evidence",
+    "stop_reason": "needs_more_evidence",
+    "open_tensions": ["仍需补充原始表述或应用案例来稳固判断"],
+    "next_question": "还需要补哪些原始论述或案例，才能稳定说明该方法的原理与应用？"
   }
 }
 
@@ -165,6 +194,12 @@
   "retrieval": {
     "strategy": "multi_search",
     "reasoning": "多意图查询，需要全面检索覆盖两个子问题"
+  },
+  "research_decision": {
+    "recommended_action": "continue_gathering_evidence",
+    "stop_reason": "needs_more_evidence",
+    "open_tensions": ["定义与比较两个子问题都需要分别补证据"],
+    "next_question": "应先补系统工程定义证据，还是先补系统工程与运筹学的边界案例？"
   }
 }
 </examples>

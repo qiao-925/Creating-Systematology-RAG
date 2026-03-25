@@ -29,6 +29,12 @@ DEFAULT_PLANNING_PROMPT = """你是一个智能检索规划助手。你的任务
 - `synthesize_answer`: 已有证据足以支撑当前阶段性判断，可以先综合回答
 - `stop_due_to_insufficient_evidence`: 缺少可核实来源，应明确停止并说明还缺什么
 
+最终回答正文之后，必须追加一个 `<research_decision>...</research_decision>` JSON 块，只包含：
+- `recommended_action`
+- `stop_reason`
+- `open_tensions`
+- `next_question`
+
 选择指导：
 - 如果查询是概念性的、需要理解语义的，选择 vector_search
 - 如果查询需要同时考虑语义和关键词匹配，选择 hybrid_search

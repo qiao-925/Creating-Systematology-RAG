@@ -4,7 +4,10 @@ from types import SimpleNamespace
 from unittest.mock import Mock
 
 from backend.business.rag_engine.agentic.engine import AgenticQueryEngine
-from backend.business.rag_engine.agentic.research_trace import build_research_trace
+from backend.business.rag_engine.agentic.research_trace import (
+    build_research_trace,
+    extract_research_decision,
+)
 
 
 def test_build_research_trace_with_evidence():
@@ -64,6 +67,48 @@ def test_build_research_trace_with_uncertainty():
     assert "下一步应补什么证据" in research["next_question"]
 
 
+def test_extract_research_decision_strips_block_and_parses_json():
+    answer = """阶段性判断已经形成。
+
+<research_decision>
+{"recommended_action":"synthesize_answer","stop_reason":"evidence_sufficient_for_now","open_tensions":[],"next_question":"是否存在反例？"}
+</research_decision>
+"""
+
+    cleaned_answer, decision = extract_research_decision(answer)
+
+    assert cleaned_answer == "阶段性判断已经形成。"
+    assert decision == {
+        "recommended_action": "synthesize_answer",
+        "stop_reason": "evidence_sufficient_for_now",
+        "next_question": "是否存在反例？",
+    }
+
+
+def test_build_research_trace_prefers_explicit_research_decision():
+    research = build_research_trace(
+        question="系统工程与运筹学的边界是什么？",
+        answer="两者有部分重叠，但具体边界仍需更多案例来验证。",
+        sources=[
+            {
+                "text": "系统工程与运筹学都涉及优化与决策。",
+                "score": 0.82,
+                "metadata": {"file_name": "comparison.md"},
+            }
+        ],
+        research_decision={
+            "recommended_action": "stop_due_to_insufficient_evidence",
+            "open_tensions": ["现有资料缺少系统工程边界的一手定义"],
+            "next_question": "还需要补哪些一手定义，才能比较两者边界？",
+        },
+    )
+
+    assert research["open_tensions"] == ["现有资料缺少系统工程边界的一手定义"]
+    assert research["stop_reason"] == "insufficient_evidence"
+    assert research["recommended_action"] == "stop_due_to_insufficient_evidence"
+    assert research["next_question"] == "还需要补哪些一手定义，才能比较两者边界？"
+
+
 def test_agentic_query_engine_adds_research_trace(mocker):
     observer_manager = SimpleNamespace(
         observers=[],
@@ -81,7 +126,15 @@ def test_agentic_query_engine_adds_research_trace(mocker):
 
     agent = Mock()
     response = Mock()
-    response.__str__ = Mock(return_value="阶段性判断已经形成。")
+    response.__str__ = Mock(
+        return_value=(
+            "阶段性判断已经形成。\n\n"
+            "<research_decision>"
+            '{"recommended_action":"continue_gathering_evidence","stop_reason":"needs_more_evidence",'
+            '"open_tensions":["还缺少跨时期案例"],"next_question":"下一步该补哪些跨时期案例？"}'
+            "</research_decision>"
+        )
+    )
 
     mocker.patch.object(engine, "_get_planning_agent", return_value=agent)
     mocker.patch.object(engine, "_call_agent_with_timeout", return_value=response)
@@ -99,7 +152,9 @@ def test_agentic_query_engine_adds_research_trace(mocker):
     assert answer == "格式化后的回答"
     assert len(sources) == 1
     assert reasoning == "先检索，再综合。"
+    engine.formatter.format.assert_called_once_with("阶段性判断已经形成。", sources)
     assert trace_info is not None
     assert trace_info["research"]["current_judgment"] == "阶段性判断已经形成"
     assert trace_info["research"]["supporting_evidence"][0]["file_name"] == "evidence.md"
-    assert trace_info["research"]["recommended_action"] == "synthesize_answer"
+    assert trace_info["research"]["recommended_action"] == "continue_gathering_evidence"
+    assert trace_info["research"]["open_tensions"] == ["还缺少跨时期案例"]

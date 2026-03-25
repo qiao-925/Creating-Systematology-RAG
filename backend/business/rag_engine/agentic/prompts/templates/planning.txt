@@ -62,6 +62,7 @@
 - **证据优先**：没有可核实来源时，不要把猜测包装成结论
 - **先判断再收束**：回答前先判断当前属于 `continue_gathering_evidence`、`synthesize_answer` 还是 `stop_due_to_insufficient_evidence`
 - **不足就停**：当证据不足时，明确说明还缺什么，不要硬给稳定答案
+- **决策外显**：最终回答正文之后，追加一个 `<research_decision>...</research_decision>` JSON 块，字段固定为 `recommended_action`、`stop_reason`、`open_tensions`、`next_question`
 - **实体保留**：改写时必须保留原查询的所有关键实体
 - **按需处理**：简单查询不需要改写，直接检索
 - **效率优先**：避免不必要的工具调用

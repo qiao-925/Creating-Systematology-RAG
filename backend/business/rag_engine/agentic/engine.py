@@ -28,7 +28,10 @@ from backend.business.rag_engine.agentic.extraction import (
     extract_sources_from_agent,
     extract_reasoning_from_agent,
 )
-from backend.business.rag_engine.agentic.research_trace import build_research_trace
+from backend.business.rag_engine.agentic.research_trace import (
+    build_research_trace,
+    extract_research_decision,
+)
 from backend.infrastructure.llms import create_deepseek_llm_for_query
 from backend.infrastructure.observers.manager import ObserverManager
 from backend.infrastructure.observers.factory import create_observer_from_config
@@ -196,6 +199,7 @@ class AgenticQueryEngine:
             # 提取结果
             extraction_start_time = time.time()
             raw_answer = str(response)
+            cleaned_answer, research_decision = extract_research_decision(raw_answer)
             # 传递 Agent 实例以便访问工具调用历史
             sources = extract_sources_from_agent(response, agent=agent)
             reasoning_content = extract_reasoning_from_agent(response, agent=agent)
@@ -209,7 +213,7 @@ class AgenticQueryEngine:
             
             # 格式化答案
             format_start_time = time.time()
-            answer = self.formatter.format(raw_answer, sources)
+            answer = self.formatter.format(cleaned_answer, sources)
             format_time = round(time.time() - format_start_time, 3)
             logger.debug("答案格式化完成", format_time=format_time)
             
@@ -218,9 +222,10 @@ class AgenticQueryEngine:
             if collect_trace and trace_info:
                 trace_info["research"] = build_research_trace(
                     question=question,
-                    answer=raw_answer,
+                    answer=cleaned_answer,
                     sources=sources,
                     reasoning_content=reasoning_content,
+                    research_decision=research_decision,
                 )
                 trace_info["retrieval_time"] = round(time.time() - trace_info["start_time"], 2)
                 trace_info["chunks_retrieved"] = len(sources)
