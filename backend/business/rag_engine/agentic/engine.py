@@ -30,7 +30,7 @@ from backend.business.rag_engine.agentic.extraction import (
 )
 from backend.business.rag_engine.agentic.research_trace import (
     build_research_trace,
-    extract_research_decision,
+    extract_research_decision_with_trace,
 )
 from backend.infrastructure.llms import create_deepseek_llm_for_query
 from backend.infrastructure.observers.manager import ObserverManager
@@ -199,7 +199,9 @@ class AgenticQueryEngine:
             # 提取结果
             extraction_start_time = time.time()
             raw_answer = str(response)
-            cleaned_answer, research_decision = extract_research_decision(raw_answer)
+            cleaned_answer, research_decision, decision_trace = extract_research_decision_with_trace(
+                raw_answer
+            )
             # 传递 Agent 实例以便访问工具调用历史
             sources = extract_sources_from_agent(response, agent=agent)
             reasoning_content = extract_reasoning_from_agent(response, agent=agent)
@@ -226,6 +228,7 @@ class AgenticQueryEngine:
                     sources=sources,
                     reasoning_content=reasoning_content,
                     research_decision=research_decision,
+                    decision_trace=decision_trace,
                 )
                 trace_info["retrieval_time"] = round(time.time() - trace_info["start_time"], 2)
                 trace_info["chunks_retrieved"] = len(sources)

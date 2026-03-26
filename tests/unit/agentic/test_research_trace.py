@@ -7,6 +7,7 @@ from backend.business.rag_engine.agentic.engine import AgenticQueryEngine
 from backend.business.rag_engine.agentic.research_trace import (
     build_research_trace,
     extract_research_decision,
+    extract_research_decision_with_trace,
 )
 
 
@@ -30,6 +31,9 @@ def test_build_research_trace_with_evidence():
     assert research["stop_reason"] == "evidence_sufficient_for_now"
     assert research["recommended_action"] == "synthesize_answer"
     assert research["has_reasoning_trace"] is True
+    assert research["decision_source"] == "heuristic_fallback"
+    assert research["decision_parse_status"] == "missing"
+    assert research["decision_fields_present"] == []
 
 
 def test_build_research_trace_without_evidence():
@@ -45,6 +49,7 @@ def test_build_research_trace_without_evidence():
     assert research["stop_reason"] == "insufficient_evidence"
     assert research["recommended_action"] == "stop_due_to_insufficient_evidence"
     assert "还缺少哪些一手材料或文档" in research["next_question"]
+    assert research["decision_source"] == "heuristic_fallback"
 
 
 def test_build_research_trace_with_uncertainty():
@@ -65,6 +70,7 @@ def test_build_research_trace_with_uncertainty():
     assert research["stop_reason"] == "needs_more_evidence"
     assert research["recommended_action"] == "continue_gathering_evidence"
     assert "下一步应补什么证据" in research["next_question"]
+    assert research["decision_parse_status"] == "missing"
 
 
 def test_extract_research_decision_strips_block_and_parses_json():
@@ -107,6 +113,25 @@ def test_extract_research_decision_parses_markdown_wrapped_json():
     }
 
 
+def test_extract_research_decision_with_trace_reports_invalid_json():
+    answer = """阶段性判断已经形成。
+
+<research_decision>
+{"recommended_action":"synthesize_answer",
+</research_decision>
+"""
+
+    cleaned_answer, decision, decision_trace = extract_research_decision_with_trace(answer)
+
+    assert cleaned_answer == "阶段性判断已经形成。"
+    assert decision is None
+    assert decision_trace == {
+        "decision_source": "heuristic_fallback",
+        "decision_parse_status": "invalid_json",
+        "decision_fields_present": [],
+    }
+
+
 def test_build_research_trace_prefers_explicit_research_decision():
     research = build_research_trace(
         question="系统工程与运筹学的边界是什么？",
@@ -129,6 +154,14 @@ def test_build_research_trace_prefers_explicit_research_decision():
     assert research["stop_reason"] == "insufficient_evidence"
     assert research["recommended_action"] == "stop_due_to_insufficient_evidence"
     assert research["next_question"] == "还需要补哪些一手定义，才能比较两者边界？"
+    assert research["decision_source"] == "structured_output"
+    assert research["decision_parse_status"] == "provided_directly"
+    assert research["decision_fields_present"] == [
+        "next_question",
+        "open_tensions",
+        "recommended_action",
+        "stop_reason",
+    ]
 
 
 def test_build_research_trace_respects_explicit_empty_open_tensions():
@@ -154,6 +187,7 @@ def test_build_research_trace_respects_explicit_empty_open_tensions():
     assert research["stop_reason"] == "evidence_sufficient_for_now"
     assert research["recommended_action"] == "synthesize_answer"
     assert research["next_question"] == "是否还存在会推翻当前判断的反例？"
+    assert research["decision_source"] == "structured_output"
 
 
 def test_agentic_query_engine_adds_research_trace(mocker):
@@ -205,3 +239,11 @@ def test_agentic_query_engine_adds_research_trace(mocker):
     assert trace_info["research"]["supporting_evidence"][0]["file_name"] == "evidence.md"
     assert trace_info["research"]["recommended_action"] == "continue_gathering_evidence"
     assert trace_info["research"]["open_tensions"] == ["还缺少跨时期案例"]
+    assert trace_info["research"]["decision_source"] == "structured_output"
+    assert trace_info["research"]["decision_parse_status"] == "parsed"
+    assert trace_info["research"]["decision_fields_present"] == [
+        "next_question",
+        "open_tensions",
+        "recommended_action",
+        "stop_reason",
+    ]

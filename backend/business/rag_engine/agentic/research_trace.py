@@ -4,9 +4,16 @@
 
 from __future__ import annotations
 
-import json
 import re
 from typing import Any
+
+from backend.business.rag_engine.agentic.research_decision import (
+    build_recommended_action,
+    extract_research_decision,
+    extract_research_decision_with_trace,
+    normalize_decision_trace,
+    normalize_research_decision,
+)
 
 
 _UNCERTAINTY_MARKERS = (
@@ -21,20 +28,6 @@ _UNCERTAINTY_MARKERS = (
     "没有找到",
     "缺少",
 )
-_ALLOWED_RESEARCH_ACTIONS = {
-    "continue_gathering_evidence",
-    "synthesize_answer",
-    "stop_due_to_insufficient_evidence",
-}
-_ALLOWED_STOP_REASONS = {
-    "insufficient_evidence",
-    "needs_more_evidence",
-    "evidence_sufficient_for_now",
-}
-_RESEARCH_DECISION_PATTERN = re.compile(
-    r"<research_decision>\s*(.*?)\s*</research_decision>",
-    re.IGNORECASE | re.DOTALL,
-)
 
 
 def build_research_trace(
@@ -44,6 +37,7 @@ def build_research_trace(
     sources: list[dict[str, Any]],
     reasoning_content: str | None = None,
     research_decision: dict[str, Any] | None = None,
+    decision_trace: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """构建最小研究型结构化结果。
 
@@ -51,7 +45,11 @@ def build_research_trace(
     """
 
     supporting_evidence = _build_supporting_evidence(sources)
-    normalized_decision = _normalize_research_decision(research_decision)
+    normalized_decision = normalize_research_decision(research_decision)
+    normalized_decision_trace = normalize_decision_trace(
+        decision_trace,
+        normalized_decision,
+    )
     heuristic_open_tensions = _build_open_tensions(answer, supporting_evidence)
     open_tensions = (
         normalized_decision["open_tensions"]
@@ -62,7 +60,7 @@ def build_research_trace(
         supporting_evidence,
         open_tensions,
     )
-    recommended_action = normalized_decision.get("recommended_action") or _build_recommended_action(
+    recommended_action = normalized_decision.get("recommended_action") or build_recommended_action(
         stop_reason,
     )
     next_question = normalized_decision.get("next_question") or _build_next_question(
@@ -79,19 +77,10 @@ def build_research_trace(
         "stop_reason": stop_reason,
         "recommended_action": recommended_action,
         "has_reasoning_trace": bool(reasoning_content),
+        "decision_source": normalized_decision_trace["decision_source"],
+        "decision_parse_status": normalized_decision_trace["decision_parse_status"],
+        "decision_fields_present": normalized_decision_trace["decision_fields_present"],
     }
-
-
-def extract_research_decision(answer: str) -> tuple[str, dict[str, Any] | None]:
-    """从回答中剥离结构化研究决策块。"""
-
-    match = _RESEARCH_DECISION_PATTERN.search(answer)
-    if not match:
-        return answer, None
-
-    decision = _safe_parse_research_decision(match.group(1))
-    cleaned_answer = _clean_research_decision_block(answer, match)
-    return cleaned_answer, decision
 
 
 def _build_supporting_evidence(sources: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -154,16 +143,6 @@ def _build_next_question(
         tension = open_tensions[0] if open_tensions else question
         return f"要消除“{tension}”这类不确定性，下一步应补什么证据？"
     return "是否存在反例、边界条件或时间条件，会改变当前阶段性判断？"
-
-
-def _build_recommended_action(stop_reason: str) -> str:
-    if stop_reason == "insufficient_evidence":
-        return "stop_due_to_insufficient_evidence"
-    if stop_reason == "needs_more_evidence":
-        return "continue_gathering_evidence"
-    return "synthesize_answer"
-
-
 def _extract_current_judgment(answer: str, question: str) -> str:
     normalized = _normalize_text(answer)
     if not normalized:
@@ -177,70 +156,3 @@ def _extract_current_judgment(answer: str, question: str) -> str:
 
 def _normalize_text(value: str) -> str:
     return re.sub(r"\s+", " ", value).strip()
-
-
-def _safe_parse_research_decision(text: str) -> dict[str, Any] | None:
-    text = _strip_markdown_code_fence(text)
-    try:
-        parsed = json.loads(text)
-    except json.JSONDecodeError:
-        return None
-    return _normalize_research_decision(parsed)
-
-
-def _normalize_research_decision(research_decision: dict[str, Any] | None) -> dict[str, Any]:
-    if not isinstance(research_decision, dict):
-        return {}
-
-    normalized: dict[str, Any] = {}
-
-    recommended_action = research_decision.get("recommended_action")
-    if recommended_action in _ALLOWED_RESEARCH_ACTIONS:
-        normalized["recommended_action"] = recommended_action
-
-    stop_reason = research_decision.get("stop_reason")
-    if stop_reason in _ALLOWED_STOP_REASONS:
-        normalized["stop_reason"] = stop_reason
-
-    open_tensions = research_decision.get("open_tensions")
-    if isinstance(open_tensions, list):
-        normalized_tensions = [
-            _normalize_text(str(item))
-            for item in open_tensions
-            if _normalize_text(str(item))
-        ]
-        normalized["open_tensions"] = normalized_tensions[:2]
-
-    next_question = research_decision.get("next_question")
-    if isinstance(next_question, str):
-        normalized_question = _normalize_text(next_question)
-        if normalized_question:
-            normalized["next_question"] = normalized_question
-
-    if "stop_reason" not in normalized and "recommended_action" in normalized:
-        normalized["stop_reason"] = _map_action_to_stop_reason(normalized["recommended_action"])
-
-    if "recommended_action" not in normalized and "stop_reason" in normalized:
-        normalized["recommended_action"] = _build_recommended_action(normalized["stop_reason"])
-
-    return normalized
-
-
-def _map_action_to_stop_reason(recommended_action: str) -> str:
-    if recommended_action == "stop_due_to_insufficient_evidence":
-        return "insufficient_evidence"
-    if recommended_action == "continue_gathering_evidence":
-        return "needs_more_evidence"
-    return "evidence_sufficient_for_now"
-
-
-def _strip_markdown_code_fence(text: str) -> str:
-    match = re.fullmatch(r"\s*```(?:json)?\s*(.*?)\s*```\s*", text, re.DOTALL)
-    if match:
-        return match.group(1)
-    return text
-
-
-def _clean_research_decision_block(answer: str, match: re.Match[str]) -> str:
-    cleaned = answer[: match.start()] + answer[match.end() :]
-    return cleaned.strip()
