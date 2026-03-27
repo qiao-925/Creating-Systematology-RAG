@@ -67,12 +67,22 @@ def build_research_trace(
         stop_reason,
         open_tensions,
     )
+    open_tensions_source = _resolve_structured_field_source(
+        explicit_value=normalized_decision.get("open_tensions"),
+        resolved_value=open_tensions,
+    )
+    next_question_source = _resolve_structured_field_source(
+        explicit_value=normalized_decision.get("next_question"),
+        resolved_value=next_question,
+    )
 
     return {
         "current_judgment": _extract_current_judgment(answer, question),
         "supporting_evidence": supporting_evidence,
         "open_tensions": open_tensions,
+        "open_tensions_source": open_tensions_source,
         "next_question": next_question,
+        "next_question_source": next_question_source,
         "stop_reason": stop_reason,
         "recommended_action": recommended_action,
         "has_reasoning_trace": bool(reasoning_content),
@@ -170,6 +180,16 @@ def _build_next_question(
         tension = open_tensions[0] if open_tensions else question
         return f"要消除“{tension}”这类不确定性，下一步应补什么证据？"
     return "是否存在反例、边界条件或时间条件，会改变当前阶段性判断？"
+
+
+def _resolve_structured_field_source(
+    *,
+    explicit_value: Any,
+    resolved_value: Any,
+) -> str:
+    if explicit_value is None:
+        return "heuristic_fallback"
+    return "structured_output" if explicit_value == resolved_value else "heuristic_fallback"
 
 
 def _extract_current_judgment(answer: str, question: str) -> str:

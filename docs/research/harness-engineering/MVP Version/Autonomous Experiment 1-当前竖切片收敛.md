@@ -192,6 +192,9 @@
   - `next_question`
   - `stop_reason`
   - `recommended_action`
+- 对 `open_tensions` 与 `next_question` 这两个最容易被系统回填的字段，额外标记来源：
+  - `structured_output`
+  - `heuristic_fallback`
 - `recommended_action` 当前显式区分三类最小研究决策：
   - `continue_gathering_evidence`
   - `synthesize_answer`
@@ -202,6 +205,7 @@
 
 - 现有 Agentic 查询链已经不只是“给出回答”
 - 它开始能把一次查询收敛成“当前判断 + 依据 + 未决点 + 下一步问题”的最小研究单元
+- 同时能说明关键收束字段到底来自模型显式判断，还是来自系统的安全回填，便于后续继续加固 planning 层
 - 但它还不是完整研究状态机，也还没有跨轮证据账本
 
 ### 推荐落点

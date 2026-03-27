@@ -28,8 +28,10 @@ def test_build_research_trace_with_evidence():
     assert research["current_judgment"] == "系统科学强调整体性、关系性和跨层次建模"
     assert research["supporting_evidence"][0]["file_name"] == "systems.md"
     assert research["open_tensions"] == []
+    assert research["open_tensions_source"] == "heuristic_fallback"
     assert research["stop_reason"] == "evidence_sufficient_for_now"
     assert research["recommended_action"] == "synthesize_answer"
+    assert research["next_question_source"] == "heuristic_fallback"
     assert research["has_reasoning_trace"] is True
     assert research["decision_source"] == "heuristic_fallback"
     assert research["decision_parse_status"] == "missing"
@@ -46,9 +48,11 @@ def test_build_research_trace_without_evidence():
 
     assert research["supporting_evidence"] == []
     assert research["open_tensions"] == ["当前回答缺少可核实来源，无法支撑阶段性判断。"]
+    assert research["open_tensions_source"] == "heuristic_fallback"
     assert research["stop_reason"] == "insufficient_evidence"
     assert research["recommended_action"] == "stop_due_to_insufficient_evidence"
     assert "还缺少哪些一手材料或文档" in research["next_question"]
+    assert research["next_question_source"] == "heuristic_fallback"
     assert research["decision_source"] == "heuristic_fallback"
 
 
@@ -67,9 +71,11 @@ def test_build_research_trace_with_uncertainty():
     )
 
     assert research["open_tensions"] == ["两者有部分重叠，但具体边界仍需更多案例来验证"]
+    assert research["open_tensions_source"] == "heuristic_fallback"
     assert research["stop_reason"] == "needs_more_evidence"
     assert research["recommended_action"] == "continue_gathering_evidence"
     assert "下一步应补什么证据" in research["next_question"]
+    assert research["next_question_source"] == "heuristic_fallback"
     assert research["decision_parse_status"] == "missing"
 
 
@@ -170,9 +176,11 @@ def test_build_research_trace_prefers_explicit_research_decision():
     )
 
     assert research["open_tensions"] == ["现有资料缺少系统工程边界的一手定义"]
+    assert research["open_tensions_source"] == "structured_output"
     assert research["stop_reason"] == "insufficient_evidence"
     assert research["recommended_action"] == "stop_due_to_insufficient_evidence"
     assert research["next_question"] == "还需要补哪些一手定义，才能比较两者边界？"
+    assert research["next_question_source"] == "structured_output"
     assert research["decision_source"] == "structured_output"
     assert research["decision_parse_status"] == "provided_directly"
     assert research["decision_fields_present"] == [
@@ -203,9 +211,11 @@ def test_build_research_trace_respects_explicit_empty_open_tensions():
     )
 
     assert research["open_tensions"] == []
+    assert research["open_tensions_source"] == "structured_output"
     assert research["stop_reason"] == "evidence_sufficient_for_now"
     assert research["recommended_action"] == "synthesize_answer"
     assert research["next_question"] == "是否还存在会推翻当前判断的反例？"
+    assert research["next_question_source"] == "structured_output"
     assert research["decision_source"] == "structured_output"
 
 
@@ -229,9 +239,11 @@ def test_build_research_trace_backfills_tensions_for_continue_action_without_exp
     )
 
     assert research["open_tensions"] == ["当前判断仍存在关键张力，需要继续补证据。"]
+    assert research["open_tensions_source"] == "heuristic_fallback"
     assert research["stop_reason"] == "needs_more_evidence"
     assert research["recommended_action"] == "continue_gathering_evidence"
     assert research["next_question"] == "还需要补哪些边界案例？"
+    assert research["next_question_source"] == "structured_output"
 
 
 def test_agentic_query_engine_adds_research_trace(mocker):
@@ -283,6 +295,7 @@ def test_agentic_query_engine_adds_research_trace(mocker):
     assert trace_info["research"]["supporting_evidence"][0]["file_name"] == "evidence.md"
     assert trace_info["research"]["recommended_action"] == "continue_gathering_evidence"
     assert trace_info["research"]["open_tensions"] == ["还缺少跨时期案例"]
+    assert trace_info["research"]["open_tensions_source"] == "structured_output"
     assert trace_info["research"]["decision_source"] == "structured_output"
     assert trace_info["research"]["decision_parse_status"] == "parsed"
     assert trace_info["research"]["decision_fields_present"] == [
@@ -291,3 +304,4 @@ def test_agentic_query_engine_adds_research_trace(mocker):
         "recommended_action",
         "stop_reason",
     ]
+    assert trace_info["research"]["next_question_source"] == "structured_output"
