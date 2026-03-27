@@ -70,6 +70,8 @@ def normalize_research_decision(research_decision: dict[str, Any] | None) -> dic
     if stop_reason in _ALLOWED_STOP_REASONS:
         normalized["stop_reason"] = stop_reason
 
+    _align_action_and_stop_reason(normalized)
+
     open_tensions = research_decision.get("open_tensions")
     if isinstance(open_tensions, list):
         normalized_tensions = [
@@ -84,12 +86,6 @@ def normalize_research_decision(research_decision: dict[str, Any] | None) -> dic
         normalized_question = _normalize_text(next_question)
         if normalized_question:
             normalized["next_question"] = normalized_question
-
-    if "stop_reason" not in normalized and "recommended_action" in normalized:
-        normalized["stop_reason"] = map_action_to_stop_reason(normalized["recommended_action"])
-
-    if "recommended_action" not in normalized and "stop_reason" in normalized:
-        normalized["recommended_action"] = build_recommended_action(normalized["stop_reason"])
 
     return normalized
 
@@ -135,6 +131,18 @@ def map_action_to_stop_reason(recommended_action: str) -> str:
     if recommended_action == "continue_gathering_evidence":
         return "needs_more_evidence"
     return "evidence_sufficient_for_now"
+
+
+def _align_action_and_stop_reason(normalized: dict[str, Any]) -> None:
+    recommended_action = normalized.get("recommended_action")
+    stop_reason = normalized.get("stop_reason")
+
+    if recommended_action:
+        normalized["stop_reason"] = map_action_to_stop_reason(recommended_action)
+        return
+
+    if stop_reason:
+        normalized["recommended_action"] = build_recommended_action(stop_reason)
 
 
 def _safe_parse_research_decision(text: str) -> tuple[dict[str, Any] | None, str]:

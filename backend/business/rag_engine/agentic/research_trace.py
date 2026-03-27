@@ -51,10 +51,9 @@ def build_research_trace(
         normalized_decision,
     )
     heuristic_open_tensions = _build_open_tensions(answer, supporting_evidence)
-    open_tensions = (
-        normalized_decision["open_tensions"]
-        if "open_tensions" in normalized_decision
-        else heuristic_open_tensions
+    open_tensions = _resolve_open_tensions(
+        normalized_decision,
+        heuristic_open_tensions,
     )
     stop_reason = normalized_decision.get("stop_reason") or _classify_stop_reason(
         supporting_evidence,
@@ -121,6 +120,34 @@ def _build_open_tensions(
     return tensions[:2]
 
 
+def _resolve_open_tensions(
+    normalized_decision: dict[str, Any],
+    heuristic_open_tensions: list[str],
+) -> list[str]:
+    explicit_tensions = normalized_decision.get("open_tensions")
+    if not isinstance(explicit_tensions, list):
+        return heuristic_open_tensions
+
+    if explicit_tensions:
+        return explicit_tensions
+
+    recommended_action = normalized_decision.get("recommended_action")
+    stop_reason = normalized_decision.get("stop_reason")
+    if recommended_action == "synthesize_answer" or stop_reason == "evidence_sufficient_for_now":
+        return explicit_tensions
+
+    if heuristic_open_tensions:
+        return heuristic_open_tensions
+
+    if stop_reason == "insufficient_evidence":
+        return ["当前回答缺少可核实来源，无法支撑阶段性判断。"]
+
+    if stop_reason == "needs_more_evidence":
+        return ["当前判断仍存在关键张力，需要继续补证据。"]
+
+    return explicit_tensions
+
+
 def _classify_stop_reason(
     supporting_evidence: list[dict[str, Any]],
     open_tensions: list[str],
@@ -143,6 +170,8 @@ def _build_next_question(
         tension = open_tensions[0] if open_tensions else question
         return f"要消除“{tension}”这类不确定性，下一步应补什么证据？"
     return "是否存在反例、边界条件或时间条件，会改变当前阶段性判断？"
+
+
 def _extract_current_judgment(answer: str, question: str) -> str:
     normalized = _normalize_text(answer)
     if not normalized:

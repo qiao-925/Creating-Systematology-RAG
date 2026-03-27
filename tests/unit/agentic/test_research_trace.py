@@ -132,6 +132,25 @@ def test_extract_research_decision_with_trace_reports_invalid_json():
     }
 
 
+def test_extract_research_decision_repairs_inconsistent_action_and_stop_reason():
+    answer = """阶段性判断已经形成。
+
+<research_decision>
+{"recommended_action":"continue_gathering_evidence","stop_reason":"evidence_sufficient_for_now","open_tensions":[],"next_question":"还缺哪些边界定义？"}
+</research_decision>
+"""
+
+    cleaned_answer, decision = extract_research_decision(answer)
+
+    assert cleaned_answer == "阶段性判断已经形成。"
+    assert decision == {
+        "recommended_action": "continue_gathering_evidence",
+        "stop_reason": "needs_more_evidence",
+        "open_tensions": [],
+        "next_question": "还缺哪些边界定义？",
+    }
+
+
 def test_build_research_trace_prefers_explicit_research_decision():
     research = build_research_trace(
         question="系统工程与运筹学的边界是什么？",
@@ -188,6 +207,31 @@ def test_build_research_trace_respects_explicit_empty_open_tensions():
     assert research["recommended_action"] == "synthesize_answer"
     assert research["next_question"] == "是否还存在会推翻当前判断的反例？"
     assert research["decision_source"] == "structured_output"
+
+
+def test_build_research_trace_backfills_tensions_for_continue_action_without_explicit_tensions():
+    research = build_research_trace(
+        question="系统工程与运筹学的边界是什么？",
+        answer="当前阶段形成了初步判断。",
+        sources=[
+            {
+                "text": "系统工程与运筹学都涉及优化与决策。",
+                "score": 0.82,
+                "metadata": {"file_name": "comparison.md"},
+            }
+        ],
+        research_decision={
+            "recommended_action": "continue_gathering_evidence",
+            "stop_reason": "needs_more_evidence",
+            "open_tensions": [],
+            "next_question": "还需要补哪些边界案例？",
+        },
+    )
+
+    assert research["open_tensions"] == ["当前判断仍存在关键张力，需要继续补证据。"]
+    assert research["stop_reason"] == "needs_more_evidence"
+    assert research["recommended_action"] == "continue_gathering_evidence"
+    assert research["next_question"] == "还需要补哪些边界案例？"
 
 
 def test_agentic_query_engine_adds_research_trace(mocker):
