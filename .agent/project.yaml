@@ -27,15 +27,21 @@ tasks:
   execute_plan:
     prompt_file: .agent/prompts/execute-plan.md
     sandbox: workspace-write
+    engine: claude_agent_sdk
+    max_turns: 80
     instructions:
     - 始终优先读取 .agent/runtime/issue-plan.md。
     - 阶段完成并且 verify 通过时，调用 agent-nightshift checkpoint。
   review_checkpoint:
     prompt_file: .agent/prompts/review-checkpoint.md
     sandbox: read-only
+    engine: claude_agent_sdk
+    max_turns: 30
   recover_failure:
     prompt_file: .agent/prompts/recover-failure.md
     sandbox: workspace-write
+    engine: claude_agent_sdk
+    max_turns: 40
     instructions:
     - 先读取 .agent/runtime/failed-run.log 与 .agent/runtime/failed-run.json。
     - 优先修复导致上一轮失败的阻塞点，修复后再继续推进一小步。
