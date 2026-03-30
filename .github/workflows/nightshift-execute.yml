@@ -57,6 +57,7 @@ jobs:
           ref: ${{ inputs.push_ref }}
 
       - name: Run execute worker
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
