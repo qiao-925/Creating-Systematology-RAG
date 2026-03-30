@@ -60,6 +60,7 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          PATH: /c/Users/nonep/.local/bin:$PATH
         run: |
           agent-nightshift run-github-event \
             --repo "$GITHUB_WORKSPACE" \
