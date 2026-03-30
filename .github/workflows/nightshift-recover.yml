@@ -33,6 +33,7 @@ jobs:
           ref: ${{ inputs.push_ref }}
 
       - name: Run recovery worker
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

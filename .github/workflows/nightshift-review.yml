@@ -35,6 +35,7 @@ jobs:
           ref: ${{ inputs.push_ref }}
 
       - name: Run review worker
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

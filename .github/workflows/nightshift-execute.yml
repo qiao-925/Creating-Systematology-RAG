@@ -32,16 +32,16 @@ jobs:
       pull-requests: write
     steps:
       - name: Persist dispatch context
+        shell: bash
         run: |
           mkdir -p .nightshift-dispatch
-          cat > .nightshift-dispatch/context.json <<EOF
-          {
-            "issue_number": "${{ inputs.issue_number }}",
-            "push_ref": "${{ inputs.push_ref }}",
-            "task": "${{ inputs.task }}",
-            "time_budget_hours": "${{ inputs.time_budget_hours }}"
-          }
-          EOF
+          jq -n \
+            --arg issue_number "${{ inputs.issue_number }}" \
+            --arg push_ref "${{ inputs.push_ref }}" \
+            --arg task "${{ inputs.task }}" \
+            --arg time_budget_hours "${{ inputs.time_budget_hours }}" \
+            '{issue_number: $issue_number, push_ref: $push_ref, task: $task, time_budget_hours: $time_budget_hours}' \
+            > .nightshift-dispatch/context.json
 
       - name: Upload dispatch context
         if: always()
