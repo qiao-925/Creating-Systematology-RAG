@@ -38,6 +38,7 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          MCP_GITHUB_TOKEN: ${{ github.token }}
         run: |
           export PATH="/c/Users/nonep/.local/bin:$PATH"
           args=(
