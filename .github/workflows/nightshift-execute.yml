@@ -32,23 +32,15 @@ jobs:
       pull-requests: write
     steps:
       - name: Persist dispatch context
-        shell: bash
-        env:
-          CTX_ISSUE_NUMBER: ${{ inputs.issue_number }}
-          CTX_PUSH_REF: ${{ inputs.push_ref }}
-          CTX_TASK: ${{ inputs.task }}
-          CTX_TIME_BUDGET_HOURS: ${{ inputs.time_budget_hours }}
+        shell: pwsh
         run: |
-          mkdir -p .nightshift-dispatch
-          python -c "
-import json, os
-json.dump({
-    'issue_number': os.environ['CTX_ISSUE_NUMBER'],
-    'push_ref': os.environ['CTX_PUSH_REF'],
-    'task': os.environ['CTX_TASK'],
-    'time_budget_hours': os.environ['CTX_TIME_BUDGET_HOURS'],
-}, open('.nightshift-dispatch/context.json', 'w'))
-"
+          New-Item -ItemType Directory -Force -Path .nightshift-dispatch | Out-Null
+          [ordered]@{
+            issue_number      = '${{ inputs.issue_number }}'
+            push_ref          = '${{ inputs.push_ref }}'
+            task              = '${{ inputs.task }}'
+            time_budget_hours = '${{ inputs.time_budget_hours }}'
+          } | ConvertTo-Json -Compress | Set-Content .nightshift-dispatch/context.json -Encoding UTF8
 
       - name: Upload dispatch context
         if: always()
