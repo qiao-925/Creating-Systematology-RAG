@@ -34,6 +34,7 @@ jobs:
       - name: Persist dispatch context
         shell: powershell
         run: |
+          Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
           New-Item -ItemType Directory -Force -Path .nightshift-dispatch | Out-Null
           [ordered]@{
             issue_number      = '${{ inputs.issue_number }}'
