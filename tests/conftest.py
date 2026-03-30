@@ -5,6 +5,7 @@ pytest core configuration and global test stubs.
 from __future__ import annotations
 
 import os
+import shutil
 import sys
 import types
 from pathlib import Path
@@ -18,6 +19,7 @@ from tests.fixtures.chroma_fake import FakeChromaClient
 # Ensure project root is importable
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
+WINDOWS_PYTEST_BASETEMP: Path | None = None
 
 
 # -------------------- Global dependency stubs --------------------
@@ -91,11 +93,139 @@ except ImportError:
 if sys.platform == "win32":
     os.environ["PYTHONIOENCODING"] = "utf-8"
     import io
+    import getpass
+    import tempfile
+    import _pytest.pathlib as pytest_pathlib
+    import _pytest.tmpdir as pytest_tmpdir
 
     if sys.stdout.encoding != "utf-8":
         sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
     if sys.stderr.encoding != "utf-8":
         sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8")
+
+    def _select_windows_pytest_temp_root() -> Path:
+        candidates = [
+            PROJECT_ROOT / ".agent" / "runtime" / "pytest-temp-root",
+            Path("C:/Users/nonep/.codex/memories/pytest-temp-root"),
+        ]
+        username = getpass.getuser() or "unknown"
+
+        for candidate in candidates:
+            try:
+                probe_root = candidate / f"pytest-of-{username}"
+                probe_root.mkdir(parents=True, exist_ok=True)
+                next(probe_root.iterdir(), None)
+                return candidate
+            except OSError:
+                continue
+
+        fallback = PROJECT_ROOT / ".agent" / "runtime"
+        fallback.mkdir(parents=True, exist_ok=True)
+        return fallback
+
+    pytest_temp_root = _select_windows_pytest_temp_root()
+    WINDOWS_PYTEST_BASETEMP = pytest_temp_root / f"basetemp-{os.getpid()}"
+    os.environ.setdefault("PYTEST_DEBUG_TEMPROOT", str(pytest_temp_root))
+    os.environ.setdefault("TMP", str(pytest_temp_root))
+    os.environ.setdefault("TEMP", str(pytest_temp_root))
+    os.environ.setdefault("TMPDIR", str(pytest_temp_root))
+    tempfile.tempdir = str(pytest_temp_root)
+
+    _original_cleanup_dead_symlinks = pytest_pathlib.cleanup_dead_symlinks
+    _original_getbasetemp = pytest_tmpdir.TempPathFactory.getbasetemp
+    _original_make_numbered_dir = pytest_pathlib.make_numbered_dir
+    _original_mkdtemp = tempfile.mkdtemp
+
+    def _safe_getbasetemp(self):
+        if self._basetemp is not None:
+            return self._basetemp
+
+        if self._given_basetemp is not None:
+            basetemp = Path(os.path.abspath(str(self._given_basetemp)))
+            if basetemp.exists():
+                pytest_pathlib.rm_rf(basetemp)
+            basetemp.mkdir(parents=True, exist_ok=True)
+            basetemp = basetemp.resolve()
+            self._basetemp = basetemp
+            return basetemp
+
+        return _original_getbasetemp(self)
+
+    def _safe_make_numbered_dir(root: Path, prefix: str, mode: int = 0o700) -> Path:
+        for _ in range(10):
+            max_existing = max(
+                map(pytest_pathlib.parse_num, pytest_pathlib.find_suffixes(root, prefix)),
+                default=-1,
+            )
+            new_number = max_existing + 1
+            new_path = root.joinpath(f"{prefix}{new_number}")
+            try:
+                new_path.mkdir()
+            except Exception:
+                pass
+            else:
+                pytest_pathlib._force_symlink(root, prefix + "current", new_path)
+                return new_path
+
+        return _original_make_numbered_dir(root, prefix, mode)
+
+    def _safe_cleanup_dead_symlinks(root: Path) -> None:
+        """Best-effort cleanup for Windows sandbox temp dirs."""
+        try:
+            _original_cleanup_dead_symlinks(root)
+        except PermissionError:
+            return
+
+    def _safe_mkdtemp(suffix=None, prefix=None, dir=None):
+        base_dir = Path(dir) if dir else pytest_temp_root
+        base_dir.mkdir(parents=True, exist_ok=True)
+        name_prefix = "tmp" if prefix is None else prefix
+        name_suffix = "" if suffix is None else suffix
+
+        for candidate_name in tempfile._get_candidate_names():
+            candidate = base_dir / f"{name_prefix}{candidate_name}{name_suffix}"
+            try:
+                candidate.mkdir()
+                return str(candidate)
+            except FileExistsError:
+                continue
+
+        return _original_mkdtemp(suffix=suffix, prefix=prefix, dir=str(base_dir))
+
+    class _SafeTemporaryDirectory:
+        """Windows-safe TemporaryDirectory for the sandboxed runner."""
+
+        def __init__(
+            self,
+            suffix=None,
+            prefix=None,
+            dir=None,
+            ignore_cleanup_errors=False,
+            *,
+            delete=True,
+        ) -> None:
+            self.name = _safe_mkdtemp(suffix=suffix, prefix=prefix, dir=dir)
+            self._delete = delete
+            self._ignore_cleanup_errors = ignore_cleanup_errors
+
+        def __enter__(self):
+            return self.name
+
+        def __exit__(self, exc, value, traceback) -> None:
+            self.cleanup()
+
+        def cleanup(self) -> None:
+            if not self._delete:
+                return
+            shutil.rmtree(self.name, ignore_errors=True)
+
+    pytest_pathlib.cleanup_dead_symlinks = _safe_cleanup_dead_symlinks
+    pytest_tmpdir.cleanup_dead_symlinks = _safe_cleanup_dead_symlinks
+    pytest_tmpdir.TempPathFactory.getbasetemp = _safe_getbasetemp
+    pytest_pathlib.make_numbered_dir = _safe_make_numbered_dir
+    pytest_tmpdir.make_numbered_dir = _safe_make_numbered_dir
+    tempfile.mkdtemp = _safe_mkdtemp
+    tempfile.TemporaryDirectory = _SafeTemporaryDirectory
 
 
 # -------------------- Fixtures --------------------
@@ -190,7 +320,11 @@ def mock_chromadb_client(monkeypatch):
 
 # -------------------- pytest hooks --------------------
 
+@pytest.hookimpl(tryfirst=True)
 def pytest_configure(config):
+    if sys.platform == "win32" and WINDOWS_PYTEST_BASETEMP is not None and not config.option.basetemp:
+        config.option.basetemp = str(WINDOWS_PYTEST_BASETEMP)
+
     config.addinivalue_line("markers", "requires_real_api: requires real API keys")
     config.addinivalue_line("markers", "github_e2e: GitHub end-to-end tests")
     config.addinivalue_line("markers", "pending_practice: pending practice tests")

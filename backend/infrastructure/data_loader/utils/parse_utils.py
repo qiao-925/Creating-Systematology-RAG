@@ -44,12 +44,8 @@ def parse_single_file(
         文档列表
     """
     try:
-        dir_path = file_path.parent
-        file_name = file_path.name
-        
         reader = SimpleDirectoryReader(
-            input_dir=str(dir_path),
-            recursive=False,
+            input_files=[str(file_path)],
             filename_as_id=True,
             errors='ignore'
         )
@@ -60,7 +56,7 @@ def parse_single_file(
         filtered_docs = []
         for doc in documents:
             doc_file_path = doc.metadata.get('file_path', '')
-            if Path(doc_file_path).name == file_name:
+            if Path(doc_file_path).name == file_path.name:
                 # 应用元数据
                 if metadata_map and file_path in metadata_map:
                     doc.metadata.update(metadata_map[file_path])
@@ -93,14 +89,9 @@ def parse_directory_files(
         dir_start_time = time.time()
         logger.debug(f"[阶段1.3] 解析目录: {dir_path} (包含 {len(files)} 个文件)")
         
-        # 获取文件扩展名列表
-        extensions = {f.suffix for f in files if f.suffix}
-        
-        # 使用 SimpleDirectoryReader 加载目录
+        # 使用已校验的文件列表，避免让底层 reader 再做一轮目录发现。
         reader = SimpleDirectoryReader(
-            input_dir=str(dir_path),
-            recursive=False,
-            required_exts=list(extensions) if extensions else None,
+            input_files=[str(file_path) for file_path in files],
             filename_as_id=True,
             errors='ignore'
         )
