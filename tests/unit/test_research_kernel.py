@@ -1,6 +1,11 @@
+"""[LEGACY] V1 ResearchKernel 测试。新版请看 test_research_agent.py。"""
+
+import pytest
 from types import SimpleNamespace
 
 from backend.business.research_kernel import ResearchKernel, ResearchResult
+
+pytestmark = pytest.mark.legacy
 
 
 class FakeQueryEngine:

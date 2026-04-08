@@ -1,4 +1,9 @@
-"""Minimal research kernel for evidence-driven judgment formation."""
+"""[DEPRECATED] V1 循环式研究内核，已被 agent.py (AgentWorkflow) 替代。
+
+保留原因：向后兼容旧测试。新代码请使用：
+    from backend.business.research_kernel.agent import ResearchAgent
+    from backend.business.research_kernel.state import ResearchOutput
+"""
 
 from __future__ import annotations
 

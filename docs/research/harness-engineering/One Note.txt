@@ -1,42 +1,39 @@
-1. 输出固定为 Insight Brief是否会有些固定和模板化，缺乏一定的灵活性，这个结构设计待讨论
-2. › 分析creating systematic rag已有的agetic rag的实现,在此基础之上做改造
-3. 知识库的范围确认：知识范围不应长期局限于钱学森系统学，但第一版也不应无限扩域。建议采用：
-核心域：系统学 / 系统科学 / 钱学森相关材料
-邻接域：马克思主义哲学或辩证法，先选一个接入
+当前的工作流方式过于臃肿和混乱，其根源在于计划本身的复杂度管理失去控制。收束这一点是当务之急
 
-idea
+我将作为人类识别出最关键的核心事物，然后你来重新生成计划
 
-cs rag 按照学科模块激活，去生成领域内专业的答案
+- 以受控自主判断为核心、以高密度知识场为证据支撑、以启发用户为目标的研究型 Agent
+- 市场验证：行业共识已明确收敛：Agent 为主、RAG 为工具
+LangChain (2026 年初)：
 
-- 系统科学
-- 马克思主义
-- 脑科学
-- 社会学
+"We've seen three generations of agents in three years: what started as RAG became agentic workflows, which evolved into more autonomous tool-calling-in-a-loop agents."
+
+NVIDIA 的定义：
+
+"Agentic RAG — the AI agent actively manages how it gets information, integrating RAG into its reasoning process. It's not just retrieving; it's turning RAG into a sophisticated tool."
+
+LangChain 官方 RAG 教程直接推荐 "Agent as orchestrator, retrieval as tool" 作为标准架构模式。
+
+- 3. "快速路径 + 深度研究"分级处理是通用做法
+
+即使 Perplexity 也有两档：普通搜索（快速，等同传统 RAG）和 Deep Research（agentic，需要数分钟）。这印证了内部分级处理的设计合理性。
+
+- 实现模式待讨论
 
 
------------------------------------
+4. 实现模式有成熟分类
 
-1. MVP 的主产品形态到底是什么？这是一个产品层面的方向问题，确实值得思考！
+Lee Han Chung 对 Deep Research 实现的分类：
 
-基于高密度知识库生成启发用户的信息。
+DAG（有向无环图）：多步 LLM 调用串联，质量不稳定
+FSM（有限状态机）：加入自反思和迭代精炼，质量提升但仍依赖 prompt 工程
+RL-trained：用强化学习训练端到端研究能力（OpenAI Deep Research 的做法）
+对于我们的第一版，FSM 模式（有限状态机 + 自反思）是最务实的起点。
 
-启发！
 
-AI：  高密度知识场驱动的启发式研究 Agent。
+- 研究型 Agent 的主流实现范式，待继续调研
+- 已决定使用llamaindex agentworkflow
 
-1.1. 基于harness的general understanding中的结构视角和演化视角设计宏观方案
-理论指导实践
-
-Detail 确认
-
-宏观方案确认
-
-以下兼容层确认：
-
-2. Creating-Systematology-RAG作为检索底座？我还没想太明白，rag的最核心特点就是精准来源依赖！这个也是比泛语言模型更为可靠！
-
-3. 知识范围收敛这块，其实倒是不着急，先保持目前的范围即可。但是需要留出可扩展结构，方便后续扩展即可。
-
-4. 学科模块激活，保留自动（llm判断）和手动选择两个选项比较好
-
-5. 输出协议保持灵活性是很重要的，但是可以加提示词引导
+- 系统迁移待调研，这块需要和新的agent workflow结合起来设计
+如下
+- 参考readme架构图

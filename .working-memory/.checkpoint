@@ -1,0 +1,21 @@
+{
+  "version": "2.0",
+  "migrated_from": "agent-task-log",
+  "migrated_at": "2026-04-08",
+  "active_tasks": [
+    {
+      "file": "ongoing/2026-04-08-02_【impl】research-kernel-mvp.md",
+      "phase": "implementation",
+      "cp": "CP-4",
+      "issue": 13
+    },
+    {
+      "file": "ongoing/2026-04-08-01_【backlog】历史数据迁移与GitHub同步策略.md",
+      "phase": "backlog",
+      "cp": "CP-1",
+      "issue": 12
+    }
+  ],
+  "git_ref": "aa3c4c4",
+  "timestamp": "2026-04-08T16:13:00+08:00"
+}

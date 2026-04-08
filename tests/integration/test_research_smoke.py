@@ -1,8 +1,12 @@
+"""[LEGACY] V1 ResearchKernel 冒烟测试。新版请看 test_research_agent.py。"""
+
 from types import SimpleNamespace
 
 import pytest
 
 from backend.business.research_kernel import ResearchKernel
+
+pytestmark = pytest.mark.legacy
 
 
 class SmokeQueryEngine:

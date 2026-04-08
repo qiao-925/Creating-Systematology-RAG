@@ -7,6 +7,7 @@ from pathlib import Path
 
 import streamlit as st
 from frontend.components.query_handler.streaming import handle_streaming_query
+from frontend.components.query_handler.research import handle_research_query
 from frontend.config import USER_AVATAR
 from frontend.utils.throttle import throttle_requests
 
@@ -49,7 +50,10 @@ def handle_user_queries(rag_service, chat_manager) -> None:
         # #region agent log
         _debug_log("query_handler/__init__.py:branch", "branch pending_query", {"will_rerun": True}, "B")
         # #endregion
-        handle_streaming_query(rag_service, chat_manager, prompt)
+        if st.session_state.get('research_mode', False):
+            handle_research_query(rag_service, prompt, chat_manager)
+        else:
+            handle_streaming_query(rag_service, chat_manager, prompt)
         # 成功时不再强制 rerun，避免页面出现“白蒙蒙”遮罩
         return
 
@@ -68,7 +72,10 @@ def handle_user_queries(rag_service, chat_manager) -> None:
             st.session_state.messages.append(user_msg)
         # 仅在真正发起请求时节流，且在 UI 已渲染后执行
         throttle_requests()
-        handle_streaming_query(rag_service, chat_manager, prompt)
+        if st.session_state.get('research_mode', False):
+            handle_research_query(rag_service, prompt, chat_manager)
+        else:
+            handle_streaming_query(rag_service, chat_manager, prompt)
         # 成功时不再强制 rerun，避免页面出现“白蒙蒙”遮罩
         return
     
@@ -77,4 +84,4 @@ def handle_user_queries(rag_service, chat_manager) -> None:
     # 这里不再渲染第二套输入组件，避免布局错乱和重复提交。
 
 
-__all__ = ['handle_user_queries', 'handle_streaming_query']
+__all__ = ['handle_user_queries', 'handle_streaming_query', 'handle_research_query']

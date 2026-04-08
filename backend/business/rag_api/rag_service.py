@@ -15,6 +15,8 @@ if TYPE_CHECKING:
     from backend.business.rag_engine.core.engine import ModularQueryEngine
     from backend.business.rag_engine.agentic import AgenticQueryEngine
     from backend.business.chat import ChatManager
+    from backend.business.research_kernel.agent import ResearchAgent
+    from backend.business.research_kernel.state import ResearchOutput
 
 from backend.infrastructure.logger import get_logger
 from backend.infrastructure.config import config
@@ -71,6 +73,7 @@ class RAGService:
         self._index_manager_provider = index_manager_provider
         self._modular_query_engine: Optional[ModularQueryEngine] = None
         self._agentic_query_engine: Optional[AgenticQueryEngine] = None
+        self._research_agent: Optional[ResearchAgent] = None
         self._chat_manager: Optional[ChatManager] = chat_manager
         
         logger.info(
@@ -146,6 +149,24 @@ class RAGService:
             )
         return self._chat_manager
     
+    @property
+    def research_agent(self):
+        """获取研究型 Agent（延迟加载，model_id 变更时自动重建）"""
+        if (
+            self._research_agent is None
+            or getattr(self, "_research_agent_model_id", None) != self.model_id
+        ):
+            from backend.business.research_kernel.agent import ResearchAgent
+            from backend.infrastructure.llms import create_llm
+            logger.info("初始化 ResearchAgent", model_id=self.model_id)
+            self._research_agent = ResearchAgent(
+                index_manager=self.index_manager,
+                llm=create_llm(model_id=self.model_id),
+                similarity_top_k=self.similarity_top_k,
+            )
+            self._research_agent_model_id = self.model_id
+        return self._research_agent
+
     def query(
         self,
         question: str,
@@ -167,6 +188,19 @@ class RAGService:
         request = QueryRequest(question=question, session_id=session_id, **kwargs)
         return self._query_internal(request, user_id=user_id, collect_trace=collect_trace)
     
+    def research(self, question: str) -> ResearchOutput:
+        """研究模式查询：调用 ResearchAgent，返回结构化研究结果
+
+        Args:
+            question: 研究问题
+
+        Returns:
+            ResearchOutput 结构化研究结果
+        """
+        from backend.business.research_kernel.state import ResearchOutput
+        logger.info("研究模式查询", question=question[:80])
+        return self.research_agent.run_sync(question)
+
     def _query_internal(
         self,
         request: QueryRequest,
@@ -257,6 +291,7 @@ class RAGService:
         
         self._index_manager = None
         self._modular_query_engine = None
+        self._research_agent = None
         self._chat_manager = None
         
         logger.info("RAGService已关闭")

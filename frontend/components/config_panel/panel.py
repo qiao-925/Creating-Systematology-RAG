@@ -31,8 +31,35 @@ def render_advanced_config(
     
     st.markdown("---")
     
+    # 研究模式
+    _render_research_mode(on_config_change)
+    
+    st.markdown("---")
+    
     # 显示设置
     _render_display_settings(on_config_change)
+
+
+def _render_research_mode(
+    on_config_change: Optional[Callable[[], None]] = None,
+) -> None:
+    """渲染研究模式开关"""
+    st.subheader("研究模式")
+    
+    if 'research_mode' not in st.session_state:
+        st.session_state.research_mode = False
+    
+    new_research_mode = st.toggle(
+        "启用深度研究",
+        value=st.session_state.research_mode,
+        key="research_mode_toggle",
+        help="启用后，系统将以研究型 Agent 模式运行：自主取证、形成判断、揭示张力。适合需要深度分析的研究问题。"
+    )
+    
+    if new_research_mode != st.session_state.research_mode:
+        st.session_state.research_mode = new_research_mode
+        if on_config_change:
+            on_config_change()
 
 
 def _render_display_settings(

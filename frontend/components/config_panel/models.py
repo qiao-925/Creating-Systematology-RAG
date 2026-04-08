@@ -72,6 +72,9 @@ class AppConfig:
     similarity_threshold: float = 0.4
     enable_rerank: bool = False
     
+    # 研究模式
+    research_mode: bool = False
+    
     # 显示配置
     show_reasoning: bool = True
     
@@ -96,6 +99,7 @@ class AppConfig:
             enable_rerank=st.session_state.get(
                 'enable_rerank', config.ENABLE_RERANK
             ),
+            research_mode=st.session_state.get('research_mode', False),
             show_reasoning=st.session_state.get(
                 'show_reasoning', config.DEEPSEEK_ENABLE_REASONING_DISPLAY
             ),
@@ -110,6 +114,7 @@ class AppConfig:
         st.session_state.similarity_top_k = self.similarity_top_k
         st.session_state.similarity_threshold = self.similarity_threshold
         st.session_state.enable_rerank = self.enable_rerank
+        st.session_state.research_mode = self.research_mode
         st.session_state.show_reasoning = self.show_reasoning
     
     def get_llm_temperature(self) -> Optional[float]:
