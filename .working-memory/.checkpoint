@@ -6,7 +6,7 @@
     {
       "file": "ongoing/2026-04-08-02_【impl】research-kernel-mvp.md",
       "phase": "implementation",
-      "cp": "CP-4",
+      "cp": "CP-5",
       "issue": 13
     },
     {
@@ -16,6 +16,6 @@
       "issue": 12
     }
   ],
-  "git_ref": "aa3c4c4",
-  "timestamp": "2026-04-08T16:13:00+08:00"
+  "git_ref": "2b5a600",
+  "timestamp": "2026-04-08T16:29:00+08:00"
 }

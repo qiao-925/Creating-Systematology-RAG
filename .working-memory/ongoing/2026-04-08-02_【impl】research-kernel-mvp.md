@@ -36,4 +36,4 @@
 **计划**：`docs/research/harness-engineering/MVP Version/MVP执行总计划.md`
 
 ---
-*Issue: #13 | Updated: 2026-04-08 16:28 | Git: aa3c4c4 → commit pending*
+*Issue: #13 | Updated: 2026-04-08 16:29 | Git: 2b5a600*
