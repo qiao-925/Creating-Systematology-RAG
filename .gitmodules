@@ -1,0 +1,3 @@
+[submodule "skills/awesome-design-md"]
+	path = skills/awesome-design-md
+	url = https://github.com/skyeweis/awesome-design-md.git
