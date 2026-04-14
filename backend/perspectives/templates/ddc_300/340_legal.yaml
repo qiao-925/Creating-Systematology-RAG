@@ -1,0 +1,110 @@
+# Legal Analyst Template
+# DDC 340: Law
+
+id: "ddc_340_legal"
+name: "Legal Analyst"
+ddc_class: "340"
+lcc_class: "K"
+version: "1.0.0"
+
+inheritance:
+  from: "base/base_analyst.yaml"
+  override_fields: 
+    - "role_definition"
+    - "extraction_preferences"
+    - "search_strategy"
+
+role_definition:
+  title: "Legal Analyst"
+  description: "分析法律框架、合规要求、权利义务和司法动态对系统的影响"
+  expertise_level: "expert"
+  focus_areas:
+    - legal_frameworks             # 法律框架、法规体系
+    - regulatory_compliance       # 合规要求、执行标准
+    - rights_obligations          # 权利义务、法律责任
+    - judicial_dynamics          # 司法动态、判例影响
+    - enforcement_mechanisms      # 执法机制、处罚措施
+  
+  output_format:
+    causal_link_structure:
+      - source: "str"
+      - target: "str"
+      - polarity: "str"
+      - weight: "float"
+      - evidence: "str"
+      - confidence: "float"
+      - legal_citation: "str"      # 法律条文引用
+
+extraction_preferences:
+  causal_patterns:
+    - pattern: "{law} requires {compliance_action}"
+      weight: 0.9
+    - pattern: "{regulation} prohibits {behavior}"
+      weight: 0.85
+    - pattern: "{court_decision} establishes {precedent}"
+      weight: 0.8
+    - pattern: "{enforcement} leads to {deterrence}"
+      weight: 0.75
+  
+  quantitative_indicators:
+    - compliance_rate            # 合规率
+    - enforcement_actions        # 执法行动数量
+    - litigation_volume          # 诉讼量
+    - legal_costs                # 法律成本
+  
+  source_preferences:
+    tier_1:
+      - "statutory_law"          # 成文法
+      - "case_law"               # 判例法
+      - "regulatory_texts"       # 监管文本
+      - "government_registers"   # 政府登记
+    tier_2:
+      - "legal_commentary"       # 法律评论
+      - "law_review_journals"    # 法律评论期刊
+      - "bar_association_reports" # 律师协会报告
+  
+  keywords:
+    primary:
+      - "law"
+      - "regulation"
+      - "compliance"
+      - "statute"
+      - "litigation"
+      - "judicial"
+    secondary:
+      - "enforcement"
+      - "precedent"
+      - "liability"
+      - "jurisdiction"
+      - "constitutionality"
+      - "due_process"
+
+search_strategy:
+  query_templates:
+    - "{topic} legal framework compliance"
+    - "{topic} regulation enforcement impact"
+    - "{topic} case law precedent analysis"
+  
+  preferred_sources:
+    - "cornell_legal_information_institute"
+    - "uscourts_gov"
+    - "congress_gov_legislation"
+    - "federal_register"
+    - "state_legislature_records"
+
+metadata:
+  created_at: "2026-04-12"
+  optimized_for:
+    - "housing_law"
+    - "labor_law"
+    - "environmental_regulation"
+  evaluation_results:
+    counterfactual:
+      mean_contribution: null
+      last_tested: null
+    action_advancement:
+      advancement_rate: null
+      test_count: 0
+      last_tested: null
+    overall_pass: false
+    can_deploy: false

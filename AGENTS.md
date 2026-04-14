@@ -23,7 +23,18 @@ This repository is wired to `agent-nightshift`.
 - For narrow fixes, add or update the smallest relevant test first, then run the configured verify step.
 - Do not treat performance tests or GitHub E2E tests as the default nightly verification path.
 
+## Auto-Checkpoint Rules
+
+每 3 轮对话自动执行 auto-checkpoint。详细逻辑见项目运行时配置：`.agent/runtime/working-memory-boost.md`。
+
+### 工作记忆约定
+
+- **看板入口**: `.working-memory/board.md`
+- **进行中任务**: `.working-memory/ongoing/`
+- **运行时配置**: `.agent/runtime/working-memory-boost.md`
+
 ## Writing Boundaries
 
 - Do not modify `data/`, `logs/`, `sessions/`, `.env`, `.venv/`, or `agent-task-log/` unless the current Issue explicitly requires it.
 - `agent-nightshift` will also enforce `workspace.writable_paths` from `.agent/project.yaml`. Treat that file as the source of truth for what may be modified.
+- `.working-memory/` is always writable for auto-checkpoint purposes.

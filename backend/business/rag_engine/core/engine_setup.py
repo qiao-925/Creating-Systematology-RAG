@@ -72,6 +72,10 @@ def setup_observer_manager(observer_manager: Optional[ObserverManager]) -> Obser
         Settings.callback_manager = CallbackManager(callback_handlers)
         logger.info("设置回调处理器到LlamaIndex", handler_count=len(callback_handlers))
     
+    # Enable modern Instrumentation API (event + span handlers)
+    from backend.infrastructure.observers.setup import enable_instrumentation
+    enable_instrumentation()
+    
     return manager
 
 

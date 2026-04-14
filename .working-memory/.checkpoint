@@ -1,21 +1,21 @@
-{
-  "version": "2.0",
-  "migrated_from": "agent-task-log",
-  "migrated_at": "2026-04-08",
-  "active_tasks": [
-    {
-      "file": "ongoing/2026-04-08-02_【impl】research-kernel-mvp.md",
-      "phase": "implementation",
-      "cp": "CP-5",
-      "issue": 13
-    },
-    {
-      "file": "ongoing/2026-04-08-01_【backlog】历史数据迁移与GitHub同步策略.md",
-      "phase": "backlog",
-      "cp": "CP-1",
-      "issue": 12
-    }
-  ],
-  "git_ref": "2b5a600",
-  "timestamp": "2026-04-08T16:29:00+08:00"
-}
+## Checkpoint Summary
+
+### 今日节点（2026-04-13）
+1. 04:30 图：五层运行架构草图（CLD→FCM→D2D）
+2. 04:40 洞察：上下文容易丢失，需加强记录粒度
+3. 04:45 决策：采用「轻量级节点标记」方案（A+B混合）
+4. 04:52 图：业务流程图 ASCII 原样保留
+5. 05:04 洞察：代码生成质量控制采用 OpenAI 模式
+6. 05:09 决策：先确定业务架构（CLD/FCM/D2D），再细化工程架构
+
+### 完成事项
+- working-memory-boost 规则升级为 v1.3（节点标记）
+- issue-15 改名为「CLDFlow架构设计与实现」
+- 业务流程图 ASCII 原样存档
+- 文档标题修正为中文实际标题
+- A线（#13 Research Kernel MVP）标记为子任务
+
+### 下一步
+- 业务架构图确认（基于 CLD/FCM/D2D 三层核心）
+- 工程架构图（含代码生成评估器设计）
+

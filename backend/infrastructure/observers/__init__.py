@@ -33,6 +33,9 @@ __all__ = [
     'LlamaDebugObserver',
     'RAGASEvaluator',
     'create_default_observers',
+    'enable_instrumentation',
+    'ObservabilityEventHandler',
+    'ObservabilitySpanHandler',
 ]
 
 
@@ -56,5 +59,11 @@ def __getattr__(name: str) -> Any:
     elif name == 'create_default_observers':
         from backend.infrastructure.observers.factory import create_default_observers
         return create_default_observers
+    elif name == 'enable_instrumentation':
+        from backend.infrastructure.observers.setup import enable_instrumentation
+        return enable_instrumentation
+    elif name in ('ObservabilityEventHandler', 'ObservabilitySpanHandler'):
+        from backend.infrastructure.observers import instrumentation as _inst
+        return getattr(_inst, name)
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 

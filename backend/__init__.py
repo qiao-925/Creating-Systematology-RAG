@@ -42,6 +42,12 @@ __version__ = "0.1.0"
 # 优先加载环境变量（在导入任何 HuggingFace 库之前）
 # 这样才能确保镜像配置生效
 _env_file = Path(__file__).parent.parent / ".env"
+if not _env_file.exists():
+    try:
+        from scripts.env_sync import cmd_auto
+        cmd_auto()
+    except Exception:
+        pass  # env-sync not configured or unavailable — silent
 if _env_file.exists():
     load_dotenv(_env_file)
 

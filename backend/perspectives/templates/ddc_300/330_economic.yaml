@@ -1,0 +1,115 @@
+# Economic Analyst Template  
+# DDC 330: Economics
+
+id: "ddc_330_economic"
+name: "Economic Analyst"
+ddc_class: "330"
+lcc_class: "HB-HJ"
+version: "1.0.0"
+
+inheritance:
+  from: "base/base_analyst.yaml"
+  override_fields: 
+    - "role_definition"
+    - "extraction_preferences"
+    - "search_strategy"
+
+role_definition:
+  title: "Economic Analyst"
+  description: "分析市场机制、价格动态、资源配置和经济激励对系统的影响"
+  expertise_level: "expert"
+  focus_areas:
+    - market_mechanisms          # 供需、价格形成
+    - price_dynamics             # 价格波动、弹性
+    - resource_allocation        # 资源配置、效率
+    - incentive_structures       # 激励机制、行为反应
+    - budget_constraints         # 预算约束、成本效益
+    - market_failures            # 市场失灵、外部性
+  
+  output_format:
+    causal_link_structure:
+      - source: "str"
+      - target: "str"
+      - polarity: "str"
+      - weight: "float"
+      - evidence: "str"
+      - confidence: "float"
+      - economic_model: "str"    # 经济学模型说明（如：供需模型）
+
+extraction_preferences:
+  causal_patterns:
+    - pattern: "{price_change} leads to {demand_change}"
+      weight: 0.95
+    - pattern: "{supply_constraint} causes {price_increase}"
+      weight: 0.9
+    - pattern: "{incentive} drives {behavior_change}"
+      weight: 0.85
+    - pattern: "{market_condition} results in {allocation_change}"
+      weight: 0.8
+  
+  quantitative_indicators:
+    - price_elasticity           # 价格弹性
+    - market_concentration       # 市场集中度（HHI）
+    - budget_constraints         # 预算约束系数
+    - cost_benefit_ratio         # 成本收益比
+    - marginal_utility           # 边际效用
+  
+  source_preferences:
+    tier_1:
+      - "economic_journals"      # 经济学期刊（AER, QJE, JPE）
+      - "central_bank_reports"   # 央行报告（Fed, ECB）
+      - "treasury_reports"       # 财政部报告
+      - "bureau_of_economic_analysis"  # BEA
+    tier_2:
+      - "think_tank_economic"    # 智库经济分析（Brookings, CBO）
+      - "financial_data"         # 金融数据（FRED, World Bank）
+      - "industry_reports"       # 行业分析报告
+  
+  keywords:
+    primary:
+      - "economics"
+      - "market"
+      - "price"
+      - "supply"
+      - "demand"
+      - "incentive"
+      - "cost"
+      - "benefit"
+    secondary:
+      - "elasticity"
+      - "efficiency"
+      - "equilibrium"
+      - "marginal"
+      - "externalities"
+      - "market_failure"
+
+search_strategy:
+  query_templates:
+    - "{topic} economic impact analysis"
+    - "{topic} market dynamics price"
+    - "{topic} cost benefit incentive"
+  
+  preferred_sources:
+    - "federal_reserve_economic_data"  # FRED
+    - "bureau_of_labor_statistics"
+    - "congressional_budget_office"
+    - "oecd_economic_outlook"
+    - "world_bank_development_indicators"
+
+metadata:
+  created_at: "2026-04-12"
+  optimized_for:
+    - "housing_policy"
+    - "tax_policy"
+    - "labor_market"
+    - "environmental_economics"
+  evaluation_results:
+    counterfactual:
+      mean_contribution: null
+      last_tested: null
+    action_advancement:
+      advancement_rate: null
+      test_count: 0
+      last_tested: null
+    overall_pass: false
+    can_deploy: false

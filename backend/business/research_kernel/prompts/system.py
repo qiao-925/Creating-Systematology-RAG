@@ -31,6 +31,7 @@ RESEARCH_SYSTEM_PROMPT = """\
 ### 综合判断
 当证据足够时，使用 synthesize 工具形成阶段性判断。判断必须是一个明确的观点，不是中性摘要。
 同时识别证据中的张力和值得继续追问的方向。
+**判断后调用 evaluate_judgment 检查质量**，如果分数不理想且预算允许，可以继续补充证据或修正判断。
 
 ### 反思与收束
 使用 reflect 工具评估当前状态。如果证据充足且判断可靠，停止取证。
@@ -43,6 +44,7 @@ RESEARCH_SYSTEM_PROMPT = """\
 - **record_evidence(query, text, source_ref, score)**: 记录证据到账本
 - **synthesize(judgment, confidence, tensions, next_questions)**: 形成判断
 - **reflect()**: 获取当前研究状态评估
+- **evaluate_judgment()**: 评估当前判断质量（证据可追溯性、张力识别、收束效率），返回分数和改进建议
 
 ## 输出要求
 

@@ -1,0 +1,39 @@
+# 研究内核 E2E 验证 Fixtures
+# 每条 fixture 定义一个研究问题 + 质量阈值
+# 阈值为 0.0 ~ 1.0，初期宽松，逐步收紧
+
+# ── smoke：最小验证（1 题，阈值宽松） ──────────────────────────
+smoke:
+  - question: "系统科学与还原论在处理复杂系统时各自的优劣是什么？"
+    budget_turns: 10
+    thresholds:
+      evidence_traceability: 0.05
+      tension_identification: 0.0
+      convergence_efficiency: 0.2
+      rule_based_score: 0.1
+
+# ── regression：质量回归（多题，阈值适中） ──────────────────────
+regression:
+  - question: "系统科学与还原论在处理复杂系统时各自的优劣是什么？"
+    budget_turns: 10
+    thresholds:
+      evidence_traceability: 0.05
+      tension_identification: 0.0
+      convergence_efficiency: 0.2
+      rule_based_score: 0.1
+
+  - question: "钱学森的开放复杂巨系统理论对现代系统工程有什么影响？"
+    budget_turns: 10
+    thresholds:
+      evidence_traceability: 0.05
+      tension_identification: 0.0
+      convergence_efficiency: 0.2
+      rule_based_score: 0.1
+
+  - question: "控制论中的反馈机制如何应用于组织管理？"
+    budget_turns: 10
+    thresholds:
+      evidence_traceability: 0.05
+      tension_identification: 0.0
+      convergence_efficiency: 0.2
+      rule_based_score: 0.1

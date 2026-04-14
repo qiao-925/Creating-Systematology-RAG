@@ -3,7 +3,7 @@
 # 默认目标：直接运行 make 将执行完整工作流
 .DEFAULT_GOAL := all
 
-.PHONY: help install test test-unit test-integration test-cov clean run dev ready start all
+.PHONY: help install test test-unit test-integration test-cov clean run dev ready start all env-init env-push env-pull e2e-smoke e2e-regression verify-observability
 
 # ==================== 完整工作流（默认） ====================
 
@@ -134,6 +134,36 @@ test-cov: install-test
 test-fast: install-test
 	@echo "⚡ Running fast tests..."
 	uv run --no-sync pytest tests/ -v -m "not slow"
+
+# ==================== E2E Verification ====================
+
+e2e-smoke:
+	@echo "🔬 Running E2E smoke test (1 question)..."
+	uv run --no-sync pytest tests/e2e/test_research_e2e.py::TestResearchSmoke -v -s -m e2e
+
+e2e-regression:
+	@echo "🔬 Running E2E regression tests (all questions)..."
+	uv run --no-sync pytest tests/e2e/test_research_e2e.py::TestResearchRegression -v -s -m e2e
+
+verify-observability:
+	@echo "🔍 Verifying observability & evaluation..."
+	uv run --no-sync python scripts/verify_observability.py
+
+# ==================== Env Sync ====================
+
+env-init:
+	@echo "🔐 Initializing encrypted env sync..."
+	uv run --no-sync python scripts/env_sync.py init
+
+env-push:
+	@echo "🔐 Pushing encrypted .env to Gist..."
+	uv run --no-sync python scripts/env_sync.py push
+
+env-pull:
+	@echo "🔐 Pulling .env from Gist..."
+	uv run --no-sync python scripts/env_sync.py pull
+
+# ==================== Clean ====================
 
 clean:
 	@echo "🧹 Cleaning generated files..."

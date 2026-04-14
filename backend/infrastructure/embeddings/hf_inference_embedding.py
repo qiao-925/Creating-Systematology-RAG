@@ -85,6 +85,9 @@ class HFInferenceEmbedding(BaseEmbedding):
             active_requests=self._active_requests
         )
         
+        # 缓存已知模型维度，避免维度检测时额外 API 调用
+        self._cached_embed_dim = self._get_default_dimension(self.model_name)
+        
         logger.info(f"📡 初始化HF Inference API Embedding: {self.model_name}")
     
     def _get_default_dimension(self, model_name: str) -> int:

@@ -1,0 +1,110 @@
+# Social Analyst Template
+# DDC 360: Social Problems and Services; Sociology
+
+id: "ddc_360_social"
+name: "Social Analyst"
+ddc_class: "360"
+lcc_class: "HM-HN"
+version: "1.0.0"
+
+inheritance:
+  from: "base/base_analyst.yaml"
+  override_fields: 
+    - "role_definition"
+    - "extraction_preferences"
+    - "search_strategy"
+
+role_definition:
+  title: "Social Analyst"
+  description: "分析社会行为、群体动态、公平性和社会分层对系统的影响"
+  expertise_level: "expert"
+  focus_areas:
+    - social_behavior             # 社会行为、个体决策
+    - group_dynamics            # 群体动态、集体行动
+    - equity_issues              # 公平性、分配正义
+    - social_stratification      # 社会分层、不平等
+    - community_impacts          # 社区影响、社会资本
+    - demographic_trends         # 人口趋势、代际差异
+  
+  output_format:
+    causal_link_structure:
+      - source: "str"
+      - target: "str"
+      - polarity: "str"
+      - weight: "float"
+      - evidence: "str"
+      - confidence: "float"
+      - stakeholder_impact: "str"  # 利益相关者影响说明
+
+extraction_preferences:
+  causal_patterns:
+    - pattern: "{social_condition} affects {group_behavior}"
+      weight: 0.9
+    - pattern: "{policy_change} impacts {community}"
+      weight: 0.85
+    - pattern: "{inequality} leads to {social_outcome}"
+      weight: 0.8
+    - pattern: "{demographic_shift} drives {social_change}"
+      weight: 0.75
+  
+  quantitative_indicators:
+    - gini_coefficient           # 基尼系数
+    - social_mobility_rate       # 社会流动性
+    - community_cohesion_index   # 社区凝聚力
+    - stakeholder_satisfaction   # 利益相关者满意度
+  
+  source_preferences:
+    tier_1:
+      - "census_data"            # 人口普查数据
+      - "social_survey_data"     # 社会调查数据
+      - "academic_sociology"     # 社会学学术期刊
+    tier_2:
+      - "community_reports"      # 社区组织报告
+      - "ngo_research"           # 非政府组织研究
+      - "social_policy_research" # 社会政策研究
+  
+  keywords:
+    primary:
+      - "social"
+      - "community"
+      - "equity"
+      - "inequality"
+      - "demographic"
+      - "stakeholder"
+    secondary:
+      - "mobility"
+      - "cohesion"
+      - "inclusion"
+      - "welfare"
+      - "vulnerable"
+      - "disparity"
+
+search_strategy:
+  query_templates:
+    - "{topic} social impact community"
+    - "{topic} equity inequality analysis"
+    - "{topic} demographic stakeholder effects"
+  
+  preferred_sources:
+    - "us_census_bureau"
+    - "pew_research_center"
+    - "urban_institute_social"
+    - "brookings_social_policy"
+    - "rand_social_research"
+
+metadata:
+  created_at: "2026-04-12"
+  optimized_for:
+    - "housing_affordability"
+    - "education_equity"
+    - "healthcare_access"
+  evaluation_results:
+    counterfactual:
+      mean_contribution: null
+      last_tested: null
+    action_advancement:
+      advancement_rate: null
+      test_count: 0
+      last_tested: null
+    overall_pass: false
+    can_deploy: false

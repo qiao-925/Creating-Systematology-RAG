@@ -1,6 +1,6 @@
-# 创建系统学知识库RAG应用 (Creating Systematology RAG Application)
+# Creating Systematology — 系统学深度研究 Agent
 
-> 基于多策略检索增强生成的智能问答系统，通过并行融合向量、BM25、Grep 检索策略和智能路由，从知识库精准检索并生成带引用来源的答案。
+> 以系统科学为方法论内核的深度研究 Agent，输出可审计、可评估、可复现的结构化研究。
 
 ---
 
@@ -10,11 +10,23 @@
 ```bash
 git clone <repository-url>
 cd Creating-Systematology-RAG
-cp env.template .env
-# 编辑 .env，配置 DEEPSEEK_API_KEY 和 Chroma Cloud 凭证
 ```
 
-**2. 安装并启动**
+**2. 配置 API Keys（二选一）**
+
+- **已有 passphrase**（团队成员 / 新设备）：
+  ```bash
+  python scripts/env_sync.py setup <passphrase>
+  # 之后项目启动时自动从 Gist 拉取 .env，无需手动操作
+  ```
+- **首次配置**：
+  ```bash
+  cp env.template .env
+  # 编辑 .env，填入 DEEPSEEK_API_KEY、Chroma Cloud 凭证、HF_TOKEN
+  make env-init        # 加密上传到私有 Gist，生成 passphrase
+  ```
+
+**3. 安装并启动**
 ```bash
 make              # 安装依赖 + 运行测试
 make run          # 启动 Web 应用
@@ -24,7 +36,17 @@ make run          # 启动 Web 应用
 
 ---
 
-## 2. 核心特性
+## 2. 三支柱：领域定制 · 可审计 · 评估反馈
+
+| 支柱 | 说明 | 确定性保证 |
+|------|------|----------|
+| **领域定制** | 系统科学方法论编码在工具、状态模型和流程中，不只是 prompt 指令 | 方法论步骤和状态模型由架构 enforce |
+| **可审计** | 每一步推理过程可追溯：工具调用、状态变更、决策理由均有结构化日志 | 审计记录不依赖 LLM 概率输出 |
+| **评估反馈** | 内建质量度量（证据可追溯性、张力识别、收束效率）+ 运行时回流 | 评估分数是确定性计算，非 LLM 自评 |
+
+> **设计哲学**：LLM 是概率机器——Skill 层（prompt）引导推理方向提供创造力，架构层（工具/状态/评估）enforce 关键约束提供可靠性。两层叠加，概率负责探索，确定性负责底线。
+
+### 工程特性
 
 | 特性 | 说明 |
 |------|------|
@@ -32,7 +54,8 @@ make run          # 启动 Web 应用
 | **多策略检索** | 向量语义、BM25 关键词、Grep 正则、混合检索，自动路由选择最优策略 |
 | **三级降级** | Agent 失败 → ModularEngine → 纯 LLM → 友好错误，确保服务可用 |
 | **可插拔设计** | Embedding、Retriever、Reranker、Observer 均支持替换 |
-| **可观测性** | 集成 LlamaDebugHandler + RAGAS，行为透明可追踪 |
+| **可观测性** | LlamaIndex Instrumentation + structlog 结构化追踪，行为透明可追溯 |
+| **自动密钥管理** | `.env` 加密存储于私有 Gist，项目启动时无感自动拉取 |
 
 ---
 
@@ -72,6 +95,7 @@ make run          # 启动 Web 应用
 │   │LiteLLM  │    │              │    │ record_evidence  │   │
 │   └─────────┘    └──────┬───────┘    │ synthesize       │   │
 │                         │            │ reflect          │   │
+│                         │            │ evaluate_judgment│   │
 │                    ┌────▼─────┐      └─────────┬────────┘   │
 │                    │  State   │                 │            │
 │                    │ 证据账本  │◀────── 工具读写 ─┘            │
@@ -93,9 +117,61 @@ make run          # 启动 Web 应用
 
 **输出**: `ResearchOutput { judgment, evidence, confidence, tensions, next_questions }`
 
-**四层架构**：用户层 → 服务层 → Agent Core → 基础设施层。核心是 LlamaIndex AgentWorkflow 驱动的研究型 Agent，LLM 自主决策研究节奏，代码层只设硬护栏。
+**四层架构**：用户层 → 服务层 → Agent Core → 基础设施层。核心是 LlamaIndex AgentWorkflow 驱动的研究型 Agent，LLM 自主决策研究节奏（概率层），代码层 enforce 状态、评估和审计（确定性层）。
 
 > 📖 详细架构、工作流程、模块职责 → [架构设计文档](docs/architecture.md)
+
+### 研究运行流程
+
+架构图描述系统**由什么组成**，运行流程描述**实际发生什么**。以下是 Research Agent 处理一个研究问题的完整运行时路径：
+
+```
+用户提问
+  │
+  ▼
+定焦 ─────────── LLM 理解问题，聚焦到可研究的子问题
+  │
+  ▼
+取证计划 ──────── 制定 2-3 个关键子问题 + 检索策略
+  │
+  │         ┌──────────────────────────────────────────────┐
+  │         │          取证 ─ 判断 ─ 评估 闭环              │
+  ▼         │                                              │
+┌───────────┴──┐                                           │
+│  取证执行     │                                           │
+│  search →    │                                           │
+│  阅读 →      │                                           │
+│  record      │  每次 record_evidence 消耗 1 轮预算        │
+└──────┬───────┘                                           │
+       │                                                   │
+       ▼                                                   │
+┌──────────────┐                                           │
+│  综合判断     │                                           │
+│  synthesize: │  判断 + 置信度 + 张力 + 追问方向           │
+└──────┬───────┘                                           │
+       │                                                   │
+       ▼                                                   │
+┌──────────────┐    质量不达标                               │
+│  评估回流     │    且有预算     ┌────────────────┐        │
+│  evaluate_   ├──────────────▶│ 改进建议:       │        │
+│  judgment    │               │ · 补充证据      ├────────┘
+│              │               │ · 修正判断      │
+│ 证据可追溯性  │               │ · 具化张力      │
+│ 张力识别      │               └────────────────┘
+│ 收束效率      │
+└──────┬───────┘
+       │ 质量达标 或 预算耗尽
+       ▼
+┌──────────────┐
+│  反思收束     │  reflect → 确认完成
+└──────┬───────┘
+       │
+       ▼
+
+  ResearchOutput { judgment, evidence, confidence, tensions, next_questions }
+```
+
+**核心机制**：Agent 自主控制节奏，代码层只设硬护栏（timeout / max_iterations / budget）。评估回流让 Agent 在研究过程中自我校正，而不是等研究结束才发现质量问题。
 
 ---
 
@@ -116,7 +192,41 @@ make run          # 启动 Web 应用
 
 ---
 
-## 6. 文档导航
+## 6. 常用命令
+
+### 开发与测试
+
+| 命令 | 说明 |
+|------|------|
+| `make` | 安装依赖 + 运行完整测试 |
+| `make run` | 启动 Streamlit Web 应用 |
+| `make start` | 一键启动（安装 + 测试 + 运行） |
+| `make dev` | 开发模式（安装 + 快速测试） |
+| `make test-unit` | 仅运行单元测试 |
+| `make test-fast` | 跳过慢速测试 |
+
+### 密钥管理
+
+| 命令 | 说明 |
+|------|------|
+| `make env-init` | 首次配置：加密 `.env` 并上传到私有 Gist |
+| `make env-push` | 更新 `.env` 后推送到 Gist（如更换 API Key） |
+| `make env-pull` | 从 Gist 拉取并解密 `.env` |
+| `python scripts/env_sync.py setup <passphrase>` | 新设备初始化（一次性） |
+
+> `.env` 丢失无需担心——项目启动时会自动从 Gist 恢复（需本机已配置 passphrase）。
+
+### 验证与评估
+
+| 命令 | 说明 |
+|------|------|
+| `make verify-observability` | 验证可观测性 + 评估体系（真实 API 调用） |
+| `make e2e-smoke` | E2E 冒烟测试（1 题快速验证） |
+| `make e2e-regression` | E2E 回归测试（多题质量验证） |
+
+---
+
+## 7. 文档导航
 
 | 文档 | 说明 |
 |------|------|
@@ -128,11 +238,11 @@ make run          # 启动 Web 应用
 
 ---
 
-## 7. 致谢
+## 8. 致谢
 
 本项目的知识库聚焦于钱学森先生的系统学思想和系统科学领域，向这位伟大的科学家致敬！
 
 ---
 
-**最后更新**: 2026-03-25  
+**最后更新**: 2026-04-10  
 **License**: MIT

@@ -156,8 +156,10 @@ batch_processing:
 # 6. 可观测性与评估配置
 # ============================================================================
 observability:
+  instrumentation:
+    enable: true  # LlamaIndex Instrumentation API (event + span tracing)
   llama_debug:
-    enable: false  # 默认禁用
+    enable: false  # 旧版 callback 调试（已被 instrumentation 替代）
     print_trace: true
 
 ragas:

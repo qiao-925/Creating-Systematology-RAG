@@ -23,6 +23,7 @@ from backend.business.research_kernel.state import (
     ResearchState,
     StopReason,
 )
+from backend.business.research_kernel.tools.evaluate import create_evaluate_tool
 from backend.business.research_kernel.tools.evidence import create_evidence_tool
 from backend.business.research_kernel.tools.reflection import create_reflection_tool
 from backend.business.research_kernel.tools.search import create_search_tools
@@ -102,7 +103,8 @@ class ResearchAgent:
         synthesis_tool = create_synthesis_tool(state)
         reflection_tool = create_reflection_tool(state)
 
-        all_tools = search_tools + [evidence_tool, synthesis_tool, reflection_tool]
+        evaluate_tool = create_evaluate_tool(state, self._budget_turns)
+        all_tools = search_tools + [evidence_tool, synthesis_tool, reflection_tool, evaluate_tool]
 
         agent = ReActAgent(
             name="ResearchAgent",
@@ -136,8 +138,12 @@ class ResearchAgent:
             logger.warning("研究超时", timeout=self._timeout_seconds, turns=state.current_turn)
         except Exception as exc:
             state.stop_reason = StopReason.ERROR
-            logger.error("研究异常", error=str(exc), turns=state.current_turn)
-            raise
+            logger.warning(
+                "研究异常，降级产出部分结果",
+                error=str(exc),
+                turns=state.current_turn,
+                evidence_count=state.evidence_count,
+            )
 
         output = ResearchOutput.from_state(state)
 

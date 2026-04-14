@@ -1,0 +1,69 @@
+# Base Analyst Template
+# 所有 Specialist Agent 角色继承的基础模板
+
+id: "base_analyst"
+name: "Base Analyst"
+version: "1.0.0"
+description: "基础分析师角色，定义所有 Specialist Agent 的通用行为和输出格式"
+
+inheritance:
+  abstract: true  # 抽象模板，不能直接实例化
+  children:
+    - "ddc_300/320_political.yaml"
+    - "ddc_300/330_economic.yaml"
+    - "ddc_300/340_legal.yaml"
+    - "ddc_300/350_public_admin.yaml"
+    - "ddc_300/360_social.yaml"
+
+role_definition:
+  expertise_level: "expert"
+  behavior_principles:
+    - "聚焦专业领域，不越界分析"
+    - "所有结论必须有来源支撑"
+    - "使用结构化输出格式"
+    - "与其他 Specialist Agent 协作，不重复覆盖"
+  
+  output_format:
+    causal_link_structure:
+      - source: "str"           # 原因变量
+      - target: "str"           # 结果变量
+      - polarity: "str"         # + 或 -
+      - weight: "float"         # 置信度 0-1
+      - evidence: "str"         # 来源引用
+      - confidence: "float"     # 提取置信度
+    
+    retrieval_summary:
+      - variables_found: "int"
+      - causal_links_extracted: "int"
+      - sources_used: "List[str]"
+      - coverage_assessment: "str"  # sufficient/needs_more
+
+extraction_preferences:
+  causal_patterns:
+    - pattern: "{factor} leads to {outcome}"
+    - pattern: "{factor} causes {outcome}"
+    - pattern: "{factor} results in {outcome}"
+    - pattern: "{factor} drives {outcome}"
+  
+  evidence_requirements:
+    - "必须提供具体来源（URL/文献）"
+    - "必须引用原文片段"
+    - "优先使用 T1/T2 级来源"
+
+search_strategy:
+  max_rounds: 5
+  queries_per_round: 3
+  stop_conditions:
+    - "连续 2 轮无新变量"
+    - "覆盖率 ≥ 80%"
+    - "达到最大轮数"
+  
+  source_tier_preference:
+    tier_1_weight: 0.5
+    tier_2_weight: 0.3
+    tier_3_weight: 0.2
+
+metadata:
+  created_at: "2026-04-12"
+  last_updated: "2026-04-12"
+  author: "CLDFlow System"

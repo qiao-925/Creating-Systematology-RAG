@@ -8,8 +8,10 @@
 
 | 任务 | 阶段 | 状态 | 下一动作 | 更新 |
 |------|------|------|----------|------|
-| [#13] Research Kernel MVP | implementation | ⏳️ | 迁移到测试（需 LLM API + 调试） | 04-08 |
-| [#12] 历史数据迁移 | backlog | ⬜ | 评估 Issue 关联 | 04-08 |
+| [#15](ongoing/issue-15-CLDFlow架构设计与实现.md) CLDFlow架构设计与实现 | implementation | ⏳ | 架构四图（业务/工程/流程/数据）| 04-13 |
+| [#14](ongoing/issue-14-项目方向对齐与三大任务规划.md) 项目方向对齐与三大任务规划 | planning | ⬜ | 细化 A/B/C 执行计划 | 04-10 |
+| [#13](ongoing/issue-13-research-kernel-mvp.md) Research Kernel MVP | implementation | ⏳️ | 迁移到测试（需 LLM API + 调试） | 04-08 |
+| [#12](ongoing/issue-13-历史数据迁移与GitHub同步策略.md) 历史数据迁移 | backlog | ⬜ | 评估 Issue 关联 | 04-08 |
 
 ---
 
