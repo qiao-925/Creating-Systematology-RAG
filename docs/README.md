@@ -1,6 +1,6 @@
 # CLDFlow 文档中心
 
-> 按任务组织的文档体系
+> 渐进式披露：从核心原则到层细节，按需深入。
 
 ---
 
@@ -8,72 +8,60 @@
 
 ```
 docs/
-├── README.md                    # 本文档（导航入口）
-├── issues/                      # 按任务聚合（推荐优先查看）
-│   └── 15-metathesis-architecture/   # Issue #15: 综合集成法架构
-│       ├── README.md            # 任务摘要
-│       ├── 01-input-enhancement.md
-│       ├── 02-stopping-criteria.md
-│       ├── 03-evaluation-strategy.md
-│       ├── 04-academic-sources.md
-│       ├── 05-human-in-loop.md
-│       ├── 06-dynamic-agent.md
-│       ├── 07-template-evaluation.md
-│       └── 08-implementation-report.md
+├── 核心文档（根目录，必读）
+│   ├── core-beliefs.md              # 15命题，三层结构
+│   ├── CLDFlow-invariants.md        # 7个不可变约束
+│   ├── CLDFlow-defaults.md          # 实现默认值（可调）
+│   ├── CLDFlow-architecture.md      # 业务架构全景（流程图+五层+接口）
+│   └── architecture.md              # 系统架构设计
 │
-├── research/                    # 通用研究成果（跨任务）
-│   ├── ecosystem-map-system-dynamics.md
-│   └── cld-engineering-landscape.md
+├── cldflow/                         # 各层详细设计
+│   ├── input-enhancement.md         # 输入层
+│   ├── cld-extraction.md            # CLD 提取
+│   ├── cld-node-merging.md          # CLD 节点归并
+│   ├── cld-conflict-resolution.md   # CLD 冲突消解
+│   ├── cld-data-format.md           # CLD 数据格式+Pydantic模型
+│   ├── dynamic-agent.md             # CLD 动态视角Agent
+│   ├── fcm-weight-conversion.md     # FCM 权重转换
+│   ├── fcm-simulation.md            # FCM 仿真算法
+│   ├── fcm-aggregation.md           # FCM 权重聚合
+│   ├── d2d-sensitivity-analysis.md  # D2D 敏感性分析
+│   ├── d2d-uncertainty.md           # D2D 不确定区间
+│   ├── conductor-orchestration.md   # 跨层 Conductor编排
+│   ├── code-quality-evaluator.md    # 跨层 代码质量评估
+│   └── perspectives-implementation.md # 跨层 已实现视角模板
 │
-├── design/                      # 设计文档（待创建）
-├── api/                         # API 文档（待创建）
+├── research/                        # 调研与探索
+│   ├── insights/                    # 产品/竞品/生态/架构洞察
+│   ├── harness-engineering/         # Harness Engineering文章拆解
+│   └── orient-report.md             # 研究Agent MVP能力评估
 │
-└── archive/                     # 已关闭任务归档
-    └── 2026-04-closed/
+└── engineering/                     # 工程参考
+    ├── frontend-layout-stability.md
+    ├── performance-optimization-ragservice.md
+    └── quick-start-advanced.md
 ```
 
 ---
 
-## 快速导航
+## 阅读路径
 
-### 进行中任务
+### 入门（5分钟）
 
-| Issue | 任务 | 状态 | 最后更新 |
-|-------|------|------|---------|
-| [#15](issues/15-metathesis-architecture/) | 综合集成法架构洞察 | 🟡 进行中 | 04-12 |
-| #14 | 项目方向对齐 | ⬜ 待启动 | - |
-| #13 | Research Kernel MVP | ⬜ 待启动 | - |
+1. `core-beliefs.md` — 理解工作信念和优先级
+2. `CLDFlow-invariants.md` — 理解硬性边界
+3. `CLDFlow-architecture.md` — 看业务流程图，理解五层流转
 
-### 通用研究
+### 实现某层功能
 
-- [系统动力学学科生态图谱](ecosystem-map-system-dynamics-2026-04-10.md)
-- [CLD 工具生态调研](research-cld-engineering-landscape-2026-04-10.md)
-- [产品方向头脑风暴](brainstorm-product-direction-2026-04-10.md)
+1. 先看 `CLDFlow-architecture.md` 对应层的职责和接口契约
+2. 再看 `cldflow/` 下对应层的详细设计
+3. 查 `CLDFlow-defaults.md` 确认可调参数
 
----
+### 调研参考
 
-## 使用指南
-
-### 查找任务文档
-
-1. 先看 `issues/{issue-number}/README.md` 了解任务概况
-2. 按编号顺序阅读相关文档
-3. 最新决策通常在 README 的「核心决策」部分
-
-### 创建新任务文档
-
-```bash
-mkdir -p docs/issues/{issue-number}-{short-name}/
-# 创建 README.md 作为入口
-touch docs/issues/{issue-number}-{short-name}/README.md
-```
-
-### 命名规范
-
-- Issue 目录：`{number}-{short-name}/`（如 `15-metathesis-architecture/`）
-- 文档文件：`{NN}-{short-title}.md`（如 `01-input-enhancement.md`）
-- 日期标记：如需日期，放在元数据中而非文件名
+`research/insights/` 下的文档是历史调研，结论已吸收到核心文档中，仅作参考。
 
 ---
 
-*最后更新：2026-04-12*
+*最后更新：2026-04-15*
