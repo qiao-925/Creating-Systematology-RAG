@@ -1,0 +1,559 @@
+                                            Causal Autoencoder-like Generation of Feedback
+                                              Fuzzy Cognitive Maps with an LLM Agent
+                                                             Akash Kumar Panda                                                   Olaoluwa Adigun
+                                           Department of Electrical and Computer Engineering                     School of Computing and Information Sciences
+                                                     University of Southern California                                  Florida International University
+                                                            Los Angeles, USA                                                     Miami, USA
+                                                            akashpan@usc.edu                                                   olaadigu@fiu.edu
+
+                                                                                                Bart Kosko
+                                                                           Department of Electrical and Computer Engineering
+                                                                                   University of Southern California
+arXiv:2509.25593v1 [cs.AI] 29 Sep 2025
+
+
+
+
+                                                                                           Los Angeles, USA
+                                                                                             kosko@usc.edu
+
+
+                                            Abstract—A large language model (LLM) can map a feedback       the text back to the reconstructed FCM. The encoded text
+                                         causal fuzzy cognitive map (FCM) into text and then reconstruct   summary latent I sounds unnatural when the encoder focuses
+                                         the FCM from the text. This explainable AI system approximates    on capturing every detail of the FCM. The LLM agent with the
+                                         an identity map from the FCM to itself and resembles the
+                                         operation of an autoencoder (AE). Both the encoder and the        content editing prompt can rewrite the text to make it sound
+                                         decoder explain their decisions in contrast to black-box AEs.     more natural. But this might come with a loss in detail leading
+                                         Humans can read and interpret the encoded text in contrast to     to a lossy reconstruction.
+                                         the hidden variables and synaptic webs in AEs. The LLM agent         Consider an FCM that models the cause of clinical depres-
+                                         approximates the identity map through a sequence of system
+                                         instructions that does not compare the output to the input. The   sion [9]. Column 2 of Table I gives the nodes of this FCM.
+                                         reconstruction is lossy because it removes weak causal edges      The 7th node C7 represents “fatigue or loss of energy” and the
+                                         or rules while it preserves strong causal edges. The encoder      9th node C9 represents “loss of appetite”. Figure 2a shows the
+                                         preserves the strong causal edges even when it trades off some    edge matrix E of this FCM. It also shows that there is a causal
+                                         details about the FCM to make the text sound more natural.        edge e97 “loss of appetite” → “fatigue or loss of energy” with
+                                            Index Terms—Causal reasoning, autoencoders, fuzzy cognitive
+                                         map, feedback dynamics, explainable AI, agentic AI
+                                                                                                           weight w97 = 0.8. The LLM agent with the encoding prompt
+                                                                                                           translated this edge to this sentence in the latent I summary:
+                                          I. G ENERATING C AUSAL F EEDBACK F UZZY C OGNITIVE
+                                                  M APS BY I DENTITY A PPROXIMATIONS                         ‘Loss of appetite’ strongly causes ‘fatigue or loss of energy’
+                                                                                                             and significantly increases ‘psychomotor retardation’ and ‘re-
+                                            How do we generate representative text from a causal             duced interest for daily functioning’.
+                                         feedback semantic network? This task is at least as difficult
+                                         as the reverse problem of how do we reliably map text to a
+                                                                                                           The LLM agent decodes this summary as follows: C7 is
+                                         causal feedback semantic network such as a feedback fuzzy
+                                                                                                           “fatigue or loss of energy”, C9 is “loss of appetite”, and the
+                                         cognitive map (FCM) [1]–[8] dynamical system.
+                                                                                                           edge e97 “loss of appetite” → “fatigue or loss of energy” has
+                                            We harness large language models (LLMs) to approximate
+                                                                                                           weight w97 = 0.8. The agent was too focused on capturing
+                                         an identity map Φ : F → F from the feedback causal
+                                                                                                           the exact nodes and edges so the text sounds unnatural.
+                                         map F ∈ F to Φ(F ) ≈ F by way of representative text.
+                                         The mapping structure Φ resembles the forward-backward               The LLM agent with the content-editing prompt rewrites
+                                         structure of autoencoders (AEs) often found in AI image           the text summary latent I to make it sound more natural. This
+                                         generators and LLMs. But those semi-supervised maps rely on       gives the natural sounding text summary latent II with the
+                                         black-box neural networks with simple feedforward layers of       corresponding sentence:
+                                         neurons and that have no dynamics. FCM knowledge graphs
+                                         are explainable AI (XAI) models that list their local causal        Even a loss of appetite contributes to the cycle by strongly
+                                         rules in their edge matrix. Their feedback structure defines a      causing fatigue and significantly increasing psychomotor re-
+                                         dynamical system with rich output equilibria that can act as        tardation and a loss of interest in daily activities.
+                                         answers to user questions and can guide agentic-like tasks.
+                                            Figure 1 shows this autoencoder-like identity approximator.    This sentence from the latent II summary then translates to the
+                                         The LLM agent with the encoding prompt maps from the FCM          following: C7 is “fatigue or loss of energy”, C9 is “appetite”,
+                                         to text. The LLM agent with the decoding prompts then maps        and the fuzzy or partial causal edge e97 “appetite” → “fatigue
+                  Input FCM                                                                                             Reconstructed FCM 𝐈
+
+
+                                                                   Latent I: Summary
+                                               Encoding prompt                                 Decoding prompt
+
+
+
+
+                                             LLM Agent: Encoder                              LLM Agent: Decoder
+                                                                   Detailed but unnatural
+
+
+                                                                                                                          Lossy reconstruction
+                                                                      Editing prompt
+
+
+                                                                                                                      Reconstructed FCM 𝐈𝐈
+
+                                                                 LLM Agent: Content Editor                             Reconstructed FCM 𝐈𝐈
+
+
+                                                                    Latent II: Summary        Decoding prompt
+
+
+
+
+                                                                                             LLM Agent: Decoder
+             Input FCM: Edge matrix                           Natural but less detailed                                More lossy reconstruction
+
+Fig. 1: Autoencoding Fuzzy Cognitive Maps (FCMs) with a single LLM agent and multi-prompting: The input FCM is on the top-left. Its edge matrix E
+is on the bottom-left. The edge matrix colors correspond to the edge weights. Higher edge weights correspond to brighter colors. The LLM agent with the
+encoding prompt converts the input FCM into the text description latent I. This text description is a detailed description of the input but sounds unnatural.
+The LLM agent with the content-editing prompt reworks latent I into latent II. The result sounds more natural but sacrifices some detail. The LLM agent
+with the decoding prompt reconstructs FCMs from their text description in latent I and latent II. The top-right FCM shows that unnatural yet detailed latent
+I gives a lossy FCM reconstruction. The less detailed yet natural sounding latent II gives a lossier reconstructed FCM in the bottom-right FCM.
+
+
+or loss of energy” has weight w97 = −0.8. Note that the                          text description.
+source node is “appetite” instead of “loss of appetite”.                            Section IV discusses our experiments and their results.
+   Section II-A explains how feedback FCMs work. It shows                        Google’s Gemini 2.5 Pro [12] takes 3 different FCMs as
+how FCMs model causal dynamical systems as weighted                              input and then converts them to their corresponding text
+directed graphs and also explains what their nodes and edges                     descriptions. The Gemini LLM then reconstructs the FCMs
+represent. This section also explains how FCMs evolve in                         from those text descriptions. The 1st columns of Tables I, III,
+discrete time through matrix-multiplication and nonlinear op-                    and IV describe the nodes on the input FCMs. Figures 2a, 3a,
+erations to give FCM limit-cycle equilibria. Section II-A                        and 4a show their respective edges.
+concludes by showing how to mix FCMs into a new FCM.                                The 2nd and 3rd columns of Tables I, III, and IV give
+FCMs allow knowledge combination through convex mixing                           the nodes of the corresponding reconstructed FCMs. Fig-
+unlike directed acyclic graphs (DAGs) [10] or Markov chains                      ures 2b−2d, 3b−3c, and 4b−4c show the edge matrices of
+with different states.                                                           those reconstructed FCMs.
+   Section II-B discusses autoencoding and its variants in-                         Section V discusses the trade-off between natural-sounding
+cluding ordinary and variational autoencoder networks. This                      text and FCM-reconstruction accuracy. It also shows that our
+section also explains how our FCM “autoencoder” differs                          lossy reconstruction still preserves the strong causal connec-
+from the usual autoencoder networks in terms of explainability                   tions in the FCM. This section also explains how some nodes
+and supervision. Section II-C briefly explains LLMs and                          get flipped during FCM reconstruction.
+their single-agent and multi-prompting version. It shows how
+                                                                                               II. H OW FCM S , AE S , AND LLM S W ORK
+system instructions can manipulate the behavior of the LLM
+agent. This section also explains how the LLM’s Natural                          A. Fuzzy Cognitive Maps
+Language Processing (NLP) and Named Entity Recognition                              FCMs model causal dynamical systems as directed weighted
+(NER) capabilities [11] encode and reconstruct FCMs.                             cyclic graphs. They allow fuzzy or partial causality and
+   Section III explains how we use LLMs to map FCMs to                           feedback cycles unlike causal graphs such as Bayesian belief
+text and then back to FCMs. It goes through every system                         networks (BBNs) that allow only DAGs [10]. Feedback lets
+instruction that multi-prompts LLM agent to systematically                       FCMs model dynamical systems with complex equilibria such
+convert an FCM to text. It also goes through the system                          as limit cycles. FCMs with different nodes also mix through
+instructions that help the LLM reconstruct an FCM from its                       convex combination unlike DAGs or Markov chains.
+    1) Causal model: The FCMs model the causal variables              3) FCM Mixing: FCMs allow mixing through convex com-
+in the dynamical system as “concept nodes” of the directed        bination. Let S1 , S2 , ..., Sm denote the respective node sets
+graph. The nodes are associated with some kind of magnitude       of m FCMs. The node-set of the N -node FCM mixture is
+such that the corresponding causal variable can “increase”,       S = S1 ∪ S2 ∪ ... ∪ Sm . The N × N edge matrix Ẽk pads the
+“improve”, or “intensify” because of the other causal variables   k th FCM’s edge matrix Ek with zero-rows and zero-columns
+of the system.                                                    corresponding to the nodes in S − Sk . The edge matrix E of
+    Let Ci and Cj denote the respective ith and j th concept      the FCM mixture is
+nodes or causal variables in the FCM. The edge eij from                                          Xm
+Ci to Cj connects the nodes if “Ci causes Cj ”. The weight                                  E=      vk E˜k                    (2)
+wij ∈ [−1, 1] on the edge eij describes the degree to which                                    k=1
+Ci causes Cj . A positive wij means that an increase in Ci
+                                                                  Pm vk are convex mixing weights such that vk ≥ 0 and
+                                                                  where
+causes Cj to increase or a decrease in Ci causes Cj to
+                                                                    k=1 vk = 1.
+decrease. A negative wij value means that an increase in            FCM mixing is closed: Mixing FCMs gives back an FCM.
+Ci causes Cj to decrease or a decrease in Ci causes Cj to         This is not true in general for BBN DAGs or for the stochastic
+increase. The magnitude of wij shows the strength of the          matrices of Markov chains. Mixed DAGs can have cycles and
+causal connection. A magnitude close to 1 denotes a “strong”      mixed different-state stochastic matrices may not be stochastic.
+causal connection and a magnitude close to 0 denotes a “weak”
+causal connection.                                                B. Autoencoders
+    The 1st column of Table I and Figure 2a give the respective      Autoencoding is a form of identity mapping from a do-
+nodes C1 –C14 and the edge matrix E of a 14-node FCM that         main back to itself. This involves a two-step process: (1)
+models causes of clinical depression [9]. The ith row and the     transforming the input into a reduced form in the latent
+j th column of the edge matrix E gives the value of wij for       space, and (2) reconstructing the input with minimal loss.
+edge eij .                                                        The first step is encoding and the second step is decoding.
+    2) Discrete time-evolution: The n-dimensional row vector      Autoencoding applies to various domains including signal
+C(t) ∈ [0, 1]n represents the state of a n-node FCM at discrete   processing, information theory, and statistical learning.
+time t. The k th component Ck (t) of this state vector C(t)          Autoencoder networks are a family of autoencoding models
+denotes the state of the k th concept node in the FCM at          that use an encoder network and a decoder network. The
+time t. The k th node is “active” if Ck (t) is close to 1 and     encoder network maps the input data to its latent variable
+it is “inactive” if Ck (t) is close to 0. The causal variables    and the decoder network reconstructs the input data from
+corresponding to the active nodes are present in the system at    the latent variable. Variational autoencoders are variants of
+time t and the variables corresponding to the inactive nodes      autoencoder networks that map to constrained latent variables
+are absent from the system at time t.                             and this makes them suitable for generative tasks [13]–[16].
+    The FCM’s state vector C(t) evolves in discrete time t        Autoencoder networks can solve various problems including
+through matrix-multiplication and nonlinear squashing. The        dimensionality reduction [17], denoising [18], anomaly detec-
+state of the FCM C(t + 1) at time t + 1 depends on the state      tion [19], image compression [20], and feature extraction [21],
+of the FCM C(t) at time t and on the edge matrix E:               [22].
+                                X n                                There are other forms of autoencoding that replace neural
+                 Cj (t + 1) = ϕ       Ci (t)wij             (1)   network models with other techniques for encoding and de-
+                                i=1                               coding. Examples of such techniques include Principal Com-
+where ϕ is an increasing nonlinear function bounded between       ponent Analysis (PCA), wavelet transforms, and dictionary
+zero and one.                                                     learning.
+   The sequence of FCM state vectors C(0), C(1), C(2), ...           The encoder and the decoder networks of the autoencoder
+describes the trajectory of the FCM in discrete time t starting   are usually black boxes and do not explain their decisions in
+from the initial state C(0). This qualitatively represents the    encoding and decoding. The latent variables the encoder maps
+corresponding trajectory of the dynamical system that the         to is usually not human interpretable. Also it relies on a loss
+FCM models. The limiting behavior of this sequence gives          function that compares the reconstructed pattern to the input
+the equilibrium behavior of the FCM. The FCM converges to         pattern.
+a fixed point if C(t) converges to a constant row-vector. The        We present a way of multi-prompting a LLM system so that
+FCM converges to a k-step limit cycle if C(t) = C(t + k)          it achieves an identity map from the FCM to text and back to
+at some point in the trajectory. Then a sequence of k state       FCM just like an autoencoder but its system instructions can
+vectors repeats itself over and over again.                       explain its decisions during the encoding and the decoding
+   The FCM equilibria partition the input space. The set of       process. Its latent variables are also human-interpretable text
+all initial states that lead to a certain equilibrium makes up    descriptions of the FCM. It can give reasons for its decisions
+the basin of that equilibrium. The map from the basins to         during reconstruction by quoting from the text that the decoder
+the equilibrium characterizes the FCM and also the dynamical      takes as input. Also it achieves the identity map without having
+system that the FCM models.                                       to compare the reconstructed FCM to the target FCM and
+just by following a sequence of carefully designed system            editing prompt reworks the latent I summary and makes it
+instructions.                                                        sound more natural. This system instruction is not too specific
+                                                                     and depends on the LLM’s NLP capabilities.
+C. Large Language Models (LLMs)
+   LLMs are AI systems that have trained on the vast cor-            C. Decoding Prompt
+pora of human-generated text for the purpose of generating              The decoding divides into 3 subtasks: noun detection, node
+human-like language. These models use the transformer neural         detection, and edge extraction. The LLM agent uses a set of
+architecture [23] with an attention mechanism and billions           3 successive system instructions to solve the subtasks.
+or trillions of parameters to learn human linguistic patterns.          1) Noun detection: This system relies on the LLM’s Named
+This enables LLM to perform tasks such as text generation,           Entity Recognition (NER) capabilities. It asks the LLM to
+summarization, translation, code-synthesis, and NER. LLMs            take the output text from the LLM agent with the encoding
+have become foundational in NLP and they power chatbots,             or the content editing prompt and process it sentence-by-
+virtual assistants, and enterprise automation across industries.     sentence. The LLM then has to detect nouns, noun phrases,
+   Single-agent multi-prompting is a strategy where a single         and pronouns in those sentences. The LLM also matches the
+LLM instance uses successive multiple-structured prompts to          pronouns to their corresponding noun antecedents. The nodes
+solve a complex problem. This approach leverages the internal        in an FCM are always nouns or noun phrases that describe
+capabilities of the LLM agent to handle sequential or parallel       a causal variable in the dynamical system. The detected
+subtasks using techniques such as chain-of-thought prompt-           nouns and noun phrases serve as node candidates for the
+ing, role-playing, or staged queries. Applications of single-        reconstructed FCM. The LLM can also explain where these
+agent multi-prompting span education, coding, planning, and          node candidates come from in the text.
+decision support where task complexity is managed through               2) Node detection: This system uses a set of system in-
+prompt design rather than architectural overhead.                    structions to extract nodes from nouns and noun phrases. It
+                                                                     instructs the LLM agent to go through the list of nouns and
+        III. N EW FCM-LLM M APPING T ECHNIQUE                        noun phrases from node detection and then refines it into a list
+   We designed a system with an LLM agent and multi-                 of FCM nodes. The FCM nodes are nouns and noun phrases
+prompting to convert an input FCM to its latent summary              that represent causal variables in the dynamical system. They
+and then reconstruct the FCM. The system used successive             have some degree of magnitude: They can either “increase”,
+system instructions together with multi-prompting. The system        “improve”, or “intensify”. The LLM agent with the ‘node
+instructions manipulate the behavior of the LLM agent. They          detection’ prompt goes through the list of nouns and noun
+tell the LLM agent how to process its inputs and how to              phrases and looks for these properties. The LLM also checks if
+structure its outputs. These instructions also specify what          the text suggests a causal connection between the nouns/noun
+aspects of the input to focus on.                                    phrases. The LLM can quote from the text to give evidence
+                                                                     of these causal connections.
+A. Encoding Prompt                                                      3) Edge extraction: This system uses a set of instructions
+   This uses a set of system instructions that define how the        that describes how to extract n2 − n node-pairs from a list of
+LLM agent extracts the text summary latent I from the input          n nodes. The LLM agent then goes through each node pair
+FCM. This form of encoding maps the FCM to a detailed                and looks through the text for evidence of positive, negative, or
+but unnatural summary. It takes the FCM node list and the            zero causal influence. The LLM then assigns the edge weights
+edge-weight matrix as input                                          based on the language used in the text. The LLM can also
+   The encoding prompt also instructs the LLM to explain each        quote the text to justify its choice of causal edges.
+edge of the input FCM as text. The LLM summarizes the                   This list of edges along with the node-list completely
+causal edge weights in words. The LLM has to measure the             describes the reconstructed FCM. The 2nd column of Table I
+importance of each node based on how many edges connect              and Figure 2b give the respective nodes and the edge matrix
+it to other nodes. It then has to distribute the focus of the text   E1 of an FCM reconstructed from the LLM agent’s “raw” text
+among the nodes based on their importance: Focus more on             summary latent I that described the FCM from Figure 2a and
+the nodes that are more important. The LLM also has to sound         Table I’s column 1.
+natural as it describes this.                                           The 3rd column of Table I and Figure 2c give the resepctive
+                                                                     nodes and the edge matrix E2 of the FCM reconstructed
+B. Content Editing Prompt                                            from the latent II text summary that describes the FCM from
+   This prompt requires a set of system instructions that define     Figure 2a and Table I’s column 1.
+how the LLM agent rewrites the text summary latent II from
+the encoded text summary output latent I of the LLM agent                              IV. E XPERIMENT S ETUP
+with the encoding prompt. The LLM agent with the encoding               We applied Google’s Gemini 2.5 Pro LLM with “tempera-
+prompt may focus more describing the FCM edges than on               ture = 0” and “top p = 0.95” on three FCM inputs. The first
+sounding natural. It may generate text that sounds forced and        FCM modeled the causes of clinical depression with 14 nodes
+repetitive and hard to read. The LLM agent with the content          and 180 edges. This densely connected FCM had only positive
+           C1 C2 C3 C4 C5 C6 C7 C8 C9 C10 C11 C12 C13 C14                                                C1 C2 C3 C4 C5 C6 C7 C8 C9 C10 C11 C12 C13 C14
+      C1   0.0   0.0    0.2   0.2   0.5   0.1   0.5   0.1   0.2   0.7   0.5   0.5   0.5   0.5      C1    0.0   0.0   0.2   0.2   0.4   0.2   0.4   0.2   0.2   0.4   0.4   0.4   0.4   0.4
+
+      C2   0.0   0.0    0.7   0.7   0.5   0.7   0.7   0.2   0.5   0.7   0.7   0.5   0.7   0.8      C2    0.0   0.0   0.8   0.8   0.4   0.8   0.8   0.2   0.4   0.8   0.8   0.0   0.8   0.8
+
+      C3   0.5   0.8    0.0   0.8   0.7   0.5   0.7   0.7   0.7   0.8   0.8   0.7   0.8   1.0      C3    0.4   0.8   0.0   0.8   0.6   0.4   0.6   0.6   0.6   0.8   0.8   0.0   0.8   1.0
+
+      C4   0.2   0.7    0.8   0.0   0.2   0.7   0.2   0.2   0.2   0.5   0.8   0.7   0.5   0.5      C4    0.2   0.6   0.8   0.0   0.2   0.6   0.2   0.2   0.2   0.4   0.8   0.6   0.4   0.4
+
+      C5   0.5   0.7    0.8   0.7   0.0   0.5   0.8   0.2   0.2   0.8   0.2   0.1   0.1   0.7      C5    0.4   0.6   0.8   0.6   0.0   0.4   0.8   0.2   0.2   0.8   0.2   0.2   0.2   0.6
+
+      C6   0.1   0.7    0.5   0.7   0.0   0.0   0.2   0.2   0.5   0.5   0.5   0.2   0.2   0.7      C6    0.2   0.6   0.4   0.6   0.4   0.0   0.2   0.2   0.2   0.4   0.4   0.2   0.2   0.6
+
+      C7   0.1   0.8    0.7   0.7   0.2   0.7   0.0   0.5   0.5   0.7   0.7   0.8   0.5   0.7      C7    0.2   0.8   0.6   0.6   0.2   0.6   0.0   0.4   0.4   0.6   0.6   0.8   0.4   0.6
+
+      C8   0.2   0.5    0.8   1.0   0.7   0.2   0.2   0.0   0.7   0.7   0.8   0.7   0.7   1.0      C8    0.2   0.4   0.8   0.9   0.6   0.2   0.2   0.0   0.6   0.6   0.8   0.6   0.6   0.9
+
+      C9   0.1   0.7    0.2   0.5   0.2   0.2   0.8   0.1   0.0   0.5   0.1   0.2   0.2   0.5      C9    0.2   0.6   0.4   0.6   0.2   0.2   0.8   0.2   0.0   0.4   0.2   0.2   0.2   0.4
+
+     C10   0.7   0.2    0.2   0.5   0.2   0.2   0.7   0.1   0.1   0.0   0.5   0.7   0.7   0.7      C10   0.6   0.2   0.2   0.4   0.2   0.2   0.6   0.2   0.2   0.0   0.4   0.6   0.6   0.6
+
+     C11   0.5   0.1    0.2   0.5   0.5   0.2   0.7   0.1   0.1   0.5   0.0   0.5   0.5   0.5      C11   0.4   0.2   0.2   0.4   0.4   0.2   0.2   0.2   0.2   0.4   0.0   0.4   0.4   0.4
+
+     C12   0.1   0.7    1.0   0.8   0.7   0.5   0.5   0.8   0.5   0.7   0.8   0.0   1.0   1.0      C12   0.2   0.6   0.9   0.8   0.6   0.4   0.4   0.8   0.4   0.6   0.8   0.0   0.6   0.6
+
+     C13   0.1   0.7    0.8   0.7   0.7   0.2   0.7   0.7   0.5   0.7   0.7   0.8   0.0   0.7      C13   0.2   0.6   0.8   0.6   0.6   0.2   0.6   0.6   0.4   0.6   0.6   0.8   0.0   0.6
+
+     C14   0.5   0.8    1.0   0.8   0.7   0.7   0.8   0.7   0.7   1.0   0.7   0.8   0.7   0.0      C14   0.4   0.8   0.9   0.8   0.6   0.6   0.6   0.6   0.6   0.9   0.6   0.8   0.6   0.0
+
+
+                       (a) Edge matrix E of the target FCM.                                                    (b) Reconstructed edges E1 from latent I.
+
+
+           C1 C2 C3 C4 C5 C6 C7 C8 C9 C10 C11 C12 C13 C14                                                C1 C2 C3 C4 C5 C6 C7 C8 C9 C10 C11 C12 C13 C14
+
+      C1   0.0   0.0    0.0   0.0   0.4   0.0   0.4   0.0   0.0 −0.4 0.4      0.4   0.4   0.4
+                                                                                                   C1    0.0   0.0   0.0   0.0   0.4   0.0   0.4   0.0   0.0   0.4   0.4   0.4   0.4   0.4
+
+      C2   0.0   0.0    0.8 −0.8 0.4      0.8   0.8   0.2 −0.4 −0.8 0.8       0.0   0.8   0.8
+                                                                                                   C2    0.0   0.0   0.8   0.8   0.4   0.8   0.8   0.2   0.4   0.8   0.8   0.0   0.8   0.8
+
+      C3   0.4   0.8    0.0 −0.8 0.7      0.4   0.7   0.7 −0.7 −0.8 0.8       0.0   0.8   0.9
+                                                                                                   C3    0.4   0.8   0.0   0.8   0.7   0.4   0.7   0.7   0.7   0.8   0.8   0.0   0.8   0.9
+
+      C4   0.0   0.0 −0.8 0.0       0.0   0.0   0.0   0.0   0.0   0.0 −0.8 0.0      0.0   0.0
+                                                                                                   C4    0.0   0.0   0.8   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.8   0.0   0.0   0.0
+
+      C5   0.0   0.7    0.8 −0.7 0.0      0.0   0.8   0.0   0.0 −0.8 0.0      0.0   0.0   0.7
+                                                                                                   C5    0.0   0.7   0.8   0.7   0.0   0.0   0.8   0.0   0.0   0.8   0.0   0.0   0.0   0.7
+
+      C6   0.0   0.7    0.4 −0.7 0.0      0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.4
+                                                                                                   C6    0.0   0.7   0.4   0.7   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.4
+
+      C7   0.0   0.8    0.7 −0.7 0.0      0.0   0.0   0.0   0.0 −0.7 0.0      0.8   0.0   0.8
+                                                                                                   C7    0.0   0.8   0.7   0.7   0.0   0.0   0.0   0.0   0.0   0.7   0.0   0.8   0.0   0.8
+
+      C8   0.0   0.0    0.8 −1.0 0.0      0.0   0.0   0.0   0.0   0.0   0.8   0.0   0.0   1.0
+                                                                                                   C8    0.0   0.0   0.8   1.0   0.0   0.0   0.0   0.0   0.0   0.0   0.8   0.0   0.0   1.0
+
+      C9   0.0 −0.7 0.0       0.7   0.0   0.0 −0.8 0.0      0.0   0.0   0.0   0.0   0.0   0.0
+                                                                                                   C9    0.0   0.7   0.0   0.7   0.0   0.0   0.8   0.0   0.0   0.0   0.0   0.0   0.0   0.0
+
+     C10 −0.7 0.0       0.0   0.0   0.0   0.0 −0.7 0.0      0.0   0.0   0.0 −0.7 −0.7 0.0
+                                                                                                   C10   0.7   0.0   0.0   0.0   0.0   0.0   0.7   0.0   0.0   0.0   0.0   0.7   0.7   0.0
+
+     C11   0.0   0.0    0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0
+                                                                                                   C11   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0
+
+     C12   0.2   0.7    1.0 −0.8 0.7      0.4   0.4   0.8 −0.4 −0.7 0.8       0.0   0.7   0.8
+                                                                                                   C12   0.2   0.7   1.0   0.8   0.7   0.4   0.4   0.8   0.4   0.7   0.8   0.0   0.7   0.8
+
+     C13   0.0   0.0    0.8   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.8   0.0   0.0
+                                                                                                   C13   0.0   0.0   0.8   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.0   0.8   0.0   0.0
+
+     C14   0.4   0.8    0.9 −0.8 0.7      0.7   0.7   0.7 −0.7 −0.9 0.7       0.8   0.7   0.0
+                                                                                                   C14   0.4   0.8   0.9   0.8   0.7   0.7   0.7   0.7   0.7   0.9   0.7   0.8   0.7   0.0
+
+
+
+                 (c) Reconstructed edges E2 from latent II.                                              (d) Adjusted edge-reconstruction Ê2 from latent II.
+Fig. 2: Autoencoding for the clinical depression FCM: (a) Edge matrix E corresponding to a 14-node FCM that models the causes of clinical depression.
+The nodes C1 –C14 from the 1st column of Table I are along the rows and columns. The source nodes are along the rows and the target nodes are along the
+columns. The element on the ith row and j th column gives the weight on the edge from Ci to Cj . Brighter color on the edge matrix corresponds to bigger
+edge weight or strength. (b) Reconstructed edge matrix E1 from the encoded latent I summary. The reconstruction is more accurate because the input text was
+detailed even if it sounded unnatural. (c) Reconstructed edge matrix E2 from the encoded latent II summary that refined the encoded text with the content
+editing prompt or sub-task. The reconstruction is not as accurate because the input text was not as detailed although it sounded natural. Many non-zero edge
+weights in E changed to zero in E2 . The edge weights that correspond to the flipped nodes C4 , C9 , and C10 from the 3rd column of Table I are negative.
+These negative edges are in red. (d) The adjusted reconstructed edge matrix from latent II text with flipped nodes. The reconstruction is lossy but it preserves
+the stronger causal connections with larger edge weights.
+
+
+causal edges. The 1st column of Table I lists its nodes C1 –C14 .                               I summary consisting of 824 words. The LLM agent with the
+Figure 2a shows its edge matrix E. The edge matrix E uses                                       decoding prompt systematically reconstructed an FCM with
+brighter colors for causal edges with larger magnitudes.                                        14 nodes but with 178 edges. The 2nd column of Table I lists
+                                                                                                the 14 nodes C1 –C14 and Figure 2b shows the edge matrix
+   The LLM agent completely encoded the FCM into a latent
+                                           TABLE I: Target and reconstructed nodes for the autoencoding of the clinical depression FCM
+
+
+        Concept Node               Target                                                   Reconstruction from Latent I                        Reconstruction from Latent II
+                C1                 Psychomotor agitation                                    Psychomotor agitation                               Psychomotor agitation
+                C2                 Psychomotor retardation                                  Psychomotor retardation                             Psychomotor retardation
+                C3                 Depressive mood                                          Depressive mood                                     Depressive mood
+                C4                 Reduced interest for daily function                      Reduced interest for daily function                 Interest for daily function
+                C5                 Insomnia                                                 Insomnia                                            Insomnia
+                C6                 Hypersomnia                                              Hypersomnia                                         Hypersomnia
+                C7                 Fatigue or loss of energy                                Fatigue or loss of energy                           Fatigue or loss of energy
+                C8                 Recurrent thoughts of death                              Recurrent thoughts of death                         Thoughts of death
+                C9                 Loss of appetite                                         Loss of appetite                                    Appetite
+                C10                Diminished ability to think or concentrate               Diminished ability to think or concentrate          Concentration
+                C11                Indecisiveness                                           Indecisiveness                                      Indecisiveness
+                C12                Feelings of worthlessness                                Feelings of worthlessness                           Worthlessness
+                C13                Extreme self-criticism                                   Extreme self-criticism                              Self-criticism
+                C14                Depression                                               Depression                                          Depression
+
+          C2          C3     C7       C12      C13         C14            C2          C3      C7     C12      C13        C14            C2          C3     C7     C12      C13        C14
+
+   C2     0.0         0.7    0.7      0.5          0.7     0.8     C2     0.0         0.7     0.7    0.5         0.7     0.8     C2     0.0         0.8    0.8    0.5         0.8     0.8
+
+
+   C3     0.8         0.0    0.7      0.7          0.8     1.0     C3     0.0         0.0     0.0    0.0         0.0     0.9     C3     0.0         0.0    0.0    0.0         0.0     0.8
+
+
+   C7     0.8         0.7    0.0      0.8          0.5     0.7     C7     0.8         0.7     0.0    0.8         0.5     0.7     C7     0.8         0.8    0.0    0.8         0.5     0.8
+
+
+  C12     0.7         1.0    0.5      0.0          1.0     1.0    C12     0.0         0.9     0.0    0.0         0.9     0.9    C12     0.0         0.9    0.0    0.0         0.9     0.9
+
+
+  C13     0.7         0.8    0.7      0.8          0.0     0.7    C13     0.7         0.8     0.7    0.8         0.0     0.7    C13     0.8         0.8    0.8    0.8         0.0     0.8
+
+
+  C14     0.8         1.0    0.8      0.8          0.7     0.0    C14     0.0         0.9     0.0    0.0         0.0     0.0    C14     0.0         0.9    0.0    0.0         0.0     0.0
+
+
+              (a) Target edge matrix: E                           (b) Reconstructed edges from latent I: E1                     (c) Reconstructed edges from latent II: E2
+Fig. 3: FCM autoencoding for a strongly-connected depression FCM subset: (a) The edge matrix E corresponding to the subset of nodes C2 , C3 , C7 , C12 ,
+C13 , and C14 from the depression FCM model described by Table I and Figure 2. The concept nodes from Table III index the rows and columns. The rows
+list the source nodes and the columns list the target nodes. The element on the ith row and the j th column gives the weight on the directed causal edge from
+the ith source node to the j th target node. The brighter colors correspond to the larger (stronger) causal edge weights. (b) Reconstructed edge matrix from
+the encoded latent I summary. Many non-zero edge weights in E are here zero but most of the bigger edge weights remain non-zero. (c) The reconstructed
+edge matrix from latent II summary that refined the encoded text with the content-editing prompt. Many non-zero edge weights in E changed to zero in Ê2
+while most of the strongly connected edges remained non-zero.
+
+        C1      C2     C3    C4      C5      C6      C7     C8          C1      C2     C3     C4    C5     C6      C7     C8          C1      C2     C3    C4    C5     C6      C7     C8
+
+  C1    0.0     0.7    0.6   0.0     0.0     0.0     0.0    0.7   C1    0.0     0.9    0.9    0.0   0.0    0.0     0.0    0.8   C1    0.0     0.8    0.8   0.0   0.0    0.0     0.0    0.9
+
+  C2    0.0     0.0    0.7   0.0     0.4     0.0     0.7    0.7   C2    0.0     0.0    0.8    0.0   0.5    0.0     0.8    0.8   C2    0.0     0.0    0.8   0.0   0.5    0.0     0.8    0.9
+
+  C3    0.0     0.0    0.0   0.0     0.4     0.0     0.0    0.7   C3    0.0     0.0    0.0    0.0   0.0    0.0     0.0    0.8   C3    0.0     0.0    0.0   0.0   0.0    0.0     0.0    0.9
+
+  C4    0.5     0.2    0.2   0.0     0.0    −0.2     0.2    0.2   C4    0.5     0.2    0.2    0.0   0.0    −0.2    0.2    0.0   C4    0.5     0.2    0.2   0.0   0.0    −0.2    0.2    0.0
+
+  C5    0.4     0.0    0.0   0.4     0.0     0.0     0.2    0.1   C5    0.5     0.0    0.0    0.5   0.0    0.0     0.2    0.1   C5    0.5     0.0    0.0   0.5   0.0    0.0     0.2    0.7
+
+  C6    0.0   −0.5     0.0   0.0    −0.4     0.0     0.0   −0.2   C6    0.0   −0.5     0.0    0.0   −0.5   0.0     0.0   −0.2   C6    0.0   −0.5     0.0   0.0   −0.5   0.0     0.0   −0.2
+
+  C7    0.5     0.7    0.0   0.0     0.4    −0.2     0.0    0.1   C7    0.5     0.5    0.0    0.0   0.5    −0.2    0.0    0.1   C7    0.5     0.5    0.0   0.0   0.5    −0.2    0.0    0.1
+
+  C8    0.0     0.0    0.8   0.0     0.0     0.0     0.0    0.0   C8    0.0     0.0    0.8    0.0   0.0    0.0     0.0    0.0   C8    0.0     0.0    0.8   0.0   0.0    0.0     0.0    0.0
+
+
+              (a) Target edge matrix: E                           (b) Reconstructed edges from latent I: E1                     (c) Reconstructed edges from latent II: E2
+Fig. 4: FCM autoencoding for celiac disease classifier: (a) The edge matrix E corresponding to the 8-node FCM model that classifies celiac disease. The
+concept nodes from table IV index the rows and columns. The element on the ith row and the j th column gives the weight on the directed causal edge
+from Ci to Cj . The brighter colors correspond to larger (stronger) causal edge weights. (b) Reconstructed edge matrix from the encoded latent I summary.
+Many non-zero edge weights in E are zero but most of the high-magnitude edge weights remain non-zero. (c) Reconstructed edge matrix from the encoded
+latent II summary that refined the encoded text with the content editing prompt or sub-task. Many non-zero edge weights in E are here zero but most of the
+high-magnitude edge weights remain non-zero.
+TABLE II: Reconstruction error with the autoencoding of the clinical depres-
+sion FCM in Figure 2a                                                          Table IV and Figure 4c give respective the nodes and the edge
+                                                                               matrix E2 of this FCM. The edge matrix shows the higher edge
+                                                                               weights as brighter colors.
+    Metrics        Latent I    Latent II    Adjusted from Latent II
+    l1 -norm ↓      14.56        78.40                41.20
+    l2 -norm ↓      1.588        8.643                4.240                                           V. D ISCUSSION
+    l∞ -norm ↓      0.650        2.002                0.653
+                                                                                  Figures 2a and 2b show that the LLM agent with the
+E1 . The edge matrix E1 is also colored such that the brighter                 encoding and the content editing prompt approximated an
+color corresponds to the higher edge weight.                                   identity map from E to E1 pretty well despite never comparing
+   The LLM agent with the content editing prompt reworked                      E1 to E. This is due to the careful step-by-step systematic
+the LLM agent’s 824-word latent I text into 602 words of                       method used to map the FCM to text and to map the text
+refined latent II text. The LLM agent with decoding prompts                    back to an FCM. The carefully designed system instructions
+reconstructed a 14-node FCM from this latent II text, but                      multi-prompted the LLM agent to follow this method exactly.
+this FCM only had 89 edges. Also 27 out of those 89 edges                         The latent I summary from the LLM agent with the encod-
+were negative because 3 out of the 14 nodes represented the                    ing prompt sounded forced because the LLM focused more on
+opposite of the corresponding target node. The 2nd column                      accurately describing the FCM edges than sounding natural.
+of Table I lists the nodes C1 –C14 of this FCM and colors                      The LLM agent with the content editing prompt reworded the
+the “flipped” nodes in red. These nodes represent the opposite                 latent I text summary to sound more natural but it came at
+of their corresponding target node. Figure 2c shows the edge                   the cost of reconstruction accuracy. Figures 2a and 2c show
+matrix E2 where brighter colors correspond to higher edge-                     that the FCM reconstructed from the latent II summary of
+weight magnitudes or causal-degree magnitudes. It colors the                   the LLM agent text missed a lot of edges. But even this lossy
+negative edge weights in red.                                                  reconstruction preserved the stronger causal links of the FCM.
+   The 2nd FCM samples 6 nodes C2 , C3 , C7 , C12 , C13 , and                  The figures also show that edge weights on the 4th , 9th , and
+C14 from the first FCM. These nodes had the strongest causal                   10th rows and columns have flipped signs. The edge weight
+connections among themselves. The 1st column of Table III                      w49 flipped its sign twice and remained positive because it
+lists the nodes of this FCM and Figure 3a gives its edge matrix                was in the 9th row and the 4th column. This occurred because
+E. The figure colors the edge matrix E so that brighter colors                 the 4th , 9th , and 10th reconstructed nodes from the latent
+correspond to higher edge weights.                                             II summary represented the opposite of the corresponding
+   The LLM agent describes this FCM in 211 words. The LLM                      causal variable from the target FCM. Table I’s 1st and 3rd
+agent with decoding prompts then reconstruct a 6-node FCM                      columns show this by highlighting the flipped nodes in red.
+with 20 edges from this raw text. The 2nd column of Table III                  The reconstructed FCM has “appetite” as the 9th node instead
+lists the nodes of this FCM and Figure 3b shows the edge                       of “loss of appetite” in the target FCM.
+matrix from its latent I summary. The figure colors are such                      Figure 2d flips the negative edges so we can compare it
+that the brighter colors correspond to larger edge weights.                    to 2a. The comparison shows that many non-zero edges from
+   The LLM agent with the content editing prompt reworked                      Figure 2a are zero in Figure 2d. But most of the high-weight
+the LLM agent’s latent I summary into 321 words of refined                     edges remained non-zero. So even the lossy reconstruction
+latent II summary. The LLM agent with the decoding prompts                     preserves most of the important edges.
+reconstructed a 6-node FCM with 20 edges from this refined                        Table II measures the respective l1 , l2 , and l∞ norms of the
+text. The 3rd column of Table III and Figure 3c show the                       reconstruction errors in its rows 1–3. Its 1st and 2nd columns
+respective nodes and the reconstructed edge matrix from the                    measure the respective error involved in reconstructing the
+latent II summary. The figure colors are such that brighter                    edge matrix from the latent I and latent II summaries. The
+colors correspond larger edge magnitudes.                                      3rd column adjusts the reconstruction error from the latent
+   The 3rd FCM describes classification of celiac disease (CD)                 II summary by flipping the edges connected to C4 , C9 , and
+from tissue using 8 nodes and 28 edges [24]. The 1st column                    C10 . The table shows that the latent I summary gave the best
+of Table IV and Figure 4a give the respective nodes and                        reconstructed edge matrix.
+the edge matrix E of this FCM. The LLM agent with the                             Figures 3a–3c and Figures 4a–4c show something similar.
+encoding prompt described this FCM with 211 words of the                       Some non-zero edge weights from the target FCM are zero
+latent I summary. LLM agent with decoding prompts then                         in the both the reconstructed FCMs from the latent I and the
+reconstructed a 6-node FCM with 26 edges. The 2nd column                       latent II summaries. The two reconstructed FCMs differ little.
+of Table IV gives its nodes and Figure 4b gives its edges. The                 Both the reconstructed FCMs preserve the stronger causal
+figure colors are also such that the brighter color corresponds                connections from the target FCM.
+to a higher edge weight.                                                          Tables I and IV show that there are some nodes in the FCM
+   The LLM agent with the content editor prompt reworked                       reconstructed from the latent II text that are slightly different
+the output of the first FCM into 295 words of refined latent II                from the corresponding target nodes. The tables highlight these
+text. The LLM agent with the decoding prompt reconstructed                     nodes in blue. The 3rd column of Table IV calls the 7th node
+a 8-node 26-edge FCM out of this text. The 3rd column of                       “mitotic activity” instead of “mitoses” as in the 1st column.
+                                           TABLE III: Strongly-connected subset of the clinical depression FCM
+
+
+                     Concept Node      Target                        Reconstructed from Latent I          Reconstructed from Latent II
+                          C2           Psychomotor retardation       Psychomotor retardation              Psychomotor retardation
+                          C3           Depressive mood               Depressive mood                      Depressive mood
+                          C7           Fatigue or loss of energy     Fatigue or loss of energy            Fatigue or loss of energy
+                          C12          Feelings of worthlessness     Feelings of worthlessness            Feelings of worthlessness
+                          C13          Extreme self-criticism        Extreme self-criticism               Extreme self-criticism
+                          C14          Depression                    Depression                           Depression
+
+
+                                           TABLE IV: Concept nodes of the Celiac Disease (CD) classifier FCM
+
+
+        Concept Node      Target                                    Reconstructed from Latent I               Reconstructed from refined Latent II
+             C1           Villi blunting                            Villi blunting                            Villous blunting
+             C2           Crypt hyperplasia                         Crypt hyperplasia                         Crypt hyperplasia
+             C3           Intraepithelial lymphocyte infiltration   Intraepithelial lymphocyte infiltration   Intraepithelial lymphocyte infiltration
+             C4           Epithelial changes                        Epithelial changes                        Epithelial changes
+             C5           Lamina propria MNC infiltration           Lamina propria MNC infiltration           Lamina propria inflammation
+             C6           Decrescendo pattern                       Decrescendo pattern                       Decrescendo pattern
+             C7           Mitoses                                   Mitoses                                   Mitotic activity
+             C8           Class of celiac                           Class of celiac                           Classification of celiac
+
+
+
+                          VI. C ONCLUSION                                        [11] Shuhe Wang, Xiaofei Sun, Xiaoya Li, Rongbin Ouyang, Fei Wu, Tianwei
+                                                                                      Zhang, Jiwei Li, and Guoyin Wang. Gpt-ner: Named entity recognition
+   A sequence of well-designed system instructions can multi-                         via large language models. arXiv preprint arXiv:2304.10428, 2023.
+                                                                                 [12] Google DeepMind. Gemini 2.5: Pushing the frontier with advanced
+prompt an LLM agent to convert an FCM into text and then                              reasoning and multimodality, 2025. Version 4.
+reconstruct the FCM back from the text by a new multi-step                       [13] Diederik P Kingma and Max Welling. Auto-encoding variational bayes.
+method. This approximates an identity map from the FCM to                             arXiv preprint arXiv:1312.6114, 2013.
+                                                                                 [14] Irina Higgins, Loic Matthey, Arka Pal, Christopher Burgess, Xavier
+itself like an autoencoder but with human-interpretable text                          Glorot, Matthew Botvinick, Shakir Mohamed, and Alexander Lerchner.
+descriptions and does not compare the reconstructed output                            β-vae: Learning basic visual concepts with a constrained variational
+FCM with the input FCM. The LLM agent also explains its                               framework. In International conference on learning representations,
+                                                                                      2017.
+decisions unlike black-box neural autoencoder models.                            [15] Christopher P Burgess, Irina Higgins, Arka Pal, Loic Matthey, Nick
+                                                                                      Watters, Guillaume Desjardins, and Alexander Lerchner. Understanding
+                             R EFERENCES                                              disentangling in β-vae. arXiv preprint arXiv:1804.03599, 2018.
+                                                                                 [16] Bart Kosko and Olaoluwa Adigun. Bidirectional variational autoen-
+ [1] Bart Kosko. Fuzzy cognitive maps. International journal of man-                  coders. In 2024 International Joint Conference on Neural Networks
+     machine studies, 24(1):65–75, 1986.                                              (IJCNN), pages 1–9. IEEE, 2024.
+ [2] Bart Kosko. Hidden patterns in combined and adaptive knowledge              [17] Pascal Vincent, Hugo Larochelle, Isabelle Lajoie, Yoshua Bengio, Pierre-
+     networks. International Journal of Approximate Reasoning, 2(4):377–              Antoine Manzagol, and Léon Bottou. Stacked denoising autoencoders:
+     393, 1988.                                                                       Learning useful representations in a deep network with a local denoising
+ [3] Osonde A Osoba and Bart Kosko. Fuzzy cognitive maps of public                    criterion. Journal of machine learning research, 11(12), 2010.
+     support for insurgency and terrorism. The Journal of Defense Modeling       [18] Yoshua Bengio, Li Yao, Guillaume Alain, and Pascal Vincent. General-
+     and Simulation, 14(1):17–32, 2017.                                               ized denoising auto-encoders as generative models. Advances in neural
+ [4] Guy Ziv, Elizabeth Watson, Dylan Young, David C Howard, Shaun T                  information processing systems, 26, 2013.
+     Larcom, and Andrew J Tanentzap. The potential impact of brexit on           [19] Mayu Sakurada and Takehisa Yairi. Anomaly detection using autoen-
+     the energy, water and food nexus in the uk: A fuzzy cognitive mapping            coders with nonlinear dimensionality reduction. In Proceedings of the
+     approach. Applied Energy, 210:487–498, 2018.                                     MLSDA 2014 2nd workshop on machine learning for sensory data
+                                                                                      analysis, pages 4–11, 2014.
+ [5] Michael Glykas. Fuzzy cognitive maps: Advances in theory, methodolo-
+                                                                                 [20] Lucas Theis, Wenzhe Shi, Andrew Cunningham, and Ferenc Huszár.
+     gies, tools and applications, volume 247. Springer, 2010.
+                                                                                      Lossy image compression with compressive autoencoders. arXiv
+ [6] Elpiniki I Papageorgiou. Fuzzy cognitive maps for applied sciences and
+                                                                                      preprint arXiv:1703.00395, 2017.
+     engineering: from fundamentals to extensions and learning algorithms,
+                                                                                 [21] Anupriya Gogna and Angshul Majumdar. Discriminative autoencoder
+     volume 54. Springer Science & Business Media, 2013.
+                                                                                      for feature extraction: Application to character recognition. Neural
+ [7] Wojciech Stach, Lukasz Kurgan, and Witold Pedrycz. A divide and
+                                                                                      Processing Letters, 49(3):1723–1735, 2019.
+     conquer method for learning large fuzzy cognitive maps. Fuzzy Sets
+                                                                                 [22] Qinxue Meng, Daniel Catchpoole, David Skillicom, and Paul J Kennedy.
+     and Systems, 161(19):2515–2532, 2010.
+                                                                                      Relational autoencoder for feature extraction. In 2017 International joint
+ [8] Rod Taber, Ronald R Yager, and Cathy M Helgason. Quantization                    conference on neural networks (IJCNN), pages 364–371. IEEE, 2017.
+     effects on the equilibrium behavior of combined fuzzy cognitive maps.       [23] Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion
+     International Journal of Intelligent Systems, 22(2):181–202, 2007.               Jones, Aidan N Gomez, Łukasz Kaiser, and Illia Polosukhin. Attention
+ [9] Antonis S Billis, Elpiniki I Papageorgiou, Christos A Frantzidis, Mar-           is all you need. Advances in neural information processing systems, 30,
+     ianna S Tsatali, Anthoula C Tsolaki, and Panagiotis D Bamidis. A                 2017.
+     decision-support framework for promoting independent living and age-        [24] Abdollah Amirkhani, Elpiniki I Papageorgiou, Mohammad R Mosavi,
+     ing well. IEEE journal of biomedical and health informatics, 19(1):199–          and Karim Mohammadi. A novel medical decision support system based
+     209, 2014.                                                                       on fuzzy cognitive maps enhanced by intuitive and learning capabilities
+[10] Leland Gerson Neuberg. Causality: models, reasoning, and inference,              for modeling uncertainty. Applied Mathematics and Computation,
+     by judea pearl, cambridge university press, 2000. Econometric Theory,            337:562–582, 2018.
+     19(4):675–685, 2003.
+

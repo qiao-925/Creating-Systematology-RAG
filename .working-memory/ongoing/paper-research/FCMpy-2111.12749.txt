@@ -1,0 +1,1078 @@
+                                             FCMpy: Python Module for Constructing and Analyzing Fuzzy
+                                                                Cognitive Maps
+                                                                                  Samvel Mkhitaryan
+                                                                                 Maastricht University
+                                                                     Philippe J. Giabbanelli & Maciej K. Wozniak
+arXiv:2111.12749v1 [cs.MS] 24 Nov 2021
+
+
+
+
+                                                                                   Miami University
+                                                                                    Gonzalo Nápoles
+                                                                                   Tilburg University
+                                                                           Nanne K. de Vries & Rik Crutzen
+                                                                                 Maastricht University
+                                                                                       November 29, 2021
+
+                                                                                              Abstract
+                                                   FCMpy is an open source package in Python for building and analyzing Fuzzy Cognitive Maps.More
+                                               specifically, the package allows 1) deriving fuzzy causal weights from qualitative data, 2) simulating the
+                                               system behavior, 3) applying machine learning algorithms (e.g., Nonlinear Hebbian Learning, Active Heb-
+                                               bian Learning, Genetic Algorithms and Deterministic Learning) to adjust the FCM causal weight matrix
+                                               and to solve classification problems, and 4) implementing scenario analysis by simulating hypothetical
+                                               interventions (i.e., analyzing what-if scenarios).
+
+
+                                         1    Introduction
+                                         Fuzzy Cognitive Maps (FCM) were introduced by B. Kosko as an extension to the traditional cognitive maps
+                                         and are used to model and analyze complex systems [1, 2]. FCMs are applied in a variety of fields such as
+                                         engineering [3], health sciences and medicine [4, 5, 6], environmental sciences [7, 8], and political analysis
+                                         [9, 10].
+                                             An FCM represents a system as a directed signed graph where components are represented as nodes
+                                         and the causal relationships between these components are represented by weighted directed edges. The
+                                         dynamics of the system are examined by simulating its behavior over discrete simulation steps. In general,
+                                         FCMs can be constructed based on the inputs of domain experts (i.e., expert based FCMs), data collected
+                                         about the system (e.g., data driven approaches) or the combination of the two (i.e., hybrid approaches) [11].
+                                             The available solutions for constructing and analyzing FCMs come in the form of dedicated software
+                                         solutions (e.g., Mental Modeler, FCM Designer ), open source libraries (e.g., fcm package available in R,
+                                         pfcm available in Python) and open source scripts [12, 13]. However, the available open source solutions
+                                         provide only partial coverage of the useful tools for building and analyzing FCMs, lack generality for handling
+                                         different use cases, or require modifying the source code to incorporate specific features [13]. For example, the
+                                         fcm and pfcm provide utilities for simulating FCMs but not for constructing them based on qualitative (e.g.,
+                                         by applying fuzzy logic) or quantitative inputs. To our knowledge, none of the available open source solutions
+                                         available (e.g., R and Python) implements machine learning algorithms for FCMs (e.g., NHL, AHL, RCGA).
+                                         Although several software packages have successfully implemented such algorithms (e.g., FCM Expert, FCM
+                                         Wizard), their reliance on a graphical user interface prevents their integration in a data science workflow
+                                         articulated around a language such as Python [14].
+
+
+                                                                                                   1
+     The dedicated modules in our proposed FCMpy package provide utilities for 1) constructing FCMs based
+ on qualitative input data (by applying fuzzy logic), 2) simulating the system behavior, 3) implementing
+ machine learning algorithms (e.g., Nonlinear Hebbian Learning, Active Hebbian Learning, Genetic Algo-
+ rithms and Deterministic Learning) to optimize the FCM causal weight matrix and model classification
+ problems, and 4) implementing scenario analysis by simulating hypothetical interventions (i.e., analyzing
+ what-if scenarios).
+
+
+ 2      Constructing Expert-Based FCMs
+ Expert-based FCMs are often constructed based on data collected from the domain experts (e.g., by the
+ means of surveys) where the domain experts first identify the factors relevant to the problem domain and
+ then express the causal relationships between these factors with linguistic terms (e.g., very high, high, low).
+ Fuzzy logic is subsequently applied to convert linguistic ratings into numerical weights (i.e., crisp values).
+ The conversion of linguistic ratings to numerical weights includes the following four steps [11, 15, 16]: 1)
+ define fuzzy membership functions for the linguistic terms, 2) apply fuzzy implication rule onto the fuzzy
+ membership functions based on the expert ratings, 3) combine the membership functions resulting from the
+ second step with an aggregation operation, and 4) defuzzify the aggregated membership functions. In this
+ section, we first describe methods for reading data from different file formats and then describe the methods
+ for constructing expert-based FCMs based on qualitative data.
+
+ 2.1     Data handling
+ The available open source solutions for expert-based FCMs do not provide utilities for working with different
+ file types thus limiting their usability. Data on FCMs include the edges (represented as pairs of source/target)
+ and the associated linguistic ratings of the survey participants. The ExpertFcm class provides a read data()
+ method for reading data from .csv, .xlsx, and .json files (see the code snippet below). The corresponding files
+ should satisfy certain requirements that are described in detail in the PyPI documentation. The read data()
+ requires the file path as an argument. The additional arguments that depend on the file extension (e.g.,
+ csv, json, xlsx) should be specified as keyword arguments. For the .xlsx and .json files, when the optional
+ check consistency argument is set to True then the algorithm checks whether the experts rated the causal
+ impact of the edges (source-target pairs) consistently in terms of the valence of the causal impact (positive
+ or negative causality). If such inconsistencies are identified, the method outputs a separate .xlsx file that
+ documents such inconsistencies.
+1    >>> from fcmpy import ExpertFcm
+2
+3    >>> fcm = ExpertFcm()
+4
+5    >>> data = fcm.read_data(file_path,
+6                        sep_concept=’->’, csv_sep=’;’)
+
+     The read data() method returns an ordered dictionary where the keys are the experts’ IDs (or the names
+ of the excel sheets in the case of an excel file or the row index in case of a csv file) and the values are pandas
+ dataframes with the expert inputs (see the snippet of the code output below).
+1    OrderedDict(
+2    [(’Expert0’,
+3        -vh -h -m -l -vl na +vl +l +m +h +vh From To
+4    0 1 0 0 0 0 0 0 0 0 0 0 C1 C2
+5    1 0 0 0 0 0 0 0 0 0 1 0 C2 C1
+6    2 0 0 0 0 0 0 0 0 0 1 0 C3 C1
+7    3 0 0 0 0 0 0 1 0 0 0 0 C3 C4),
+8    ....
+9    (’Expert5’,
+10       -vh -h -m -l -vl na +vl +l +m +h +vh From To no causality
+11   0 0 0 1 0 0 0 0 0 0 0 0 C1 C2 0.0
+
+
+
+                                                            2
+12   1 0 0 0 0 0 0 0 0 1 0 0 C2 C1 0.0
+13   2 0 0 0 0 0 0 0 0 0 0 0 C3 C1 1.0
+14   3 0 0 0 0 0 0 0 0 0 0 0 C3 C4 1.0)]
+15   )
+
+    It is often useful to check the extent to which the participants agree on their opinions with respect to
+ the causal relationships between the edges. This is often done by calculating the information entropy [6, 12]
+ expressed as:
+                                                         n
+                                                         X
+                                                 R=−           pi log2 (pi )                                (1)
+                                                         i=1
+
+ where p i is the proportion of the answers (per linguistic term) about the causal relationship. The entropy
+ scores can be calculated with the entropy() method (see the code snippet below).
+1    >>> entropy = fcm.entropy(data)
+
+1    Entropy
+2    From To
+3    C1 C2 1.459148
+4    C2 C1 1.459148
+5    C3 C1 1.251629
+6    C4 1.459148
+
+
+
+ 2.2     Four steps for obtaining causal weights
+ To convert the qualitative ratings of the domain experts to numerical weights via fuzzy logic, we must
+ 1) define the fuzzy membership functions, 2) apply a fuzzy implication rule, 3) combine the membership
+ functions, and 4) defuzzify the aggregated membership functions to derive the numerical causal weights.
+
+ 2.2.1    Step 1: Define fuzzy membership functions
+ Fuzzy membership functions are used to map the linguistic terms to a specified numerical interval (i.e.,
+ universe of discourse). In FCMs, the universe of discourse is specified in the range of [-1, 1] where the
+ negative causality is possible or [0, 1] if otherwise. The universe of discourse can be specified with the
+ universe() setter (see the code snippet below).
+1    >>> import numpy as np
+2
+3    >>> fcm.universe = np.arange(-1, 1.001, .001)
+
+     To generate the fuzzy membership functions we need to decide on the geometric shape that would best
+ represent the linguistic terms. In many applications, a triangular membership function is used [17]. The
+ triangular membership function specifies the lower and the upper bounds of the triangle (i.e., where the
+ meaning of the given linguistic term is represented the least) and the center of the triangle (i.e., where the
+ meaning of the given linguistic term is fully expressed).
+     The linguistic terms() method sets the linguistic terms and the associated parameters for the triangular
+ membership function (see the code snippet below).
+1    >>> fcm.linguistic_terms = {
+2                          ’-VH’: [-1, -1, -0.75],
+3                          ’-H’: [-1, -0.75, -0.50],
+4                          ’-M’: [-0.75, -0.5, -0.25],
+5                          ’-L’: [-0.5, -0.25, 0],
+6                          ’-VL’: [-0.25, 0, 0],
+7                          ’No Causality’: [-0.001, 0, 0.001],
+8                          ’+VL’: [0, 0, 0.25],
+9                          ’+L’: [0, 0.25, 0.50],
+10                         ’+M’: [0.25, 0.5, 0.75],
+
+
+
+                                                            3
+11                        ’+H’: [0.5, 0.75, 1],
+12                        ’+VH’: [0.75, 1, 1]
+13                        }
+
+     The keys in the above dictionary represent the linguistic terms and the values are lists that contain the
+ parameters for the triangular membership function (i.e., the lower bound, the center and the upper bound)
+ (see Figure 1). After specifying the universe of discourse and the linguistic terms with their respective
+ parameters one can use use the automf() method to generate the membership functions (see the code
+ snippet below).
+1    >>> fcm.fuzzy_membership = fcm.automf(method=’trimf’)
+
+
+
+
+                                    Figure 1: Triangular membership functions
+
+   In addition to the triangular membership functions, the automf() method also implements gaussian
+ membership functions (‘gaussmf’) and trapezoidal membership functions (’trapmf’) (based on sci-kit fuzzy
+ module in python).
+
+ 2.2.2    Step 2: Apply the fuzzy implication rule
+ To determine the level of activation of the linguistic terms for a given pair of concepts, one must first identify
+ the level of endorsement of the given terms by the participants. This is done by calculating the proportion
+ of the answers to each linguistic term for a given edge. Consider a case where 50% of the participants (e.g.,
+ domain experts) rated the causal impact of an antecedent on the consequent as Positive High, 33% rated it as
+ Positive Very High and the 16% rated it as Positive Medium. Subsequently, a fuzzy implication rule is used
+ to ”activate” the corresponding membership functions. Two such rules are often used, namely Mamdani’s
+ minimum and Larsen’s product implication rule [18, 19].
+     The Mamdani minimum fuzzy implication rule is expressed as:
+
+                                           µR (x, y) = min bµA (x), µB (y)c                                    (2)
+    where µA (x) and µB (y) denote the membership value x to the linguistic term A and the membership
+ value y to the linguistic term B respectively.
+
+
+                                                             4
+                           Argument      Option          Description
+                           method        ‘Mamdani’       Mamdani’s fuzzy implication rule
+                                         ‘Larsen’        Larsen’s fuzzy implication rule
+
+                                         Table 1: Fuzzy implication rules
+
+
+   The Mamdani rule cuts the membership function at the level of endorsement (see Figure 2a). In contrast,
+Larsen’s implication rule re-scales the membership function based on the level of endorsement (see Figure
+2b) and is expressed as:
+
+                                              µR (x, y) = µA (x) · µB (y)                              (3)
+
+
+
+
+                       (a) Mamdani                                                 (b) Larsen
+
+                                         Figure 2: Fuzzy implication rules
+
+   We can use f uzzy implication() method to apply the selected implication method (see the available
+methods in Table 1 and the code snippet below).
+1   >>> mfs = fcm.fuzzy_membership
+2
+3   >>> act_pvh = fcm.fuzzy_implication(mfs[’+VH’], weight= 0.33, method =’Mamdani’)
+4   >>> act_pm = fcm.fuzzy_implication(mfs[’+M’], weight=0.16, method =’Mamdani’)
+5   >>> act_ph = fcm.fuzzy_implication(mfs[’+H’], weight=0.5, method =’Mamdani’)
+6
+7   activatedMamdani = {’+vh’ : act_pvh, ’+h’ : act_ph, ’+m’ : act_pm}
+
+
+2.2.3    Step 3: Aggregate fuzzy membership functions
+In the third step, we must aggregate the activated membership functions taken from the previous step.
+This is commonly done by applying the family maximum aggregation operation. Alternative methods for
+aggregating membership functions include the family Algebraic Sum (4), the family Einstein Sum (5) and
+the family Hamacher Sum (6) [20].
+
+                                               f (x, y) = x + y − x × y                                (4)
+
+                                                               (x + y)
+                                                f (x, y) =                                             (5)
+                                                             (1 + x × y)
+                                                        (x + y − 2 × x × y)
+                                           f (x, y) =                                                  (6)
+                                                            (1 − x × y)
+   One can use the aggregate() method to aggregate the activated membership functions (see the available
+aggregation method in Table 2 and the code snippet below).
+
+
+                                                             5
+                                  Argument      Option         Description
+                                  method        ‘fMax’         Family maximum
+                                                ‘algSum’       Family Algebraic Sum
+                                                ‘eSum’         Family Einstein Sum
+                                                ‘hSum’         Family Hamacher Sum
+
+                                            Table 2: Aggregation rules
+
+
+1   >>> import functools
+2
+3   >>> aggregated = functools.reduce(lambda x,y:
+4                     fcm.aggregate(x=x, y=y, method=’fMax’),
+5                     [activatedMamdani[i] for i in activatedMamdani.keys()])
+
+   where x and y are the membership values of the linguistic terms involved in the problem domain after
+the application of the implication rule presented in the previous step.
+
+2.2.4    Step 4: Defuzzify the aggregated membership functions
+The last step includes the calculation of the crisp value based on the aggregated membership functions (a.k.a.
+defuzzification). Among the available defuzzification methods (see the available defuzzification methods in
+Table 3) the most commonly used method is the centroid method (a.k.a. center of gravity) [19].
+   We can apply the dedicated defuzz() method to derive the crisp value (see Figure 3 and the code snippet
+below).
+1   >>> dfuz = fcm.defuzz(x=fcm.universe, mfx=aggregated, method=’centroid’)
+
+
+
+
+                       Figure 3: Defuzzification of the aggregated membership functions
+
+    The above mentioned four steps can either be done and controlled independently as we have shown, or
+users can rely on a single build() method that implements those steps to calculate the numerical weights
+for all the concept pairs in the data (see the code snippet below). The method returns a pandas dataframe
+with the calculated weights.
+
+
+                                                           6
+                                   Argument        Option        Description
+                                   method          ‘centroid’    Centroid
+                                                   ‘bisector’    Bisector
+                                                   ‘mom’         Mean of maximum
+                                                   ‘som’         Min of max
+                                                   ‘lom’         Max of maximum
+
+                                          Table 3: Defuzzification methods
+
+
+1   >>> data = fcm.read_data(file_path)
+2   >>> weight_matrix = fcm.build(data=data, implication_method = Mamdani,
+3                     aggregation_method = ’fMax’, defuzz_method=’centroid’)
+
+1   C1 C2 C3 C4
+2   .000000 0.703218 0.000000 0.000000
+3   .000000 0.000000 0.000000 0.000000
+4   .608308 0.000000 0.000000 0.000000
+5   .555732 0.000000 0.000000 0.159091
+
+
+
+3      Simulating the system behavior with FCMs
+The dynamics of the specified FCM are examined by simulating its behavior over discrete simulation steps.
+In each simulation step, the concept values are updated according to a defined inference method [21]. The
+Simulator module implements the following three types of inference methods (see the available options in
+Table 4):
+
+    • Kosko:
+                                                                n
+                                                                X
+                                                   At+1
+                                                    i   = f(          Atj ∗ Wji )                           (7)
+                                                                j=1
+
+    • Modified Kosko:
+                                                                  n
+                                                                  X
+                                                At+1
+                                                 i   = f (Ai +           Atj ∗ Wji )                        (8)
+                                                                  j=1
+
+    • Rescaled:
+                                                                  n
+                                                                  X
+                                         At+1
+                                          i   = f ((2Ai − 1) +      (2Atj − 1) ∗ Wji )                      (9)
+                                                                  j=1
+
+
+    where Atj is the value of concept j at the simulation step t and Wj,i is the causal impact of concept j on
+concept i. Note that a (transfer) function f (x) is applied to the result. As shown in the equations above,
+this function is necessary to keep values within a certain range (e.g., [0,1] for sigmoid function or [-1,1] for
+hyperbolic tangent). In the current version, four such functions are implemented (see the available options
+in Table 4):
+
+    • Sigmoid:
+                                                 1
+                                   f (x) =            , x ∈ R; binds node values to [0, 1]                 (10)
+                                             1 + e−λx
+    • Hyperbolic tangent:
+
+                                             sinh(x)  e2x − 1
+                      f (x) = tanh(x) =              = 2x     , x ∈ R; binds node values to [−1, 1]        (11)
+                                             cosh(x)  e +1
+
+
+                                                            7
+                                    Argument       Option        Description
+                                    inference      ‘kosko’       Kosko
+                                                   ‘mKosko’      Modified Kosko
+                                                   ‘rescaled’    Rescaled
+                                    transfer       ‘sigmoid’     Sigmoid
+                                                   ‘tanh’        Hyperbolic tangent
+                                                   ‘bivalent’    Bivalent
+                                                   ‘trivalent’   Trivalent
+
+                                      Table 4: Inference and transfer methods
+
+
+     • Bivalent:                          (
+                                           1,    x>0
+                                  f (x) =            , x ∈ R; binds node values to {0, 1}                    (12)
+                                           0,    x≤0
+
+     • Trivalent:                      
+                                       1
+                                               x>0
+                                f (x) = 0       x = 0 , x ∈ R; binds node values to {−1, 0, 1}               (13)
+                                       
+                                         −1     x<0
+                                       
+
+     where, x is the defuzzified value and the λ is a steepness parameter for the sigmoid function.
+     The simulation is run until either of two conditions is met: (1) some concepts of interest have a difference
+ lower than a given threshold between two consecutive steps, or (2) a user-defined maximum number of
+ iterations is reached. If we denote by S the subset of concepts of interest (i.e., the outputs of the FCMs),
+ then the first condition can be stated as:
+
+                                    ∃t ∈ 1, 2, . . . , T − 1 : |At+1 − At | < threshold                      (14)
+
+    The simulate() method takes the initial state vector and the FCM weight matrix (a.k.a., connection
+ matrix) and applies one of the mentioned update functions over number of simulation steps (see the simulation
+ results in Figure 4). One can specify the output concepts by supplying a list of these concepts to the respective
+ output concepts argument. If the output concept argument is not specified then all the concepts in the FCM
+ are treated as output concepts and the simulation stops when all the concepts change by less than the
+ threshold between two consecutive steps.
+1    >>> import pandas as pd
+2    >>> from fcmpy import FcmSimulator
+3
+4    >>> w = np.asarray([[0.0, 0.0, 0.6, 0.9, 0.0, 0.0, 0.0, 0.8],
+5                  [0.1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.2, 0.5],
+6                  [0.0, 0.7, 0.0, 0.0, 0.9, 0.0, 0.4, 0.1],
+7                  [0.4, 0.0, 0.0, 0.0, 0.0, 0.9, 0.0, 0.0],
+8                  [0.0, 0.0, 0.0, 0.0, 0.0, -0.9, 0.0, 0.3],
+9                  [-0.3, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+10                 [0.0, 0.0, 0.0, 0.0, 0.0, 0.8, 0.4, 0.9],
+11                 [0.1, 0.0, 0.0, 0.0, 0.0, 0.1, 0.6, 0.0]])
+12
+13   >>> weight_matrix = pd.DataFrame(w,
+14                     columns=[’C1’,’C2’,’C3’,’C4’,’C5’,’C6’,’C7’,’C8’])
+15
+16   >>> init_state = {’C1’: 1, ’C2’: 1, ’C3’: 0, ’C4’: 0, ’C5’: 0,
+17                     ’C6’: 0, ’C7’: 0, ’C8’: 0}
+18
+19   >>> sim = FcmSimulator()
+20
+21   >>> res = sim.simulate(initial_state=init_state, weight_matrix=weight_matrix,
+
+
+
+                                                            8
+22          transfer=’sigmoid’, inference=’mKosko’,
+23          thresh=0.001, iterations=50)
+
+1    The values converged in the 7 state (e <= 0.001)
+2
+3           C1 C2 C3 C4 C5 C6 C7 C8
+4    0 1.000000 1.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000
+5    1 0.750260 0.731059 0.645656 0.710950 0.500000 0.500000 0.549834 0.785835
+6    2 0.738141 0.765490 0.749475 0.799982 0.746700 0.769999 0.838315 0.921361
+7    3 0.730236 0.784168 0.767163 0.812191 0.805531 0.829309 0.898379 0.950172
+8    4 0.727059 0.789378 0.769467 0.812967 0.816974 0.838759 0.908173 0.954927
+9    5 0.726125 0.790510 0.769538 0.812650 0.818986 0.839860 0.909707 0.955666
+10   6 0.725885 0.790706 0.769451 0.812473 0.819294 0.839901 0.909940 0.955774
+
+
+
+
+                                     Figure 4: Simulation results of 8 concepts
+
+
+ 4      Machine learning for FCMs
+ As shown in the previous sections, FCMs are often constructed based on experts’ knowledge about the
+ system. In certain domains of applications, modelers either optimize the FCMs constructed by the experts
+ and/or constructing FCMs entirely based on the data collected about the systems. A set of machine learning
+ algorithms were developed to meet these tasks and have previously been applied to numerous fields such
+ as the optimization of industrial processes [22, 23, 24], decision making [25], and classification [26, 27]. In
+ the proposed library, we include three types of algorithms used for edge optimization, FCM generation, and
+ classification. We used the state-of-the-art methods [27, 28] and the foundational ones that have been widely
+ adopted [22, 29].
+
+
+                                                            9
+ 4.1     Hebbian learning
+ One of the weaknesses of an FCM constructed by the experts is its potential convergence to undesired regions.
+ For example, given an intervention scenario, the model may predict only extreme values such as 0 or 1 [30].
+ To overcome this weakness [22] proposed two learning strategies, namely the Active Hebbian Learning (AHL)
+ and the Non-Linear Hebbian Learning (NHL) algorithms that are based on the Hebbian learning rule. The
+ task of the proposed algorithms is to modify the initial FCM connection matrix constructed by the expert
+ such that the chosen nodes (called Desired Output Concepts DOCs) always converge within the desired
+ range. Both algorithms are similar to FCM simulation, with the main difference being that concepts’ values
+ and weights’ are updated at each time step, whereas during a simulation, only the concepts values are
+ changing.
+     In the NHL algorithm, all nodes (Ai ) and weights (Wij : a direct edge from node i to j) values are
+ simultaneously updated at each time step. In AHL, nodes and weights are updated asynchronously based on
+ a sequence of activation patterns specified by the user. During each simulation time step, a new node becomes
+ an “activated node”; only this node and its incoming edges are updated, while everything else remains
+ unchanged. Along with optimizing existing edges, AHL creates new connections between the concepts,
+ which may be an undesirable behavior if the modeler’s intent is to tweak the weights rather than create
+ connections that have not been endorsed by experts.
+     The learning process continues until two termination conditions are fulfilled. First, the fitness function
+ (F1 ) is calculated for each DOC per equation (15). If value of F1 for each DOC declines at each time step,
+ and the DOCs values are within a desired range, the first termination condition is fulfilled. Second, it is
+ crucial to determine whether the values of the DOCs are stable, i.e. if their values vary with each step more
+ than a threshold e shown in Equation 16. This threshold should be determined experimentally, and it is
+ recommended to be set between 0.001 and 0.005 [22]. If the change is lower than the threshold, the second
+ termination condition is fulfilled.
+                                          s
+                                                       DOCjmin − DOCjmax
+                                     F1 = |DOCjk −                          |2                             (15)
+                                                                 2
+
+                                            F2 = |DOCjk+1 − DOCjk | < e                                    (16)
+     If the termination conditions are satisfied then the learning process may stop, otherwise, it will continue
+ until a maximum number of steps is reached (we set the default value to 100). In order to use these methods,
+ the user has to provide the initial weight matrix, initial concept values, and the DOCs. In addition, these
+ variables are necessary, in most cases, algorithms converge only for a specific combination of values of the
+ hyperparameters: learning rate (η), decay coefficient (γ), and slope of sigmoid function. The sample values
+ used in several case studies are slope [0.9, 1.01], decay for NHL [0.99, 1.0], decay for AHL [0.01, 0.1] and
+ learning rate [0.001, 0.1]. The optimization of an FCM from a water tank case study [31, 32, 33] using the
+ algorithms above is demonstrated in the code snippet below.
+1    >>> from fcmpy import NHL
+2    >>> import numpy as np
+3
+4    # initial values of weight matrix
+5    >>> w_init = np.asarray([[0,-0.4,-0.25,0,0.3],
+6                          [0.36,0,0,0,0],
+7                          [0.45,0,0,0,0],
+8                          [-0.9,0,0,0,0],
+9                          [0,0.6,0,0.3,0]])
+10
+11   >>> w_init = pd.DataFrame(w_init,
+12                            columns=[’C1’, ’C2’, ’C3’, ’C4’, ’C5’],
+13                            index = [’C1’, ’C2’, ’C3’, ’C4’, ’C5’])
+14
+15   # initial values of the concepts
+16   >>> init_states = {’C1’ : 0.40, ’C2’: 0.7077,
+
+
+
+                                                           10
+17                     ’C3’: 0.612, ’C4’: 0.717, ’C5’: 0.30}
+18
+19   # DOCs
+20   >>> doc_values = {’C1’:[0.68,0.74], ’C5’:[0.74,0.8]}
+21
+22   # NHL
+23   >>> nhl = NHL(state_vector=init_states, weight_matrix=w_init,
+24                 doc_values=doc_values)
+25   >>> res = nhl.run(learning_rate = 0.01, l=.98, iterations=100)
+
+1    The NHL learning process converged at step 63 with the
+2    learning rate eta = 0.01 and decay = 1!
+3        C1 C2 C3 C4 C5
+4    C1 0.000000 -0.200310 -0.023806 0.000000 0.472687
+5    C2 0.539068 0.000000 0.000000 0.000000 0.000000
+6    C3 0.571531 0.000000 0.000000 0.000000 0.000000
+7    C4 -0.832174 0.000000 0.000000 0.000000 0.000000
+8    C5 0.000000 0.710523 0.000000 0.496934 0.000000
+
+    The AHL.run() method has an additional auto learn argument; if set to True, then True then the
+ algorithm automatically updates the hyperparameters during the learning process.
+1    # AHL
+2    >>> activation_pattern = {0:[’C1’], 1:[’C2’, ’C3’], 2: [’C5’], 3: [’C4’]}
+3
+4    >>> ahl = AHL(state_vector=init_states, weight_matrix=w_init,
+5                  activation_pattern=activation_pattern,
+6                  doc_values=doc_values)
+7    >>> res = ahl.run(decay=0.03, learning_rate = 0.01, l=1, iterations=100,
+8                      transfer= ’sigmoid’, thresh = 0.002, auto_learn=False,
+9                      b1=0.003, lbd1=0.1, b2=0.005, lbd2=1)
+
+1    The AHL learning process converged at step 19 with
+2    the learning rate eta = 0.01 and decay = 0.03!
+3
+4           C1 C2 C3 C4 C5
+5    C1 0.000000 -0.128532 -0.060395 0.071200 0.218170
+6    C2 0.245859 0.000000 0.068981 0.076592 0.074289
+7    C3 0.288257 0.069457 0.000000 0.070342 0.068190
+8    C4 -0.386349 0.073807 0.067187 0.000000 0.073991
+9    C5 0.070113 0.368913 0.069145 0.223312 0.000000
+
+    If the learning process was successful, the run method will return the optimized weight matrix as a
+ dataframe. Successful outputs of NHL Figure 5c and AHL Figure 5b algorithm.
+
+ 4.2     Real-coded genetic algorithm (RCGA)
+ In certain domains of application, one has longitudinal data about the state variables included in the FCM
+ and wants to find an FCM connection matrix that generates data that is close enough to the collected
+ data [34, 35]. In this regards, [29] proposed a real coded genetic algorithm for searching for an optimal FCM
+ connection matrix. The proposed algorithm, named RCGA, builds on genetic algorithms as follows.
+     The search process of the RCGA includes the following six steps: 1) initialization, 2) evaluation, 3)
+ selection, 4) recombination, 5) mutation, and 6) replacement. In the initialization step, the algorithm
+ generates a population of random solutions, that is a set of random weight matrices. Each solution is an
+ N × N connection matrix. In the evaluation step, each candidate solution in the population is evaluated
+ based on a fitness function shown in Equation (17) and Table 5. We can observe how the fitness function is
+ calculated on a simple example, shown in Figure 6).
+
+
+
+
+                                                              11
+               (a) Initial weight matrix                                    (b) AHL
+
+
+
+
+                                                  (c) NHL
+
+Figure 5: a) initial weight matrix, b) weight matrix optimized by AHL, and c) weight matrix optimized by
+NHL.
+
+
+
+
+                              Figure 6: Example of fitness values calculation.
+
+
+
+
+                                                    12
+                                                 T
+                                                 X −1 N
+                                                      X −1
+                                     Error = α               |Cn (t) − Ĉn (t)|p
+                                                 t=1 n=1                                                (17)
+                                                            1
+                                           F itness =
+                                                      a ∗ Error + 1
+
+                     Variable      Description
+                     α             Normalization parameter
+                     T             Number of chromosomes (elements in the generation)
+                     N             Number of variables in the chromosome
+                     C(t)          Observed data at time t
+                     Ĉ(t)         State vector at step t
+                     p             Defines the type of norm (default 1)
+                     a             Defines the type of norm (default 100)
+
+                      Table 5: Variables of fitness function used in RCGA algorithm.
+
+    In the selection step, candidate solutions are selected for mating (a.k.a., recombination). In each step,
+the algorithm randomly selects between two selection mechanisms (roulette wheel and tournament selection
+strategies). For the recombination step, the algorithm implements the recommended one point crossover
+operation with a probability of crossover specified by the user (p recombination) [29]. The crossover opera-
+tion creates new solutions based on the solutions selected in the previous step. Next, the algorithm decides
+whether the new solutions produced in the previous step should undergo mutations. In the mutation step,
+the algorithm chooses between random and non-uniform mutation operations with a probability defined by
+the user (p mutation). The replacement step is determined by the evolutionary approach specified by the
+user. The algorithm proposed by [29] is based on a generational approach where in each step the new gen-
+eration of solutions replace the old generation. Alternatively, the user could choose a steady state approach
+(a.k.a., SSGA) where in each step only two new solutions are produced and a decision is made whether the
+new chromosomes should be inserted back into the population. The current implementation of the SSGA
+uses a replacement strategy based on the concept of useful diversity (described in depth in [36]). To use the
+RCGA module, one needs to initialize the RCGA class by specifying the longitudinal data about the system, the
+population size, and the genetic approach to use (i.e., generational or steady state). The additional param-
+eters that can be modified by the user are presented in Table 6. Other parameters that can be modified by
+the user can be found in the documentation of the package available on PyPI.
+
+                       Argument               Option           Description
+                       normalization type     ‘L1’             L1 normalization
+                                              ‘L2’             L2 normalization
+                                              ‘LInf’           L infinity normalization
+                       inference              ‘kosko’          Kosko
+                                              ‘mKosko’         Modified kosko
+                                              ‘rescaled’       Rescaled inference method
+                       transfer               ‘sigmoid’        Sigmoid
+                                              ‘bivalent’       Bivalent
+                                              ‘trivalent’      Trivalent
+                                              ‘tanh’           Hyperbolic tangent
+
+                                   Table 6: Inference and transfer methods
+
+   The output of the learning process is the weight matrix with the highest fitness value throughout the
+
+
+                                                       13
+ search process. An example of generating FCM by the RCGA using historical data on water tank case
+ study [31] presented in Section 4.1 is demonstrated in the code snippet below. We give the user an option to
+ choose: population size which is a number of weights matrices generated at each time step and threshold
+ that is a minimum fitness value of at least one weight matrix in a generation, for the algorithm to succeed.
+ To ensure the user does not get stuck in an infinite loop, we define n iterations after which algorithm will
+ terminate if the max fitness function of the n iterations − 1 generation was less than a threshold.
+1    # Generate Longitudinal Data
+2    >>> sim = FcmSimulator()
+3    >>> dataWaterTank = sim.simulate(initial_state=init_states,
+4                                 weight_matrix=w_init, transfer=’sigmoid’,
+5                                 inference=’mKosko’, thresh=0.001,
+6                                 iterations=50, l=1)
+7    # Select two time points
+8    >>> dataWaterTank = dataWaterTank.iloc[:3]
+9
+10   # Generational Approach
+11   >>> rcga = RCGA(data=dataWaterTank, population_size=100,
+12                 ga_type=’generational’)
+13   >>> rcga.run(n_iterations=30000, threshold=0.99)
+14
+15   # Steady State Approach
+16   >>> rcga = RCGA(data=dataWaterTank, population_size=100,
+17                 ga_type=’ssga’)
+18   >>> rcga.run(n_iterations=30000, threshold=0.99)
+
+     The RCGA solution and the associated fitness score can be accessed in the rcga.solution and rcga.fitness
+ fields.
+1    >>> rcga.fitness
+
+1    0.9790443073348711
+
+1    >>> rcga.solution
+
+1    C1 C2 C3 C4 C5
+2    51948 0.550687 0.045434 0.648337 0.077349
+3    70796 -0.944261 -0.684952 -0.829811 0.660863
+4    07396 -0.075391 0.223011 0.299976 -0.442272
+5    79566 0.724956 0.048086 0.352487 0.120083
+6    30473 0.068480 0.330551 0.003072 -0.347919
+
+    The learned FCM connection matrix can be validated by calculating the in-sample and out-sample errors
+ by using the dedicated ISE and OSE modules (see the code snippet below) [29].
+1    >>> from fcmpy import ISE
+2    >>> from fcmpy import OSE
+3
+4    >>> val_ise = ISE()
+5    >>> val_ose = OSE()
+6    >>> error_ise = val_ise.validate(initial_state=init_state_WT,
+7                  weight_matrix=rcga.solution, data=dataWaterTank,
+8                  transfer=’sigmoid’, inference=’mKosko’, l=1)
+9
+10   >>> error_ose, std = val_ose.validate(weight_matrix=rcga.solution,
+11                                   data=dataWaterTank, low=0, high=1,
+12                                   k_validation=100, transfer=’sigmoid’,
+13                                   inference=’mKosko’, l=1)
+14
+15   >>> print(f"in-sample error: {error_ise}, \
+16              out-of-sample error: {error_ose}, std: {std}" )
+
+1    in-sample error: 0.0129, out-of-sample error: 0.0891, std: 0.0669
+
+
+
+                                                           14
+4.3     Classification algorithms
+It is attractive for the researchers to choose FCMs for classification tasks, over other popular tools such as
+neural networks. FCMs are easily explainable, which is a great advantage over black box models and, in
+many cases, equally accurate [27, 28]. We give user a choice of two methods: Evolving Long-term Cognitive
+Networks (ELTCN) [27] and deterministic learning (LTCN-MP)1 [28].
+    LTCN-MP and ELTCN use the same topology (a fully connected FCM containing features nodes and
+class nodes) but the former produces numerical outputs (suitable for regression) while the latter produces
+nominal outputs (suitable for classification). In LTCN-MP and ELTCN algorithms (i) input variables are
+located in the inner layer and output variables in the outer layer, (ii) weights connecting the inputs are
+computed in an unsupervised way by solving a least squared problem, and (iii) weights connecting inputs
+with outputs are computed using the Moore-Penrose pseudo-inverse. Overall, we can say that LTCN-MP
+and ELTCN use the same topology but the former produces numerical outputs while the latter produces
+nominal outputs (decision classes).
+    An example of a model’s structure with three features and three classes is shown in Figure 7.
+
+
+
+                                x1             c1                          c4            y1
+
+
+
+
+                               x2              c2                          c5            y2
+
+
+
+
+                               x3              c3                          c6            y3
+
+
+
+Figure 7: Neural model comprised of M = 3 input neurons (c1 , c2 , c3 ) and N = 3 output neurons (c4 , c5 ,
+c6 ). Overall, the network has P = M + N = 6 neurons. In this example, the input signal is denoted as xi
+                                                                       (0)    (T )
+while output signal is denoted as yi . These two values correspond to ai and ai , respectively.
+
+    The user has to provide the path to the directory where the data file (.arff format) is located2 . It is
+necessary that values of the features are normalized in the range between 0 and 1. Multiple data sets can be
+utilized and the results of each of them is saved in a dictionary, using the filename as a key. After running
+the learning process, the output consist of k weight matrices, where k is a number of validation folds (default
+5) and the weight matrix of the connections between classes and feature nodes. We also provide users with
+automatically generated histograms showing values of the loss function and weights for each fold. In our
+examples we are using the Iris data set, a popular data set containing various measurements of iris flowers,
+such as sepal or petal length [37].
+1   >>> from fcmpy.ml.classification.eltcn import run
+2   >>> path = ’data’
+3   >>> results = run(path)
+4
+5   # average of the feature weight matrices
+   1 LSTCNs are a variant of FCMS where weights are nor expected to be in the [-1,1] interval or have a causal meaning. We
+
+use regularization in order to keep them within that range.
+   2 Currently, these two algorithms only accept .arff files, we are planning to accommodate more data files formats in the
+
+future versions.
+
+
+                                                            15
+6    >>> print(results[’irisnorm.arff’][’avgW’])
+7
+8    # weight matrix connecting feature nodes with class nodes
+9    >>> print(results[’irisnorm.arff’][’classW’])
+
+1    [[ 0.4382333 , -0.09812646, 0.79643613, 0.97163904],
+2    [-0.2016794 , 0.2925336 , -0.21699643, 0.12452463],
+3    [-0.0038293 , -0.08575615, 0.47770625, 0.52030253],
+4    [ 0.24917993, 0.21717176, 0.30113676, 0.34600133]]
+5
+6    [[-0.9135318 , 0.15331155, 0.24873467],
+7    [-1. , 0.42972276, 0.17217618],
+8    [-0.5610481 , -0.58390266, 0.79575956],
+9    [-0.60481995, -0.6718271 , 0.72851056]]
+
+      LSTCN-MP focuses on discovering which and how features of the data set are important for the clas-
+ sification task as well as finding the weights connecting the inputs and outputs. Next, the LSTCN-MP
+ algorithm outputs a 1-D array with values in the [-1,1] range. The absolute values represent how important
+ the features are for the classification task. In order to use the algorithm, the user has to provide the path of
+ data sets as list under a key sources and then use that dictionary as an input to LSTCN-MP algorithm.
+1    >>> sources = [’’datasets/iris.arff’’,‘‘datasets/pima.arff’’]
+2    >>> params = {’sources’:sources}
+
+     Various hyperparameters can be used. Their default values and description can be found in [28], our
+ library documentation, or Table 7.
+
+               Keys           Values    Description                                Default value
+               “M”            int       Output variables                           1
+               “T”            int       FCM Iterations                             1
+               “folds”        int       Number of folds in a (stratified) K-Fold   10
+               “output”       string    Output csv file                            “./output.csv”
+               “p”            array     parameters of logit and expit functions    {1.0, 1.0, 1.0, 1.0}
+               “sources”      array     array with path of the dataset files       None
+               “verbosity”    bool      verbosity                                  False
+
+                Table 7: Keys and values of the input dictionary to the deterministic algorithm.
+
+1    >>> import fcmpy.ml.classification.FCM_MP as mp
+2    >>> import matplotlib.pylab as plt
+3    >>> sources = [’iris.arff’]
+4    >>> params = {’sources’:sources}
+5    >>> out = mp.run(**params)
+6    # feature importance for classification purposes
+7    >>> fig, ax = plt.subplots()
+8    >>> ax.bar(range(len(out[0][’importance’].flatten())),
+9        height=out[0][’importance’].flatten())
+10   # connections between features and class nodes
+11   >> print(out[’weights’])
+
+1    [[ 0.46838854, -0.03855411, 1. ],
+2    [-0.04176139, 0.46838854, -0.48478635],
+3    [ 0.16611878, -0.07434725, 0.46838854]]
+
+     The function returns a list of dictionaries (one dictionary for each input data set) with keys representing
+ hyperparameters used in the learning process, weight matrix, training error and importance of the features,
+ which is shown in Figure 8. Note that in Iris dataset, feature 0 is the most important feature wherese feature
+ 1 is the least significant one in the decision-making.
+
+
+
+                                                              16
+                                 Figure 8: Features importance for Iris data set.
+
+
+5      Scenario analysis with FCMs
+Scenario analysis in an FCM framework is often implemented by either changing the baseline values of the
+concepts (single shot interventions) or by introducing the proposed scenario as a new factor in the defined
+FCM and specifying the causal impact the proposed intervention has on the target concepts (continuous
+interventions). The single shot interventions mimic interventions which stop when a desired change in the
+specific target variables are achieved. In the continuous case, the intervention becomes part of the system
+and continuously impacts the target variables [38]. The Intervention module provides the respective methods
+for analyzing different intervention cases. The module is instantiated by passing a simulator object to the
+constructor.
+1   >>> from fcmpy import FcmSimulator, FcmIntervention
+2   >>> inter = FcmIntervention(FcmSimulator)
+
+   Before specifying intervention cases and running simulations for each scenario, we need to create the
+baseline for the comparison (i.e., run a simulation with baseline initial conditions and take the final state
+vector). To do this one needs to call initialize() method.
+1   >>> inter.initialize(initial_state=init_state, weight_matrix=weight_matrix,
+2                         transfer=’sigmoid’, inference=’mKosko’,
+3                         thresh=0.001, iterations=50, l=1)
+
+1   The values converged in the 7 state (e <= 0.001)
+
+    We can inspect the results of the initial simulation run (i.e., ‘baseline’) in the test results field as follows:
+1   >>> inter.test_results[’baseline’]
+
+1   C1 C2 C3 C4 C5 C6 C7 C8
+2   000 1.000000 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000
+3   260 0.731059 0.645656 0.710950 0.500000 0.500000 0.549834 0.785835
+4   141 0.765490 0.749475 0.799982 0.746700 0.769999 0.838315 0.921361
+5   236 0.784168 0.767163 0.812191 0.805531 0.829309 0.898379 0.950172
+6   059 0.789378 0.769467 0.812967 0.816974 0.838759 0.908173 0.954927
+7   125 0.790510 0.769538 0.812650 0.818986 0.839860 0.909707 0.955666
+8   885 0.790706 0.769451 0.812473 0.819294 0.839901 0.909940 0.955774
+
+    We can use the add intervention() method to specify the intervention cases. To specify a single shot
+intervention we must specify the name of the intervention and supply new initial states for the concept values
+as a dictionary (see the code snippet below).
+1   >>> inter.add_intervention(’intervention_1’, type=’single_shot’,
+2                         initial_state = {’C1’: 0.9, ’C2’ : 0.4})
+
+
+                                                          17
+    For continuous intervention cases we must specify the name of the intervention, the concepts the inter-
+vention targets and the impact the intervention has on these concepts. In some cases we might be interested
+in checking scenarios where the intervention fails to be delivered to its fullest. For such cases we can specify
+the effectiveness of a given intervention case by setting the (optional) effectiveness argument to a number in
+the [0,1] interval (see the code snippet below). The effectiveness will decrease the expected causal strength of
+the intervention: for example, if an intervention is expected to reduce stress by 0.5 but is only 20% effective,
+then its actual reduction will be 0.1.
+1   >>> inter.add_intervention(’intervention_1’, type=’continuous’,
+2                         weights={’C1’:-.3, ’C2’ : .5}, effectiveness=1)
+3   >>> inter.add_intervention(’intervention_2’, type=’continuous’,
+4                         weights={’C4’:-.5}, effectiveness=1)
+5   >>> inter.add_intervention(’intervention_3’, type=’continuous’,
+6                         weights={’C5’:-1}, effectiveness=1)
+
+    In the example above, we specify three intervention cases. The first intervention targets concepts (nodes)
+C1 and C2. It negatively impacts concept C1 (-0.3) while positively impacting the concept C2 (0.5). We
+consider a case where the intervention has maximum effectiveness. The other two interventions follow the
+same logic but impact other nodes.
+    After specifying the proposed interventions, we can use the test interventions() method to test the
+effect of each case. The method requires the name of the intervention to be tested. Users also have the
+possibility of changing the number of iterations for the simulation; its default value is the same as specified
+in the initialization (see the code snippet below).
+1   >>> inter.test_intervention(’intervention_1’, iterations=10)
+2   >>> inter.test_intervention(’intervention_2’)
+3   >>> inter.test_intervention(’intervention_3’)
+
+1   The values converged in the 7 state (e <= 0.001)
+2   The values converged in the 6 state (e <= 0.001)
+3   The values converged in the 7 state (e <= 0.001)
+4   The values converged in the 7 state (e <= 0.001)
+
+   The equilibrium states of the interventions can be inspected in the equilibriums field (see Figure 9 and
+the code snippet below).
+1   >>> inter.equilibriums
+
+1   baseline intervention_1 intervention_2 intervention_3
+2   0.725885 0.644651 0.715704 0.723417
+3   0.790706 0.870060 0.790580 0.790708
+4   0.769451 0.758786 0.768132 0.769141
+5   0.812473 0.798947 0.699316 0.812073
+6   0.819294 0.817735 0.819160 0.563879
+7   0.839901 0.838350 0.823430 0.871834
+8   0.909940 0.911004 0.909917 0.909778
+9   0.955774 0.954652 0.955427 0.952199
+
+
+
+
+                                                            18
+                                  Figure 9: Baseline and intervention scenarios.
+
+   Lastly, one can inspect the differences between the interventions in relative terms (i.e., % increase or
+decrease) compared to the baseline (see the code snippet below).
+1   >>> inter.comparison_table
+
+1   baseline intervention_1 intervention_2 intervention_3
+2        0.0 -11.191083 -1.402511 -0.339981
+3        0.0 10.035821 -0.015968 0.000202
+4        0.0 -1.385998 -0.171325 -0.040271
+5        0.0 -1.664794 -13.927524 -0.049314
+6        0.0 -0.190233 -0.016379 -31.175022
+7        0.0 -0.184640 -1.960979 3.802010
+8        0.0 0.116873 -0.002543 -0.017806
+9        0.0 -0.117365 -0.036331 -0.374038
+
+
+
+6      Conclusions and future research
+The FCMpy package provides a complete set of functions necessary to conduct projects involving FCMs.
+We created a tool that is open-source, easy to use, and provides the necessary functionality. The design and
+implementation of the tool results from a collaboration with multiple experts from the field of FCMs. We
+believe that this tool will facilitate research and encourage new students and scientists to involve FCMs in
+their projects.
+    We included both well-known algorithms as well as recently developed ones. We are planning to constantly
+update our library and welcome all scientific community contributions.
+
+
+                                                            19
+Acknowledgments
+Developed Python code: Mkhitaryan and Wozniak. Contributed to the development of the classification
+algorithms: Nápoles. Designed the project: Mkhitaryan, Wozniak, Giabbanelli, Crutzen. Supervised the
+project: Giabbanelli, Crutzen. Wrote the first draft: Mkhitaryan, Wozniak, Giabbanelli. Edited and ap-
+proved the manuscript: all authors.
+
+
+References
+ [1] Bart Kosko. Fuzzy cognitive maps. International journal of man-machine studies, 24(1):65–75, 1986.
+ [2] Robert Axelrod. Structure of decision: The cognitive maps of political elites. Princeton university press,
+     2015.
+
+ [3] Chrysostomos D Stylios and Petros P Groumpos. Modeling complex systems using fuzzy cognitive maps.
+     IEEE Transactions on Systems, Man, and Cybernetics-Part A: Systems and Humans, 34(1):155–162,
+     2004.
+ [4] George A Papakostas, Athanasios S Polydoros, Dimitris E Koulouriotis, and Vasileios D Tourassis.
+     Training fuzzy cognitive maps by using hebbian learning algorithms: a comparative study. In 2011
+     IEEE international conference on fuzzy systems (FUZZ-IEEE 2011), pages 851–858. IEEE, 2011.
+ [5] Jose L Salmeron and Elpiniki I Papageorgiou. A fuzzy grey cognitive maps-based decision support
+     system for radiotherapy treatment planning. Knowledge-Based Systems, 30:151–160, 2012.
+ [6] Philippe J Giabbanelli, Thomas Torsney-Weir, and Vijay Kumar Mago. A fuzzy cognitive map of the
+     psychosocial determinants of obesity. Applied soft computing, 12(12):3711–3724, 2012.
+ [7] Kasper Kok. The potential of fuzzy cognitive maps for semi-quantitative scenario development, with
+     an example from brazil. global environmental change, 19(1):122–133, 2009.
+ [8] Elpiniki Papageorgiou and Areti Kontogianni. Using fuzzy cognitive mapping in environmental decision
+     making and management: a methodological primer and an application. International Perspectives on
+     Global Environmental Change, pages 427–450, 2012.
+ [9] Andreas S Andreou, Nicos H Mateou, and George A Zombanakis. Soft computing for crisis management
+     and political decision making: the use of genetically evolved fuzzy cognitive maps. Soft Computing,
+     9(3):194–210, 2005.
+
+[10] Philippe J Giabbanelli. Modelling the spatial and social dynamics of insurgency. Security Informatics,
+     3(1):1–15, 2014.
+[11] Samvel Mkhitaryan, Philippe J Giabbanelli, Nanne K de Vries, and Rik Crutzen. Dealing with com-
+     plexity: How to use a hybrid approach to incorporate complexity in health behavior interventions.
+     Intelligence-Based Medicine, 3:100008, 2020.
+
+[12] Hendra Sandhi Firmansyah, Suhono H Supangkat, Arry A Arman, and Philippe J Giabbanelli. Identi-
+     fying the components and interrelationships of smart cities in indonesia: Supporting policymaking via
+     fuzzy cognitive systems. IEEE Access, 7:46136–46151, 2019.
+[13] Gonzalo Nápoles, Maikel Leon Espinosa, Isel Grau, and Koen Vanhoof. Fcm expert: Software tool for
+     scenario analysis and pattern classification based on fuzzy cognitive maps. International Journal on
+     Artificial Intelligence Tools, 27(07):1860010, 2018.
+
+
+
+
+                                                      20
+[14] Gonzalo Nápoles, Maikel Leon Espinosa, Isel Grau, and Koen Vanhoof. Fcm expert: software tool for
+     scenario analysis and pattern classification based on fuzzy cognitive maps. International Journal on
+     Artificial Intelligence Tools, 27(07):1860010, 2018.
+[15] Vijay K Mago, Ravinder Mehta, Ryan Woolrych, and Elpiniki I Papageorgiou. Supporting meningitis
+     diagnosis amongst infants and children through the use of fuzzy cognitive mapping. BMC medical
+     informatics and decision making, 12(1):1–12, 2012.
+[16] Vijay K Mago, Hilary K Morden, Charles Fritz, Tiankuang Wu, Sara Namazi, Parastoo Geranmayeh,
+     Rakhi Chattopadhyay, and Vahid Dabbaghian. Analyzing the impact of social factors on homelessness:
+     a fuzzy cognitive map approach. BMC medical informatics and decision making, 13(1):1–19, 2013.
+
+[17] Mabel Frias, Yaima Filiberto, Gonzalo Nápoles, Yadira Garcı́a-Socarrás, Koen Vanhoof, and Rafael
+     Bello. Fuzzy cognitive maps reasoning with words based on triangular fuzzy numbers. In Mexican
+     International Conference on Artificial Intelligence, pages 197–207. Springer, 2017.
+[18] Arup Kumar Nandi. Ga-fuzzy approaches: application to modeling of manufacturing process. In
+     Statistical and computational techniques in manufacturing, pages 145–185. Springer, 2012.
+
+[19] Wojciech Stach, Lukasz Kurgan, Witold Pedrycz, and Marek Reformat. Genetic learning of fuzzy
+     cognitive maps. Fuzzy sets and systems, 153(3):371–401, 2005.
+[20] Andrzej Piegat. Fuzzy modeling and control, volume 69. Springer-Verlag, 2001.
+[21] Elpiniki I Papageorgiou. A new methodology for decisions in medical informatics using fuzzy cognitive
+     maps based on fuzzy rule-extraction techniques. Applied Soft Computing, 11(1):500–513, 2011.
+[22] Elpiniki I Papageorgiou, Chrysostomos Stylios, and Peter P Groumpos. Unsupervised learning tech-
+     niques for fine-tuning fuzzy cognitive map causal links. International Journal of Human-Computer
+     Studies, 64(8):727–743, 2006.
+[23] Wojciech Stach, Lukasz Kurgan, and Witold Pedrycz. Data-driven nonlinear hebbian learning method
+     for fuzzy cognitive maps. In 2008 IEEE international conference on fuzzy systems (IEEE world congress
+     on computational intelligence), pages 1975–1981. IEEE, 2008.
+[24] Elpiniki I Papageorgiou. Learning algorithms for fuzzy cognitive maps—a review study. IEEE Trans-
+     actions on Systems, Man, and Cybernetics, Part C (Applications and Reviews), 42(2):150–163, 2011.
+
+[25] Katarzyna Poczeta, Elpiniki I Papageorgiou, and Vassilis C Gerogiannis. Fuzzy cognitive maps opti-
+     mization for decision making and prediction. Mathematics, 8(11):2059, 2020.
+[26] Gonzalo Nápoles, Isel Grau, Rafael Bello, and Ricardo Grau. Two-steps learning of fuzzy cognitive maps
+     for prediction and knowledge discovery on the hiv-1 drug resistance. Expert Systems with Applications,
+     41(3):821–830, 2014.
+
+[27] Gonzalo Nápoles, Agnieszka Jastrze, Yamisleydi Salgueiro, et al. Pattern classification with evolving
+     long-term cognitive networks. Information Sciences, 548:461–478, 2021.
+[28] Gonzalo Nápoles, Agnieszka Jastrzebska, Carlos Mosquera, Koen Vanhoof, and Wladyslaw Homenda.
+     Deterministic learning of hybrid fuzzy cognitive maps and network reduction approaches. Neural Net-
+     works, 124:258–268, 2020.
+
+[29] Wojciech J Stach. Learning and aggregation of fuzzy cognitive maps-an evolutionary approach. 2010.
+[30] Eric A Lavin, Philippe J Giabbanelli, Andrew T Stefanik, Steven A Gray, and Robert Arlinghaus. Should
+     we simulate mental models to assess whether they agree? In Proceedings of the Annual Simulation
+     Symposium, pages 1–12, 2018.
+
+
+                                                    21
+[31] EI Papageorgiou, Chrysostomos D Stylios, and Peter P Groumpos. Active hebbian learning algorithm
+     to train fuzzy cognitive maps. International journal of approximate reasoning, 37(3):219–249, 2004.
+[32] Zhaowei Ren. Learning fuzzy cognitive maps by a hybrid method using nonlinear hebbian learning and
+     extended great deluge algorithm. In MAICS, pages 159–163, 2012.
+
+[33] George A Papakostas, Athanasios S Polydoros, Dimitris E Koulouriotis, and Vasileios D Tourassis.
+     Training fuzzy cognitive maps by using hebbian learning algorithms: a comparative study. In 2011
+     IEEE international conference on fuzzy systems (FUZZ-IEEE 2011), pages 851–858. IEEE, 2011.
+[34] M Shamim Khan, Sebastian Khor, and Alex Chong. Fuzzy cognitive maps with genetic algorithm for
+     goal-oriented decision support. International Journal of Uncertainty, Fuzziness and Knowledge-Based
+     Systems, 12(supp02):31–42, 2004.
+[35] Katarzyna Poczeta, Alexander Yastrebov, and Elpiniki I Papageorgiou. Learning fuzzy cognitive maps
+     using structure optimization genetic algorithm. In 2015 federated conference on computer science and
+     information systems (FedCSIS), pages 547–554. IEEE, 2015.
+[36] Manuel Lozano, Francisco Herrera, and José Ramón Cano. Replacement strategies to preserve useful
+     diversity in steady-state genetic algorithms. Information sciences, 178(23):4421–4433, 2008.
+[37] Ronald A Fisher. The use of multiple measurements in taxonomic problems. Annals of eugenics,
+     7(2):179–188, 1936.
+[38] Philippe J Giabbanelli and Rik Crutzen. Creating groups with similar expected behavioural response
+     in randomized controlled trials: a fuzzy cognitive map approach. BMC medical research methodology,
+     14(1):1–19, 2014.
+
+
+
+
+                                                   22
+

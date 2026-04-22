@@ -13,17 +13,17 @@
 
 ## 架构不变量
 
-1. **三层依赖方向**：前端→业务→基础设施，禁止反向。见 `docs/CLDFlow-invariants.md` I-1
-2. **CLD 输出必须符合 JSON Schema**：见 `docs/CLDFlow-invariants.md` I-2
-3. **CLD→FCM→D2D 流水线不可拆**：见 `docs/CLDFlow-invariants.md` I-3
-4. **全自动协作，无人工介入点**：见 `docs/CLDFlow-invariants.md` I-4
-5. **数据边界解析（Parse, Don't Validate）**：见 `docs/CLDFlow-invariants.md` I-5
-6. **研究运行隔离**：见 `docs/CLDFlow-invariants.md` I-6
-7. **自审通过才传递**：见 `docs/CLDFlow-invariants.md` I-7
+1. **三层依赖方向**：前端→业务→基础设施，禁止反向。见 `docs/ARCHITECTURE.md` §1.3
+2. **CLD 输出必须符合 JSON Schema**：见 `docs/ARCHITECTURE.md` §1.3
+3. **CLD 前置 + FCM/D2D 可选可并行**（原"流水线不可拆"已演进）：CLD 为根，FCM 与 D2D 是 CLD 的并列衍生分析，由 Lead Agent 按需组合调用，护栏强制 CLD 就绪才可调用衍生工具。见 `docs/ARCHITECTURE.md` §1.3
+4. **全自动协作，无人工介入点**：见 `docs/ARCHITECTURE.md` §1.3
+5. **数据边界解析（Parse, Don't Validate）**：见 `docs/ARCHITECTURE.md` §1.3
+6. **研究运行隔离**：见 `docs/ARCHITECTURE.md` §1.3
+7. **自审通过才传递**：见 `docs/ARCHITECTURE.md` §1.3
 
 ## 工作信念
 
-见 `docs/core-beliefs.md`。核心：
+见 `docs/ARCHITECTURE.md` §1.2。核心：
 
 - 地图优于说明书（AGENTS.md ≤ 100行）
 - 执行不变量，不微管实现（边界内允许自主）
@@ -37,30 +37,7 @@
 
 | 文档 | 内容 |
 |------|------|
-| `docs/core-beliefs.md` | 工作信念（15命题，三层结构） |
-| `docs/CLDFlow-invariants.md` | 7个不可变约束 |
-| `docs/CLDFlow-defaults.md` | 实现默认值（可调） |
-| `docs/CLDFlow-architecture.md` | CLDFlow业务架构（流程图+五层职责+接口契约+数据流） |
-| `docs/architecture.md` | 系统架构设计 |
-
-### 各层详细设计（docs/cldflow/）
-
-| 文件 | 层 | 内容 |
-|------|-----|------|
-| `input-enhancement.md` | 输入层 | 查询增强+停止条件+数据源分级 |
-| `cld-extraction.md` | CLD | 提取策略+Prompt模板 |
-| `cld-node-merging.md` | CLD | 节点归并算法 |
-| `cld-conflict-resolution.md` | CLD | 冲突检测+消解策略 |
-| `cld-data-format.md` | CLD | Pydantic数据模型+自审验证 |
-| `dynamic-agent.md` | CLD | 动态视角Agent生成 |
-| `fcm-weight-conversion.md` | FCM | 语言权重→数值映射 |
-| `fcm-simulation.md` | FCM | Kosko仿真算法+激活函数 |
-| `fcm-aggregation.md` | FCM | 多专家权重聚合 |
-| `d2d-sensitivity-analysis.md` | D2D | 敏感性分析+杠杆点分类 |
-| `d2d-uncertainty.md` | D2D | 不确定区间计算 |
-| `conductor-orchestration.md` | 跨层 | Conductor编排状态机 |
-| `code-quality-evaluator.md` | 跨层 | 代码生成质量评估 |
-| `perspectives-implementation.md` | 跨层 | 已实现的视角模板系统 |
+| `docs/ARCHITECTURE.md` | 系统架构唯一事实源（核心设计、业务架构、工程架构、工作流程、核心模块、目录结构、数据统计） |
 
 ### 调研与探索（docs/research/）
 

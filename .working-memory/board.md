@@ -4,60 +4,57 @@
 
 ---
 
+## 当前焦点
+
+**#15 CLDFlow架构完善 → 工程实现**
+
+方向：补完业务架构细节 → 画工程架构图 → 让 Agent 自主跑
+
+---
+
 ## 进行中
 
-| 任务 | 阶段 | 状态 | 下一动作 | 更新 |
-|------|------|------|----------|------|
-| [#15](ongoing/issue-15-CLDFlow架构设计与实现.md) CLDFlow架构设计与实现 | implementation | ⏳ | 架构四图（业务/工程/流程/数据）| 04-13 |
-| [#14](ongoing/issue-14-项目方向对齐与三大任务规划.md) 项目方向对齐与三大任务规划 | planning | ⬜ | 细化 A/B/C 执行计划 | 04-10 |
-| [#13](ongoing/issue-13-research-kernel-mvp.md) Research Kernel MVP | implementation | ⏳️ | 迁移到测试（需 LLM API + 调试） | 04-08 |
-| [#12](ongoing/issue-13-历史数据迁移与GitHub同步策略.md) 历史数据迁移 | backlog | ⬜ | 评估 Issue 关联 | 04-08 |
+| 任务 | 阶段 | 下一动作 | 更新 |
+|------|------|----------|------|
+| [#15] CLDFlow业务架构完善 | 架构 | 收敛剩余决策：Conductor停止条件 / FCM评分边界 / 失败终态口径 | 04-16 |
+| [#15] CLDFlow工程架构图 | 架构 | 校验模块落位与现有 backend 复用边界 | 04-16 |
+| [#13] Research Kernel MVP | 阻塞 | 需LLM API + E2E验证闭环 | 04-08 |
 
----
+## 已完成（本轮）
 
-## 月度归档速览
-
-| 月份 | 数量 | 关键主题 |
-|------|------|----------|
-| [2026-04](./archive/2026-04/) | - | - |
-| [2026-03](./archive/2026-03/) | - | - |
-| [2026-02](./archive/2026-02/) | - | - |
-| [2026-01](./archive/2026-01/) | - | - |
-| [更多...](./archive/) | - | - |
-
----
-
-## 最近完成（最近 3 个）
-
-| 任务 | 结果 | 日期 | 链接 |
-|------|------|------|------|
-| | | | |
-
----
-
-## 数据洞察
-
-**本月统计：**
-- 完成任务：-
-- 引入问题：-
-- Aha Moments：-
-
-**趋势：** [查看完整分析](./analysis/README.md)
-
----
-
-## 最近顿悟
-
-| 日期 | 主题 | 链接 |
+| 任务 | 结果 | 日期 |
 |------|------|------|
-| | | [索引](../aha-moments/README.md) |
+| 业务图 + 工程图同步完善 | 新增 `docs/CLDFlow-engineering.md`，补 Conductor/异常路径/模块映射 | 04-16 |
+| docs 文件合并精简 | cldflow/ 14→5 按层合并；architecture/engineering 去重；导航同步更新 | 04-16 |
+| 文档迁移到 docs/ | 14个cldflow文档 + 分类整理 + AGENTS.md重写 | 04-15 |
+| Harness Engineering落地 | core-beliefs + invariants + defaults | 04-15 |
+
+---
+
+## 前置条件检查
+
+在让Agent自主跑之前，需要确认：
+
+- [ ] 业务架构图：层内流转细节完备（CLD层Conductor调度、FCM层评级流程）
+- [x] 工程架构图：代码模块映射到业务层、LLM调用方式、异常路径
+- [ ] 运行流程图：正常路径 + 异常路径（Agent失败/LLM超时/检索为空）
+- [ ] 验证案例：Prop 13 端到端可跑通
+
+---
+
+## 冻结原则
+
+1. 模型能力 API only（DeepSeek/OpenAI/LiteLLM）
+2. Agent编排用 LlamaIndex AgentWorkflow
+3. 可观测性必须加强
+4. E2E验证要建立可复用闭环模式
 
 ---
 
 ## 快速链接
 
-- [所有归档](./archive/)
-- [数据分析](./analysis/)
-- [Aha Moments 完整索引](../aha-moments/)
-- [任务类型定义](./TASK_TYPES.md)
-- [计划书模板](./PLAN_TEMPLATE.md)
+- [CLDFlow业务架构](../docs/CLDFlow-architecture.md)
+- [CLDFlow工程架构](../docs/CLDFlow-engineering.md)
+- [架构不变量](../docs/CLDFlow-invariants.md)
+- [决策时间线](ongoing/issue-15-CLDFlow架构设计与实现-v2.md)
+- [Aha Moments](../aha-moments/)
