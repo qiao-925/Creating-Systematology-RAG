@@ -228,10 +228,9 @@ def pytest_collection_modifyitems(config, items):
 
 # Explicitly import shared fixtures
 pytest_plugins = [
-    "tests.fixtures.data",
-    "tests.fixtures.indexer",
-    "tests.fixtures.github",
-    "tests.fixtures.embeddings",
-    "tests.fixtures.llm",
-    "tests.fixtures.mocks",
+    "backend.tests.fixtures.data",
+    "backend.tests.fixtures.github",
+    "backend.tests.fixtures.embeddings",
+    "backend.tests.fixtures.llm",
+    "backend.tests.fixtures.mocks",
 ]

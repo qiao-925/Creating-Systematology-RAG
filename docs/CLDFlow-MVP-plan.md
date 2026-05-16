@@ -321,6 +321,94 @@
 
 - 阶段 1-4：✅ 全部完成（20/20 任务）
 - 阶段 5：✅ 全部完成（G2-G8，G1 已由 env sync 覆盖）
+- 阶段 6：✅ 全部完成（产品转型，见下方 checkpoint）
+
+---
+
+## 6.1 Checkpoint：产品转型执行记录（2026-05-16）
+
+> 本节为本次会话的执行链路存档，记录从 RAG 应用到 CLDFlow Agent 的完整转型过程。
+
+### 执行链路
+
+```
+1. 技术栈调研与安全评估
+   ├── LiteLLM 供应链安全事件调研（2026-03 恶意包）
+   ├── 结论：SDK-only 用法风险可控，保留 LiteLLM
+   └── 决策：接入 DeepSeek + MiMO + Kimi 三模型
+        │
+        ▼
+2. 后端代码迁移
+   ├── api/ → backend/fastapi/（API 层统一）
+   ├── business/ → backend/core/（核心层重组）
+   │   ├── core/input/（输入增强）
+   │   ├── core/orchestration/（Lead Agent 编排）
+   │   ├── core/modules/cld/（CLD 模块 + perspectives 合并）
+   │   ├── core/modules/fcm/（FCM 仿真）
+   │   ├── core/modules/d2d/（D2D 杠杆分析）
+   │   └── core/reporting/（报告融合）
+   └── infrastructure/ 保留 + 新增 agent/retrieval/reranking/formatting
+        │
+        ▼
+3. 旧 RAG 系统分解（Option C）
+   ├── research_kernel/agent.py → infrastructure/agent/（可复用）
+   ├── perspectives/ → core/modules/cld/（唯一消费者）
+   ├── rag_engine/retrieval/ → infrastructure/retrieval/（可复用）
+   ├── rag_engine/reranking/ → infrastructure/reranking/（可复用）
+   ├── rag_engine/formatting/ → infrastructure/formatting/（可复用）
+   ├── Chat 模式 → 删除
+   ├── Research 模式 → 删除
+   └── rag_api/ → 删除（与 research_kernel 循环依赖）
+        │
+        ▼
+4. 前端与 API 层清理
+   ├── backend/fastapi/main.py：移除 Chat/Research router
+   ├── backend/fastapi/deps.py：简化 AppState
+   ├── backend/fastapi/schemas.py：移除 Chat/Research 模型
+   ├── backend/fastapi/routes/config.py：移除 runtime_config
+   └── backend/core/api.py：CLDFlow API 路由独立
+        │
+        ▼
+5. 产品重命名与文档更新
+   ├── README.md 全面重写（CLDFlow Agent 定位）
+   ├── ARCHITECTURE.md 目录树更新 + 技术栈移除
+   ├── docs/探索与项目演化路线图.md 新增阶段 9
+   ├── pytest.ini：testpaths 更新为 backend/tests tests
+   └── Makefile：测试路径同步更新
+        │
+        ▼
+6. 提交
+   └── 63edd1c: 673 files changed, 5788 insertions(+), 70341 deletions(-)
+```
+
+### 关键决策记录
+
+| # | 决策 | 选项 | 理由 |
+|---|------|------|------|
+| T1 | LiteLLM 保留 | 保留 vs 替换 | SDK-only 风险可控，无替代方案能统一三模型 |
+| T2 | 旧系统处理 | A:保留 / B:大爆炸重写 / **C:拆解复用** | C 最安全，可复用部分沉淀到 infrastructure/ |
+| T3 | Chat/Research 模式 | 保留 vs 删除 | 与 CLDFlow 零耦合，保留是死代码 |
+| T4 | API 层命名 | api/ vs fastapi/ | fastapi/ 更直观，避免与 core/api.py 混淆 |
+| T5 | core 层命名 | business/ vs core/ | business/ 语义不清，core/ 更简洁 |
+| T6 | perspectives 归属 | 独立层 vs 合并到 cld/ | 唯一消费者是 CLD 模块，合并消除跨层依赖 |
+
+### 变更统计
+
+| 类别 | 文件数 | 说明 |
+|------|--------|------|
+| 删除 | ~600 | 旧 RAG 系统、Chat/Research、重复文件 |
+| 移动/重命名 | ~50 | 后端代码迁移 |
+| 新增 | ~20 | infrastructure/agent/、.env.example |
+| 修改 | ~30 | README、ARCHITECTURE、Makefile、pytest.ini |
+
+### 已知遗留
+
+| 项目 | 状态 | 说明 |
+|------|------|------|
+| `llama-index-llms-openai` | 待删除 | pyproject.toml 中仍存在，已通过 LiteLLM 替代 |
+| `llama-index-llms-deepseek` | 待删除 | 同上 |
+| Embedding 方案 | 待确定 | HuggingFace Local vs API，暂未启用 |
+| Reranker | 待确定 | SentenceTransformer / BGE，暂未启用 |
 
 ## 7. AI 自主授权
 
@@ -365,7 +453,8 @@
 | `numpy` | D2D 扰动计算、FCM 矩阵运算 | ✅ 已安装 |
 | ~~`fcmpy`~~ | FCM Kosko 仿真 | ❌ 移除（tqdm 版本冲突），用 NumPy 直接实现 |
 
-> 已有依赖：`llama-index`, `pydantic`, `openai`, `structlog`, `fastapi`, `streamlit`, `chromadb` 等无需新增。
+> 已有依赖：`llama-index`, `pydantic`, `openai`, `structlog`, `fastapi`, `chromadb`, `litellm` 等无需新增。
+> 已移除：`streamlit`（前端迁移到 Next.js）。
 
 ### 9.2 外部服务依赖（用户需配置）
 
@@ -392,16 +481,17 @@
 
 ## 10. 可复用模块映射
 
+> 以下路径已随产品转型（阶段 6）更新为当前目录结构。
+
 | CLDFlow 任务 | 复用来源 | 复用方式 |
 |--------------|----------|----------|
-| T4 输入增强 | `backend/business/rag_engine/retrieval/` | 调用现有检索器 |
-| T4 输入增强 | `backend/business/rag_engine/processing/` | 调用查询处理 |
-| T6 Lead Agent | `backend/business/research_kernel/agent.py` | 参考 AgentWorkflow 模式 |
-| T7 视角生成 | `backend/perspectives/generator.py` | 直接复用 `PerspectiveGenerator` |
-| T7 视角生成 | `backend/perspectives/registry.py` | 直接复用 `TemplateRegistry` |
-| T6/T8/T10 LLM | `backend/infrastructure/llms/factory.py` | 调用 `create_llm()` |
+| T4 输入增强 | `backend/infrastructure/retrieval/` | 调用现有检索器 |
+| T6 Lead Agent | `backend/infrastructure/agent/` | 复用 AgentWorkflow 模式 |
+| T7 视角生成 | `backend/core/modules/cld/perspectives/` | 直接复用 `PerspectiveGenerator` + `TemplateRegistry` |
+| T6/T8/T10 LLM | `backend/infrastructure/llms/factory.py` | 调用 `create_llm()`（via LiteLLM） |
 | T6 可观测性 | `backend/infrastructure/observers/` | 注入 observer |
 | T6 日志 | `backend/infrastructure/logger.py` | 调用 `get_logger()` |
+| T6 格式化 | `backend/infrastructure/formatting/` | 复用输出格式化 |
 
 ---
 

@@ -15,7 +15,7 @@ from llama_index.core.llms import LLM
 from pydantic import BaseModel, Field
 
 from backend.core.models import CausalLink, CLDNode
-from backend.core.modules.cld.perspectives import CLDPerspective
+from backend.core.modules.cld.perspectives.generator import Perspective as CLDPerspective
 from backend.infrastructure.logger import get_logger
 
 logger = get_logger("cldflow.specialist")

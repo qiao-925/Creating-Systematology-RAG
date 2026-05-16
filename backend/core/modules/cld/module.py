@@ -12,7 +12,8 @@ from llama_index.core.llms import LLM
 from backend.core.models import CausalLink, CLDNode, SharedCLD
 from backend.core.modules.cld.conflict import detect_conflicts, resolve_conflicts_by_arbitration
 from backend.core.modules.cld.merge import merge_nodes
-from backend.core.modules.cld.perspectives import generate_perspectives, CLDPerspective
+from backend.core.modules.cld.perspectives import PerspectiveGenerator
+from backend.core.modules.cld.perspectives.generator import Perspective as CLDPerspective
 from backend.core.modules.cld.schema import CLDAnalysisInput, CLDAnalysisOutput
 from backend.core.modules.cld.specialist import run_specialists_parallel
 from backend.core.modules.cld.judge import self_review_gate, get_judge_llm
@@ -56,10 +57,9 @@ class CLDModule:
         logger.info("CLD analysis starting", question=question[:80])
 
         # Step 1: Generate perspectives
-        perspectives = generate_perspectives(
-            question,
-            max_perspectives=input_data.max_perspectives,
-        )
+        generator = PerspectiveGenerator()
+        result = generator.generate(question, max_perspectives=input_data.max_perspectives)
+        perspectives = result.perspectives
         if input_data.perspective_hints:
             # Add user-provided hints as additional perspectives
             for i, hint in enumerate(input_data.perspective_hints):
@@ -68,7 +68,9 @@ class CLDModule:
                     name=hint,
                     role_definition={"title": hint},
                     extraction_preferences={},
+                    search_strategy={},
                     ddc_class="custom",
+                    template_source="user_hint",
                 ))
 
         logger.info("Perspectives generated", count=len(perspectives))

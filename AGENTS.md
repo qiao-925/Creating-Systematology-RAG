@@ -32,5 +32,14 @@ docs/
 ## 后续迭代计划
 
 -  加州32号法案 作为系统动力学研究demo
-
-
+- 工作流优化
+  - 计划的生命周期管理
+    - 目标定义
+    - 执行进度
+    - 执行日志，关键checkpoint，强化可观测性
+    - 决策日志
+    - 任务列表
+    - 变更统计
+    - review建议
+    - 完成存档
+  - 参考：C:\Users\nonep\Desktop\Creating-Systematology-RAG\.agent\runtime\working-memory-boost.md
