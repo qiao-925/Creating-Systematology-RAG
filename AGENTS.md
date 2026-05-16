@@ -1,30 +1,36 @@
 # AGENTS.md
 
-ARCHITECTURE.md
+此文档用于构建执行 Agent 的全局地图理解。
+
+## 文档地图
+
+```
+ARCHITECTURE.md                   ← 架构设计（工作流 + 技术栈 + 目录结构 + 数据统计）
+README.md                         ← 项目说明 + 快速开始 + CLDFlow 使用指南
+AGENTS.md                         ← 本文件：Agent 全局地图
+
 docs/
-├── design-docs/
-│   ├── index.md
-│   ├── core-beliefs.md
-│   └── ...
-├── exec-plans/
-│   ├── active/
-│   ├── completed/
-│   └── tech-debt-tracker.md
-├── generated/
-│   └── db-schema.md
-├── product-specs/
-│   ├── index.md
-│   ├── new-user-onboarding.md
-│   └── ...
-├── references/
-│   ├── design-system-reference-llms.txt
-│   ├── nixpacks-llms.txt
-│   ├── uv-llms.txt
-│   └── ...
-├── DESIGN.md
-├── FRONTEND.md
-├── PLANS.md
-├── PRODUCT_SENSE.md
-├── QUALITY_SCORE.md
-├── RELIABILITY.md
-└── SECURITY.md
+├── CLDFlow-MVP-plan.md           ← CLDFlow 可执行计划书（T1-T20 + G1-G8，全部完成）
+├── CLDFlow-MVP-review.md         ← CLDFlow MVP 审查报告
+├── CONFIG_SETUP.md               ← 配置管理指南（gh token 同步 + .env 说明）
+├── KeyDecision-list.md           ← 关键决策记录（D1-D12）
+└── research with brainstorm/     ← 研究与头脑风暴材料（论文 + 架构设计）
+```
+## Current Focus
+构建可发布的mvp版本
+迁移旧应用
+- 前端实现，使用react改造 ✅（Streamlit 前端已删除）
+- 后端实现迁移：先更新一下架构文档中的技术栈并做决策，再迁移老代码到新结构中
+- 测试体系
+- 文档更新整理
+  - 核心文档设计
+  - 存档和记录 C:\Users\nonep\Desktop\Creating-Systematology-RAG\.agent\runtime\working-memory-boost.md 
+    - 更新动作的checkpoint和路线演进图，checkpoint更微观，路线图更宏观
+- 统一性监测
+- 对今天的会话操作做一个统计和总结
+
+## 后续迭代计划
+
+-  加州32号法案 作为系统动力学研究demo
+
+

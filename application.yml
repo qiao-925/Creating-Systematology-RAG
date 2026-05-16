@@ -180,3 +180,19 @@ test:
     owner: qiao-925
     repo: Creating-Systematology-Test
     branch: main
+
+# ============================================================================
+# 8. CLDFlow 分析流水线配置
+# ============================================================================
+cldflow:
+  specialist_model: deepseek-chat    # Specialist Agent 模型
+  judge_model: deepseek-chat         # Judge Agent 模型（可改为 gpt-4o-mini）
+  max_perspectives: 3                # 默认视角数
+  budget_turns: 30                   # Lead Agent 最大轮次
+  budget_tokens: 100000              # Token 预算
+  timeout_seconds: 180               # 超时秒数
+  fcm:
+    max_iterations: 100              # Kosko 最大迭代
+    convergence_threshold: 1.0e-6    # 收敛阈值
+  d2d:
+    perturbation_pct: 0.1            # 扰动百分比

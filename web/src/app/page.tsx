@@ -12,9 +12,10 @@ import { ChatInput } from "@/components/chat/chat-input";
 import { SuggestionPills } from "@/components/chat/suggestion-pills";
 import { SettingsSheet } from "@/components/settings/settings-sheet";
 import { ResearchResultCard } from "@/components/chat/research-result";
+import { CLDFlowPanel } from "@/components/cldflow/cldflow-panel";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
-import type { ResearchResult } from "@/types";
+import type { AppMode, ResearchResult } from "@/types";
 
 export default function Home() {
   useHealthPoll();
@@ -26,9 +27,11 @@ export default function Home() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [researchResult, setResearchResult] = useState<ResearchResult | null>(null);
   const [researchLoading, setResearchLoading] = useState(false);
+  const [mode, setMode] = useState<AppMode>("chat");
 
   const handleSend = useCallback(
     async (message: string) => {
+      if (mode === "cldflow") return;
       if (isResearchMode) {
         setResearchLoading(true);
         setResearchResult(null);
@@ -44,7 +47,7 @@ export default function Home() {
         sendMessage(message);
       }
     },
-    [isResearchMode, sendMessage],
+    [isResearchMode, sendMessage, mode],
   );
 
   // Loading screen
@@ -82,11 +85,30 @@ export default function Home() {
 
   const busy = isStreaming || researchLoading;
 
+  // CLDFlow mode
+  if (mode === "cldflow") {
+    return (
+      <div className="flex flex-1 flex-col">
+        <HeaderBar
+          onSettingsClick={() => setSettingsOpen(true)}
+          mode={mode}
+          onModeChange={setMode}
+        />
+        <SettingsSheet open={settingsOpen} onOpenChange={setSettingsOpen} />
+        <div className="flex-1 overflow-y-auto">
+          <div className="mx-auto max-w-4xl px-6 py-8">
+            <CLDFlowPanel />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Landing (no messages and no research result)
   if (!hasMessages && !researchResult) {
     return (
       <div className="flex flex-1 flex-col animate-in fade-in duration-500">
-        <HeaderBar onSettingsClick={() => setSettingsOpen(true)} />
+        <HeaderBar onSettingsClick={() => setSettingsOpen(true)} mode={mode} onModeChange={setMode} />
         <SettingsSheet open={settingsOpen} onOpenChange={setSettingsOpen} />
         <div className="flex flex-1 flex-col items-center justify-center pb-24">
           <div className="w-full max-w-3xl space-y-10 px-6">
@@ -118,7 +140,7 @@ export default function Home() {
   if (researchResult) {
     return (
       <div className="flex flex-1 flex-col">
-        <HeaderBar onSettingsClick={() => setSettingsOpen(true)} />
+        <HeaderBar onSettingsClick={() => setSettingsOpen(true)} mode={mode} onModeChange={setMode} />
         <SettingsSheet open={settingsOpen} onOpenChange={setSettingsOpen} />
         <div className="flex-1 overflow-y-auto">
           <div className="mx-auto max-w-4xl px-6 py-8 space-y-6">
@@ -143,7 +165,7 @@ export default function Home() {
   // Chat view
   return (
     <div className="flex flex-1 flex-col">
-      <HeaderBar onSettingsClick={() => setSettingsOpen(true)} />
+      <HeaderBar onSettingsClick={() => setSettingsOpen(true)} mode={mode} onModeChange={setMode} />
       <SettingsSheet open={settingsOpen} onOpenChange={setSettingsOpen} />
       <MessageList />
       <ChatInput onSend={handleSend} disabled={busy} />

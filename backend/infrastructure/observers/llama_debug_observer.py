@@ -12,14 +12,6 @@ from backend.infrastructure.config import config
 
 logger = get_logger('llama_debug_observer')
 
-# 尝试导入 streamlit（可选）
-try:
-    import streamlit as st
-    STREAMLIT_AVAILABLE = True
-except ImportError:
-    STREAMLIT_AVAILABLE = False
-    st = None
-
 
 class LlamaDebugObserver(BaseObserver):
     """LlamaDebug 观察器
@@ -289,16 +281,6 @@ class LlamaDebugObserver(BaseObserver):
                     # 事件对详情
                     "event_pairs": event_details,
                 }
-                
-                # 存储到 session_state（如果 streamlit 可用）
-                if STREAMLIT_AVAILABLE and hasattr(st, 'session_state'):
-                    if 'llama_debug_logs' not in st.session_state:
-                        st.session_state.llama_debug_logs = []
-                    st.session_state.llama_debug_logs.append(debug_info)
-                    
-                    # 只保留最近50条记录
-                    if len(st.session_state.llama_debug_logs) > 50:
-                        st.session_state.llama_debug_logs = st.session_state.llama_debug_logs[-50:]
                 
                 # 打印到控制台
                 logger.info(f"🐛 LlamaDebug: 查询完成，{len(event_pairs)} 个事件")

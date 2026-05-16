@@ -1,4 +1,4 @@
-import type { AppConfig, HealthStatus, ModelInfo, ResearchResult } from "@/types";
+import type { AppConfig, CLDFlowResponse, HealthStatus, ModelInfo, ResearchResult } from "@/types";
 
 const BASE = "/api";
 const STREAM_BASE =
@@ -27,6 +27,12 @@ export const api = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ question }),
+    }),
+  cldflowAnalyze: (question: string, documents?: string[]) =>
+    json<CLDFlowResponse>("/cldflow/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question, documents }),
     }),
 };
 

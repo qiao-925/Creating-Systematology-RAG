@@ -6,7 +6,6 @@
 - 定义各模块的检查函数和依赖关系
 """
 
-import streamlit as st
 from typing import Optional, Any
 
 from backend.infrastructure.initialization.manager import InitializationManager, InitStatus
@@ -113,15 +112,15 @@ def register_all_modules(manager: InitializationManager) -> None:
         description="LLM工厂（DeepSeek）- 延迟加载"
     )
     
-    # 8. 会话状态
+    # 8. 会话状态（Streamlit 遗留，FastAPI 下为空操作）
     manager.register_module(
         name="session_state",
         category=InitCategory.CORE.value,
         check_func=lambda: check_session_state(),
         init_func=lambda: init_session_state(manager),
         dependencies=["config"],
-        is_required=True,
-        description="Streamlit会话状态初始化"
+        is_required=False,
+        description="会话状态初始化（Streamlit 遗留，FastAPI 下为空操作）"
     )
     
     # 9. RAG 服务（延迟加载：启动时不初始化，首次使用时再初始化）

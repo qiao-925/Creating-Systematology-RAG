@@ -68,7 +68,7 @@ def verify_evaluator():
     print("  STEP 3: 验证 ResearchEvaluator 规则指标")
     print("=" * 60)
 
-    from backend.business.research_kernel.state import (
+    from backend.infrastructure.agent.state import (
         Confidence, EvidenceItem, ResearchOutput, StopReason,
     )
     from backend.infrastructure.evaluation.research_evaluator import ResearchEvaluator

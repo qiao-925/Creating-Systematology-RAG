@@ -6,10 +6,9 @@ Flow:
   2. auto  — On project start: if .env missing, pull + decrypt (silent)
   3. push  — Re-encrypt current .env and update Gist
   4. pull  — Force pull from Gist and decrypt to .env
-  5. setup <passphrase> — Save passphrase on a new machine
 
 Encryption: PBKDF2 key derivation + HMAC-authenticated XOR stream (stdlib only).
-Passphrase stored at: ~/.config/cs-rag/passphrase
+Key derived from: `gh auth token` (GitHub OAuth token).
 Gist config stored at: <project_root>/.env.remote  (committed, no secrets)
 """
 
@@ -26,12 +25,41 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).parent.parent
 ENV_FILE = PROJECT_ROOT / ".env"
 REMOTE_CONFIG = PROJECT_ROOT / ".env.remote"
-PASSPHRASE_DIR = Path.home() / ".config" / "cs-rag"
-PASSPHRASE_FILE = PASSPHRASE_DIR / "passphrase"
 GIST_FILENAME = "env.encrypted"
 
 
-# ── Crypto (stdlib only) ──────────────────────────────────────────
+# ── GitHub Auth ────────────────────────────────────────────────
+
+def _get_gh_token() -> str:
+    """Get GitHub OAuth token from gh CLI.
+
+    Raises RuntimeError if gh is not installed or not authenticated.
+    """
+    try:
+        result = subprocess.run(
+            ["gh", "auth", "token"],
+            capture_output=True, text=True, timeout=10,
+        )
+    except FileNotFoundError:
+        raise RuntimeError(
+            "gh CLI not found. Install it: https://cli.github.com/\n"
+            "Then run: gh auth login"
+        )
+
+    if result.returncode != 0:
+        raise RuntimeError(
+            "gh not authenticated. Run: gh auth login"
+        )
+
+    token = result.stdout.strip()
+    if not token:
+        raise RuntimeError(
+            "gh auth token is empty. Run: gh auth login"
+        )
+    return token
+
+
+# ── Crypto (stdlib only) ──────────────────────────────────────
 
 def _derive_key(passphrase: str, salt: bytes, length: int) -> bytes:
     """PBKDF2 key derivation."""
@@ -64,34 +92,12 @@ def decrypt(blob: bytes, passphrase: str) -> bytes:
     salt, mac, ct = raw[:16], raw[16:48], raw[48:]
     key = _derive_key(passphrase, salt, 32)
     if not hmac.compare_digest(mac, hmac.new(key, salt + ct, "sha256").digest()):
-        raise ValueError("Decryption failed: wrong passphrase or corrupted data")
+        raise ValueError("Decryption failed: wrong token or corrupted data")
     ks = _key_stream(key, len(ct))
     return bytes(a ^ b for a, b in zip(ct, ks))
 
 
-# ── Passphrase management ────────────────────────────────────────
-
-def _load_passphrase() -> str:
-    if not PASSPHRASE_FILE.exists():
-        raise FileNotFoundError(
-            f"Passphrase not found at {PASSPHRASE_FILE}\n"
-            "Run: python scripts/env_sync.py init   (first time)\n"
-            "  or: python scripts/env_sync.py setup <passphrase>  (new machine)"
-        )
-    return PASSPHRASE_FILE.read_text().strip()
-
-
-def _save_passphrase(passphrase: str) -> None:
-    PASSPHRASE_DIR.mkdir(parents=True, exist_ok=True)
-    PASSPHRASE_FILE.write_text(passphrase)
-    PASSPHRASE_FILE.chmod(0o600)
-
-
-def _generate_passphrase() -> str:
-    return base64.urlsafe_b64encode(os.urandom(24)).decode()
-
-
-# ── Gist operations ──────────────────────────────────────────────
+# ── Gist operations ──────────────────────────────────────────
 
 def _gh(args: list[str], input_data: str | None = None) -> str:
     """Run a gh CLI command, return stdout."""
@@ -114,7 +120,6 @@ def _gist_create(content: str) -> str:
     )
     if result.returncode != 0:
         raise RuntimeError(f"Gist creation failed: {result.stderr.strip()}")
-    # gh gist create returns the URL, extract ID
     url = result.stdout.strip()
     return url.rsplit("/", 1)[-1]
 
@@ -136,7 +141,7 @@ def _gist_read(gist_id: str) -> str:
     return _gh(["gist", "view", gist_id, "--filename", GIST_FILENAME, "--raw"])
 
 
-# ── Config (.env.remote) ─────────────────────────────────────────
+# ── Config (.env.remote) ─────────────────────────────────────
 
 def _load_config() -> dict:
     if not REMOTE_CONFIG.exists():
@@ -148,7 +153,7 @@ def _save_config(cfg: dict) -> None:
     REMOTE_CONFIG.write_text(json.dumps(cfg, indent=2) + "\n")
 
 
-# ── Commands ──────────────────────────────────────────────────────
+# ── Commands ──────────────────────────────────────────────────
 
 def cmd_init():
     """First-time setup: encrypt .env → private Gist."""
@@ -156,13 +161,11 @@ def cmd_init():
         print(f"ERROR: {ENV_FILE} not found. Create it first, then run init.")
         sys.exit(1)
 
-    # Generate and save passphrase
-    passphrase = _generate_passphrase()
-    _save_passphrase(passphrase)
+    token = _get_gh_token()
 
     # Encrypt
     env_data = ENV_FILE.read_bytes()
-    blob = encrypt(env_data, passphrase).decode()
+    blob = encrypt(env_data, token).decode()
 
     # Push to Gist
     print("Pushing encrypted .env to private GitHub Gist...")
@@ -175,13 +178,11 @@ def cmd_init():
     print(f"  Init complete!")
     print(f"  Gist ID : {gist_id}")
     print(f"  Config  : {REMOTE_CONFIG}")
-    print(f"  Key file: {PASSPHRASE_FILE}")
     print(f"{'='*60}")
-    print(f"\n  For a new machine, copy the passphrase:")
-    print(f"    {passphrase}")
-    print(f"  Then run:")
-    print(f"    python scripts/env_sync.py setup <passphrase>")
-    print(f"\n  After that, .env auto-syncs on project start.\n")
+    print(f"\n  On a new machine, just run:")
+    print(f"    gh auth login")
+    print(f"    uv run python scripts/env_sync.py pull")
+    print()
 
 
 def cmd_push():
@@ -195,8 +196,8 @@ def cmd_push():
         print("ERROR: Not initialized. Run: python scripts/env_sync.py init")
         sys.exit(1)
 
-    passphrase = _load_passphrase()
-    blob = encrypt(ENV_FILE.read_bytes(), passphrase).decode()
+    token = _get_gh_token()
+    blob = encrypt(ENV_FILE.read_bytes(), token).decode()
     _gist_update(cfg["gist_id"], blob)
     print("Pushed encrypted .env to Gist.")
 
@@ -208,9 +209,9 @@ def cmd_pull():
         print("ERROR: Not initialized. Run: python scripts/env_sync.py init")
         sys.exit(1)
 
-    passphrase = _load_passphrase()
+    token = _get_gh_token()
     blob = _gist_read(cfg["gist_id"])
-    env_data = decrypt(blob.encode(), passphrase)
+    env_data = decrypt(blob.encode(), token)
     ENV_FILE.write_bytes(env_data)
     ENV_FILE.chmod(0o600)
     print(f"Pulled and decrypted .env ({len(env_data)} bytes).")
@@ -225,13 +226,10 @@ def cmd_auto():
     if not cfg.get("gist_id"):
         return  # Not configured — skip silently
 
-    if not PASSPHRASE_FILE.exists():
-        return  # No passphrase — skip silently
-
     try:
-        passphrase = _load_passphrase()
+        token = _get_gh_token()
         blob = _gist_read(cfg["gist_id"])
-        env_data = decrypt(blob.encode(), passphrase)
+        env_data = decrypt(blob.encode(), token)
         ENV_FILE.write_bytes(env_data)
         ENV_FILE.chmod(0o600)
         print(f"[env-sync] Auto-pulled .env from Gist ({len(env_data)} bytes)")
@@ -240,14 +238,7 @@ def cmd_auto():
         print(f"[env-sync] Auto-pull skipped: {e}", file=sys.stderr)
 
 
-def cmd_setup(passphrase: str):
-    """Save passphrase on a new machine."""
-    _save_passphrase(passphrase)
-    print(f"Passphrase saved to {PASSPHRASE_FILE}")
-    print("Run the project normally — .env will auto-sync on startup.")
-
-
-# ── CLI entry point ───────────────────────────────────────────────
+# ── CLI entry point ───────────────────────────────────────────
 
 def main():
     if len(sys.argv) < 2:
@@ -263,8 +254,6 @@ def main():
         cmd_pull()
     elif cmd == "auto":
         cmd_auto()
-    elif cmd == "setup" and len(sys.argv) >= 3:
-        cmd_setup(sys.argv[2])
     else:
         print(f"Unknown command: {cmd}")
         print(__doc__)

@@ -277,6 +277,17 @@ class Config:
             'retry_delay': 2.0,
         }
 
+    def get_cldflow_config(self):
+        """获取 CLDFlow 配置
+
+        Returns:
+            CLDFlowConfig 实例，若未配置则返回默认值
+        """
+        from backend.infrastructure.config.models import CLDFlowConfig
+        if self._model.cldflow:
+            return self._model.cldflow
+        return CLDFlowConfig()
+
 
 # 添加COLLECTION_NAME属性（别名）
 def _get_collection_name(self) -> str:

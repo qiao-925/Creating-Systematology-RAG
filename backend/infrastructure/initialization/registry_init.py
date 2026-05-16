@@ -5,7 +5,6 @@
 - 提供各模块的初始化函数，用于创建和配置模块实例
 """
 
-import streamlit as st
 from typing import Any
 
 from backend.infrastructure.initialization.manager import InitializationManager, InitStatus
@@ -46,7 +45,7 @@ def init_logger(manager: InitializationManager) -> Any:
 def init_embedding(manager: InitializationManager) -> Any:
     """初始化Embedding模型并验证连接"""
     from backend.infrastructure.embeddings.factory import create_embedding, get_embedding_instance
-    
+
     cached_instance = get_embedding_instance()
     if cached_instance is not None:
         logger.info(f"使用工厂函数缓存的 Embedding 实例: {type(cached_instance).__name__}")
@@ -58,10 +57,10 @@ def init_embedding(manager: InitializationManager) -> Any:
         except Exception as e:
             logger.warning(f"⚠️  缓存的 Embedding 实例连接验证失败: {e}，将重新创建")
             cached_instance = None
-    
+
     if cached_instance is None:
         embedding_instance = create_embedding()
-        
+
         try:
             test_embedding = embedding_instance.get_query_embedding("test")
             embed_dim = len(test_embedding)
@@ -72,11 +71,7 @@ def init_embedding(manager: InitializationManager) -> Any:
             raise RuntimeError(f"Embedding 模型连接失败: {e}") from e
     else:
         embedding_instance = cached_instance
-    
-    if hasattr(st, 'session_state'):
-        st.session_state.embed_model = embedding_instance
-        st.session_state.embed_model_loaded = True
-    
+
     logger.info(f"Embedding 实例创建成功: {type(embedding_instance).__name__}")
     return embedding_instance
 
@@ -85,12 +80,7 @@ def init_index_manager(manager: InitializationManager) -> Any:
     """初始化索引管理器（延迟加载）"""
     from backend.infrastructure.indexer import IndexManager
     from backend.infrastructure.initialization.registry_init import init_embedding
-    
-    if hasattr(st, 'session_state'):
-        if 'index_manager' in st.session_state and st.session_state.index_manager is not None:
-            logger.info("使用 session_state 中已有的 IndexManager")
-            return st.session_state.index_manager
-    
+
     embedding = manager.instances.get('embedding')
     if embedding is None:
         logger.info("Embedding 未初始化，自动初始化（延迟加载）")
@@ -102,26 +92,19 @@ def init_index_manager(manager: InitializationManager) -> Any:
         except Exception as e:
             logger.error(f"延迟加载 Embedding 失败: {e}")
             raise ValueError(f"Embedding 实例初始化失败: {e}") from e
-    
+
     collection_name = config.CHROMA_COLLECTION_NAME
-    if hasattr(st, 'session_state') and 'collection_name' in st.session_state:
-        collection_name = st.session_state.collection_name
-    
+
     index_manager = IndexManager(
         collection_name=collection_name,
         embedding_instance=embedding
     )
-    
-    if hasattr(st, 'session_state'):
-        st.session_state.index_manager = index_manager
-        st.session_state.index_manager_validated = True
-    
+
     return index_manager
 
 
 def init_llm_factory(manager: InitializationManager) -> Any:
     """初始化LLM工厂（延迟加载：仅验证配置，不创建实例）"""
-    # 仅验证配置，不创建实例（延迟到首次使用）
     if not config.DEEPSEEK_API_KEY:
         logger.warning("未设置 DEEPSEEK_API_KEY，LLM 将在首次调用时校验")
         return {
@@ -131,7 +114,6 @@ def init_llm_factory(manager: InitializationManager) -> Any:
             'api_key_present': False,
         }
 
-    # 验证模型配置
     default_model_id = config.get_default_llm_id()
     model_config = config.get_llm_model_config(default_model_id)
     if not model_config:
@@ -140,7 +122,6 @@ def init_llm_factory(manager: InitializationManager) -> Any:
     logger.info(f"✅ LLM工厂配置验证成功（默认模型: {default_model_id}）")
     logger.info("LLM实例将在首次使用时创建（延迟加载）")
 
-    # 返回配置信息而非实例
     return {
         'default_model_id': default_model_id,
         'model_config': model_config,
@@ -149,104 +130,17 @@ def init_llm_factory(manager: InitializationManager) -> Any:
 
 
 def init_session_state(manager: InitializationManager) -> None:
-    """初始化会话状态"""
-    from frontend.utils.state import init_session_state
-    
-    init_session_state()
-    
-    if hasattr(st, 'session_state'):
-        if 'github_sync_manager' in st.session_state and st.session_state.github_sync_manager is not None:
-            try:
-                repos = st.session_state.github_sync_manager.list_repositories()
-                logger.info(f"✅ GitHub 同步管理器初始化成功（已管理 {len(repos)} 个仓库）")
-            except Exception as e:
-                logger.warning(f"⚠️  GitHub 同步管理器验证失败: {e}")
-        else:
-            logger.warning("⚠️  GitHub 同步管理器未在 session_state 中找到")
-    
+    """会话状态初始化（Streamlit 遗留，FastAPI 下为空操作）"""
     return None
 
 
 def init_rag_service(manager: InitializationManager) -> Any:
-    """初始化RAG服务（延迟加载）"""
-    from backend.business.rag_api import RAGService
-    
-    if hasattr(st, 'session_state'):
-        if 'rag_service' in st.session_state and st.session_state.rag_service is not None:
-            logger.info("使用 session_state 中已有的 RAGService")
-            return st.session_state.rag_service
-    
-    collection_name = config.CHROMA_COLLECTION_NAME
-    if hasattr(st, 'session_state') and 'collection_name' in st.session_state:
-        collection_name = st.session_state.collection_name
-    
-    enable_debug = False
-    
-    use_agentic_rag = False
-    if hasattr(st, 'session_state') and 'use_agentic_rag' in st.session_state:
-        use_agentic_rag = st.session_state.use_agentic_rag
-    
-    selected_model_id = None
-    if hasattr(st, 'session_state') and 'selected_model' in st.session_state:
-        selected_model_id = st.session_state.selected_model
-    
-    rag_service = RAGService(
-        collection_name=collection_name,
-        enable_debug=enable_debug,
-        enable_markdown_formatting=True,
-        use_agentic_rag=use_agentic_rag,
-        model_id=selected_model_id,
-    )
-    
-    if hasattr(st, 'session_state'):
-        st.session_state.rag_service = rag_service
-        st.session_state.rag_service_validated = True
-    
-    logger.info("RAGService 创建完成（延迟加载模式）")
-    return rag_service
+    """RAG 服务已移除（CLDFlow 不依赖），保留空操作供初始化系统兼容"""
+    logger.info("RAG 服务已移除，跳过初始化")
+    return None
 
 
 def init_chat_manager(manager: InitializationManager) -> Any:
-    """初始化对话管理器（延迟加载）"""
-    from backend.business.chat import ChatManager
-    from backend.infrastructure.initialization.registry_init import init_index_manager
-    
-    index_manager = manager.instances.get('index_manager')
-    if index_manager is None:
-        logger.info("IndexManager 未初始化，自动初始化（延迟加载）")
-        try:
-            index_manager = init_index_manager(manager)
-            manager.instances['index_manager'] = index_manager
-            if 'index_manager' in manager.modules:
-                manager.modules['index_manager'].status = InitStatus.SUCCESS
-        except Exception as e:
-            logger.error(f"延迟加载 IndexManager 失败: {e}")
-            raise ValueError(f"IndexManager 实例初始化失败: {e}") from e
-    
-    if hasattr(st, 'session_state'):
-        if 'chat_manager' in st.session_state and st.session_state.chat_manager is not None:
-            logger.info("使用 session_state 中已有的 ChatManager")
-            return st.session_state.chat_manager
-    
-    enable_debug = False
-    
-    use_agentic_rag = False
-    if hasattr(st, 'session_state') and 'use_agentic_rag' in st.session_state:
-        use_agentic_rag = st.session_state.use_agentic_rag
-    
-    selected_model_id = None
-    if hasattr(st, 'session_state') and 'selected_model' in st.session_state:
-        selected_model_id = st.session_state.selected_model
-    
-    chat_manager = ChatManager(
-        index_manager=index_manager,
-        enable_debug=enable_debug,
-        enable_markdown_formatting=True,
-        use_agentic_rag=use_agentic_rag,
-        model_id=selected_model_id,
-    )
-    
-    if hasattr(st, 'session_state'):
-        st.session_state.chat_manager = chat_manager
-    
-    return chat_manager
+    """对话管理器已移除（CLDFlow 不依赖），保留空操作供初始化系统兼容"""
+    logger.info("对话管理器已移除，跳过初始化")
+    return None
