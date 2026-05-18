@@ -42,6 +42,11 @@ agent-task-log/
 README.md
 *.md
 
+# 前端构建产物（Docker 内重新构建）
+web/.next/
+web/node_modules/
+web/out/
+
 # 其他
 .DS_Store
 Thumbs.db

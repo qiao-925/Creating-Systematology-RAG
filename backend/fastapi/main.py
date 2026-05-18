@@ -66,15 +66,17 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # CORS — allow Next.js dev server
+    # CORS — allow origins from env or default to wildcard
+    import os
+    cors_env = os.getenv("CORS_ORIGINS", "")
+    if cors_env:
+        allow_origins = [o.strip() for o in cors_env.split(",") if o.strip()]
+    else:
+        allow_origins = ["*"]
+
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[
-            "http://localhost:3000",
-            "http://localhost:3001",
-            "http://127.0.0.1:3000",
-            "http://127.0.0.1:3001",
-        ],
+        allow_origins=allow_origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

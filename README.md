@@ -1,3 +1,13 @@
+---
+title: CLDFlow Agent
+emoji: "\U0001F9E0"
+colorFrom: blue
+colorTo: green
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # CLDFlow Agent
 
 > 将系统动力学（CLD / FCM / D2D）编码为工具链的 AI Agent，用于复杂系统的因果建模与杠杆分析
@@ -44,49 +54,6 @@ curl -X POST http://localhost:8000/api/cldflow/analyze \
 > 📖 配置详情 → [配置管理指南](docs/CONFIG_SETUP.md)
 
 ---
-
-## 2. 技术栈
-
-#### 系统级
-
-| 类别 | 技术 | 说明 |
-|------|------|------|
-| 语言 | Python 3.12 | 类型提示、match statement |
-| 包管理 | uv | 快速依赖管理 |
-| 前端 | Next.js / React | CLDFlow 分析界面 |
-| Web 框架 | FastAPI | REST API + SSE 流式响应 |
-| 配置 | Pydantic + YAML + .env | 类型安全配置 |
-
-#### RAG 与 Agent
-
-| 类别 | 技术 | 说明 |
-|------|------|------|
-| Agent 框架 | LlamaIndex | ReActAgent + AgentWorkflow |
-| LLM 网关 | **LiteLLM** | 统一多模型接口，屏蔽提供商差异 |
-| LLM 模型 | DeepSeek / MiMO / Kimi | 通过 LiteLLM 统一调用，可热切换 |
-| 结构化输出 | Instructor | JSON Schema 强制输出 |
-| 向量存储 | Chroma Cloud | 云端托管，无需本地部署 |
-| Embedding | HuggingFace Local / API | 可插拔（暂未启用，待确定方案） |
-| 重排序 | SentenceTransformer / BGE | 可插拔（暂未启用） |
-
-#### CLDFlow 因果分析
-
-| 类别 | 技术 | 用途 |
-|------|------|------|
-| 图操作 | NetworkX | CLD 构建、环检测、入度分析 |
-| FCM 仿真 | NumPy | Kosko 矩阵迭代、收敛判断 |
-| 节点归并 | Sentence Transformer (MiniLM-L6-v2) | 余弦相似度归并 |
-| 生成模型 | DeepSeek / MiMO（via LiteLLM） | Specialist Agent |
-| 评估模型 | Kimi / DeepSeek（via LiteLLM） | Evaluator / Judge |
-| 数据验证 | Pydantic strict mode | 层间边界校验 |
-
-#### 可观测性
-
-| 类别 | 技术 | 说明 |
-|------|------|------|
-| 日志 | structlog | 结构化追踪 |
-| 调试 | LlamaIndex Observers | 事件追踪 |
-| 评估 | RAGAS（可选） | 多维度质量评估 |
 
 ---
 

@@ -1,10 +1,7 @@
 import type { AppConfig, CLDFlowResponse, HealthStatus, ModelInfo, ResearchResult } from "@/types";
 
 const BASE = "/api";
-const STREAM_BASE =
-  typeof window !== "undefined"
-    ? `${window.location.protocol}//${window.location.hostname}:8000/api`
-    : "/api";
+const STREAM_BASE = "/api";
 
 async function json<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, init);

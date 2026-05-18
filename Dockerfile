@@ -1,28 +1,63 @@
-# 基础镜像
+# ============================================================
+# Stage 1: Build Next.js frontend (standalone mode)
+# ============================================================
+FROM node:20-slim AS frontend-builder
+
+WORKDIR /build/web
+
+# Install dependencies first (layer cache)
+COPY web/package.json web/package-lock.json ./
+RUN npm ci
+
+# Copy source and build
+COPY web/ ./
+RUN npm run build
+
+# Prune to production-only node_modules
+RUN npm ci --omit=dev
+
+# ============================================================
+# Stage 2: Python runtime + backend
+# ============================================================
 FROM python:3.12-slim
 
-# 安装系统依赖
-RUN apt-get update && apt-get install -y \
-    git \
-    && rm -rf /var/lib/apt/lists/*
+# HF Spaces: run as non-root user (uid 1000)
+RUN useradd -m -u 1000 user
 
-# 安装 uv（快速依赖安装）
-RUN pip install uv
+# System deps
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git curl && \
+    rm -rf /var/lib/apt/lists/*
 
-# 工作目录
+# Install uv
+RUN pip install --no-cache-dir uv
+
 WORKDIR /app
 
-# 复制依赖文件
-COPY pyproject.toml .
+# Install Python dependencies (layer cache)
+COPY pyproject.toml uv.lock ./
+RUN uv pip install --system --no-cache -r pyproject.toml
 
-# 安装 Python 依赖（使用 uv 加速）
-RUN uv pip install --system -r pyproject.toml
+# Copy backend code
+COPY --chown=user backend/ backend/
+COPY --chown=user application.yml ./
+COPY --chown=user scripts/ scripts/
+COPY --chown=user data/ data/
+COPY --chown=user skills/ skills/
 
-# 复制应用代码
-COPY . .
+# Copy Next.js standalone build from Stage 1
+COPY --chown=user --from=frontend-builder /build/web/.next/standalone/web/ web/.next/standalone/
+COPY --chown=user --from=frontend-builder /build/web/.next/static/ web/.next/standalone/.next/static/
+COPY --chown=user --from=frontend-builder /build/web/public/ web/.next/standalone/public/
 
-# 暴露端口（Streamlit 默认 8501）
-EXPOSE 8501
+# Copy startup script
+COPY --chown=user start.sh ./
+RUN chmod +x start.sh
 
-# 启动命令（Streamlit）
-CMD ["sh", "-c", "streamlit run app.py --server.port=${PORT:-8501} --server.address=0.0.0.0"]
+# Switch to non-root user
+USER user
+
+# HF Spaces uses port 7860
+EXPOSE 7860
+
+CMD ["bash", "start.sh"]
