@@ -214,6 +214,7 @@
 - [x] 05-15 阶段 1-4 全部完成（20/20 任务）
 - [x] 05-16 阶段 5 全部完成（G2-G8）
 - [x] 05-16 产品转型：RAG 应用 → CLDFlow Agent（63edd1c，673 files changed）
+- [x] 05-18 HF Spaces Demo 部署：免费 Docker 托管，多阶段构建，双进程架构
 
 ### 产品转型执行链路（2026-05-16）
 
@@ -240,6 +241,53 @@
 - `llama-index-llms-openai` / `llama-index-llms-deepseek`：pyproject.toml 中仍存在，已通过 LiteLLM 替代，待删除
 - Embedding 方案：HuggingFace Local vs API，暂未启用
 - Reranker：SentenceTransformer / BGE，暂未启用
+
+### HF Spaces Demo 部署（2026-05-18）
+
+**目标**：免费部署一个可访问的 demo，无需运维。
+
+**部署地址**：https://peter7310-cldflow.hf.space
+
+**架构**：
+```
+HF Spaces (Docker, 免费 2vCPU/16GB)
+├── Next.js 前端 (standalone, :7860)  ← 对外暴露
+│   └── /api/* 代理 → FastAPI
+└── FastAPI 后端 (uvicorn, :8000)     ← 内部
+    └── DeepSeek API (LLM)
+```
+
+**技术决策**：
+- [x] D1 部署平台：HF Spaces（免费 Docker 托管）
+- [x] D2 服务架构：单容器双进程（uvicorn + next start），start.sh 启动
+- [x] D3 构建方式：多阶段 Dockerfile（Node.js 构建 + Python 运行时）
+- [x] D4 非必需模块：embedding/chroma/ragas 缺少 key 时静默跳过，不阻塞启动
+
+**环境变量**：
+| 变量 | 必需 | 说明 |
+|------|------|------|
+| `DEEPSEEK_API_KEY` | 是 | LLM 调用 |
+| `HF_TOKEN` | 否 | Embedding（hf-inference 模式） |
+| `CHROMA_CLOUD_*` | 否 | 向量数据库 |
+
+**构建修复记录**：
+1. `package-lock.json` 不同步 → `npm install` 重新生成
+2. Next.js standalone COPY 路径错误 → `.next/standalone/`（非 `.next/standalone/web/`）
+3. Python 镜像缺 Node.js → 添加 nodesource 安装
+4. `/app/logs` 权限问题 → 预创建目录 + chown
+
+**文件变更**：
+- `Dockerfile` — 多阶段重写（Node.js build + Python runtime）
+- `start.sh` — 新建，双进程启动脚本
+- `web/next.config.ts` — 添加 `output: "standalone"`
+- `web/src/lib/api.ts` — STREAM_BASE 移除硬编码端口
+- `backend/fastapi/main.py` — CORS 支持环境变量
+- `README.md` — 添加 HF Spaces YAML frontmatter
+
+**HF MCP 管理**：
+```bash
+claude mcp add hf-mcp-server -- npx -y @llmindset/hf-mcp-server
+```
 
 ---
 
