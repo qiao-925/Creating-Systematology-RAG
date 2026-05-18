@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CLDFlow Dashboard Design</title>
+<script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #fafafa;
+    --surface: #ffffff;
+    --border: #e5e5e5;
+    --text: #171717;
+    --text-muted: #737373;
+    --accent: #10b981;
+    --accent-light: #d1fae5;
+    --accent-dark: #059669;
+    --radius: 8px;
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Header */
+  .header {
+    height: 56px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    backdrop-filter: blur(8px);
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .logo {
+    width: 28px;
+    height: 28px;
+    background: var(--accent);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 14px;
+  }
+
+  .logo-text {
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: -0.5px;
+  }
+
+  .header-center {
+    display: flex;
+    gap: 4px;
+    background: var(--bg);
+    padding: 4px;
+    border-radius: 8px;
+  }
+
+  .tab {
+    padding: 6px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    border: none;
+    background: none;
+  }
+
+  .tab.active {
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .icon-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+
+  /* Main */
+  .main {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    padding: 24px;
+    overflow: auto;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 1024px;
+    display: flex;
+    gap: 20px;
+  }
+
+  /* Left Panel */
+  .left-panel {
+    width: 40%;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+
+  .card-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-title .icon {
+    width: 18px;
+    height: 18px;
+    color: var(--accent);
+  }
+
+  .textarea {
+    width: 100%;
+    height: 120px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+    font-size: 14px;
+    font-family: inherit;
+    resize: vertical;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+  }
+
+  .textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-light);
+  }
+
+  .btn-primary {
+    width: 100%;
+    padding: 10px 16px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .btn-primary:hover {
+    background: var(--accent-dark);
+  }
+
+  /* Params */
+  .params-section {
+    margin-top: 4px;
+  }
+
+  .params-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    padding: 8px 0;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+
+  .param-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 12px;
+  }
+
+  .param-label {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  .param-value {
+    font-size: 12px;
+    font-family: monospace;
+    color: var(--text);
+    background: var(--bg);
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+
+  .slider {
+    width: 100%;
+    height: 4px;
+    -webkit-appearance: none;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 6px;
+  }
+
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  /* Right Panel */
+  .right-panel {
+    width: 60%;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* CLD Graph Card */
+  .graph-placeholder {
+    height: 240px;
+    background: var(--bg);
+    border-radius: 6px;
+    border: 1px dashed var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .graph-nodes {
+    position: absolute;
+    inset: 0;
+  }
+
+  .node {
+    position: absolute;
+    width: 80px;
+    height: 32px;
+    background: var(--surface);
+    border: 2px solid var(--accent);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 500;
+    z-index: 2;
+  }
+
+  .edge {
+    position: absolute;
+    height: 2px;
+    background: var(--accent);
+    opacity: 0.4;
+    transform-origin: left center;
+    z-index: 1;
+  }
+
+  .edge-arrow {
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-left: 6px solid var(--accent);
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+    opacity: 0.4;
+    z-index: 1;
+  }
+
+  /* Heatmap */
+  .heatmap {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 3px;
+    padding: 12px;
+  }
+
+  .heat-cell {
+    aspect-ratio: 1;
+    border-radius: 4px;
+    min-height: 28px;
+  }
+
+  .heatmap-labels {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 12px 8px;
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+
+  /* Leverage Points */
+  .leverage-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .leverage-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .leverage-rank {
+    width: 24px;
+    height: 24px;
+    background: var(--accent-light);
+    color: var(--accent-dark);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .leverage-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .leverage-name {
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .leverage-bar-bg {
+    height: 6px;
+    background: var(--bg);
+    border-radius: 3px;
+    margin-top: 4px;
+  }
+
+  .leverage-bar {
+    height: 100%;
+    border-radius: 3px;
+    background: var(--accent);
+  }
+
+  .leverage-score {
+    font-size: 12px;
+    font-family: monospace;
+    color: var(--accent-dark);
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  /* Status indicator */
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--accent-dark);
+    background: var(--accent-light);
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-weight: 500;
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="header-left">
+    <div class="logo">C</div>
+    <span class="logo-text">CLDFlow</span>
+  </div>
+  <div class="header-center">
+    <button class="tab">Chat</button>
+    <button class="tab">Research</button>
+    <button class="tab active">CLDFlow</button>
+  </div>
+  <div class="header-right">
+    <button class="icon-btn">⚙</button>
+    <button class="icon-btn">◐</button>
+  </div>
+</header>
+
+<!-- Main Content -->
+<main class="main">
+  <div class="container">
+
+    <!-- Left Panel -->
+    <div class="left-panel">
+      <div class="card">
+        <div class="card-title">
+          <span>研究问题</span>
+        </div>
+        <textarea class="textarea" placeholder="输入您的研究问题，例如：城市化进程对居民心理健康的影响机制是什么？">城市化进程对居民心理健康的影响机制是什么？</textarea>
+        <button class="btn-primary">
+          <span>▶</span>
+          <span>运行分析</span>
+        </button>
+
+        <div class="params-section">
+          <div class="params-header">
+            <span>分析参数</span>
+            <span>▾</span>
+          </div>
+          <div class="param-row">
+            <span class="param-label">最大迭代次数</span>
+            <span class="param-value">100</span>
+          </div>
+          <input type="range" class="slider" min="10" max="500" value="100">
+          <div class="param-row">
+            <span class="param-label">衰减系数</span>
+            <span class="param-value">0.9</span>
+          </div>
+          <input type="range" class="slider" min="0" max="100" value="90">
+          <div class="param-row">
+            <span class="param-label">置信阈值</span>
+            <span class="param-value">0.6</span>
+          </div>
+          <input type="range" class="slider" min="0" max="100" value="60">
+        </div>
+      </div>
+
+      <!-- Analysis Status -->
+      <div class="card">
+        <div class="card-title">
+          <span class="status-dot"></span>
+          <span>分析状态</span>
+          <span class="status-badge">已完成</span>
+        </div>
+        <div style="font-size: 13px; color: var(--text-muted); line-height: 1.6;">
+          <div>• CLD 构建 — <span style="color: var(--accent)">12 个节点, 18 条边</span></div>
+          <div>• FCM 仿真 — <span style="color: var(--accent)">收敛于第 47 次迭代</span></div>
+          <div>• D2D 分析 — <span style="color: var(--accent)">识别 5 个杠杆点</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel -->
+    <div class="right-panel">
+
+      <!-- CLD Graph -->
+      <div class="card">
+        <div class="card-title">
+          <span class="icon">◉</span>
+          <span>因果图 (CLD)</span>
+        </div>
+        <div class="graph-placeholder">
+          <div class="graph-nodes">
+            <!-- Nodes -->
+            <div class="node" style="top: 30px; left: 40px;">城市化</div>
+            <div class="node" style="top: 20px; left: 200px;">生活压力</div>
+            <div class="node" style="top: 80px; left: 320px;">社会支持</div>
+            <div class="node" style="top: 160px; left: 60px;">绿地空间</div>
+            <div class="node" style="top: 150px; left: 220px;">心理健康</div>
+            <div class="node" style="top: 100px; left: 130px;">噪音污染</div>
+            <!-- Edges (simplified lines) -->
+            <div class="edge" style="top: 46px; left: 120px; width: 80px; transform: rotate(-5deg);"></div>
+            <div class="edge" style="top: 36px; left: 280px; width: 50px; transform: rotate(40deg);"></div>
+            <div class="edge" style="top: 110px; left: 130px; width: 90px; transform: rotate(20deg);"></div>
+            <div class="edge" style="top: 175px; left: 140px; width: 80px; transform: rotate(-5deg);"></div>
+            <div class="edge" style="top: 115px; left: 210px; width: 60px; transform: rotate(60deg);"></div>
+            <!-- Arrows -->
+            <div class="edge-arrow" style="top: 38px; left: 196px;"></div>
+            <div class="edge-arrow" style="top: 68px; left: 322px;"></div>
+            <div class="edge-arrow" style="top: 128px; left: 216px;"></div>
+            <div class="edge-arrow" style="top: 162px; left: 216px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FCM Results -->
+      <div class="card">
+        <div class="card-title">
+          <span class="icon">▦</span>
+          <span>仿真结果 (FCM)</span>
+        </div>
+        <div class="heatmap">
+          <!-- Row 1 -->
+          <div class="heat-cell" style="background: #10b981;"></div>
+          <div class="heat-cell" style="background: #34d399;"></div>
+          <div class="heat-cell" style="background: #6ee7b7;"></div>
+          <div class="heat-cell" style="background: #a7f3d0;"></div>
+          <div class="heat-cell" style="background: #d1fae5;"></div>
+          <div class="heat-cell" style="background: #ecfdf5;"></div>
+          <!-- Row 2 -->
+          <div class="heat-cell" style="background: #34d399;"></div>
+          <div class="heat-cell" style="background: #10b981;"></div>
+          <div class="heat-cell" style="background: #059669;"></div>
+          <div class="heat-cell" style="background: #34d399;"></div>
+          <div class="heat-cell" style="background: #6ee7b7;"></div>
+          <div class="heat-cell" style="background: #a7f3d0;"></div>
+          <!-- Row 3 -->
+          <div class="heat-cell" style="background: #6ee7b7;"></div>
+          <div class="heat-cell" style="background: #059669;"></div>
+          <div class="heat-cell" style="background: #047857;"></div>
+          <div class="heat-cell" style="background: #059669;"></div>
+          <div class="heat-cell" style="background: #10b981;"></div>
+          <div class="heat-cell" style="background: #34d399;"></div>
+          <!-- Row 4 -->
+          <div class="heat-cell" style="background: #a7f3d0;"></div>
+          <div class="heat-cell" style="background: #34d399;"></div>
+          <div class="heat-cell" style="background: #059669;"></div>
+          <div class="heat-cell" style="background: #10b981;"></div>
+          <div class="heat-cell" style="background: #34d399;"></div>
+          <div class="heat-cell" style="background: #6ee7b7;"></div>
+          <!-- Row 5 -->
+          <div class="heat-cell" style="background: #d1fae5;"></div>
+          <div class="heat-cell" style="background: #6ee7b7;"></div>
+          <div class="heat-cell" style="background: #10b981;"></div>
+          <div class="heat-cell" style="background: #34d399;"></div>
+          <div class="heat-cell" style="background: #059669;"></div>
+          <div class="heat-cell" style="background: #10b981;"></div>
+          <!-- Row 6 -->
+          <div class="heat-cell" style="background: #ecfdf5;"></div>
+          <div class="heat-cell" style="background: #a7f3d0;"></div>
+          <div class="heat-cell" style="background: #34d399;"></div>
+          <div class="heat-cell" style="background: #6ee7b7;"></div>
+          <div class="heat-cell" style="background: #10b981;"></div>
+          <div class="heat-cell" style="background: #059669;"></div>
+        </div>
+        <div class="heatmap-labels">
+          <span>城市化</span>
+          <span>生活压力</span>
+          <span>社会支持</span>
+          <span>绿地空间</span>
+          <span>心理健康</span>
+          <span>噪音污染</span>
+        </div>
+      </div>
+
+      <!-- D2D Leverage Points -->
+      <div class="card">
+        <div class="card-title">
+          <span class="icon">⚑</span>
+          <span>杠杆点 (D2D)</span>
+        </div>
+        <div class="leverage-list">
+          <div class="leverage-item">
+            <div class="leverage-rank">1</div>
+            <div class="leverage-info">
+              <div class="leverage-name">绿地空间</div>
+              <div class="leverage-bar-bg"><div class="leverage-bar" style="width: 92%;"></div></div>
+            </div>
+            <div class="leverage-score">0.92</div>
+          </div>
+          <div class="leverage-item">
+            <div class="leverage-rank">2</div>
+            <div class="leverage-info">
+              <div class="leverage-name">社会支持</div>
+              <div class="leverage-bar-bg"><div class="leverage-bar" style="width: 85%;"></div></div>
+            </div>
+            <div class="leverage-score">0.85</div>
+          </div>
+          <div class="leverage-item">
+            <div class="leverage-rank">3</div>
+            <div class="leverage-info">
+              <div class="leverage-name">噪音污染</div>
+              <div class="leverage-bar-bg"><div class="leverage-bar" style="width: 71%;"></div></div>
+            </div>
+            <div class="leverage-score">0.71</div>
+          </div>
+          <div class="leverage-item">
+            <div class="leverage-rank">4</div>
+            <div class="leverage-info">
+              <div class="leverage-name">生活压力</div>
+              <div class="leverage-bar-bg"><div class="leverage-bar" style="width: 63%;"></div></div>
+            </div>
+            <div class="leverage-score">0.63</div>
+          </div>
+          <div class="leverage-item">
+            <div class="leverage-rank">5</div>
+            <div class="leverage-info">
+              <div class="leverage-name">城市化</div>
+              <div class="leverage-bar-bg"><div class="leverage-bar" style="width: 58%;"></div></div>
+            </div>
+            <div class="leverage-score">0.58</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+</body>
+</html>

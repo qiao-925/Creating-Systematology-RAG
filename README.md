@@ -55,9 +55,7 @@ curl -X POST http://localhost:8000/api/cldflow/analyze \
 
 ---
 
----
-
-## 3. 常用命令
+## 2. 常用命令
 
 ### 开发与测试
 
@@ -99,7 +97,7 @@ curl -X POST http://localhost:8000/api/cldflow/analyze \
 
 ---
 
-## 4. 文档导航
+## 3. 文档导航
 
 | 文档 | 说明 |
 |------|------|
@@ -107,5 +105,6 @@ curl -X POST http://localhost:8000/api/cldflow/analyze \
 | [CLDFlow MVP 计划](docs/CLDFlow-MVP-plan.md) | CLD → FCM → D2D 分析流水线设计与进度 |
 | [CLDFlow MVP 审查](docs/CLDFlow-MVP-review.md) | MVP 实现审查报告与后续建议 |
 | [配置管理指南](docs/CONFIG_SETUP.md) | gh token 同步、.env 配置、部署场景 |
+| [部署指南](docs/DEPLOYMENT.md) | HF Spaces 部署、本地 Docker、环境变量参考 |
 
 ---

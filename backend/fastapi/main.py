@@ -61,7 +61,7 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     app = FastAPI(
-        title="Creating-Systematology-RAG API",
+        title="CLDFlow API",
         version="0.1.0",
         lifespan=lifespan,
     )

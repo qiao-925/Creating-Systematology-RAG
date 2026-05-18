@@ -20,25 +20,6 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 # -------------------- Global dependency stubs --------------------
 
-class SessionStateStub(dict):
-    """Streamlit-like session_state with dict + attribute access."""
-
-    def __getattr__(self, name: str):
-        try:
-            return self[name]
-        except KeyError as exc:
-            raise AttributeError(name) from exc
-
-    def __setattr__(self, name: str, value) -> None:
-        self[name] = value
-
-
-# Streamlit stub (avoid requiring the real runtime)
-streamlit_stub = MagicMock()
-streamlit_stub.session_state = SessionStateStub()
-sys.modules["streamlit"] = streamlit_stub
-
-
 # ChromaDB stub (avoid real API usage and missing dependency errors)
 try:
     import chromadb  # noqa: F401

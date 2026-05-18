@@ -7,15 +7,12 @@
 # ============================================================================
 app:
   title: Creating Systematology
-  port: 8501
+  port: 7860  # HF Spaces default; local dev uses port 3000 (Next.js) / 8000 (FastAPI)
   dev_mode: true
 
 logging:
   level: DEBUG     # 控制台日志级别（改为 DEBUG 显示更多信息）
   file_level: DEBUG  # 文件日志级别
-
-cache:
-  enable: true  # 已废弃：缓存管理器功能已移除，此配置不再使用
 
 # ============================================================================
 # 2. API 与外部服务配置
@@ -104,7 +101,6 @@ paths:
   activity_log: ./data/logs/activity
   github_repos: ./data/github_repos
   github_sync_state: ./data/github_sync_state.json
-  cache_state: ./data/cache_state.json  # 已废弃：缓存管理器功能已移除，此配置不再使用
   sessions: ./data/sessions  # 会话持久化目录
 
 index:

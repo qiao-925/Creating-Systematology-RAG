@@ -1,4 +1,4 @@
-# Makefile for Creating-Systematology-RAG
+# Makefile for CLDFlow
 
 # 默认目标：直接运行 make 将执行完整工作流
 .DEFAULT_GOAL := all
@@ -90,10 +90,6 @@ install-test:
 	@$(SET_UTF8)
 	@echo "📦 Installing test dependencies..."
 	uv sync --extra test
-
-install-gpu:
-	@echo "⚠️  Deprecated: Please refer to README.md for manual installation of GPU version PyTorch"
-	@echo "   Install command: uv pip install --force-reinstall --index-url https://download.pytorch.org/whl/cu121 torch torchvision torchaudio"
 
 test: install-test
 	@echo "🧪 Running all tests..."

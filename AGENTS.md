@@ -17,19 +17,3 @@ docs/
 └── research with brainstorm/     ← 研究与头脑风暴材料（论文 + 架构设计）
 ```
 
-## Current Focus
-构建可发布的mvp版本
-迁移旧应用
-- 前端实现，使用react改造 ✅（Streamlit 前端已删除）
-- 后端实现迁移：先更新一下架构文档中的技术栈并做决策，再迁移老代码到新结构中
-- 测试体系
-- 文档更新整理
-  - 核心文档设计
-  - 存档和记录 C:\Users\nonep\Desktop\Creating-Systematology-RAG\.agent\runtime\working-memory-boost.md 
-    - 更新动作的checkpoint和路线演进图，checkpoint更微观，路线图更宏观
-- 统一性监测
-- 对今天的会话操作做一个统计和总结
-
-## 后续迭代计划
-
--  加州32号法案 作为系统动力学研究demo

@@ -110,7 +110,7 @@ class PathsConfig(BaseModel):
     activity_log: str
     github_repos: str
     github_sync_state: str
-    cache_state: str
+    cache_state: str = "./data/cache_state.json"
     sessions: str = "./data/sessions"  # 会话持久化目录
 
 
@@ -250,7 +250,7 @@ class ConfigModel(BaseModel):
     # 应用配置
     app: AppConfig
     logging: LoggingConfig
-    cache: CacheConfig
+    cache: CacheConfig = CacheConfig()
     
     # API与外部服务
     api: APIConfig

@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CLDFlow — Agent Chat Interface</title>
+<script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --canvas: #ffffff;
+    --canvas-soft: #fafafa;
+    --canvas-soft-2: #f5f5f5;
+    --ink: #171717;
+    --body: #4d4d4d;
+    --mute: #888888;
+    --hairline: #ebebeb;
+    --hairline-strong: #a1a1a1;
+    --link: #0070f3;
+    --link-bg: #e8f4ff;
+    --success: #0070f3;
+    --error: #ee0000;
+    --accent-violet: #7928ca;
+    --accent-cyan: #50e3c2;
+    --radius-sm: 6px;
+    --radius: 8px;
+    --radius-lg: 12px;
+    --radius-pill: 100px;
+    --shadow-1: inset 0 0 0 1px rgba(0,0,0,0.06);
+    --shadow-2: 0 1px 2px rgba(0,0,0,0.04), 0 1px 4px rgba(0,0,0,0.04), inset 0 0 0 1px rgba(0,0,0,0.06);
+    --shadow-3: 0 2px 4px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.04), inset 0 0 0 1px rgba(0,0,0,0.06);
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--canvas);
+    color: var(--ink);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    line-height: 1.6;
+  }
+
+  /* Header — 56px */
+  .header {
+    height: 56px;
+    border-bottom: 1px solid var(--hairline);
+    background: var(--canvas);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    flex-shrink: 0;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-mark {
+    width: 24px;
+    height: 24px;
+    background: var(--ink);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .logo-mark svg { width: 14px; height: 14px; }
+
+  .logo-text {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    color: var(--ink);
+  }
+
+  .header-center {
+    display: flex;
+    gap: 2px;
+    background: var(--canvas-soft-2);
+    padding: 3px;
+    border-radius: var(--radius-pill);
+  }
+
+  .tab {
+    padding: 5px 14px;
+    border-radius: var(--radius-pill);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--mute);
+    cursor: pointer;
+    border: none;
+    background: none;
+    transition: all 0.15s;
+    letter-spacing: -0.1px;
+  }
+
+  .tab.active {
+    background: var(--canvas);
+    color: var(--ink);
+    box-shadow: var(--shadow-2);
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .icon-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-sm);
+    border: none;
+    background: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--mute);
+    font-size: 16px;
+    transition: color 0.15s;
+  }
+
+  .icon-btn:hover { color: var(--ink); }
+
+  /* Main chat area */
+  .chat-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 32px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .messages-inner {
+    width: 100%;
+    max-width: 680px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+  }
+
+  /* Message — flat, no bubbles */
+  .msg {
+    display: flex;
+    flex-direction: column;
+    max-width: 100%;
+  }
+
+  .msg-user {
+    align-items: flex-end;
+  }
+
+  .msg-assistant {
+    align-items: flex-start;
+  }
+
+  .msg-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--mute);
+    margin-bottom: 6px;
+    letter-spacing: -0.1px;
+  }
+
+  .msg-content {
+    font-size: 15px;
+    line-height: 1.65;
+    color: var(--ink);
+  }
+
+  .msg-user .msg-content {
+    background: var(--canvas-soft-2);
+    padding: 12px 16px;
+    border-radius: var(--radius-lg);
+    max-width: 85%;
+    text-align: right;
+  }
+
+  .msg-assistant .msg-content {
+    max-width: 100%;
+  }
+
+  /* Thinking block */
+  .thinking-block {
+    background: var(--canvas-soft);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 12px;
+  }
+
+  .thinking-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--mute);
+    margin-bottom: 10px;
+  }
+
+  .thinking-spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--hairline);
+    border-top-color: var(--ink);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .thinking-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-left: 22px;
+  }
+
+  .step {
+    font-size: 13px;
+    color: var(--mute);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .step.done { color: var(--link); }
+
+  .step-icon {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    flex-shrink: 0;
+  }
+
+  .step.done .step-icon {
+    background: var(--link-bg);
+    color: var(--link);
+  }
+
+  .step.active .step-icon {
+    background: var(--canvas-soft-2);
+    border: 2px solid var(--hairline);
+    border-top-color: var(--ink);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  /* Citations */
+  .cite {
+    font-size: 11px;
+    color: var(--link);
+    background: var(--link-bg);
+    padding: 1px 5px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-weight: 500;
+    vertical-align: super;
+    margin: 0 1px;
+  }
+
+  /* Source cards */
+  .sources {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+
+  .source-card {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--canvas-soft);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius);
+    font-size: 12px;
+    color: var(--body);
+    max-width: 200px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+
+  .source-card:hover { border-color: var(--hairline-strong); }
+
+  .source-num {
+    width: 18px;
+    height: 18px;
+    background: var(--link-bg);
+    color: var(--link);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  .source-title {
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* CLD Graph preview */
+  .cld-preview {
+    margin-top: 16px;
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+
+  .cld-preview-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--canvas-soft);
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .cld-preview-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .cld-preview-actions {
+    display: flex;
+    gap: 6px;
+  }
+
+  .cld-action-btn {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--hairline);
+    background: var(--canvas);
+    color: var(--body);
+    cursor: pointer;
+    font-weight: 500;
+  }
+
+  .cld-canvas {
+    height: 280px;
+    background: var(--canvas-soft-2);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Graph nodes */
+  .g-node {
+    position: absolute;
+    background: var(--canvas);
+    border: 2px solid var(--ink);
+    border-radius: var(--radius-pill);
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 500;
+    z-index: 2;
+    box-shadow: var(--shadow-2);
+  }
+
+  .g-node.positive { border-color: var(--link); }
+  .g-node.negative { border-color: var(--error); }
+
+  .g-edge {
+    position: absolute;
+    height: 2px;
+    background: var(--hairline-strong);
+    z-index: 1;
+  }
+
+  .g-edge.pos { background: var(--link); opacity: 0.5; }
+  .g-edge.neg { background: var(--error); opacity: 0.4; }
+
+  .g-label {
+    position: absolute;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 5px;
+    border-radius: 3px;
+    z-index: 3;
+  }
+
+  .g-label.pos { color: var(--link); }
+  .g-label.neg { color: var(--error); }
+
+  /* Leverage table */
+  .leverage-table {
+    margin-top: 16px;
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+
+  .leverage-header {
+    padding: 10px 14px;
+    background: var(--canvas-soft);
+    border-bottom: 1px solid var(--hairline);
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .leverage-rows {
+    padding: 4px 0;
+  }
+
+  .leverage-row {
+    display: flex;
+    align-items: center;
+    padding: 10px 14px;
+    gap: 12px;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .leverage-row:last-child { border-bottom: none; }
+
+  .leverage-rank {
+    width: 22px;
+    height: 22px;
+    background: var(--canvas-soft-2);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ink);
+    flex-shrink: 0;
+  }
+
+  .leverage-row:first-child .leverage-rank {
+    background: var(--ink);
+    color: var(--canvas);
+  }
+
+  .leverage-info { flex: 1; min-width: 0; }
+
+  .leverage-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink);
+  }
+
+  .leverage-desc {
+    font-size: 11px;
+    color: var(--mute);
+    margin-top: 2px;
+  }
+
+  .leverage-bar-bg {
+    height: 4px;
+    background: var(--canvas-soft-2);
+    border-radius: 2px;
+    margin-top: 6px;
+    width: 120px;
+  }
+
+  .leverage-bar {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--ink);
+  }
+
+  .leverage-score {
+    font-size: 13px;
+    font-family: 'Geist Mono', 'SF Mono', monospace;
+    font-weight: 600;
+    color: var(--ink);
+    flex-shrink: 0;
+  }
+
+  /* Input area */
+  .input-area {
+    padding: 16px 24px 24px;
+    display: flex;
+    justify-content: center;
+    border-top: 1px solid var(--hairline);
+    background: var(--canvas);
+  }
+
+  .input-wrapper {
+    width: 100%;
+    max-width: 680px;
+    position: relative;
+  }
+
+  .input-box {
+    width: 100%;
+    min-height: 48px;
+    max-height: 200px;
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-lg);
+    padding: 12px 48px 12px 16px;
+    font-size: 15px;
+    font-family: inherit;
+    color: var(--ink);
+    background: var(--canvas);
+    resize: none;
+    line-height: 1.5;
+    transition: border-color 0.15s;
+  }
+
+  .input-box:focus {
+    outline: none;
+    border-color: var(--ink);
+  }
+
+  .input-box::placeholder { color: var(--hairline-strong); }
+
+  .send-btn {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    width: 32px;
+    height: 32px;
+    background: var(--ink);
+    color: var(--canvas);
+    border: none;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+
+  .send-btn:hover { opacity: 0.8; }
+
+  .input-hint {
+    text-align: center;
+    font-size: 11px;
+    color: var(--mute);
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="header-left">
+    <div class="logo-mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+      </svg>
+    </div>
+    <span class="logo-text">CLDFlow</span>
+  </div>
+  <div class="header-center">
+    <button class="tab active">Chat</button>
+    <button class="tab">Research</button>
+    <button class="tab">CLDFlow</button>
+  </div>
+  <div class="header-right">
+    <button class="icon-btn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+    </button>
+    <button class="icon-btn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    </button>
+  </div>
+</header>
+
+<!-- Chat Area -->
+<div class="chat-area">
+  <div class="messages">
+    <div class="messages-inner">
+
+      <!-- User message -->
+      <div class="msg msg-user">
+        <div class="msg-label">You</div>
+        <div class="msg-content">城市化进程对居民心理健康的影响机制是什么？请分析其中的因果关系。</div>
+      </div>
+
+      <!-- Assistant message -->
+      <div class="msg msg-assistant">
+        <div class="msg-label">CLDFlow</div>
+
+        <!-- Thinking block -->
+        <div class="thinking-block">
+          <div class="thinking-header">
+            <div class="thinking-spinner"></div>
+            <span>分析因果关系...</span>
+          </div>
+          <div class="thinking-steps">
+            <div class="step done">
+              <div class="step-icon">✓</div>
+              <span>检索相关文献 — 找到 24 篇相关论文</span>
+            </div>
+            <div class="step done">
+              <div class="step-icon">✓</div>
+              <span>构建因果图 — 识别 8 个变量、12 条因果路径</span>
+            </div>
+            <div class="step active">
+              <div class="step-icon"></div>
+              <span>评估因果强度与杠杆点...</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Answer content -->
+        <div class="msg-content">
+          <p>基于系统性文献分析，城市化对居民心理健康的影响通过<strong>四条主要因果路径</strong>发挥作用<span class="cite">1</span><span class="cite">2</span>：</p>
+          <br>
+          <p><strong>1. 环境压力路径</strong>：城市化 → 噪音/空气污染 → 慢性应激 → 焦虑/抑郁风险上升<span class="cite">3</span></p>
+          <p><strong>2. 社会资本路径</strong>：快速城市化 → 社区瓦解 → 社会支持网络弱化 → 心理韧性下降<span class="cite">1</span></p>
+          <p><strong>3. 生态暴露路径</strong>：城市扩张 → 绿地空间压缩 → 自然接触减少 → 注意力恢复不足<span class="cite">4</span></p>
+          <p><strong>4. 经济竞争路径</strong>：城市化 → 生活成本上升 → 经济压力 → 心理健康恶化<span class="cite">2</span></p>
+          <br>
+          <p>FCM 仿真结果显示，<strong>绿地空间</strong>（杠杆系数 0.92）和<strong>社会支持网络</strong>（0.85）是干预效果最显著的两个杠杆点<span class="cite">5</span>。</p>
+        </div>
+
+        <!-- CLD Graph preview -->
+        <div class="cld-preview">
+          <div class="cld-preview-header">
+            <div class="cld-preview-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+              因果图 (CLD)
+            </div>
+            <div class="cld-preview-actions">
+              <button class="cld-action-btn">展开</button>
+              <button class="cld-action-btn">导出</button>
+            </div>
+          </div>
+          <div class="cld-canvas">
+            <!-- Nodes -->
+            <div class="g-node" style="top: 30px; left: 30px;">城市化</div>
+            <div class="g-node" style="top: 20px; left: 240px;">噪音污染</div>
+            <div class="g-node" style="top: 30px; left: 440px;">慢性应激</div>
+            <div class="g-node positive" style="top: 120px; left: 80px;">绿地空间</div>
+            <div class="g-node" style="top: 120px; left: 280px;">社会支持</div>
+            <div class="g-node negative" style="top: 120px; left: 470px;">心理健康</div>
+            <div class="g-node" style="top: 210px; left: 170px;">经济压力</div>
+            <div class="g-node" style="top: 210px; left: 380px;">自然接触</div>
+            <!-- Edges -->
+            <div class="g-edge neg" style="top: 46px; left: 110px; width: 130px; transform: rotate(-3deg);"></div>
+            <div class="g-edge neg" style="top: 38px; left: 340px; width: 100px; transform: rotate(3deg);"></div>
+            <div class="g-edge pos" style="top: 135px; left: 180px; width: 100px; transform: rotate(0deg);"></div>
+            <div class="g-edge neg" style="top: 80px; left: 510px; width: 60px; transform: rotate(60deg);"></div>
+            <div class="g-edge pos" style="top: 155px; left: 360px; width: 115px; transform: rotate(25deg);"></div>
+            <div class="g-edge neg" style="top: 230px; left: 270px; width: 100px; transform: rotate(-10deg);"></div>
+            <div class="g-edge pos" style="top: 170px; left: 90px; width: 100px; transform: rotate(55deg);"></div>
+            <!-- Edge labels -->
+            <div class="g-label neg" style="top: 32px; left: 160px;">−</div>
+            <div class="g-label neg" style="top: 26px; left: 380px;">−</div>
+            <div class="g-label pos" style="top: 122px; left: 220px;">+</div>
+            <div class="g-label neg" style="top: 100px; left: 510px;">−</div>
+            <div class="g-label pos" style="top: 152px; left: 410px;">+</div>
+          </div>
+        </div>
+
+        <!-- Leverage Points table -->
+        <div class="leverage-table">
+          <div class="leverage-header">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            D2D 杠杆点排名
+          </div>
+          <div class="leverage-rows">
+            <div class="leverage-row">
+              <div class="leverage-rank">1</div>
+              <div class="leverage-info">
+                <div class="leverage-name">绿地空间</div>
+                <div class="leverage-desc">增加城市绿地覆盖率可同时缓解环境压力和提升自然接触</div>
+                <div class="leverage-bar-bg"><div class="leverage-bar" style="width: 92%;"></div></div>
+              </div>
+              <div class="leverage-score">0.92</div>
+            </div>
+            <div class="leverage-row">
+              <div class="leverage-rank">2</div>
+              <div class="leverage-info">
+                <div class="leverage-name">社会支持网络</div>
+                <div class="leverage-desc">强化社区互助机制，阻断社会资本衰减路径</div>
+                <div class="leverage-bar-bg"><div class="leverage-bar" style="width: 85%;"></div></div>
+              </div>
+              <div class="leverage-score">0.85</div>
+            </div>
+            <div class="leverage-row">
+              <div class="leverage-rank">3</div>
+              <div class="leverage-info">
+                <div class="leverage-name">噪音治理</div>
+                <div class="leverage-desc">降低城市噪音水平直接减少慢性应激来源</div>
+                <div class="leverage-bar-bg"><div class="leverage-bar" style="width: 71%;"></div></div>
+              </div>
+              <div class="leverage-score">0.71</div>
+            </div>
+            <div class="leverage-row">
+              <div class="leverage-rank">4</div>
+              <div class="leverage-info">
+                <div class="leverage-name">住房保障</div>
+                <div class="leverage-desc">缓解经济压力对心理健康的间接影响</div>
+                <div class="leverage-bar-bg"><div class="leverage-bar" style="width: 63%;"></div></div>
+              </div>
+              <div class="leverage-score">0.63</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Source cards -->
+        <div class="sources">
+          <div class="source-card">
+            <div class="source-num">1</div>
+            <div class="source-title">Urbanization and Mental Health: A Systematic Review</div>
+          </div>
+          <div class="source-card">
+            <div class="source-num">2</div>
+            <div class="source-title">城市化压力与心理健康的纵向研究</div>
+          </div>
+          <div class="source-card">
+            <div class="source-num">3</div>
+            <div class="source-title">Noise Pollution and Psychological Stress</div>
+          </div>
+          <div class="source-card">
+            <div class="source-num">4</div>
+            <div class="source-title">Green Space and Mental Well-being</div>
+          </div>
+          <div class="source-card">
+            <div class="source-num">5</div>
+            <div class="source-title">FCM-based Causal Analysis Framework</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Input area -->
+  <div class="input-area">
+    <div class="input-wrapper">
+      <textarea class="input-box" placeholder="输入研究问题，开始因果分析...">城市化进程对居民心理健康的影响机制是什么？</textarea>
+      <button class="send-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+      <div class="input-hint">Enter 发送 · Shift+Enter 换行</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

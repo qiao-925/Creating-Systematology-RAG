@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python .claude/hooks/validate_plan_hook.py"
+            "command": "python C:/Users/nonep/Desktop/Creating-Systematology-RAG/.claude/hooks/validate_plan_hook.py"
           }
         ]
       }
