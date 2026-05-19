@@ -47,6 +47,7 @@
 - [x] D5 API 对接：fetch + zod 校验
 - [x] D6 设计语言：Vercel 风格（近白底 #fff + 墨黑 #171717 + Geist 字体）
 - [x] D7 UI 结构：Agent 问答式布局（扁平消息流、内联产出、无侧边栏）
+- [x] D8 模式切换：**取消 Chat/Research/CLDFlow 三 tab**，统一为单一聊天入口，Agent 自动判断分析路径
 
 ## 任务清单
 
@@ -111,6 +112,7 @@
 - 圆角：按钮 pill（100px），卡片 8-12px
 
 **UI 结构**：Agent 问答式布局（参考 ChatGPT / Claude / v0 / Perplexity）
+- **无模式切换**：去掉 Chat/Research/CLDFlow tab，单一聊天入口
 - 无侧边栏（MVP 阶段保持简洁）
 - 扁平消息流（无气泡），用户右对齐，助手左对齐
 - 分步 Thinking 指示器（Perplexity 风格：检索 → 构建图 → 评估）
@@ -120,14 +122,45 @@
 **Figma 设计稿**：
 - 文件：https://www.figma.com/design/yZwrYKc5C8tGFW6OxPN0Kj
 - V1（三栏 Dashboard）：node-id=1-2（已废弃）
-- V2（Agent 问答式）：node-id=4-2 ← 当前方向
+- V2（Agent 问答式）：node-id=4-2 ← 当前方向（去掉 tab 区域）
+
+## MVP 范围锚定（2026-05-19）
+
+**做**：
+- Header：logo + 设置按钮，无 tab
+- 消息布局扁平化（去气泡、去头像）
+- 色彩切换到 Vercel blue `#0070f3`
+- Source cards 水平排列
+- Leverage table Vercel 风格微调
+
+**不做（延后迭代）**：
+- B8 CLD 图可视化（reactflow/cytoscape）→ MVP 用文本渲染
+- B9 FCM/D2D 结果可视化 → MVP 用现有组件
+- Thinking 分步指示器 → MVP 先用 spinner，等后端结构化步骤
 
 ## 执行记录
 
 - [x] 05-16 前端从 Streamlit 迁移到 Next.js
 - [x] 05-18 B1-B7 全部完成
 - [x] 05-19 设计方向探索：确定 Vercel 设计语言 + Agent 问答式布局，生成 Figma 设计稿 V2
+- [x] 05-19 设计锚定：去掉 Chat/Research/CLDFlow 三 tab，统一为单一聊天入口；MVP 范围裁剪确认
+- [ ] 05-19 UI 重构：按 V2 设计稿实现 MVP 布局（扁平消息、Vercel 色彩、无 tab）
+- [ ] 05-19 设计校验：实现完成后，逐项对照 `design-mockup-v2.html` 确认无偏离（色彩、布局、组件结构）
 - [ ] B8-B9 可视化增强待后续迭代（需参照 V2 设计稿实现）
+
+## 设计校验清单
+
+UI 重构完成后，必须逐项对照 `design-mockup-v2.html`（亮/暗双模式）确认。
+校验方法见通用 skill：`design-mockup-verification`（`/home/q/.agents/skills/design-mockup-verification/SKILL.md`）。
+
+- [ ] Header：仅 logo + 设置按钮，无 tab
+- [ ] 消息布局：扁平无气泡、无头像，用户右对齐灰底，助手左对齐无背景
+- [ ] 色彩：accent 为 Vercel blue `#0070f3`，非 emerald
+- [ ] Thinking block：spinner 样式与设计稿一致
+- [ ] Source cards：水平排列，序号方块 + 标题截断
+- [ ] Leverage table：排名序号、进度条、分数样式一致
+- [ ] 暗色模式：切换后所有元素可读、对比度达标
+- [ ] 输入区：textarea + 发送按钮，Enter 发送提示
 
 ## 附录：前后端交互
 

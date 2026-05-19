@@ -160,6 +160,33 @@
 .streaming-cursor::after {
   content: "▌";
   animation: cursor-blink 1s step-end infinite;
-  color: var(--color-emerald-400, #34d399);
+  color: var(--color-foreground);
   margin-left: 1px;
+  opacity: 0.5;
+}
+
+/* Citation links */
+.citation {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-primary);
+  background: oklch(0.95 0.02 250);
+  padding: 1px 5px;
+  border-radius: 3px;
+  cursor: pointer;
+  vertical-align: super;
+  margin: 0 1px;
+  transition: background 0.15s;
+}
+
+.dark .citation {
+  background: oklch(0.25 0.02 250);
+}
+
+.citation:hover {
+  background: oklch(0.90 0.04 250);
+}
+
+.dark .citation:hover {
+  background: oklch(0.30 0.04 250);
 }

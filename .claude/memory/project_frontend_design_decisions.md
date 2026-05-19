@@ -18,6 +18,7 @@ metadata:
 ## UI 结构决策
 
 采用 **Agent 问答式布局**（非传统三栏 Dashboard）：
+- **无模式切换**：去掉 Chat/Research/CLDFlow 三个 tab，统一为单一聊天入口。Agent 根据问题自动判断分析路径
 - 无侧边栏（MVP 阶段保持简洁）
 - 扁平消息流（无气泡），用户右对齐，助手左对齐
 - 分步 Thinking 指示器（Perplexity 风格）
@@ -25,6 +26,14 @@ metadata:
 - 行内引用 [1][2] + 底部来源卡片
 
 **参考来源**：ChatGPT、Claude、v0.dev、Perplexity 的 UI 模式对比分析。
+
+## MVP 范围裁剪（2026-05-19 锚定）
+
+MVP 只做 Chat 视角，不做模式拆分：
+- Header：logo + 设置按钮，无 tab
+- CLD 图可视化（B8）延后，MVP 用文本渲染节点/边
+- FCM/D2D 可视化（B9）延后，MVP 用现有 LeverageRanking 组件
+- Thinking steps：MVP 可先用简单 spinner，后端返回结构化步骤后再做分步指示器
 
 ## Figma MCP 工作流（已验证可用）
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { RotateCcw, Settings } from "lucide-react";
+import { RotateCcw, Settings, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useChatStore } from "@/stores/chat-store";
@@ -23,18 +23,21 @@ export function HeaderBar({ onSettingsClick, mode = "chat", onModeChange }: Prop
   const hasMessages = useChatStore((s) => s.messages.length > 0);
 
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border/40 bg-background/90 backdrop-blur-md px-6 py-3">
-      <div className="flex items-center gap-4">
-        <h2 className="text-sm font-semibold tracking-tight text-foreground/90">
-          Creating Systematology
+    <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border/40 bg-background px-6">
+      <div className="flex items-center gap-3">
+        <div className="flex h-6 w-6 items-center justify-center rounded bg-foreground">
+          <Layers className="h-3.5 w-3.5 text-background" />
+        </div>
+        <h2 className="text-sm font-semibold tracking-tight text-foreground">
+          CLDFlow
         </h2>
         {onModeChange && (
-          <nav className="flex items-center gap-0.5 rounded-md bg-muted p-0.5">
+          <nav className="ml-2 flex items-center gap-0.5 rounded-md bg-muted/50 p-0.5">
             {modes.map((m) => (
               <button
                 key={m.key}
                 onClick={() => onModeChange(m.key)}
-                className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
+                className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
                   mode === m.key
                     ? "bg-background text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"

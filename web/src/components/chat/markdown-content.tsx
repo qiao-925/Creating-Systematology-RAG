@@ -29,7 +29,7 @@ export function MarkdownContent({ content, onCitationClick }: Props) {
           <h3 className="text-[15px] font-semibold mt-3 mb-1.5 first:mt-0" {...props} />
         ),
         p: (props: ComponentPropsWithoutRef<"p">) => (
-          <p className="mb-3 last:mb-0 leading-[1.7]" {...props} />
+          <p className="mb-3 last:mb-0 leading-[1.65]" {...props} />
         ),
         ul: (props: ComponentPropsWithoutRef<"ul">) => (
           <ul className="list-disc pl-5 mb-3 space-y-1" {...props} />
@@ -38,14 +38,14 @@ export function MarkdownContent({ content, onCitationClick }: Props) {
           <ol className="list-decimal pl-5 mb-3 space-y-1" {...props} />
         ),
         li: (props: ComponentPropsWithoutRef<"li">) => (
-          <li className="leading-[1.7]" {...props} />
+          <li className="leading-[1.65]" {...props} />
         ),
         code: ({ className, children, ...rest }: ComponentPropsWithoutRef<"code"> & { className?: string }) => {
           const isBlock = className?.startsWith("language-");
           if (isBlock) {
             return (
               <code
-                className="block bg-muted/60 rounded-lg p-4 my-3 text-sm overflow-x-auto font-mono leading-relaxed"
+                className="block bg-muted/40 rounded-lg p-4 my-3 text-sm overflow-x-auto font-mono leading-relaxed"
                 {...rest}
               >
                 {children}
@@ -53,17 +53,17 @@ export function MarkdownContent({ content, onCitationClick }: Props) {
             );
           }
           return (
-            <code className="bg-muted/60 px-1.5 py-0.5 rounded-md text-[13px] font-mono" {...rest}>
+            <code className="bg-muted/40 px-1.5 py-0.5 rounded text-[13px] font-mono" {...rest}>
               {children}
             </code>
           );
         },
         pre: ({ children }: ComponentPropsWithoutRef<"pre">) => <>{children}</>,
         blockquote: (props: ComponentPropsWithoutRef<"blockquote">) => (
-          <blockquote className="border-l-2 border-emerald-500/40 pl-4 my-3 text-muted-foreground/80 italic" {...props} />
+          <blockquote className="border-l-2 border-border pl-4 my-3 text-muted-foreground italic" {...props} />
         ),
         a: (props: ComponentPropsWithoutRef<"a">) => (
-          <a className="text-emerald-500 hover:text-emerald-400 hover:underline underline-offset-2" target="_blank" rel="noopener noreferrer" {...props} />
+          <a className="text-primary hover:underline underline-offset-2" target="_blank" rel="noopener noreferrer" {...props} />
         ),
         // render <cite> tags produced by processedContent
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -72,7 +72,7 @@ export function MarkdownContent({ content, onCitationClick }: Props) {
           return (
             <button
               type="button"
-              className="text-emerald-400 hover:text-emerald-300 font-medium cursor-pointer text-sm"
+              className="citation"
               onClick={() => onCitationClick?.(idx)}
             >
               {props.children}

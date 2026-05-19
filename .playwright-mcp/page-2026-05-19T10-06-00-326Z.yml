@@ -1,0 +1,78 @@
+- generic [ref=e2]:
+  - generic [ref=e5]:
+    - tablist [ref=e6]:
+      - tab "📊 Metrics" [selected] [ref=e7]
+      - tab "🔧 MCP" [ref=e8]
+      - tab "🔍 Search" [ref=e9]
+      - tab "🚀 Spaces" [ref=e10]
+      - tab "🚀 Gradio" [ref=e11]
+      - tab "🏠 Home" [ref=e12]
+    - tabpanel "📊 Metrics" [ref=e13]:
+      - generic [ref=e14]:
+        - generic [ref=e15]:
+          - generic [ref=e16]: 📊 Transport Metrics
+          - generic [ref=e17]: Real-time connection and performance metrics for STDIO transport
+        - generic [ref=e18]:
+          - generic [ref=e19]:
+            - generic [ref=e20]:
+              - paragraph [ref=e21]: Transport Type
+              - paragraph [ref=e22]: STDIO
+            - generic [ref=e23]:
+              - paragraph [ref=e24]: Uptime
+              - paragraph [ref=e25]: 36m
+          - generic [ref=e26]:
+            - heading "Sessions (0 active, 1 disconnected)" [level=3] [ref=e27]
+            - generic [ref=e28]:
+              - generic [ref=e29]:
+                - textbox "Filter sessions..." [ref=e30]
+                - button "Columns" [ref=e31]:
+                  - text: Columns
+                  - img
+              - table [ref=e34]:
+                - rowgroup [ref=e35]:
+                  - row "Client Session ID Status Connected Requests Last Activity" [ref=e36]:
+                    - columnheader "Client" [ref=e37]:
+                      - button "Client" [ref=e39]
+                    - columnheader "Session ID" [ref=e40]:
+                      - button "Session ID" [ref=e42]
+                    - columnheader "Status" [ref=e43]:
+                      - button "Status" [ref=e45]
+                    - columnheader "Connected" [ref=e46]:
+                      - button "Connected" [ref=e48]
+                    - columnheader "Requests" [ref=e49]:
+                      - button "Requests" [ref=e51]
+                    - columnheader "Last Activity" [ref=e52]:
+                      - button "Last Activity" [ref=e54]:
+                        - text: Last Activity
+                        - img
+                - rowgroup [ref=e55]:
+                  - row "claude-code@2.1.144 STDIO Disconnected 36m ago 3 36m ago" [ref=e56]:
+                    - cell "claude-code@2.1.144" [ref=e57]:
+                      - generic "claude-code@2.1.144" [ref=e58]
+                    - cell "STDIO" [ref=e59]:
+                      - generic "STDIO" [ref=e60]
+                    - cell "Disconnected" [ref=e61]:
+                      - generic [ref=e62]:
+                        - img
+                        - text: Disconnected
+                    - cell "36m ago" [ref=e63]:
+                      - generic [ref=e64]: 36m ago
+                    - cell "3" [ref=e65]:
+                      - generic [ref=e66]: "3"
+                    - cell "36m ago" [ref=e67]:
+                      - generic [ref=e68]: 36m ago
+              - generic [ref=e69]:
+                - generic [ref=e70]: 1 row(s) total.
+                - generic [ref=e71]:
+                  - button "Previous" [disabled]
+                  - button "Next" [disabled]
+  - generic [ref=e73]:
+    - generic [ref=e74]:
+      - generic [ref=e75]: Using
+      - generic [ref=e76]: STDIO
+      - generic [ref=e77]:
+        - text: "Client Info :"
+        - generic [ref=e78]: (disconnected)
+    - generic [ref=e79]:
+      - generic [ref=e80]: "Default HF Token:"
+      - generic [ref=e81]: "Warning: No token set"
