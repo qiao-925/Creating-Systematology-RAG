@@ -1,16 +1,7 @@
 # CLAUDE.md
 
-## Plan 文档规范
-创建或修改 plan 文档（文件名含 `plan` 或 `计划`）时，必须包含：
-1. 版本目标（含"为什么"）
-2. 文档锚定（锚定架构文档 + 同步更新清单）
-3. 决策清单（分核心/支撑两层，含选项 + 状态）
-4. 任务清单（分阶段，含验收标准 + 失败路径）
-5. 执行日志（增强关键checkpoint的可观测性）
-
-定位：MVP 构建和版本迭代的主线开发。package 配合、bug 修复等边界工作不纳入计划文档。
-
-参考模板：`docs/plan-checklist.md`
+@.claude/rules/plan-doc-spec.md
+@.claude/rules/path-placement.md
 
 ## 跨端同步
 Claude Code 全局配置（settings、skills、plugins、memory、会话历史）通过专用仓库 `dev-sync` 同步。

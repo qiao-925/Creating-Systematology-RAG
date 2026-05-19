@@ -73,6 +73,50 @@
 
 ---
 
+## Agent 工程约束
+
+### Claude Code Rules 系统
+
+- **链接：** [Claude Code Memory 文档](https://code.claude.com/docs/zh-CN/memory)
+- **解决什么问题：** 如何让 AI Agent 遵守项目结构和编码规范，而非仅靠"建议"
+- **借鉴了什么：**
+  - **`.claude/rules/` 模块化规则**：每个 `.md` 文件覆盖一个主题，支持 `paths` frontmatter 做路径作用域加载
+  - **`@import` 语法**：CLAUDE.md 通过 `@path/to/file` 引入 rules 文件，保持入口精简
+  - **层级加载**：managed policy → user → project → local，逐层覆盖
+- **哪些不适用：**
+  - rules 是上下文（agent 可能忽略），不能替代 hooks 做硬拦截
+  - `paths` 作用域规则按文件匹配加载，但路径放置检查需要在写入前拦截，必须用 hooks
+- **当前落地：** `.claude/rules/` 目录 + CLAUDE.md @import 模式
+
+### Claude Code Hooks 系统
+
+- **链接：** [Claude Code Hooks 文档](https://code.claude.com/docs/zh-CN/hooks)
+- **解决什么问题：** 在工具调用生命周期中强制执行规则，agent 无法绕过
+- **借鉴了什么：**
+  - **PreToolUse**：工具执行前拦截，exit 2 = block，用于路径校验
+  - **PostToolUse**：工具执行后校验，用于内容结构校验
+  - **stdin JSON 协议**：`{tool_name, tool_input}` 传入，`hookSpecificOutput` + `permissionDecision: "deny"` 反馈
+  - **`if` matcher**：支持 `"Edit(*.ts)"` 等细粒度匹配
+- **哪些不适用：**
+  - hooks 只在 Claude Code 会话内生效，不覆盖人工编码或其他 agent
+  - hooks 增加每次工具调用的延迟，应仅用于关键校验
+- **当前落地：** `.claude/hooks/validate_plan_hook.py`（PostToolUse）+ `validate_path_hook.py`（PreToolUse，新增）
+
+### AGENTS.md 跨工具标准
+
+- **链接：** [AGENTS.md 社区标准](https://github.com/anthropics/claude-code/blob/main/docs/agents-md.md)
+- **解决什么问题：** 多 AI 编码工具间的指令可移植性
+- **借鉴了什么：**
+  - Cursor、Copilot、Windsurf、Claude Code 均支持
+  - 子目录 AGENTS.md 按最近优先级加载
+  - CLAUDE.md 通过 `@AGENTS.md` 导入实现兼容
+- **哪些不适用：**
+  - 各工具加载方式不同，不能假设行为一致
+  - 无标准化格式，无拦截机制
+- **当前落地：** 项目根 `AGENTS.md` + `web/AGENTS.md`
+
+---
+
 ## 待补充
 
 以下领域有参考价值，待后续补充：

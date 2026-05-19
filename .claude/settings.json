@@ -1,12 +1,23 @@
 {
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/validate_path_hook.py"
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Write|Edit",
         "hooks": [
           {
             "type": "command",
-            "command": "python C:/Users/nonep/Desktop/Creating-Systematology-RAG/.claude/hooks/validate_plan_hook.py"
+            "command": "python3 .claude/hooks/validate_plan_hook.py"
           }
         ]
       }

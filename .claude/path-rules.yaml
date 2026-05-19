@@ -1,0 +1,115 @@
+# File path placement rules for Claude Code hooks.
+# Each zone defines a list of glob patterns (relative to project root).
+# Files not matching ANY zone are BLOCKED unless listed in root_files.
+#
+# Hook: .claude/hooks/validate_path_hook.py
+# Docs: .claude/rules/path-placement.md
+
+version: 1
+unmatched_policy: block
+
+root_files:
+  - CLAUDE.md
+  - CLAUDE.local.md
+  - AGENTS.md
+  - ARCHITECTURE.md
+  - README.md
+  - Makefile
+  - Dockerfile
+  - pyproject.toml
+  - pytest.ini
+  - application.yml
+  - .env.example
+  - .gitignore
+  - .gitmodules
+  - .dockerignore
+  - .cursorindexingignore
+  - .python-version
+  - start.sh
+  - uv.lock
+
+zones:
+  - name: backend
+    description: "Python backend (FastAPI + LlamaIndex)"
+    patterns:
+      - "backend/**/*.py"
+      - "backend/**/*.yml"
+      - "backend/**/*.yaml"
+      - "backend/**/*.json"
+      - "backend/**/*.txt"
+      - "backend/**/*.md"
+      - "backend/**/*.toml"
+
+  - name: backend-tests
+    description: "Backend unit/integration tests"
+    patterns:
+      - "backend/tests/**"
+
+  - name: frontend
+    description: "Next.js frontend source"
+    patterns:
+      - "web/src/**/*.ts"
+      - "web/src/**/*.tsx"
+      - "web/src/**/*.css"
+      - "web/src/**/*.json"
+      - "web/src/**/*.svg"
+      - "web/src/**/*.png"
+
+  - name: frontend-config
+    description: "Frontend configuration and tooling"
+    patterns:
+      - "web/*.ts"
+      - "web/*.js"
+      - "web/*.json"
+      - "web/*.mjs"
+      - "web/*.cjs"
+      - "web/public/**"
+      - "web/CLAUDE.md"
+      - "web/AGENTS.md"
+
+  - name: tests
+    description: "Top-level integration/E2E tests"
+    patterns:
+      - "tests/**/*.py"
+      - "tests/**/*.yml"
+      - "tests/**/*.yaml"
+      - "tests/**/*.md"
+
+  - name: docs
+    description: "Project documentation"
+    patterns:
+      - "docs/**/*.md"
+      - "docs/**/*.txt"
+      - "docs/**/*.pdf"
+      - "docs/**/*.py"
+
+  - name: scripts
+    description: "Utility scripts"
+    patterns:
+      - "scripts/**/*.py"
+      - "scripts/**/*.sh"
+
+  - name: skills
+    description: "Claude Code project skills"
+    patterns:
+      - "skills/**/*.md"
+
+  - name: claude-config
+    description: "Claude Code configuration"
+    patterns:
+      - ".claude/**"
+
+  - name: agent-config
+    description: "Nightshift agent orchestration"
+    patterns:
+      - ".agent/**"
+
+  - name: github
+    description: "GitHub Actions and templates"
+    patterns:
+      - ".github/**"
+
+  - name: data
+    description: "Data directory"
+    patterns:
+      - "data/**"
