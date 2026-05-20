@@ -119,10 +119,14 @@
 - CLD 图 / FCM 结果内联渲染在消息流中（非侧边面板）
 - 行内引用 [1][2] + 底部来源卡片
 
-**Figma 设计稿**：
-- 文件：https://www.figma.com/design/yZwrYKc5C8tGFW6OxPN0Kj
-- V1（三栏 Dashboard）：node-id=1-2（已废弃）
-- V2（Agent 问答式）：node-id=4-2 ← 当前方向（去掉 tab 区域）
+**Figma 设计稿（阶段一真源）**：
+- 文件（阶段一）：https://www.figma.com/design/0AAWUyDNrAulCBsstGR73k（CLDFlow 团队）
+- 项目文件夹：https://www.figma.com/files/team/1638836103345957465/project/603731489
+- Canonical：Agent 问答式、无 Tab（初版 capture 已对齐）
+- 工作流：`docs/design/figma-phase1-workflow.md`
+- 七版风格矩阵：`docs/design/style-exploration-matrix.md`
+- Thinking 规格：`docs/design/thinking-observability-spec.md`
+- ~~HTML mockup~~：已弃用，不再作为校验真源
 
 ## MVP 范围锚定（2026-05-19）
 
@@ -144,14 +148,22 @@
 - [x] 05-18 B1-B7 全部完成
 - [x] 05-19 设计方向探索：确定 Vercel 设计语言 + Agent 问答式布局，生成 Figma 设计稿 V2
 - [x] 05-19 设计锚定：去掉 Chat/Research/CLDFlow 三 tab，统一为单一聊天入口；MVP 范围裁剪确认
-- [ ] 05-19 UI 重构：按 V2 设计稿实现 MVP 布局（扁平消息、Vercel 色彩、无 tab）
-- [ ] 05-19 设计校验：实现完成后，逐项对照 `design-mockup-v2.html` 确认无偏离（色彩、布局、组件结构）
+- [x] 05-20 设计阶段一：Figma-only 流程锚定 + 文档（见 `docs/design/`）
+- [x] 05-20 用户确认：七版名单 + P1 授权 + MCP 报错附 cURL（见 `figma-mcp-rate-limits-and-curl-demo.md` §8）
+- [x] 05-20 Figma：P1 Canonical 两帧完成（Landing + Conversation/Thinking），文件 `0AAWUyDNrAulCBsstGR73k`
+- [x] 05-20 Perplexity 调研文档存档：`docs/research/perplexity-style-eval-survey.md`
+- [x] 05-20 Figma：P2 七版风格探索完成（Page 02），待用户选型
+- [x] 05-21 Figma：Canonical 骨架重建（完整版：CLD 图 + FCM 表 + 来源卡），用户确认基础版
+- [x] 05-21 Figma：P2 七版风格探索重建（完整骨架版），Page 02 已更新
+- [ ] 05-20 设计选型：从七版中选定主风格并记录于 `style-exploration-matrix.md`
+- [ ] **阶段二** UI 代码重构：按选定 Figma 实现（扁平消息、无 tab、Thinking 分步）
+- [ ] **阶段二** 设计校验：对照 Figma 节点截图，不再使用 HTML mockup
 - [ ] B8-B9 可视化增强待后续迭代（需参照 V2 设计稿实现）
 
 ## 设计校验清单
 
-UI 重构完成后，必须逐项对照 `design-mockup-v2.html`（亮/暗双模式）确认。
-校验方法见通用 skill：`design-mockup-verification`（`/home/q/.agents/skills/design-mockup-verification/SKILL.md`）。
+阶段二代码完成后，必须逐项对照 **Figma 选定帧**（亮/暗双模式）确认。
+阶段一设计校验见 `docs/design/figma-phase1-workflow.md` 与 `docs/design/style-exploration-matrix.md`。
 
 - [ ] Header：仅 logo + 设置按钮，无 tab
 - [ ] 消息布局：扁平无气泡、无头像，用户右对齐灰底，助手左对齐无背景

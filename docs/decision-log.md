@@ -37,6 +37,26 @@
 
 ---
 
+## 2026-05-20 设计阶段一 — Figma-only + 七版风格探索文档
+
+**问题**：需收敛设计流程（弃 HTML mockup）、在 Figma 完成布局与风格实验，代码实现延后。
+
+**方案**：新 Figma 文件为真源；`docs/design/` 落工作流、七版 token 矩阵、Thinking 可观测性规格。
+
+**资产清单**：
+
+| 文件 | 变更 | 说明 |
+|------|------|------|
+| `docs/design/figma-phase1-workflow.md` | 新增 | 阶段一 Figma-only 流程 |
+| `docs/design/style-exploration-matrix.md` | 新增 | 7 版 Awesome Design MD 对比矩阵 |
+| `docs/design/thinking-observability-spec.md` | 新增 | Perplexity 式 Thinking 规格 |
+| `docs/CLDFlow MVP Builder/tracks/B-前端-Demo.md` | 修改 | 更新 Figma 链接与阶段划分 |
+| `.claude/memory/project_frontend_design_decisions.md` | 修改 | 设计决策与 Figma 工作流 |
+
+**Figma**：https://www.figma.com/design/6ajDseXpLEBRGu12Ta4BRM/CLDFlow-V2-Design-Mockup
+
+---
+
 ## 2026-05-19 前端 UI 优化 + thinking-block 组件
 
 **问题**：聊天界面需要展示 agent 推理过程，多个组件样式需要优化。

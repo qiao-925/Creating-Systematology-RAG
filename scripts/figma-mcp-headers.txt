@@ -1,0 +1,21 @@
+HTTP/1.1 401 Unauthorized
+Content-Type: text/plain
+Transfer-Encoding: chunked
+Connection: keep-alive
+Date: Wed, 20 May 2026 13:56:19 GMT
+x-content-type-options: nosniff
+server-timing: proxy;dur=9
+x-figma-rest-api-request-id: c611a4b3-c881-421a-ac3f-e7ee2d71d881
+access-control-allow-origin: *
+access-control-allow-headers: Content-Type, X-Figma-Token, Authorization
+access-control-expose-headers: Retry-After, X-Figma-Plan-Tier, X-Figma-Rate-Limit-Type, X-Figma-Upgrade-Link
+vary: X-Figma-Token, Authorization, Accept-Encoding
+cache-control: no-cache, no-store
+www-authenticate: Bearer resource_metadata="https://mcp.figma.com/.well-known/oauth-protected-resource",scope="mcp:connect",authorization_uri="https://api.figma.com/.well-known/oauth-authorization-server"
+X-Cache: Error from cloudfront
+Via: 1.1 eb80266c320712cf6b9ac266e9fb400e.cloudfront.net (CloudFront)
+X-Amz-Cf-Pop: HKG62-P1
+Alt-Svc: h3=":443"; ma=86400
+X-Amz-Cf-Id: AKpty4It7rFzHmfM0zEJ0Mp0JkRrMZGCJIqiO2RjwGVnmOu83Dry3w==
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+

@@ -33,6 +33,7 @@
   - [可观测性](#可观测性)
   - [测试策略](#测试策略)
   - [配置管理](#配置管理)
+  - [工程约束](#工程约束)
   - [数据流与中心契约](#数据流与中心契约)
 - [数据统计](#数据统计)
 
@@ -126,6 +127,9 @@ CLDFlow/
 ├── scripts/                        # 运维脚本
 ├── web/                            # Next.js / React 前端
 ├── docs/                           # 文档
+│   ├── constraint-system.md        #   约束体系（rules/hooks/yaml 三层防线）
+│   ├── decision-log.md             #   决策日志（只增不改）
+│   └── design/                     #   设计文档（Figma 工作流 + token 矩阵）
 ├── data/                           # 数据目录
 │
 ├── application.yml                 # 应用配置
@@ -496,6 +500,10 @@ FastAPI 路由，prefix `/api/cldflow`：
 3. **模块边界（最内层）：** 测试 CLD/FCM/D2D 的输入→输出转换。使用确定性输入和快照比较。
 
 **Architecture Invariant:** 测试不依赖外部资源。LLM 调用在测试中被 mock 或使用确定性 placeholder。这保证了测试的可重复性。
+
+### 工程约束
+
+三层防线确保文件放置和文档规范：rules 软引导 → hooks 硬拦截 → yaml 单一真相源。详见 [docs/constraint-system.md](docs/constraint-system.md)。
 
 ### 配置管理
 

@@ -9,11 +9,11 @@ metadata:
 
 ## 前端设计方向（2026-05-19 确定）
 
-**设计语言**：Vercel 风格（近白底 #fff + 墨黑 #171717 + 极简），基于 awesome-design-md 仓库的 Vercel DESIGN.md。
+**设计语言（阶段一探索中）**：Awesome Design MD 七版对比（Vercel / Linear / Claude / Cursor / Notion / Stripe / Figma DS），**尚未最终选型**。Vercel 为当前 Figma Canonical 基线。
 
-**Why:** 用户希望走主流 Agent 问答界面的设计范式，Vercel 的设计语言与项目技术栈（Next.js + Geist 字体 + shadcn/ui）天然匹配。
+**Why:** 用户要求先收敛设计稿、弃用 HTML mockup，在 Figma 完成风格实验后再改代码。
 
-**How to apply:** 所有前端 UI 实现都应参照 Vercel DESIGN.md 的色彩、字体、间距、阴影体系。
+**How to apply:** 阶段一只改 Figma + `docs/design/`；阶段二实现参照 `docs/design/style-exploration-matrix.md` 选定风格。
 
 ## UI 结构决策
 
@@ -35,14 +35,14 @@ MVP 只做 Chat 视角，不做模式拆分：
 - FCM/D2D 可视化（B9）延后，MVP 用现有 LeverageRanking 组件
 - Thinking steps：MVP 可先用简单 spinner，后端返回结构化步骤后再做分步指示器
 
-## Figma MCP 工作流（已验证可用）
+## Figma MCP 工作流（2026-05-20 收敛）
 
-- 安装：`claude plugin install figma@claude-plugins-official`
-- 认证：首次使用时自动 OAuth，账号 hashassemble@gmail.com（Full seat）
-- 流程：创建 HTML 设计稿 → 本地服务器 serve → Figma capture 脚本捕捉 → 写入 Figma 文件
-- Figma 文件：https://www.figma.com/design/yZwrYKc5C8tGFW6OxPN0Kj
-- V1（Dashboard 三栏）：node-id=1-2
-- V2（Agent 问答式）：node-id=4-2 ← 当前方向
+- **MCP 账号**：`noneplus@outlook.com`（2026-05-20 用户确认）
+- **真源文件**：https://www.figma.com/design/GetdOs1IPlJcW5mdrKhVH3（CLDFlow — Design Phase 1）
+- **初版参考（只读）**：https://www.figma.com/design/6ajDseXpLEBRGu12Ta4BRM/CLDFlow-V2-Design-Mockup
+- **流程**：仅 Figma MCP；**弃用** HTML capture
+- **限制**：Starter 3 Pages + View 席位写入受限 + MCP 月度额度
+- 文档：`docs/design/figma-phase1-workflow.md`
 
 ## 计划文档
 

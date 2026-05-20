@@ -10,10 +10,12 @@ metadata:
 ## Figma MCP（已配置）
 
 - MCP server：`plugin:figma:figma` → `https://mcp.figma.com/mcp`
-- 认证账号：hashassemble@gmail.com（Full seat, starter tier）
-- 主要工具：`create_new_file`、`generate_figma_design`（capture 模式）、`use_figma`、`get_design_context`
-- 捕捉流程：HTML → 本地服务器 → capture.js 脚本 → 写入 Figma
-- 限制：starter 计划每月 6 次工具调用（写入操作豁免）
+- **认证账号（用户拍板）**：`noneplus@outlook.com`（handle: peter；noneplus's team，**View** seat，Education/student tier）
+- 阶段一真源文件：`GetdOs1IPlJcW5mdrKhVH3` — https://www.figma.com/design/GetdOs1IPlJcW5mdrKhVH3
+- 主要工具：`create_new_file`、`use_figma`、`get_design_context`（~~`generate_figma_design` HTML capture~~ 已弃用）
+- **写入前置**：View 席位无法可靠 `use_figma` 写稿；需对真源文件授予 **Can edit**，或团队内升级为 Edit/Full seat
+- 限制：读工具受 **每分钟 + 日/月额度** 约束；Education 计划易触达 MCP paywall；`whoami` 等部分工具豁免（见官方文档）
+- 自测与重试：`docs/design/figma-mcp-rate-limits-and-curl-demo.md`（cURL + 5s 重试 + `scripts/figma_mcp_retry_demo.py`）
 
 ## awesome-design-md
 
