@@ -1,2 +1,3 @@
 - [Frontend Design Decisions](project_frontend_design_decisions.md) — Vercel 设计语言 + Agent 问答结构，Figma MCP 工作流
 - [Design Tools Reference](reference_design_tools.md) — Figma MCP、awesome-design-md、v0.app 的定位与用法
+- [Decision Log Pattern](project_decision_log_pattern.md) — 核心任务完成后追加 docs/decision-log.md，记录资产变更

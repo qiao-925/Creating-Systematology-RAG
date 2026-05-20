@@ -18,8 +18,17 @@
 
 ## 构建依赖清单
 
-- figma mcp
+- figma mcp 锚定官方文档集成
 - awesome-design-md
 - claude code
 - xiaomi mimo v2.5
-- 
+
+
+## 导航
+
+
+## figma的锚点效应
+
+关于引入figma作为项目开发的锚点
+- 前端补充figma作为锚点
+- 后端业务数据模型从figma中提取
