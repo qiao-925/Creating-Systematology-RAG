@@ -2,6 +2,7 @@
 
 @.claude/rules/plan-doc-spec.md
 @.claude/rules/path-placement.md
+@.claude/rules/plan-execution.md
 
 ## 文档地图
 项目全局文档索引与约束体系概览见 [AGENTS.md](AGENTS.md)。

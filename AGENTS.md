@@ -29,6 +29,7 @@ docs/
 - [CLDFlow-MVP-review.md](docs/CLDFlow-MVP-review.md) — MVP 审查报告
 - [CONFIG_SETUP.md](docs/CONFIG_SETUP.md) — 配置管理指南
 - [KeyDecision-list.md](docs/KeyDecision-list.md) — 关键决策记录
+- [dependency-list.md](docs/dependency-list.md) — 项目构建依赖清单 + Context7 安装说明
 - [references/](docs/references/) — 设计参考库
 - [research with brainstorm/](docs/research%20with%20brainstorm/) — 研究与头脑风暴
 

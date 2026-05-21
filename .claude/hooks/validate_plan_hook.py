@@ -6,7 +6,9 @@
 2. 文档锚定 — 必须包含锚定或同步条目
 3. 决策清单 — 必须分核心/支撑两层
 4. 任务清单 — 必须分阶段，且包含验收标准和失败路径
-5. 执行记录 — 必须包含清单项
+5. 执行规则 — 必须包含硬性约束和 checkpoint/自主推进机制
+6. 执行记录 — 必须包含清单项
+7. 执行 prompt 模板 — 必须包含可执行的 prompt 模板内容
 """
 import json
 import re
@@ -78,6 +80,31 @@ def check_log(section_text: str) -> str | None:
     return None
 
 
+def check_execution_rules(section_text: str) -> str | None:
+    """执行规则：必须包含硬性约束子节和 checkpoint/自主推进关键词。"""
+    has_hard = bool(re.search(r"#{2,4}\s*(?:硬性约束|Hard\s*(?:Constraint|Rule))", section_text))
+    has_checkpoint = bool(re.search(
+        r"(自检|验收|逐任务|暂停|确认|checkpoint|self.?check|deliverable|自主|自动继续|auto.?continue)",
+        section_text, re.IGNORECASE
+    ))
+    if not has_hard:
+        return '执行规则缺少"硬性约束"子节'
+    if not has_checkpoint:
+        return "执行规则缺少 checkpoint 机制（自检/验收/确认/自主推进）"
+    return None
+
+
+def check_execution_prompt(section_text: str) -> str | None:
+    """执行 prompt 模板：必须包含模板内容（代码块或列表）。"""
+    has_template = bool(re.search(r"(prompt|模板|template)", section_text, re.IGNORECASE))
+    has_content = bool(re.search(r"(```|-\s*\S)", section_text))
+    if not has_template:
+        return '缺少"执行 prompt 模板"标识'
+    if not has_content:
+        return "执行 prompt 模板内容为空"
+    return None
+
+
 # ── 校验规则表 ──────────────────────────────────────────────
 
 CHECKS = [
@@ -86,7 +113,9 @@ CHECKS = [
     ("文档锚定", ["文档锚定", "Doc Anchor", "Anchor", "锚定"], check_anchor),
     ("决策清单", ["决策清单", "Decision", "决策"], check_decision),
     ("任务清单", ["任务清单", "Task", "任务"], check_task),
+    ("执行规则", ["执行规则", "Execution Rules", "执行约束"], check_execution_rules),
     ("执行记录", ["执行记录", "Execution", "Checkpoint", "Log", "记录"], check_log),
+    ("执行 prompt 模板", ["执行 prompt 模板", "Execution Prompt", "Prompt Template", "执行 Prompt 模板"], check_execution_prompt),
 ]
 
 
@@ -192,9 +221,12 @@ def main():
 
     if problems:
         print(json.dumps({
-            "decision": "block",
-            "reason": "Plan 文档校验未通过：" + "；".join(problems) + "。参考 docs/plan-checklist.md"
+            "hookSpecificOutput": {
+                "permissionDecision": "deny",
+                "reason": "Plan 文档校验未通过：" + "；".join(problems) + "。参考 docs/plan-checklist.md"
+            }
         }))
+        sys.exit(2)
 
     sys.exit(0)
 

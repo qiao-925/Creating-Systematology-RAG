@@ -54,10 +54,25 @@ sys.modules["chromadb.api.models"] = chromadb_models_module
 sys.modules["chromadb.api.models.Collection"] = chromadb_collection_module
 
 
-# LlamaIndex chroma vector store stub (if missing)
+# LlamaIndex stubs (if missing)
 try:
+    from llama_index.core import Document  # noqa: F401
     from llama_index.vector_stores.chroma import ChromaVectorStore  # noqa: F401
 except ImportError:
+    llama_index_module = MagicMock()
+    llama_index_core_module = MagicMock()
+
+    class _StubDocument:
+        def __init__(self, text: str = "", metadata: dict | None = None, **kwargs):
+            self.text = text
+            self.metadata = metadata or {}
+            self.extra_info = kwargs
+
+    llama_index_core_module.Document = _StubDocument
+    llama_index_module.core = llama_index_core_module
+    sys.modules["llama_index"] = llama_index_module
+    sys.modules["llama_index.core"] = llama_index_core_module
+
     chroma_vector_store_module = MagicMock()
     chroma_vector_store_module.ChromaVectorStore = MagicMock
     vector_stores_module = MagicMock()
