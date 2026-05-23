@@ -130,6 +130,8 @@ CLDFlow/
 │   ├── constraint-system.md        #   约束体系（rules/hooks/yaml 三层防线）
 │   ├── decision-log.md             #   决策日志（只增不改）
 │   └── design/                     #   设计文档（Figma 工作流 + token 矩阵）
+│       ├── design-anchoring-summary.md  # 设计锚定摘要（核心概念/信息架构/组件映射）
+│       └── report page/                 # Report Page 定稿（设计规范/tokens/组件映射）
 ├── data/                           # 数据目录
 │
 ├── application.yml                 # 应用配置

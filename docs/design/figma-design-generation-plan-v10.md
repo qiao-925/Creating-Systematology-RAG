@@ -1,4 +1,4 @@
-# Figma 设计稿生成计划 V20
+# Figma 设计稿生成计划 V10
 
 ## 版本目标
 
@@ -109,7 +109,7 @@
 **目标**：安装设计 skills，准备生成所需的全部知识素材。
 
 - [ ] T0.1 安装 wondelai/skills 设计类 skills
-  - 产出：refactoring-ui / web-typography / top-design / ux-heuristics / microinteractions / design-everyday-things 就绪
+  - 产出：refactoring-ui / web-typograph$$y / top-design / ux-heuristics / microinteractions / design-everyday-things 就绪
   - 验收：`npx skills add` 命令全部成功，skill 文件出现在项目中
   - 失败路径：降级 — 仓库不可用则从 awesome-design-md 手动提取对应参考文档
   - 硬性约束：6 个 skill 全部安装，不得跳过任何一个

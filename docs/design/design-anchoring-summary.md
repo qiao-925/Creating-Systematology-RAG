@@ -140,38 +140,82 @@ Leverage Table 出现（杠杆点排序）
 
 ## 设计稿同步记录
 
+### Report Page 定稿
+
+- 计划文档：`docs/design/report page/report-page-finalization-plan.md`
+- 设计规范：`docs/design/report page/report-page-spec.md`
+- Figma 文件：https://www.figma.com/design/NnaxrhyA2t5iSt8EszbX7y/report-page-final-v1
+- 位置：CLDFlow 团队（team::1638940025494981125）
+- 状态：**已完成**，Day/Night 双主题完整
+
+### Index Page 设计计划
+
+- 计划文档：`docs/design/index page/figma-design-generation-plan-v10.md`
+- Figma 文件：https://www.figma.com/design/9yJ1fQ8i68IsmQLcRGg00s（帧 ID: 13:2）
+- 位置：CLDFlow 团队（team::1638940025494981125）
+- 核心模块：Hero 区域、核心能力展示（CLD/FCM/D2D）、使用流程、导航入口
+- 组件映射：Index Hero / Feature Cards / Process Steps
+- 状态：**已完成**，深色主题，与 report page 统一视觉风格
+
+### Runtime Page 设计稿
+
+- 计划文档：`docs/design/runtime page/runtime-page-design-plan.md`
+- Figma 文件：https://www.figma.com/design/GbbKF1sXeK1VDuClrOfrT1
+- 位置：CLDFlow 团队（team::1638940025494981125）
+- 状态：**已完成**，桌面端（1440×900）+ 移动端（375×812），Day/Night 双主题
+- 设计 Token：`docs/design/runtime page/design-tokens.json`
+- 组件映射：`docs/design/runtime page/component-mapping.md`
+- 布局方案：双栏工作台（消息流 ~60% + CLD 画布 ~40%），与 Report Page 一致
+
 ### 当前 Figma 设计稿
 
-- 文件：`figma-design-generation-plan-v14 - cursor - opus4.7`
-- 版本：V14
+- 文件：`figma-design-generation-plan-v21`
+- 版本：V21
+- URL：https://www.figma.com/design/9yJ1fQ8i68IsmQLcRGg00s
 - 位置：CLDFlow 团队（team::1638940025494981125）
-- 状态：已创建并完成主结构延伸
+- 状态：已创建，三页完整（Runtime / Index / Report）
 
-### 实际 Token 值（从当前设计稿提取）
+### 实际 Token 值（定稿 v1）
 
-> 说明：以下为当前设计稿中用于主结构的实际视觉值，后续应继续向 `oklch` 语义 token 收敛。
+> 说明：完整的 oklch 语义 token 已定义在 `docs/design/report page/design-tokens.json`。
+> 以下为关键 token 摘要。Day/Night 双套，通过 `data-theme` 属性切换。
 
-| Token 角色 | 当前值 |
-|------------|--------|
-| 页面背景 | `rgb(9, 11, 17)` / 深海军蓝 |
-| 主卡片背景 | `rgb(14, 18, 28)` |
-| 次级卡片背景 | `rgb(16, 21, 32)` |
-| 主标题文字 | `rgb(247, 249, 252)` |
-| 次级说明文字 | `rgb(181, 191, 209)` |
-| 正向状态 | `rgb(38, 142, 87)` |
-| 主操作蓝 | `rgb(36, 101, 214)` |
+| Token 角色 | Night (oklch) | Day (oklch) |
+|------------|--------------|-------------|
+| 页面背景 | `oklch(0.10 0.01 250)` | `oklch(0.97 0.005 80)` |
+| 主卡片背景 | `oklch(0.12 0.015 250)` | `oklch(0.94 0.005 80)` |
+| 次级卡片背景 | `oklch(0.15 0.015 250)` | `oklch(0.90 0.005 80)` |
+| 主标题文字 | `oklch(0.93 0.01 250)` | `oklch(0.15 0.01 250)` |
+| 次级说明文字 | `oklch(0.65 0.02 250)` | `oklch(0.42 0.01 250)` |
+| 正向状态 | `oklch(0.65 0.18 155)` | `oklch(0.50 0.16 155)` |
+| 主操作蓝 | `oklch(0.65 0.18 250)` | `oklch(0.55 0.20 250)` |
 
-### 组件清单与代码映射（草案）
+### 组件清单与代码映射
 
-| 设计组件 | 代码路径 | 状态 |
-|----------|----------|------|
-| Header / Query Bar | `web/src/components/cldflow/header.tsx` | 待创建 |
-| 消息区 | `web/src/components/cldflow/message-area.tsx` | 待创建 |
-| Thinking | `web/src/components/cldflow/thinking.tsx` | 待创建 |
-| CLD 因果图 | `web/src/components/cldflow/cld-canvas.tsx` | 待创建 |
-| Source Cards | `web/src/components/cldflow/source-cards.tsx` | 待创建 |
-| Leverage Table | `web/src/components/cldflow/leverage-table.tsx` | 待创建 |
-| 输入区 | `web/src/components/cldflow/input-bar.tsx` | 待创建 |
+> 详细映射见 `docs/design/report page/component-mapping.md`
+
+| 设计组件 | 代码路径 | 状态 | 页面 |
+|----------|----------|------|------|
+| Header | `web/src/components/cldflow/header.tsx` | 待创建 | Report/Runtime |
+| Thinking Bar | `web/src/components/cldflow/thinking-bar.tsx` | 待创建 | Report/Runtime |
+| Source Cards | `web/src/components/cldflow/source-cards.tsx` | 待创建 | Report |
+| Source Card | `web/src/components/cldflow/source-card.tsx` | 待创建 | Report/Runtime |
+| CLD Canvas | `web/src/components/cldflow/cld-canvas.tsx` | 待创建 | Report/Runtime |
+| Leverage Table | `web/src/components/cldflow/leverage-table.tsx` | 待创建 | Report/Runtime |
+| Input Bar | `web/src/components/cldflow/input-bar.tsx` | 待创建 | Report/Runtime |
+| Theme Toggle | `web/src/components/cldflow/theme-toggle.tsx` | 待创建 | Report/Runtime |
+| Tier Badge | `web/src/components/cldflow/tier-badge.tsx` | 待创建 | Report/Runtime |
+| Message Area | `web/src/components/cldflow/message-area.tsx` | 待创建 | Runtime |
+| User Message | `web/src/components/cldflow/user-message.tsx` | 待创建 | Runtime |
+| Thinking Inline | `web/src/components/cldflow/thinking-inline.tsx` | 待创建 | Runtime |
+| Source Citations | `web/src/components/cldflow/source-citations.tsx` | 待创建 | Runtime |
+| History Drawer | `web/src/components/cldflow/history-drawer.tsx` | 待创建 | Runtime |
+| Empty State | `web/src/components/cldflow/empty-state.tsx` | 待创建 | Runtime |
+| Loading State | `web/src/components/cldflow/loading-state.tsx` | 待创建 | Runtime |
+| Error State | `web/src/components/cldflow/error-state.tsx` | 待创建 | Runtime |
+| Index Hero | `web/src/components/cldflow/index-hero.tsx` | 待创建 | Index |
+| Feature Cards | `web/src/components/cldflow/feature-cards.tsx` | 待创建 | Index |
+| Process Steps | `web/src/components/cldflow/process-steps.tsx` | 待创建 | Index |
 
 ## 参考来源
 

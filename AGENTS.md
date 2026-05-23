@@ -17,7 +17,14 @@ docs/
 ├── CONFIG_SETUP.md               ← 配置管理指南（gh token 同步 + .env 说明）
 ├── KeyDecision-list.md           ← 关键决策记录（D1-D12）
 ├── references/                   ← 设计参考库（外部模式借鉴）
-└── research with brainstorm/     ← 研究与头脑风暴材料（论文 + 架构设计）
+├── research with brainstorm/     ← 研究与头脑风暴材料（论文 + 架构设计）
+└── design/
+    ├── design-anchoring-summary.md  ← 设计锚定摘要（核心概念、信息架构、组件清单）
+    ├── report page/
+    │   ├── figma-design-generation-plan-v10.md  ← v10 设计稿生成计划
+    │   └── report-page-finalization-plan.md     ← Report Page 最终定稿计划
+    └── index page/
+        └── figma-design-generation-plan-v10.md  ← Index Page 设计稿生成计划
 ```
 
 **快速导航**：
@@ -32,4 +39,6 @@ docs/
 - [dependency-list.md](docs/dependency-list.md) — 项目构建依赖清单 + Context7 安装说明
 - [references/](docs/references/) — 设计参考库
 - [research with brainstorm/](docs/research%20with%20brainstorm/) — 研究与头脑风暴
+- [report-page-finalization-plan.md](docs/design/report%20page/report-page-finalization-plan.md) — Report Page 最终定稿计划
+- [index-page-design-plan-v10.md](docs/design/index%20page/figma-design-generation-plan-v10.md) — Index Page 设计稿生成计划
 
