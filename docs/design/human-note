@@ -29,3 +29,11 @@ draft：
 - index page
 - runtime page
 - report page 
+
+昨天已生成上述可参考性的设计稿了，今天继续做延伸生成，以上设计稿可用于report page，还需runtime page和index page的设计稿
+
+关于runtime page，可参考一般问答型agent设计风格来完成，例如参考DeepSeek，manus等的设计风格
+
+至于index page，则是提供当前项目的启动入口，放些简介之类的，属于门户类页面了
+
+根据以上生成今天的figma生成计划，注意参考：/home/q/Desktop/clonex-repos/AI _ Agents/Creating-Systematology-RAG/docs/design/figma-design-generation-plan-v20.md

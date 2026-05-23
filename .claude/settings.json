@@ -18,6 +18,10 @@
           {
             "type": "command",
             "command": "python3 .claude/hooks/validate_plan_hook.py"
+          },
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/archive_plan_hook.py"
           }
         ]
       }

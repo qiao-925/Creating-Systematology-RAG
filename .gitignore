@@ -64,3 +64,6 @@ Thumbs.db
 logs/
 
 .specstory/**
+
+# Playwright MCP temp artifacts
+.playwright-mcp/

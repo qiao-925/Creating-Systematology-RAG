@@ -15,3 +15,11 @@
 参考：`.claude/rules/plan-execution.md`
 
 参考模板：`docs/plan-checklist.md`
+
+## 自动存档
+
+Plan 文档 Write 时，hook 自动生成结构化存档到同域 `.archive/` 子目录。
+存档格式：Markdown + frontmatter，包含任务状态快照、决策快照、硬性约束快照。
+用于可恢复执行、人工审查、手动优化后续跑。
+
+参考：`.claude/hooks/archive_plan_hook.py`
