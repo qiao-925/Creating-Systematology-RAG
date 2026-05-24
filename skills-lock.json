@@ -13,17 +13,29 @@
       "skillPath": "microinteractions/SKILL.md",
       "computedHash": "9706b350cd01e15b5fa7946ea9424fd9202ea3bfac7d12a7580d073a742666de"
     },
+    "refactoring-ui": {
+      "source": "wondelai/skills",
+      "sourceType": "github",
+      "skillPath": "refactoring-ui/SKILL.md",
+      "computedHash": "9fdbcb89c11fb0159c9ad4d43499e3042c8904225b85d714abb7362576629ff1"
+    },
     "top-design": {
       "source": "wondelai/skills",
       "sourceType": "github",
       "skillPath": "top-design/SKILL.md",
-      "computedHash": "ab2840f92dc511e9eb40969be979bbe83fa78aa518158454a9df4620aa78c9df"
+      "computedHash": "52d6f47155805218cabf75711e6eff932dc475278295fa593cbefc6a4d2c3692"
     },
     "ux-heuristics": {
       "source": "wondelai/skills",
       "sourceType": "github",
       "skillPath": "ux-heuristics/SKILL.md",
       "computedHash": "ad7fe92cf0e0758e5274b6b17affbb56d17ce1c9c550b8b0b93c09e37da70960"
+    },
+    "web-typography": {
+      "source": "wondelai/skills",
+      "sourceType": "github",
+      "skillPath": "web-typography/SKILL.md",
+      "computedHash": "f611f6e756bc592d2b9f5fb118c6335758a056454fd0f5c477633d94da036264"
     }
   }
 }

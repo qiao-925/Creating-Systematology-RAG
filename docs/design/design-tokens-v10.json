@@ -1,0 +1,175 @@
+{
+  "$schema": "design-tokens-v10",
+  "description": "Design tokens extracted from Figma delivery file (figma-design-generation-plan-v10)",
+  "extractedAt": "2026-05-24",
+  "source": "https://www.figma.com/design/9cfzfIzNqO0SwU4LJvztv1",
+
+  "color": {
+    "background": {
+      "base": "oklch(0.063 0.014 260)",
+      "description": "#090b11 — page background"
+    },
+    "surface": {
+      "panel": "oklch(0.075 0.016 260)",
+      "description": "#0c1019 — header, input panel"
+    },
+    "surface": {
+      "card": "oklch(0.085 0.018 260)",
+      "description": "#0e121c — left rail, right panel"
+    },
+    "surface": {
+      "graph": "oklch(0.080 0.020 260)",
+      "description": "#0d111a — center graph panel"
+    },
+    "surface": {
+      "elevated": "oklch(0.095 0.022 255)",
+      "description": "#121824 — step cards, source cards, rank rows, legend"
+    },
+    "surface": {
+      "node": "oklch(0.115 0.030 255)",
+      "description": "#141f30 — CLD nodes (highlighted)"
+    },
+    "surface": {
+      "canvas": "oklch(0.055 0.012 260)",
+      "description": "#0a0e16 — graph canvas inner"
+    },
+
+    "primary": {
+      "default": "oklch(0.50 0.16 255)",
+      "description": "#2465d6 — logo, active step, R1 badge, send button, edge fill"
+    },
+    "success": {
+      "default": "oklch(0.55 0.15 155)",
+      "description": "#268e57 — completed step, T1 tier, B1 badge"
+    },
+    "warning": {
+      "default": "oklch(0.62 0.14 75)",
+      "description": "#c48e2e — T2 tier badge"
+    },
+    "danger": {
+      "default": "oklch(0.65 0.18 25)",
+      "description": "#ff808a — negative edge labels"
+    },
+    "info": {
+      "default": "oklch(0.68 0.12 250)",
+      "description": "#60a6ff — positive edge labels"
+    },
+
+    "confidence": {
+      "high": "oklch(0.72 0.14 155)",
+      "description": "#60d394 — high confidence pill text"
+    },
+    "confidenceBg": {
+      "high": "oklch(0.18 0.06 155)",
+      "description": "#143426 — high confidence pill background"
+    },
+
+    "text": {
+      "primary": "oklch(0.970 0.006 260)",
+      "description": "#f7f9fc — headings, primary text"
+    },
+    "text": {
+      "secondary": "oklch(0.730 0.025 260)",
+      "description": "#b5bfd1 — body text, descriptions"
+    },
+    "text": {
+      "muted": "oklch(0.860 0.015 260)",
+      "description": "#d8e0ee — chips, export label"
+    },
+
+    "status": {
+      "completed": "oklch(0.55 0.15 155)",
+      "description": "Green — step completed"
+    },
+    "status": {
+      "active": "oklch(0.50 0.16 255)",
+      "description": "Blue — step in progress"
+    },
+    "status": {
+      "waiting": "oklch(0.45 0.02 260)",
+      "description": "#606a7a — step waiting"
+    },
+
+    "edge": {
+      "positive": "oklch(0.68 0.12 250)",
+      "description": "Blue — positive causal link"
+    },
+    "edge": {
+      "negative": "oklch(0.72 0.16 25)",
+      "description": "Red — negative causal link"
+    },
+
+    "grid": {
+      "line": "oklch(0.18 0.03 255 / 0.55)",
+      "description": "Subtle grid lines on canvas"
+    }
+  },
+
+  "typography": {
+    "fontFamily": {
+      "sans": "Inter, Noto Sans SC, Noto Sans JP, Noto Sans KR, sans-serif",
+      "description": "Primary typeface stack"
+    },
+    "fontWeight": {
+      "regular": 400,
+      "medium": 500,
+      "semibold": 600,
+      "bold": 700
+    },
+    "fontSize": {
+      "xs": "10px",
+      "sm": "11px",
+      "base": "12px",
+      "md": "13px",
+      "lg": "15px",
+      "xl": "16px",
+      "2xl": "20px",
+      "3xl": "24px"
+    }
+  },
+
+  "spacing": {
+    "unit": "8px",
+    "description": "Base spacing unit — all spacing is multiples of 8px",
+    "scale": {
+      "1": "4px",
+      "2": "8px",
+      "3": "12px",
+      "4": "16px",
+      "5": "20px",
+      "6": "24px",
+      "8": "32px",
+      "10": "40px"
+    }
+  },
+
+  "borderRadius": {
+    "sm": "8px",
+    "md": "10px",
+    "lg": "12px",
+    "xl": "14px",
+    "2xl": "18px",
+    "pill": "16px",
+    "circle": "50%"
+  },
+
+  "layout": {
+    "page": {
+      "width": "1440px",
+      "height": "980px"
+    },
+    "header": {
+      "height": "68px"
+    },
+    "inputPanel": {
+      "height": "84px"
+    },
+    "threeColumn": {
+      "leftRail": "312px",
+      "center": "720px",
+      "rightPanel": "312px",
+      "gap": "24px",
+      "margin": "24px"
+    }
+  }
+}
