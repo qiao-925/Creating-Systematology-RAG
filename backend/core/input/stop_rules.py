@@ -1,4 +1,4 @@
-"""CLDFlow input stop rules: saturation detection for retrieval."""
+"""Systematology input stop rules: saturation detection for retrieval."""
 
 from __future__ import annotations
 

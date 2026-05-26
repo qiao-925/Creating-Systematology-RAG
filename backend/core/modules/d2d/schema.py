@@ -1,4 +1,4 @@
-"""CLDFlow MVP D2D schemas."""
+"""Systematology MVP D2D schemas."""
 
 from __future__ import annotations
 

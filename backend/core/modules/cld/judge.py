@@ -1,4 +1,4 @@
-"""CLDFlow CLD Judge: arbitrates high-conflict outputs and performs self-review.
+"""Systematology CLD Judge: arbitrates high-conflict outputs and performs self-review.
 
 Model selection (G6 fallback strategy):
   - If OPENAI_API_KEY is set → use GPT-4o-mini (preferred for evaluation)
@@ -16,7 +16,7 @@ from llama_index.core.llms import LLM
 from backend.core.models import CausalLink, CLDNode, SharedCLD
 from backend.infrastructure.logger import get_logger
 
-logger = get_logger("cldflow.judge")
+logger = get_logger("systematology.judge")
 
 JUDGE_PROMPT = """You are a research quality judge. Review the following causal loop diagram (CLD) analysis.
 

@@ -24,7 +24,7 @@ export function MessageBubble({ message, showReasoning = true }: Props) {
     <div className={`flex flex-col slide-up ${isUser ? "items-end" : "items-start"}`}>
       {/* Role label */}
       <p className="mb-1.5 text-xs font-medium text-muted-foreground">
-        {isUser ? "You" : "CLDFlow"}
+        {isUser ? "You" : "Systematology"}
       </p>
 
       {/* Content */}

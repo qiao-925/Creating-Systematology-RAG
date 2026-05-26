@@ -1,4 +1,4 @@
-"""CLDFlow FCM simulator: Kosko iteration for FCM state convergence.
+"""Systematology FCM simulator: Kosko iteration for FCM state convergence.
 
 Uses NumPy directly (fcmpy has tqdm version conflict).
 Convergence threshold: |Δstate| < 1e-6.
@@ -11,7 +11,7 @@ import numpy as np
 from backend.core.models import SharedCLD, WeightedFCM
 from backend.infrastructure.logger import get_logger
 
-logger = get_logger("cldflow.fcm.simulator")
+logger = get_logger("systematology.fcm.simulator")
 
 DEFAULT_MAX_ITERATIONS = 100
 DEFAULT_CONVERGENCE_THRESHOLD = 1e-6

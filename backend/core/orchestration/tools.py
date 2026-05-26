@@ -1,4 +1,4 @@
-"""CLDFlow Lead Agent tool definitions.
+"""Systematology Lead Agent tool definitions.
 
 Each tool wraps a module's run() method and returns a JSON-serializable result.
 The Lead Agent sees FunctionTool interfaces, not internal implementation.

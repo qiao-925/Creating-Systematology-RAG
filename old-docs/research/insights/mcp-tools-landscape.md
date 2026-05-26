@@ -1,6 +1,6 @@
 # MCP 工具生态调研（2026-04-13）
 
-> 来源：与 Cascade 对话调研，供 CLDFlow 项目工具层集成参考。
+> 来源：与 Cascade 对话调研，供 Systematology 项目工具层集成参考。
 
 ---
 
@@ -107,7 +107,7 @@ LLM                    Playwright MCP Server          Browser
 
 ---
 
-## 对 CLDFlow 的集成建议
+## 对 Systematology 的集成建议
 
 | MCP 工具 | 潜在用途 | 优先级 |
 |----------|----------|--------|

@@ -1,4 +1,4 @@
-"""CLDFlow D2D uncertainty: propagates weight confidence into impact estimates.
+"""Systematology D2D uncertainty: propagates weight confidence into impact estimates.
 
 Converts FCM confidence matrix into uncertainty ranges for leverage points.
 """
@@ -8,7 +8,7 @@ from __future__ import annotations
 from backend.core.models import SharedCLD, WeightedFCM
 from backend.infrastructure.logger import get_logger
 
-logger = get_logger("cldflow.d2d.uncertainty")
+logger = get_logger("systematology.d2d.uncertainty")
 
 
 def compute_uncertainty_ranges(

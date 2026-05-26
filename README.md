@@ -1,5 +1,5 @@
 ---
-title: CLDFlow Agent
+title: Systematology Agent
 emoji: "\U0001F9E0"
 colorFrom: blue
 colorTo: green
@@ -8,7 +8,7 @@ app_port: 7860
 pinned: false
 ---
 
-# CLDFlow Agent
+# Systematology Agent
 
 > 将系统动力学（CLD / FCM / D2D）编码为工具链的 AI Agent，用于复杂系统的因果建模与杠杆分析
 ---
@@ -44,9 +44,9 @@ make              # 安装依赖 + 运行测试
 cd web && npm install && npm run dev   # http://localhost:3000
 ```
 
-**5. 运行 CLDFlow 分析**
+**5. 运行 Systematology 分析**
 ```bash
-curl -X POST http://localhost:8000/api/cldflow/analyze \
+curl -X POST http://localhost:8000/api/systematology/analyze \
   -H "Content-Type: application/json" \
   -d '{"question": "How do fiscal subsidies affect housing affordability?"}'
 ```
@@ -80,12 +80,12 @@ curl -X POST http://localhost:8000/api/cldflow/analyze \
 
 > 📖 配置详情 → [配置管理指南](docs/CONFIG_SETUP.md)
 
-### CLDFlow API
+### Systematology API
 
 | 命令 | 说明 |
 |------|------|
-| `curl -X POST http://localhost:8000/api/cldflow/analyze -d '{"question":"..."}'` | 运行分析 |
-| `curl http://localhost:8000/api/cldflow/health` | 健康检查 |
+| `curl -X POST http://localhost:8000/api/systematology/analyze -d '{"question":"..."}'` | 运行分析 |
+| `curl http://localhost:8000/api/systematology/health` | 健康检查 |
 
 ### 验证与评估
 
@@ -102,8 +102,8 @@ curl -X POST http://localhost:8000/api/cldflow/analyze \
 | 文档 | 说明 |
 |------|------|
 | [架构设计](ARCHITECTURE.md) | 工作流程、目录结构、数据统计 |
-| [CLDFlow MVP 计划](docs/CLDFlow-MVP-plan.md) | CLD → FCM → D2D 分析流水线设计与进度 |
-| [CLDFlow MVP 审查](docs/CLDFlow-MVP-review.md) | MVP 实现审查报告与后续建议 |
+| [Systematology MVP 计划](docs/Systematology-MVP-plan.md) | CLD → FCM → D2D 分析流水线设计与进度 |
+| [Systematology MVP 审查](docs/Systematology-MVP-review.md) | MVP 实现审查报告与后续建议 |
 | [配置管理指南](docs/CONFIG_SETUP.md) | gh token 同步、.env 配置、部署场景 |
 | [部署指南](docs/DEPLOYMENT.md) | HF Spaces 部署、本地 Docker、环境变量参考 |
 

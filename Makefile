@@ -1,4 +1,4 @@
-# Makefile for CLDFlow
+# Makefile for Systematology
 
 # 默认目标：直接运行 make 将执行完整工作流
 .DEFAULT_GOAL := all

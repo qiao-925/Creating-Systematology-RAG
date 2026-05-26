@@ -1,4 +1,4 @@
-"""CLDFlow input retrieval: source-tiered document retrieval."""
+"""Systematology input retrieval: source-tiered document retrieval."""
 
 from __future__ import annotations
 

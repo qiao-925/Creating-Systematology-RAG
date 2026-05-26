@@ -1,4 +1,4 @@
-"""Core business logic — CLDFlow analysis pipeline.
+"""Core business logic — Systematology analysis pipeline.
 
 Modules aligned with architecture diagram:
   1. input/        — Input enhancement (query rewrite, retrieval)

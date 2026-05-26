@@ -1,4 +1,4 @@
-"""CLDFlow FCM rater: LLM-based batch rating of edge weights.
+"""Systematology FCM rater: LLM-based batch rating of edge weights.
 
 Uses DeepSeek-V3 to rate all edges in a single call for global context.
 """
@@ -13,7 +13,7 @@ from llama_index.core.llms import LLM
 from backend.core.models import CausalLink, SharedCLD
 from backend.infrastructure.logger import get_logger
 
-logger = get_logger("cldflow.fcm.rater")
+logger = get_logger("systematology.fcm.rater")
 
 RATER_PROMPT = """You are a quantitative analyst. Rate the strength of each causal relationship.
 

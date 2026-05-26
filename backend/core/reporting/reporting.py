@@ -1,4 +1,4 @@
-"""CLDFlow reporting: synthesizes analysis results into structured reports.
+"""Systematology reporting: synthesizes analysis results into structured reports.
 
 Report layer uses Lead Agent for semantic fusion, not hardcoded data transformation.
 """
@@ -17,7 +17,7 @@ from backend.core.models import (
 )
 from backend.infrastructure.logger import get_logger
 
-logger = get_logger("cldflow.reporting")
+logger = get_logger("systematology.reporting")
 
 
 def synthesize_report(

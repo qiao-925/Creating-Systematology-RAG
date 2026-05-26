@@ -111,7 +111,7 @@ class TemplateEvaluator:
         contributions = []
         
         for case in test_cases:
-            # 模拟：有该角色的系统（实际应调用 CLDFlow）
+            # 模拟：有该角色的系统（实际应调用 Systematology）
             score_with = self._simulate_with_role(template_id, case)
             
             # 模拟：无该角色（用通用角色替代）
@@ -172,7 +172,7 @@ class TemplateEvaluator:
     
     def _simulate_with_role(self, template_id: str, case: Dict) -> float:
         """模拟：有该角色的系统性能（占位实现）"""
-        # Phase 2: 集成真实 CLDFlow 系统
+        # Phase 2: 集成真实 Systematology 系统
         # 目前返回模拟值
         return 80.0 + hash(template_id) % 20
     

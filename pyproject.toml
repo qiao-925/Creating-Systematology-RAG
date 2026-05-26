@@ -1,7 +1,7 @@
 [project]
-name = "cldflow"
+name = "systematology"
 version = "0.1.0"
-description = "CLDFlow - Causal Loop Diagram Analysis Pipeline based on LlamaIndex"
+description = "Creating Systematology - Causal Loop Diagram Analysis Pipeline based on LlamaIndex"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

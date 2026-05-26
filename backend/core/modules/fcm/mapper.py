@@ -1,4 +1,4 @@
-"""CLDFlow FCM mapper: maps qualitative relation strengths to numerical weights.
+"""Systematology FCM mapper: maps qualitative relation strengths to numerical weights.
 
 7-level mapping table: ±L/M/H/VH → ±0.3/0.5/0.7/0.9
 """
@@ -8,7 +8,7 @@ from __future__ import annotations
 from backend.core.models import CausalLink, SharedCLD, WeightedFCM
 from backend.infrastructure.logger import get_logger
 
-logger = get_logger("cldflow.fcm.mapper")
+logger = get_logger("systematology.fcm.mapper")
 
 # Relation type → base weight (direction encoded in sign)
 RELATION_WEIGHTS: dict[str, float] = {

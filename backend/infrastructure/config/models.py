@@ -219,27 +219,27 @@ class TestConfig(BaseModel):
     github: TestGitHubConfig
 
 
-class CLDFlowFCMConfig(BaseModel):
-    """CLDFlow FCM 子配置"""
+class SystematologyFCMConfig(BaseModel):
+    """Systematology FCM 子配置"""
     max_iterations: int = 100
     convergence_threshold: float = 1e-6
 
 
-class CLDFlowD2DConfig(BaseModel):
-    """CLDFlow D2D 子配置"""
+class SystematologyD2DConfig(BaseModel):
+    """Systematology D2D 子配置"""
     perturbation_pct: float = 0.1
 
 
-class CLDFlowConfig(BaseModel):
-    """CLDFlow 分析流水线配置"""
+class SystematologyConfig(BaseModel):
+    """Systematology 分析流水线配置"""
     specialist_model: str = "deepseek-chat"
     judge_model: str = "deepseek-chat"
     max_perspectives: int = 3
     budget_turns: int = 10
     budget_tokens: int = 100000
     timeout_seconds: int = 180
-    fcm: CLDFlowFCMConfig = CLDFlowFCMConfig()
-    d2d: CLDFlowD2DConfig = CLDFlowD2DConfig()
+    fcm: SystematologyFCMConfig = SystematologyFCMConfig()
+    d2d: SystematologyD2DConfig = SystematologyD2DConfig()
 
 
 # ==================== 主配置模型 ====================
@@ -279,5 +279,5 @@ class ConfigModel(BaseModel):
     # 测试配置（可选）
     test: Optional[TestConfig] = None
 
-    # CLDFlow 配置（可选）
-    cldflow: Optional[CLDFlowConfig] = None
+    # Systematology 配置（可选）
+    systematology: Optional[SystematologyConfig] = None

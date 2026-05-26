@@ -26,7 +26,7 @@ export function MessageList() {
 
         {isStreaming && (
           <div className="flex flex-col items-start slide-up">
-            <p className="mb-1.5 text-xs font-medium text-muted-foreground">CLDFlow</p>
+            <p className="mb-1.5 text-xs font-medium text-muted-foreground">Systematology</p>
             <div className="w-full space-y-3">
               {streamingReasoning && (
                 <ThinkingBlock reasoning={streamingReasoning} />

@@ -88,7 +88,7 @@ async function miniFrame(style, x, y) {
   hdr.cornerRadius = 6;
   hdr.primaryAxisAlignItems = "CENTER";
   const logo = figma.createText();
-  logo.characters = "CLDFlow";
+  logo.characters = "Systematology";
   logo.fontSize = 14;
   logo.fontName = { family: fam, style: "Semi Bold" };
   logo.fills = solid(style.ink);

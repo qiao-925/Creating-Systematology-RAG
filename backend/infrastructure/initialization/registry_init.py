@@ -135,12 +135,12 @@ def init_session_state(manager: InitializationManager) -> None:
 
 
 def init_rag_service(manager: InitializationManager) -> Any:
-    """RAG 服务已移除（CLDFlow 不依赖），保留空操作供初始化系统兼容"""
+    """RAG 服务已移除（Systematology 不依赖），保留空操作供初始化系统兼容"""
     logger.info("RAG 服务已移除，跳过初始化")
     return None
 
 
 def init_chat_manager(manager: InitializationManager) -> Any:
-    """对话管理器已移除（CLDFlow 不依赖），保留空操作供初始化系统兼容"""
+    """对话管理器已移除（Systematology 不依赖），保留空操作供初始化系统兼容"""
     logger.info("对话管理器已移除，跳过初始化")
     return None

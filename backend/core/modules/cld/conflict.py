@@ -1,4 +1,4 @@
-"""CLDFlow CLD conflict detection: identifies contradictory causal links.
+"""Systematology CLD conflict detection: identifies contradictory causal links.
 
 Detects conflicts where two perspectives assign different relations
 to the same (source, target) pair.
@@ -11,7 +11,7 @@ from typing import Any
 from backend.core.models import CausalLink
 from backend.infrastructure.logger import get_logger
 
-logger = get_logger("cldflow.conflict")
+logger = get_logger("systematology.conflict")
 
 # Conflict severity thresholds
 CONFLICT_THRESHOLD_LOW = 0.3

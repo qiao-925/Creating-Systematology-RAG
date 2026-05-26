@@ -178,9 +178,9 @@ test:
     branch: main
 
 # ============================================================================
-# 8. CLDFlow 分析流水线配置
+# 8. Systematology 分析流水线配置
 # ============================================================================
-cldflow:
+systematology:
   specialist_model: deepseek-chat    # Specialist Agent 模型
   judge_model: deepseek-chat         # Judge Agent 模型（可改为 gpt-4o-mini）
   max_perspectives: 3                # 默认视角数

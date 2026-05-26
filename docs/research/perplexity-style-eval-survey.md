@@ -4,12 +4,12 @@
 
 ## 1. 概念对齐：两层含义
 
-| 层次 | Perplexity 实际做法 | CLDFlow 映射 |
+| 层次 | Perplexity 实际做法 | Systematology 映射 |
 |------|---------------------|--------------|
 | UX / 可观测 | 流式 reasoning_steps：web_search → fetch_url → 综合撰写 | Thinking 三步：retrieve → build_cld → evaluate |
 | 质量评估 | 开源 search_evals + 产品内 live signal | RAGAS（检索）、CLD Judge、FCM/D2D 数值、轻量 ResearchEvaluator |
 
-竞品调研已指出：几乎没有产品对「研究过程本身」做系统化质量评估；Perplexity 强在检索 API 与过程可见，弱在领域方法论与因果图质量度量。CLDFlow 的差异化正在第三步「评估杠杆」——若只抄 Perplexity 的 UI 而不建评估闭环，优势会被稀释。
+竞品调研已指出：几乎没有产品对「研究过程本身」做系统化质量评估；Perplexity 强在检索 API 与过程可见，弱在领域方法论与因果图质量度量。Systematology 的差异化正在第三步「评估杠杆」——若只抄 Perplexity 的 UI 而不建评估闭环，优势会被稀释。
 
 ## 2. Perplexity 模式拆解
 
@@ -17,7 +17,7 @@
 
 - 内置工具：web_search、fetch_url_content，模型自选组合。
 - 流式响应中的 reasoning_steps 暴露每次工具调用（关键词、命中 URL、snippet）。
-- 用户感知阶段近似：检索 → 深读 → 撰写（与 CLDFlow 的「检索 → 建图 → 评估」同构，领域词不同）。
+- 用户感知阶段近似：检索 → 深读 → 撰写（与 Systematology 的「检索 → 建图 → 评估」同构，领域词不同）。
 
 ### 2.2 检索基础设施（AI-first Search API）
 
@@ -53,7 +53,7 @@
 | 经典 IR | Recall@k、MRR、nDCG | 需 gold chunk/doc |
 | RAG 专用 | context precision/recall、faithfulness | RAGAS / DeepEval |
 | Agentic | IA@k、信息紧凑度 IC | InfoDeepSeek 等 |
-| 过程 | 来源 tier、召回数、重试次数 | CLDFlow source_tiered_retrieve 已有 tier |
+| 过程 | 来源 tier、召回数、重试次数 | Systematology source_tiered_retrieve 已有 tier |
 | 产品 | citation 可点击、引用与 claim 对齐 | Perplexity 强项；学术工具普遍弱 |
 
 Perplexity 启示：评测应放在「被 AI 调用的检索 API」上，而非仅静态 corpus QA。
@@ -72,7 +72,7 @@ Perplexity 没有等价步骤；学界/工业近似评测方向：
 
 ### 3.3 评估（evaluate）
 
-CLDFlow 第三步是 FCM / D2D / 杠杆排序：
+Systematology 第三步是 FCM / D2D / 杠杆排序：
 
 | 指标类型 | 内容 |
 |----------|------|
@@ -100,7 +100,7 @@ interface ThinkingStep {
 
 ## 4. 行业评估框架对照（2025–2026）
 
-| 框架 | 侧重 | 对 CLDFlow 的适用性 |
+| 框架 | 侧重 | 对 Systematology 的适用性 |
 |------|------|---------------------|
 | search_evals | Search API + agent harness | 若自建/换检索后端，可借鉴；不覆盖 CLD |
 | RAGAS | RAG 端到端与检索质量 | 已集成（可选）；补 retrieve 步 |
@@ -111,7 +111,7 @@ interface ThinkingStep {
 
 结论：没有现成 benchmark 直接评「检索→CLD→FCM/D2D」全链；需要分层评测 + 少量领域 gold set。
 
-## 5. CLDFlow 现状与差距
+## 5. Systematology 现状与差距
 
 **已有：**
 - Pipeline：RAG → CLD → FCM/D2D，SharedCLD 契约清晰

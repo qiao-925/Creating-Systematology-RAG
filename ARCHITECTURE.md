@@ -1,6 +1,6 @@
 # Architecture
 
-本文档描述 CLDFlow 系统的高层架构。如果你想理解代码库的整体设计和各模块职责，这是正确的起点。
+本文档描述 Systematology 系统的高层架构。如果你想理解代码库的整体设计和各模块职责，这是正确的起点。
 
 > 参考了 [rust-analyzer architecture.md](https://github.com/rust-lang/rust-analyzer/blob/d7c99931d05e3723d878bea5dc26766791fa4e69/docs/dev/architecture.md) 的组织方式：Bird's Eye View → Code Map → Cross-Cutting Concerns，每个模块附带 Architecture Invariant。
 
@@ -19,7 +19,7 @@
   - [`backend/core/input/` — 输入与增强](#backendcoreinput--输入与增强)
   - [`backend/core/reporting/` — 结果融合与报告](#backendcorereporting--结果融合与报告)
   - [`backend/core/service.py` — 确定性脚手架](#backendcoreservicepy--确定性脚手架)
-  - [`backend/core/api.py` — CLDFlow API 路由](#backendcoreapipy--cldflow-api-路由)
+  - [`backend/core/api.py` — Systematology API 路由](#backendcoreapipy--systematology-api-路由)
   - [`backend/infrastructure/agent/` — Research Agent 内核](#backendinfrastructureagent--research-agent-内核)
   - [`backend/infrastructure/retrieval/` — 可插拔检索系统](#backendinfrastructureretrieval--可插拔检索系统)
   - [`backend/infrastructure/llms/` — LLM 工厂](#backendinfrastructurellms--llm-工厂)
@@ -41,7 +41,7 @@
 
 ## Bird's Eye View
 
-CLDFlow 是一个**因果推理分析流水线**。它接受一个研究问题和可选的来源材料，输出一份结构化的决策报告。
+Systematology 是一个**因果推理分析流水线**。它接受一个研究问题和可选的来源材料，输出一份结构化的决策报告。
 
 核心机制：系统将原始问题经过查询增强后，由 Lead Agent（ReAct 模式）自主编排三个分析阶段——CLD（因果环路图提取）、FCM（模糊认知图仿真）、D2D（动态杠杆点分析）——最终将结果融合为报告。每个阶段是一个独立模块，通过 `SharedCLD` 这一中心数据契约串联。
 
@@ -87,7 +87,7 @@ CLDFlow 是一个**因果推理分析流水线**。它接受一个研究问题�
 标记为 **API Boundary** 的模块是对外暴露接口的位置，边界内外的规则不同。
 
 ```
-CLDFlow/
+Systematology/
 │
 ├── backend/                        # 后端核心
 │   ├── fastapi/                   #   FastAPI API 层（前端唯一入口）
@@ -106,7 +106,7 @@ CLDFlow/
 │   │   ├── reporting/             #     ④ 结果融合与报告
 │   │   ├── models.py              #     核心数据模型（全系统共享）
 │   │   ├── service.py             #     确定性脚手架（MVP 测试用）
-│   │   └── api.py                 #     CLDFlow API 路由
+│   │   └── api.py                 #     Systematology API 路由
 │   │
 │   ├── infrastructure/             #   基础设施层
 │   │   ├── agent/                 #     通用 Agent 原语（Research Agent 内核）
@@ -269,15 +269,15 @@ Lead Agent 决定先做什么、后做什么、哪些分析需要调用。它使
 
 ### `backend/core/service.py` — 确定性脚手架
 
-`CLDFlowAppService` 是 MVP 阶段的确定性占位实现：`parse_query()`, `build_shared_cld()`, `build_weighted_fcm()`, `build_leverage_analysis()`, `synthesize_report()`。
+`SystematologyAppService` 是 MVP 阶段的确定性占位实现：`parse_query()`, `build_shared_cld()`, `build_weighted_fcm()`, `build_leverage_analysis()`, `synthesize_report()`。
 
 **Architecture Invariant:** 这个服务是测试脚手架，不是生产路径。真正的分析由编排层（Lead Agent + 模块）完成。它保留是为了在没有 LLM 的环境下做集成测试。
 
 ---
 
-### `backend/core/api.py` — CLDFlow API 路由
+### `backend/core/api.py` — Systematology API 路由
 
-FastAPI 路由，prefix `/api/cldflow`：
+FastAPI 路由，prefix `/api/systematology`：
 - `POST /analyze` — 接受 `AnalyzeRequest`，创建 LeadAgent，运行 pipeline，返回 `AnalyzeResponse`
 - `GET /health` — 健康检查
 
@@ -287,14 +287,14 @@ FastAPI 路由，prefix `/api/cldflow`：
 
 ### `backend/infrastructure/agent/` — Research Agent 内核
 
-一个**完全独立于 CLDFlow 的 Agent 系统**，用于证据驱动研究。
+一个**完全独立于 Systematology 的 Agent 系统**，用于证据驱动研究。
 
 **关键组件：**
 - `ResearchAgent` — 包装 LlamaIndex AgentWorkflow + ReActAgent，注册 5 个工具：vector_search, hybrid_search, record_evidence, synthesize, reflect, evaluate_judgment
 - `ResearchState` — 可变状态：evidence_ledger, current_judgment, confidence, budget tracking
 - `ResearchOutput` — 不可变输出：judgment, evidence, confidence, tensions, next_questions
 
-**Architecture Invariant:** Research Agent 和 CLDFlow Lead Agent 是**完全独立的系统**。它们共享基础设施（LLM 工厂、配置、日志），但有独立的状态、工具和编排。Research Agent 不被 CLDFlow pipeline 调用。这是刻意的——它们解决不同的问题，强制分离避免了不必要的耦合。
+**Architecture Invariant:** Research Agent 和 Systematology Lead Agent 是**完全独立的系统**。它们共享基础设施（LLM 工厂、配置、日志），但有独立的状态、工具和编排。Research Agent 不被 Systematology pipeline 调用。这是刻意的——它们解决不同的问题，强制分离避免了不必要的耦合。
 
 ---
 
@@ -533,7 +533,7 @@ FCM 和 D2D 只依赖 `SharedCLD`（来自 `models.py`），不依赖 CLD 模块
 
 ## 数据统计
 
-> 截至 2026-05-16，含 CLDFlow MVP 全部代码，Streamlit 前端已删除。
+> 截至 2026-05-16，含 Systematology MVP 全部代码，Streamlit 前端已删除。
 
 | 维度 | 数量 |
 |------|------|
@@ -545,8 +545,8 @@ FCM 和 D2D 只依赖 `SharedCLD`（来自 `models.py`），不依赖 CLD 模块
 
 | 功能领域 | 说明 |
 |----------|------|
-| CLDFlow | CLD → FCM → D2D 因果分析流水线（34 个 Python 文件） |
-| Research Kernel | 证据驱动研究 Agent（独立于 CLDFlow） |
+| Systematology | CLD → FCM → D2D 因果分析流水线（34 个 Python 文件） |
+| Research Kernel | 证据驱动研究 Agent（独立于 Systematology） |
 | RAG 引擎 | 传统 RAG + Agentic RAG |
 | 数据加载 | GitHub 同步 + 本地文件导入 |
 | 向量化 | HuggingFace Embedding（local + API） |
@@ -560,6 +560,6 @@ FCM 和 D2D 只依赖 `SharedCLD`（来自 `models.py`），不依赖 CLD 模块
 | 性能测试 | 7 |
 | E2E 测试 | 4 |
 | 回归测试 | 2 |
-| CLDFlow 专用 | 3 |
+| Systematology 专用 | 3 |
 | 测试夹具 | 9 |
 | 测试工具 | 12 |

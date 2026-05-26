@@ -1,1 +1,1 @@
-"""CLDFlow D2D module."""
+"""Systematology D2D module."""

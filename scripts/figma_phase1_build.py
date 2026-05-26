@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run CLDFlow Figma phase-1 use_figma scripts via MCP (desktop or remote).
+"""Run Systematology Figma phase-1 use_figma scripts via MCP (desktop or remote).
 
 Requires Figma desktop MCP (http://127.0.0.1:3845/mcp) or FIGMA_MCP_TOKEN for remote.
 """
@@ -59,7 +59,7 @@ def init_session() -> str | None:
         "params": {
             "protocolVersion": "2024-11-05",
             "capabilities": {},
-            "clientInfo": {"name": "cldflow-phase1-build", "version": "1.0"},
+            "clientInfo": {"name": "systematology-phase1-build", "version": "1.0"},
         },
     }
     status, hdrs, body = post(init_payload)
@@ -115,7 +115,7 @@ def main() -> int:
             return 1
         code = path.read_text(encoding="utf-8")
         print(f"\n=== [{i + 1}/{len(SCRIPTS)}] {name} ===")
-        rc = run_use_figma(session, code, f"CLDFlow phase1: {name}")
+        rc = run_use_figma(session, code, f"Systematology phase1: {name}")
         if rc != 0:
             return rc
         if i < len(SCRIPTS) - 1:

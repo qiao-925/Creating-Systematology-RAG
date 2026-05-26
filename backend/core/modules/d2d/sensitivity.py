@@ -1,4 +1,4 @@
-"""CLDFlow D2D sensitivity: single-node perturbation analysis.
+"""Systematology D2D sensitivity: single-node perturbation analysis.
 
 Uses NumPy matrix operations for efficient computation.
 Default perturbation: 10% (0.1).
@@ -11,7 +11,7 @@ import numpy as np
 from backend.core.models import SharedCLD
 from backend.infrastructure.logger import get_logger
 
-logger = get_logger("cldflow.d2d.sensitivity")
+logger = get_logger("systematology.d2d.sensitivity")
 
 
 def compute_sensitivity(

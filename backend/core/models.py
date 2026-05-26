@@ -1,4 +1,4 @@
-"""Core CLDFlow MVP models."""
+"""Core Systematology MVP models."""
 
 from __future__ import annotations
 

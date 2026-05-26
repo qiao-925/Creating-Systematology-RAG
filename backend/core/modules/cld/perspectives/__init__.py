@@ -1,5 +1,5 @@
 """
-CLDFlow Perspective Generation System
+Systematology Perspective Generation System
 
 基于 DDC 分类法的动态视角生成模块。
 """

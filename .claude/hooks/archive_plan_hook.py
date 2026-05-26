@@ -15,10 +15,21 @@ from datetime import datetime
 
 
 def is_plan_file(file_path: str) -> bool:
-    """判断是否为 plan 文档（排除 checklist/template/archive）。"""
+    """判断是否为 plan 文档（排除 checklist/template/archive）。
+
+    匹配规则：
+    1. 文件名含 plan/计划 的 .md 文件（项目内手动命名的计划文档）
+    2. .claude/plans/ 目录下的任何 .md 文件（Claude Code plan mode 自动生成）
+    """
+    lower = file_path.lower().replace("\\", "/")
+
+    # Claude Code plan mode 生成的文件
+    if "/.claude/plans/" in lower and lower.endswith(".md"):
+        return True
+
+    # 项目内手动命名的 plan 文档
     if not re.search(r"(plan|计划).*\.md$", file_path, re.IGNORECASE):
         return False
-    lower = file_path.lower()
     if any(skip in lower for skip in ("checklist", "template", "archive")):
         return False
     return True
@@ -122,9 +133,22 @@ def extract_hard_constraints(sections: dict) -> list[str]:
 def get_archive_path(plan_path: str) -> str:
     """根据 plan 路径生成存档路径。
 
-    存档放在 plan 同域的 .archive/ 子目录下。
-    例：docs/design/plan.md → docs/design/.archive/plan-20260523T120000.archive.md
+    - 项目内 plan 文档：存档放在 plan 同域的 .archive/ 子目录下
+    - Claude Code plan mode 文件（.claude/plans/）：存档放到项目 docs/.archive/
     """
+    normalized = plan_path.replace("\\", "/")
+
+    # Claude Code plan mode 生成的文件 → 项目 docs/.archive/
+    if "/.claude/plans/" in normalized:
+        # 向上查找项目根（含 CLAUDE.md 或 .git 的目录）
+        project_root = os.getcwd()
+        archive_dir = os.path.join(project_root, "docs", ".archive")
+        plan_name = os.path.splitext(os.path.basename(plan_path))[0]
+        timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
+        archive_name = f"{plan_name}-{timestamp}.archive.md"
+        return os.path.join(archive_dir, archive_name)
+
+    # 项目内 plan 文档 → 同域 .archive/
     plan_dir = os.path.dirname(plan_path)
     plan_name = os.path.splitext(os.path.basename(plan_path))[0]
     archive_dir = os.path.join(plan_dir, ".archive")

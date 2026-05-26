@@ -1,6 +1,6 @@
 version: 1
 project:
-  name: CLDFlow
+  name: Systematology
   default_branch: main
 workspace:
   strategy: worktree

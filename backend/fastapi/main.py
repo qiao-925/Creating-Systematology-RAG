@@ -61,7 +61,7 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     app = FastAPI(
-        title="CLDFlow API",
+        title="Systematology API",
         version="0.1.0",
         lifespan=lifespan,
     )
@@ -85,11 +85,11 @@ def create_app() -> FastAPI:
     # Register route modules
     from backend.fastapi.routes.health import router as health_router
     from backend.fastapi.routes.config import router as config_router
-    from backend.core.api import router as cldflow_router
+    from backend.core.api import router as systematology_router
 
     app.include_router(health_router, prefix="/api")
     app.include_router(config_router, prefix="/api")
-    app.include_router(cldflow_router)
+    app.include_router(systematology_router)
 
     return app
 

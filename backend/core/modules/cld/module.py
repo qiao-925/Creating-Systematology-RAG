@@ -1,4 +1,4 @@
-"""CLDFlow CLD module: orchestrates perspectives → specialist → merge → conflict → judge.
+"""Systematology CLD module: orchestrates perspectives → specialist → merge → conflict → judge.
 
 Replaces the MVP placeholder with the full multi-agent CLD pipeline.
 """
@@ -19,7 +19,7 @@ from backend.core.modules.cld.specialist import run_specialists_parallel
 from backend.core.modules.cld.judge import self_review_gate, get_judge_llm
 from backend.infrastructure.logger import get_logger
 
-logger = get_logger("cldflow.cld_module")
+logger = get_logger("systematology.cld_module")
 
 
 class CLDModule:

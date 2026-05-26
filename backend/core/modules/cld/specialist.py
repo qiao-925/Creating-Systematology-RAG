@@ -1,4 +1,4 @@
-"""CLDFlow CLD Specialist: extracts causal links from a single perspective.
+"""Systematology CLD Specialist: extracts causal links from a single perspective.
 
 Each Specialist is an independent LLM call that produces CausalLink objects.
 Uses Pydantic schema validation for structured output, with instructor
@@ -18,7 +18,7 @@ from backend.core.models import CausalLink, CLDNode
 from backend.core.modules.cld.perspectives.generator import Perspective as CLDPerspective
 from backend.infrastructure.logger import get_logger
 
-logger = get_logger("cldflow.specialist")
+logger = get_logger("systematology.specialist")
 
 
 class SpecialistNode(BaseModel):

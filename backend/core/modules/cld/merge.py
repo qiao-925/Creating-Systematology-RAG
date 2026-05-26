@@ -1,4 +1,4 @@
-"""CLDFlow CLD merge: node deduplication using embedding similarity.
+"""Systematology CLD merge: node deduplication using embedding similarity.
 
 Uses sentence-transformers (MiniLM-L6-v2) for cosine similarity computation.
 Falls back to string matching if sentence-transformers is unavailable.
@@ -13,7 +13,7 @@ import numpy as np
 from backend.core.models import CausalLink, CLDNode
 from backend.infrastructure.logger import get_logger
 
-logger = get_logger("cldflow.merge")
+logger = get_logger("systematology.merge")
 
 # Cosine similarity threshold for merging
 MERGE_THRESHOLD = 0.8

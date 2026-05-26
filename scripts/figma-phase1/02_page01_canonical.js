@@ -82,7 +82,7 @@ header.strokeAlign = "INSIDE";
 header.fills = solid(CANVAS);
 root.appendChild(header);
 
-const logo = await text("CLDFlow", 18, semiStyle, INK);
+const logo = await text("Systematology", 18, semiStyle, INK);
 header.appendChild(logo);
 
 const headerSpacer = figma.createFrame();

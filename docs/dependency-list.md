@@ -2,6 +2,8 @@
 
 This document summarizes the current project dependencies used for local development, backend execution, frontend build, and testing.
 
+**导航**：[Claude 插件清单](claude-plugins-inventory.md) | [约束体系](constraint-system.md) | [决策日志](decision-log.md) | [文档索引](README.md)
+
 ## 1. Python project dependencies
 
 Source of truth: `pyproject.toml`
@@ -109,3 +111,8 @@ npx ctx7 setup
 ```
 
 That command can install the Cursor-oriented setup and generate the appropriate agent guidance.
+
+## 5. 关联文档
+
+- [Claude Code Plugins 全量清单](claude-plugins-inventory.md) — 已安装插件、推荐插件、项目依赖上下文
+- [约束体系](constraint-system.md) — rules/hooks/yaml 三层防线

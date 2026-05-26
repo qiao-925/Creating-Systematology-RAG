@@ -46,6 +46,19 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Systematology brand tokens */
+  --color-positive: oklch(0.65 0.19 155);
+  --color-negative: oklch(0.60 0.22 25);
+  --color-neutral-edge: oklch(0.65 0.02 250);
+  --color-leverage-high: oklch(0.65 0.19 155);
+  --color-leverage-mid: oklch(0.72 0.15 75);
+  --color-leverage-low: oklch(0.65 0.02 250);
+  --color-step-research: oklch(0.65 0.15 250);
+  --color-step-simulate: oklch(0.65 0.19 155);
+  --color-step-optimize: oklch(0.72 0.15 75);
+  --spacing-column-left: 22rem;
+  --spacing-column-right: 1fr;
 }
 
 :root {

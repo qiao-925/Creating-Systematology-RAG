@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Systematology — 设计风格对比 (Day / Night)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{font-size:16px;-webkit-font-smoothing:antialiased}
+body{background:#0a0a0a;color:#e0e0e0;font-family:'DM Sans',sans-serif;overflow-x:hidden;transition:background .5s,color .5s}
+body.light{background:#f5f3ef;color:#1a1a1a}
+
+/* ── Theme Toggle ── */
+.theme-toggle{position:fixed;top:20px;right:24px;z-index:100;display:flex;align-items:center;gap:8px;padding:8px 16px;border-radius:99px;border:1px solid #333;background:rgba(10,10,10,0.85);backdrop-filter:blur(16px);cursor:pointer;font-size:12px;color:#999;transition:all .3s ease;font-family:'JetBrains Mono',monospace;letter-spacing:0.5px}
+.theme-toggle:hover{border-color:#666;color:#fff;background:rgba(10,10,10,0.95);transform:scale(1.02)}
+body.light .theme-toggle{border-color:#ccc;background:rgba(245,243,239,0.9);color:#666}
+body.light .theme-toggle:hover{border-color:#888;color:#222}
+.theme-toggle .icon{font-size:14px;transition:transform .3s}
+
+/* ── Page Header ── */
+.page-header{text-align:center;padding:72px 32px 48px;position:relative}
+.page-header::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:1px;height:48px;background:linear-gradient(to bottom,transparent,rgba(139,171,138,0.4))}
+body.light .page-header::before{background:linear-gradient(to bottom,transparent,rgba(45,138,52,0.3))}
+.page-header h1{font-family:'Playfair Display',serif;font-size:clamp(36px,5.5vw,64px);font-weight:700;letter-spacing:-2px;line-height:1.05;transition:color .5s}
+.page-header h1 em{font-style:italic;color:#8bab8a}
+body.light .page-header h1 em{color:#2d8a34}
+.page-header .sub{margin-top:14px;font-size:14px;letter-spacing:0.5px;color:#666;transition:color .5s}
+body.light .page-header .sub{color:#888}
+.page-header .hint{margin-top:28px;display:inline-flex;align-items:center;gap:10px;padding:10px 20px;border-radius:99px;font-size:12px;border:1px solid #222;color:#555;transition:all .5s}
+body.light .page-header .hint{border-color:#ddd;color:#999}
+.page-header .hint .pulse{width:6px;height:6px;border-radius:50%;background:#8bab8a;animation:pulse-dot 2s ease-in-out infinite;display:inline-block}
+body.light .page-header .hint .pulse{background:#2d8a34}
+
+/* ── Style Grid ── */
+.styles-grid{max-width:1500px;margin:0 auto;padding:0 28px 96px;display:flex;flex-direction:column;gap:80px}
+.style-section{position:relative;animation:fadeSlideUp .7s ease-out both}
+.style-section:nth-child(1){animation-delay:.15s}
+.style-section:nth-child(2){animation-delay:.25s}
+.style-section:nth-child(3){animation-delay:.35s}
+.style-section:nth-child(4){animation-delay:.45s}
+@keyframes fadeSlideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+.style-meta{padding:0 48px 28px;display:flex;align-items:baseline;gap:18px;flex-wrap:wrap}
+.style-meta .num{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase}
+.style-meta h2{font-size:32px;font-weight:700;letter-spacing:-0.8px}
+.style-meta .tagline{font-size:13px;font-style:italic;margin-left:auto}
+.style-preview{display:grid;grid-template-columns:380px 1fr;gap:0;overflow:hidden;min-height:540px;transition:all .5s}
+.palette-bar{display:flex;gap:4px;padding:0 48px;margin-top:18px}
+.palette-swatch{height:8px;border-radius:4px;flex:1;transition:all .4s ease;cursor:pointer}
+.palette-swatch:hover{height:16px;transform:scaleY(1.5)}
+
+/* ══════════════════════════════════════════════════════════════
+   A: SAGE — 有机自然 · 纸质纹理 · 植物绿 · 柔和
+   ══════════════════════════════════════════════════════════════ */
+/* Night */
+.sage{
+  --bg:#0c110e;--bg-card:#141c16;--bg-raised:#1a261d;--border:#243a28;--border-subtle:#1c2c1f;
+  --text:#c8dfc8;--text-dim:#6a9a6e;--text-muted:#3d5e40;--accent:#5cb862;--accent-dim:#285e2e;
+  --accent-glow:rgba(92,184,98,0.12);--highlight:#92e898;--radius:16px;--radius-lg:24px;
+  --page-bg:#0a0a0a;--page-text:#e0e0e0;
+  --shadow:0 4px 24px rgba(92,184,98,0.08),0 1px 3px rgba(0,0,0,0.3);
+  --shadow-hover:0 8px 32px rgba(92,184,98,0.15),0 2px 6px rgba(0,0,0,0.4);
+  --grain:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E")
+}
+/* Day */
+.sage.day{
+  --bg:#f2f6f3;--bg-card:#ffffff;--bg-raised:#e8f0ea;--border:#c4dcc8;--border-subtle:#d6e8da;
+  --text:#1a2e1c;--text-dim:#4a7a50;--text-muted:#8aaa8e;--accent:#2d8a34;--accent-dim:#d4f0d6;
+  --accent-glow:rgba(45,138,52,0.1);--highlight:#1a6e22;--radius:16px;--radius-lg:24px;
+  --page-bg:#f5f3ef;--page-text:#1a1a1a;
+  --shadow:0 4px 24px rgba(45,138,52,0.06),0 1px 3px rgba(0,0,0,0.08);
+  --shadow-hover:0 8px 32px rgba(45,138,52,0.12),0 2px 6px rgba(0,0,0,0.12);
+  --grain:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E")
+}
+
+.sage{position:relative}
+.sage::after{content:'';position:absolute;inset:0;background-image:var(--grain);pointer-events:none;opacity:.6;z-index:1}
+.sage .style-preview{background:var(--bg);border:1px solid var(--border);border-radius:20px;position:relative;overflow:hidden}
+.sage h2{color:var(--accent)}
+.sage .num{color:var(--accent)}
+.sage .tagline{color:var(--text-muted)}
+
+/* Sage — Home */
+.sage-home{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 36px;position:relative;overflow:hidden}
+.sage-home::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 600px 500px at 50% 30%,rgba(92,184,98,0.08),transparent 70%);pointer-events:none}
+.sage-home::after{content:'';position:absolute;bottom:-40px;right:-40px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(92,184,98,0.06),transparent 70%);pointer-events:none}
+.sage-home .brand-mark{width:56px;height:56px;border-radius:18px;background:linear-gradient(135deg,var(--accent-dim),var(--bg-raised));border:1px solid var(--border);display:flex;align-items:center;justify-content:center;margin-bottom:28px;box-shadow:var(--shadow);transition:all .4s ease}
+.sage-home .brand-mark:hover{transform:translateY(-2px);box-shadow:var(--shadow-hover)}
+.sage-home .brand-mark svg{width:28px;height:28px;stroke:var(--accent);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.sage-home h3{font-family:'Cormorant Garamond',serif;font-size:40px;font-weight:700;color:var(--text);letter-spacing:-1px;margin-bottom:8px;text-align:center}
+.sage-home .tagline{font-size:14px;color:var(--text-dim);margin-bottom:40px;font-style:italic;font-family:'Source Serif 4',serif;text-align:center;line-height:1.5}
+.sage-home .search{width:100%;max-width:420px;position:relative}
+.sage-home .search input{width:100%;background:var(--bg-card);border:1.5px solid var(--border);border-radius:var(--radius);padding:16px 52px 16px 20px;color:var(--text);font-size:15px;font-family:'DM Sans',sans-serif;outline:none;transition:all .35s ease;box-shadow:var(--shadow)}
+.sage-home .search input::placeholder{color:var(--text-muted)}
+.sage-home .search input:focus{border-color:var(--accent);box-shadow:var(--shadow-hover),0 0 0 4px var(--accent-glow);transform:translateY(-1px)}
+.sage-home .search .icon{position:absolute;right:16px;top:50%;transform:translateY(-50%);color:var(--text-muted);transition:all .3s}
+.sage-home .search input:focus ~ .icon{color:var(--accent)}
+.sage-home .suggest{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:420px;margin-top:24px}
+.sage-home .suggest-item{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius);padding:16px 18px;cursor:pointer;transition:all .35s ease;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.sage-home .suggest-item::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent),transparent);opacity:0;transition:opacity .3s}
+.sage-home .suggest-item:hover{border-color:var(--accent-dim);background:var(--bg-raised);transform:translateY(-3px);box-shadow:var(--shadow-hover)}
+.sage-home .suggest-item:hover::before{opacity:1}
+.sage-home .suggest-item .st{font-size:13px;font-weight:600;color:var(--accent);margin-bottom:4px}
+.sage-home .suggest-item .sd{font-size:11px;color:var(--text-muted);line-height:1.5}
+.sage-home .footnote{margin-top:32px;font-size:11px;color:var(--text-muted);letter-spacing:0.5px}
+
+/* Sage — Runtime */
+.sage-runtime{display:flex;flex-direction:column;background:var(--bg)}
+.sage-runtime .topbar{display:flex;align-items:center;gap:14px;padding:12px 24px;border-bottom:1px solid var(--border);background:var(--bg-card)}
+.sage-runtime .topbar .back{width:32px;height:32px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--text-dim);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;transition:all .25s}
+.sage-runtime .topbar .back:hover{background:var(--accent-dim);color:var(--accent);border-color:var(--accent)}
+.sage-runtime .topbar .title{font-family:'Cormorant Garamond',serif;font-size:16px;font-weight:600;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sage-runtime .topbar .status{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-dim)}
+.sage-runtime .topbar .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:pulse-dot 2.5s ease-in-out infinite;box-shadow:0 0 8px var(--accent-glow)}
+@keyframes pulse-dot{0%,100%{opacity:.5;transform:scale(.85)}50%{opacity:1;transform:scale(1.15)}}
+.sage-runtime .columns{display:flex;flex:1;overflow:hidden}
+.sage-runtime .col-left{width:45%;border-right:1px solid var(--border);overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:14px}
+.sage-runtime .col-right{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.sage-runtime .card{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow);transition:all .3s}
+.sage-runtime .card-head{font-size:11px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.sage-runtime .card-head::before{content:'';width:4px;height:14px;border-radius:3px;background:var(--accent)}
+.sage-runtime .step-row{display:flex;align-items:center;gap:12px;padding:6px 0;font-size:13px;color:var(--text)}
+.sage-runtime .step-num{width:24px;height:24px;border-radius:50%;background:var(--accent-dim);border:1.5px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--accent);flex-shrink:0}
+.sage-runtime .step-bar{flex:1;height:4px;background:var(--border);border-radius:3px;overflow:hidden}
+.sage-runtime .step-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--highlight));border-radius:3px}
+.sage-runtime .step-label{font-size:11px;color:var(--text-muted);min-width:64px;text-align:right}
+.sage-runtime .lev-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border-subtle);font-size:13px}
+.sage-runtime .lev-row:last-child{border-bottom:none}
+.sage-runtime .lev-rank{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:700;color:var(--accent);width:28px}
+.sage-runtime .lev-name{flex:1;color:var(--text)}
+.sage-runtime .lev-score{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--highlight);background:var(--accent-dim);padding:3px 10px;border-radius:8px}
+.sage-runtime .canvas-wrap{flex:1;display:flex;flex-direction:column}
+.sage-runtime .canvas-tabs{display:flex;gap:4px;padding:8px 20px;background:var(--bg-card);border-bottom:1px solid var(--border-subtle)}
+.sage-runtime .canvas-tab{padding:6px 14px;font-size:12px;border-radius:10px;color:var(--text-muted);cursor:pointer;transition:all .2s;font-weight:500}
+.sage-runtime .canvas-tab.active{background:var(--accent-dim);color:var(--accent)}
+.sage-runtime .canvas-tab:hover:not(.active){background:var(--bg-raised);color:var(--text-dim)}
+.sage-runtime .canvas-area{flex:1;background:var(--bg);position:relative;overflow:hidden}
+.sage-runtime .canvas-area::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle,var(--border-subtle) 1px,transparent 1px);background-size:24px 24px;opacity:.4}
+.sage-runtime .canvas-area::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 50%,var(--accent-glow),transparent 70%);pointer-events:none}
+.sage-runtime .canvas-node{position:absolute;background:var(--bg-raised);border:1.5px solid var(--border);border-radius:12px;padding:8px 16px;font-size:12px;color:var(--text);white-space:nowrap;box-shadow:var(--shadow);transition:all .3s}
+.sage-runtime .canvas-node:hover{border-color:var(--accent);box-shadow:var(--shadow-hover)}
+.sage-runtime .input-bar{border-top:1px solid var(--border);padding:14px 20px;background:var(--bg-card)}
+.sage-runtime .input-bar input{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius);padding:12px 16px;color:var(--text);font-size:14px;outline:none;font-family:'DM Sans',sans-serif;transition:all .3s}
+.sage-runtime .input-bar input::placeholder{color:var(--text-muted)}
+.sage-runtime .input-bar input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+
+/* ══════════════════════════════════════════════════════════════
+   B: OCEAN — 蓝图工程 · 玻璃质感 · 电光蓝 · 锐利
+   ══════════════════════════════════════════════════════════════ */
+/* Night */
+.ocean{
+  --bg:#05080e;--bg-card:rgba(8,16,28,0.85);--bg-raised:rgba(12,22,38,0.9);--border:rgba(30,80,140,0.25);--border-subtle:rgba(20,50,90,0.2);
+  --text:#b8d4f0;--text-dim:#4a78a8;--text-muted:#2a4a70;--accent:#3b9aff;--accent-dim:rgba(59,154,255,0.12);
+  --accent-glow:rgba(59,154,255,0.15);--highlight:#60b8ff;--radius:6px;--radius-lg:10px;
+  --page-bg:#0a0a0a;--page-text:#e0e0e0;
+  --shadow:0 4px 20px rgba(0,0,0,0.4),0 1px 0 rgba(59,154,255,0.1) inset;
+  --shadow-hover:0 8px 32px rgba(0,0,0,0.5),0 1px 0 rgba(59,154,255,0.2) inset;
+  --glow-line:rgba(59,154,255,0.08)
+}
+/* Day */
+.ocean.day{
+  --bg:#eef3fa;--bg-card:rgba(255,255,255,0.9);--bg-raised:rgba(232,240,252,0.95);--border:rgba(37,99,235,0.2);--border-subtle:rgba(37,99,235,0.1);
+  --text:#0f1a2e;--text-dim:#3a6090;--text-muted:#8aa0b8;--accent:#2563eb;--accent-dim:rgba(37,99,235,0.08);
+  --accent-glow:rgba(37,99,235,0.1);--highlight:#1d4ed8;--radius:6px;--radius-lg:10px;
+  --page-bg:#f5f3ef;--page-text:#1a1a1a;
+  --shadow:0 4px 20px rgba(37,99,235,0.06),0 1px 0 rgba(37,99,235,0.15) inset;
+  --shadow-hover:0 8px 32px rgba(37,99,235,0.1),0 1px 0 rgba(37,99,235,0.25) inset;
+  --glow-line:rgba(37,99,235,0.06)
+}
+
+.ocean .style-preview{background:var(--bg);border:1px solid var(--border);border-radius:10px;position:relative;overflow:hidden;backdrop-filter:blur(8px)}
+.ocean .style-preview::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(59,154,255,0.03),transparent 50%,rgba(59,154,255,0.02));pointer-events:none}
+.ocean h2{color:var(--accent)}
+.ocean .num{color:var(--accent);font-family:'JetBrains Mono',monospace}
+.ocean .tagline{color:var(--text-muted);font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.5px}
+
+/* Ocean — Home */
+.ocean-home{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 36px;position:relative;overflow:hidden}
+.ocean-home::before{content:'';position:absolute;inset:0;background:
+  linear-gradient(var(--glow-line) 1px,transparent 1px),
+  linear-gradient(90deg,var(--glow-line) 1px,transparent 1px);background-size:32px 32px;opacity:.6;pointer-events:none}
+.ocean-home::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 500px 400px at 50% 30%,var(--accent-glow),transparent);pointer-events:none}
+.ocean-home .brand-mark{width:48px;height:48px;border-radius:8px;background:var(--accent-dim);border:1.5px solid rgba(59,154,255,0.3);display:flex;align-items:center;justify-content:center;margin-bottom:32px;position:relative;backdrop-filter:blur(8px);transition:all .3s}
+.ocean-home .brand-mark::after{content:'';position:absolute;inset:-1px;border-radius:9px;border:1px solid rgba(59,154,255,0.15);pointer-events:none}
+.ocean-home .brand-mark svg{width:24px;height:24px;stroke:var(--accent);fill:none;stroke-width:2;stroke-linecap:round}
+.ocean-home h3{font-family:'Instrument Sans',sans-serif;font-size:36px;font-weight:700;color:var(--text);letter-spacing:-0.8px;margin-bottom:8px}
+.ocean-home .tagline{font-size:13px;color:var(--text-dim);margin-bottom:40px;font-family:'JetBrains Mono',monospace;letter-spacing:0.3px}
+.ocean-home .search{width:100%;max-width:420px;position:relative}
+.ocean-home .search input{width:100%;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:15px 48px 15px 18px;color:var(--text);font-size:14px;font-family:'Instrument Sans',sans-serif;outline:none;transition:all .3s;box-shadow:var(--shadow);backdrop-filter:blur(8px)}
+.ocean-home .search input::placeholder{color:var(--text-muted)}
+.ocean-home .search input:focus{border-color:var(--accent);box-shadow:var(--shadow-hover),0 0 0 2px var(--accent-glow)}
+.ocean-home .search .icon{position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);transition:color .3s}
+.ocean-home .search input:focus ~ .icon{color:var(--accent)}
+.ocean-home .suggest{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;max-width:420px;margin-top:20px}
+.ocean-home .suggest-item{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius);padding:14px 16px;cursor:pointer;transition:all .25s;backdrop-filter:blur(8px);position:relative;overflow:hidden}
+.ocean-home .suggest-item::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent);opacity:0;transition:opacity .25s}
+.ocean-home .suggest-item:hover{border-color:rgba(59,154,255,0.4);background:var(--bg-raised);transform:translateY(-2px);box-shadow:var(--shadow-hover)}
+.ocean-home .suggest-item:hover::before{opacity:1}
+.ocean-home .suggest-item .st{font-size:12px;font-weight:600;color:var(--highlight);margin-bottom:3px;font-family:'Instrument Sans',sans-serif}
+.ocean-home .suggest-item .sd{font-size:11px;color:var(--text-muted);line-height:1.4}
+.ocean-home .footnote{margin-top:32px;font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;letter-spacing:0.8px}
+
+/* Ocean — Runtime */
+.ocean-runtime{display:flex;flex-direction:column;background:var(--bg)}
+.ocean-runtime .topbar{display:flex;align-items:center;gap:12px;padding:10px 20px;border-bottom:1px solid var(--border);background:var(--bg-card);backdrop-filter:blur(8px)}
+.ocean-runtime .topbar .back{width:28px;height:28px;border-radius:5px;border:1px solid var(--border);background:transparent;color:var(--text-dim);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;transition:all .2s}
+.ocean-runtime .topbar .back:hover{background:var(--accent-dim);color:var(--accent);border-color:rgba(59,154,255,0.3)}
+.ocean-runtime .topbar .title{font-family:'Instrument Sans',sans-serif;font-size:14px;font-weight:600;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ocean-runtime .topbar .status{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);font-family:'JetBrains Mono',monospace}
+.ocean-runtime .topbar .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent-glow)}
+.ocean-runtime .columns{display:flex;flex:1;overflow:hidden}
+.ocean-runtime .col-left{width:45%;border-right:1px solid var(--border);overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.ocean-runtime .col-right{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.ocean-runtime .card{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);backdrop-filter:blur(8px)}
+.ocean-runtime .card-head{font-size:10px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;font-family:'JetBrains Mono',monospace;display:flex;align-items:center;gap:8px}
+.ocean-runtime .card-head::before{content:'';width:8px;height:2px;background:var(--accent)}
+.ocean-runtime .step-row{display:flex;align-items:center;gap:10px;padding:5px 0;font-size:12px;color:var(--text)}
+.ocean-runtime .step-num{width:20px;height:20px;border-radius:4px;background:var(--accent-dim);border:1px solid rgba(59,154,255,0.25);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:var(--accent);flex-shrink:0;font-family:'JetBrains Mono',monospace}
+.ocean-runtime .step-bar{flex:1;height:3px;background:var(--border);overflow:hidden;border-radius:2px}
+.ocean-runtime .step-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--highlight));border-radius:2px}
+.ocean-runtime .step-label{font-size:10px;color:var(--text-muted);min-width:52px;text-align:right;font-family:'JetBrains Mono',monospace}
+.ocean-runtime .lev-row{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border-subtle);font-size:12px}
+.ocean-runtime .lev-row:last-child{border-bottom:none}
+.ocean-runtime .lev-rank{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-muted);width:24px}
+.ocean-runtime .lev-name{flex:1;color:var(--text)}
+.ocean-runtime .lev-score{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--highlight);background:var(--accent-dim);padding:2px 8px;border-radius:4px}
+.ocean-runtime .canvas-wrap{flex:1;display:flex;flex-direction:column}
+.ocean-runtime .canvas-tabs{display:flex;gap:3px;padding:6px 16px;background:var(--bg-card);border-bottom:1px solid var(--border-subtle);backdrop-filter:blur(8px)}
+.ocean-runtime .canvas-tab{padding:5px 12px;font-size:10px;border-radius:4px;color:var(--text-muted);cursor:pointer;font-family:'JetBrains Mono',monospace;transition:all .15s;letter-spacing:0.5px}
+.ocean-runtime .canvas-tab.active{background:var(--accent-dim);color:var(--accent)}
+.ocean-runtime .canvas-tab:hover:not(.active){color:var(--text-dim)}
+.ocean-runtime .canvas-area{flex:1;background:var(--bg);position:relative;overflow:hidden}
+.ocean-runtime .canvas-area::before{content:'';position:absolute;inset:0;background-image:
+  linear-gradient(var(--glow-line) 1px,transparent 1px),
+  linear-gradient(90deg,var(--glow-line) 1px,transparent 1px);background-size:28px 28px;opacity:.5}
+.ocean-runtime .canvas-area::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 60% 40%,var(--accent-glow),transparent 60%);pointer-events:none}
+.ocean-runtime .canvas-node{position:absolute;background:var(--bg-raised);border:1px solid var(--border);border-radius:4px;padding:6px 12px;font-size:11px;color:var(--text);white-space:nowrap;font-family:'Instrument Sans',sans-serif;box-shadow:var(--shadow);backdrop-filter:blur(4px);transition:all .25s}
+.ocean-runtime .canvas-node:hover{border-color:rgba(59,154,255,0.4);box-shadow:var(--shadow-hover)}
+.ocean-runtime .input-bar{border-top:1px solid var(--border);padding:12px 16px;background:var(--bg-card);backdrop-filter:blur(8px)}
+.ocean-runtime .input-bar input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;color:var(--text);font-size:13px;outline:none;font-family:'Instrument Sans',sans-serif;transition:all .25s}
+.ocean-runtime .input-bar input::placeholder{color:var(--text-muted)}
+.ocean-runtime .input-bar input:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-glow)}
+
+/* ══════════════════════════════════════════════════════════════
+   C: EMBER — 烛光琥珀 · 暖调玻璃 · 柔光晕 · 温暖
+   ══════════════════════════════════════════════════════════════ */
+/* Night */
+.ember{
+  --bg:#100c08;--bg-card:rgba(28,20,12,0.9);--bg-raised:rgba(38,28,16,0.95);--border:rgba(180,120,40,0.18);--border-subtle:rgba(140,90,30,0.12);
+  --text:#e8d4b8;--text-dim:#a08058;--text-muted:#6a5038;--accent:#e89838;--accent-dim:rgba(232,152,56,0.12);
+  --accent-glow:rgba(232,152,56,0.15);--highlight:#f0c060;--radius:20px;--radius-lg:28px;
+  --page-bg:#0a0a0a;--page-text:#e0e0e0;
+  --shadow:0 4px 24px rgba(232,152,56,0.06),0 2px 8px rgba(0,0,0,0.4);
+  --shadow-hover:0 8px 40px rgba(232,152,56,0.12),0 4px 12px rgba(0,0,0,0.5);
+  --glow:radial-gradient(ellipse at 50% 40%,rgba(232,152,56,0.08),transparent 70%)
+}
+/* Day */
+.ember.day{
+  --bg:#faf5ed;--bg-card:rgba(255,255,255,0.95);--bg-raised:rgba(245,236,222,0.95);--border:rgba(180,120,40,0.18);--border-subtle:rgba(180,120,40,0.1);
+  --text:#2a1e12;--text-dim:#8a6a48;--text-muted:#b8a088;--accent:#c67a20;--accent-dim:rgba(198,122,32,0.08);
+  --accent-glow:rgba(198,122,32,0.1);--highlight:#a06010;--radius:20px;--radius-lg:28px;
+  --page-bg:#f5f3ef;--page-text:#1a1a1a;
+  --shadow:0 4px 24px rgba(198,122,32,0.06),0 2px 8px rgba(0,0,0,0.06);
+  --shadow-hover:0 8px 40px rgba(198,122,32,0.1),0 4px 12px rgba(0,0,0,0.1);
+  --glow:radial-gradient(ellipse at 50% 40%,rgba(198,122,32,0.06),transparent 70%)
+}
+
+.ember .style-preview{background:var(--bg);border:1px solid var(--border);border-radius:24px;position:relative;overflow:hidden}
+.ember .style-preview::before{content:'';position:absolute;inset:0;background:var(--glow);pointer-events:none}
+.ember h2{color:var(--accent)}
+.ember .num{color:var(--accent)}
+.ember .tagline{color:var(--text-muted)}
+
+/* Ember — Home */
+.ember-home{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:52px 40px;position:relative;overflow:hidden}
+.ember-home::before{content:'';position:absolute;inset:0;background:
+  radial-gradient(ellipse 600px 500px at 30% 20%,rgba(232,152,56,0.06),transparent),
+  radial-gradient(ellipse 400px 300px at 70% 80%,rgba(240,192,96,0.04),transparent);pointer-events:none}
+.ember-home::after{content:'';position:absolute;top:-60px;left:50%;transform:translateX(-50%);width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(232,152,56,0.05),transparent 70%);pointer-events:none;filter:blur(40px)}
+.ember-home .brand-mark{width:60px;height:60px;border-radius:18px;background:linear-gradient(135deg,var(--accent-dim),var(--bg-raised));border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;margin-bottom:28px;box-shadow:var(--shadow),0 0 40px rgba(232,152,56,0.08);transition:all .4s ease}
+.ember-home .brand-mark:hover{transform:translateY(-3px) scale(1.02);box-shadow:var(--shadow-hover),0 0 60px rgba(232,152,56,0.12)}
+.ember-home .brand-mark svg{width:28px;height:28px;stroke:var(--accent);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.ember-home h3{font-family:'Source Serif 4',serif;font-size:42px;font-weight:700;color:var(--text);letter-spacing:-1.2px;margin-bottom:8px;text-align:center}
+.ember-home .tagline{font-size:15px;color:var(--text-dim);margin-bottom:44px;font-family:'Source Serif 4',serif;font-style:italic;text-align:center;line-height:1.6}
+.ember-home .search{width:100%;max-width:440px;position:relative}
+.ember-home .search input{width:100%;background:var(--bg-card);border:1.5px solid var(--border);border-radius:var(--radius);padding:18px 52px 18px 22px;color:var(--text);font-size:15px;font-family:'DM Sans',sans-serif;outline:none;transition:all .4s ease;box-shadow:var(--shadow);backdrop-filter:blur(8px)}
+.ember-home .search input::placeholder{color:var(--text-muted)}
+.ember-home .search input:focus{border-color:var(--accent);box-shadow:var(--shadow-hover),0 0 0 4px var(--accent-glow),0 0 40px rgba(232,152,56,0.06);transform:translateY(-2px)}
+.ember-home .search .icon{position:absolute;right:18px;top:50%;transform:translateY(-50%);color:var(--text-muted);transition:all .3s}
+.ember-home .search input:focus ~ .icon{color:var(--accent)}
+.ember-home .suggest{display:grid;grid-template-columns:1fr 1fr;gap:14px;width:100%;max-width:440px;margin-top:28px}
+.ember-home .suggest-item{background:var(--bg-card);border:1.5px solid var(--border-subtle);border-radius:var(--radius);padding:18px 20px;cursor:pointer;transition:all .4s ease;box-shadow:var(--shadow);backdrop-filter:blur(8px);position:relative;overflow:hidden}
+.ember-home .suggest-item::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(232,152,56,0.04),transparent);opacity:0;transition:opacity .3s}
+.ember-home .suggest-item:hover{border-color:var(--accent);background:var(--bg-raised);transform:translateY(-4px);box-shadow:var(--shadow-hover),0 0 30px rgba(232,152,56,0.06)}
+.ember-home .suggest-item:hover::before{opacity:1}
+.ember-home .suggest-item .st{font-size:14px;font-weight:600;color:var(--accent);margin-bottom:5px}
+.ember-home .suggest-item .sd{font-size:12px;color:var(--text-muted);line-height:1.5}
+.ember-home .footnote{margin-top:36px;font-size:12px;color:var(--text-muted);letter-spacing:0.5px}
+
+/* Ember — Runtime */
+.ember-runtime{display:flex;flex-direction:column;background:var(--bg)}
+.ember-runtime .topbar{display:flex;align-items:center;gap:14px;padding:14px 24px;border-bottom:1px solid var(--border);background:var(--bg-card);backdrop-filter:blur(8px)}
+.ember-runtime .topbar .back{width:34px;height:34px;border-radius:12px;border:1.5px solid var(--border);background:transparent;color:var(--text-dim);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;transition:all .3s}
+.ember-runtime .topbar .back:hover{background:var(--accent-dim);color:var(--accent);border-color:var(--accent);box-shadow:0 0 12px var(--accent-glow)}
+.ember-runtime .topbar .title{font-family:'Source Serif 4',serif;font-size:16px;font-weight:600;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ember-runtime .topbar .status{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-dim)}
+.ember-runtime .topbar .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent-glow),0 0 24px rgba(232,152,56,0.1);animation:pulse-dot-warm 2.5s ease-in-out infinite}
+@keyframes pulse-dot-warm{0%,100%{opacity:.6;box-shadow:0 0 8px var(--accent-glow)}50%{opacity:1;box-shadow:0 0 16px var(--accent-glow),0 0 32px rgba(232,152,56,0.08)}}
+.ember-runtime .columns{display:flex;flex:1;overflow:hidden}
+.ember-runtime .col-left{width:45%;border-right:1px solid var(--border);overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px}
+.ember-runtime .col-right{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.ember-runtime .card{background:var(--bg-card);border:1.5px solid var(--border-subtle);border-radius:var(--radius);padding:20px 22px;box-shadow:var(--shadow);backdrop-filter:blur(8px);transition:all .3s}
+.ember-runtime .card:hover{box-shadow:var(--shadow-hover)}
+.ember-runtime .card-head{font-size:13px;font-weight:600;color:var(--accent);margin-bottom:16px;display:flex;align-items:center;gap:10px}
+.ember-runtime .card-head::before{content:'';width:10px;height:10px;border-radius:4px;background:var(--accent);opacity:.5}
+.ember-runtime .step-row{display:flex;align-items:center;gap:12px;padding:7px 0;font-size:14px;color:var(--text)}
+.ember-runtime .step-num{width:28px;height:28px;border-radius:10px;background:var(--accent-dim);border:1.5px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--accent);flex-shrink:0}
+.ember-runtime .step-bar{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.ember-runtime .step-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--highlight));border-radius:3px}
+.ember-runtime .step-label{font-size:12px;color:var(--text-muted);min-width:68px;text-align:right}
+.ember-runtime .lev-row{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border-subtle);font-size:14px}
+.ember-runtime .lev-row:last-child{border-bottom:none}
+.ember-runtime .lev-rank{font-family:'Source Serif 4',serif;font-size:24px;font-weight:700;color:var(--accent);width:32px}
+.ember-runtime .lev-name{flex:1;color:var(--text)}
+.ember-runtime .lev-score{font-size:13px;color:var(--highlight);background:var(--accent-dim);padding:4px 12px;border-radius:10px}
+.ember-runtime .canvas-wrap{flex:1;display:flex;flex-direction:column}
+.ember-runtime .canvas-tabs{display:flex;gap:6px;padding:10px 20px;background:var(--bg-card);border-bottom:1px solid var(--border-subtle);backdrop-filter:blur(8px)}
+.ember-runtime .canvas-tab{padding:7px 16px;font-size:12px;border-radius:var(--radius);color:var(--text-muted);cursor:pointer;transition:all .25s}
+.ember-runtime .canvas-tab.active{background:var(--accent-dim);color:var(--accent)}
+.ember-runtime .canvas-tab:hover:not(.active){background:var(--bg-raised);color:var(--text-dim)}
+.ember-runtime .canvas-area{flex:1;background:var(--bg);position:relative;overflow:hidden}
+.ember-runtime .canvas-area::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 50%,var(--accent-glow),transparent 65%);pointer-events:none}
+.ember-runtime .canvas-area::after{content:'';position:absolute;inset:0;background-image:radial-gradient(circle,var(--border-subtle) 1px,transparent 1px);background-size:28px 28px;opacity:.3;pointer-events:none}
+.ember-runtime .canvas-node{position:absolute;background:var(--bg-raised);border:1.5px solid var(--border);border-radius:14px;padding:10px 18px;font-size:12px;color:var(--text);white-space:nowrap;box-shadow:var(--shadow);transition:all .35s}
+.ember-runtime .canvas-node:hover{border-color:var(--accent);box-shadow:var(--shadow-hover),0 0 20px rgba(232,152,56,0.06);transform:translateY(-2px)}
+.ember-runtime .input-bar{border-top:1px solid var(--border);padding:16px 20px;background:var(--bg-card);backdrop-filter:blur(8px)}
+.ember-runtime .input-bar input{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius);padding:14px 18px;color:var(--text);font-size:14px;outline:none;font-family:'DM Sans',sans-serif;transition:all .35s}
+.ember-runtime .input-bar input::placeholder{color:var(--text-muted)}
+.ember-runtime .input-bar input:focus{border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-glow),0 0 24px rgba(232,152,56,0.06)}
+
+/* ══════════════════════════════════════════════════════════════
+   D: VOID — 终端极简 · 扫描线 · 纯黑白 · 锐利
+   ══════════════════════════════════════════════════════════════ */
+/* Night */
+.void{
+  --bg:#000000;--bg-card:#0a0a0a;--bg-raised:#141414;--border:#222;--border-subtle:#181818;
+  --text:#c0c0c0;--text-dim:#555;--text-muted:#333;--accent:#fff;--accent-dim:#1a1a1a;
+  --accent-glow:rgba(255,255,255,0.04);--highlight:#888;--radius:0px;--radius-lg:0px;
+  --page-bg:#000;--page-text:#e0e0e0;
+  --shadow:none;--shadow-hover:none;
+  --scanline:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(255,255,255,0.015) 2px,rgba(255,255,255,0.015) 4px)
+}
+/* Day */
+.void.day{
+  --bg:#fafafa;--bg-card:#ffffff;--bg-raised:#f2f2f2;--border:#ddd;--border-subtle:#eee;
+  --text:#222;--text-dim:#777;--text-muted:#aaa;--accent:#000;--accent-dim:#f0f0f0;
+  --accent-glow:rgba(0,0,0,0.04);--highlight:#444;--radius:0px;--radius-lg:0px;
+  --page-bg:#f5f3ef;--page-text:#1a1a1a;
+  --shadow:none;--shadow-hover:none;
+  --scanline:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.01) 2px,rgba(0,0,0,0.01) 4px)
+}
+
+.void .style-preview{background:var(--bg);border:1px solid var(--border);border-radius:0;position:relative;overflow:hidden}
+.void .style-preview::before{content:'';position:absolute;inset:0;background-image:var(--scanline);pointer-events:none;opacity:.5}
+.void h2{color:var(--text);font-family:'IBM Plex Mono',monospace;font-weight:400}
+.void .num{color:var(--text-dim);font-family:'IBM Plex Mono',monospace}
+.void .tagline{color:var(--text-muted);font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase}
+
+/* Void — Home */
+.void-home{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 36px;position:relative;overflow:hidden}
+.void-home::before{content:'';position:absolute;left:0;right:0;top:50%;height:1px;background:var(--border-subtle);opacity:.3;pointer-events:none}
+.void-home .brand-mark{width:36px;height:36px;border-radius:0;background:var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:36px;position:relative}
+.void-home .brand-mark::after{content:'>';position:absolute;bottom:-20px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-muted);animation:blink 1s step-end infinite}
+@keyframes blink{0%,50%{opacity:1}51%,100%{opacity:0}}
+.void-home .brand-mark svg{width:18px;height:18px;stroke:var(--bg);fill:none;stroke-width:2.5;stroke-linecap:square}
+.void-home h3{font-family:'IBM Plex Mono',monospace;font-size:24px;font-weight:400;color:var(--text);letter-spacing:-0.3px;margin-bottom:8px}
+.void-home .tagline{font-size:11px;color:var(--text-muted);margin-bottom:40px;font-family:'IBM Plex Mono',monospace;letter-spacing:1.5px;text-transform:uppercase}
+.void-home .search{width:100%;max-width:420px;position:relative}
+.void-home .search input{width:100%;background:var(--bg-card);border:1px solid var(--border);border-radius:0;padding:14px 44px 14px 16px;color:var(--text);font-size:13px;font-family:'IBM Plex Mono',monospace;outline:none;transition:border-color .15s}
+.void-home .search input::placeholder{color:var(--text-muted);font-family:'IBM Plex Mono',monospace}
+.void-home .search input:focus{border-color:var(--text-dim)}
+.void-home .search .icon{position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-family:'IBM Plex Mono',monospace;font-size:14px}
+.void-home .suggest{display:grid;grid-template-columns:1fr 1fr;gap:4px;width:100%;max-width:420px;margin-top:16px}
+.void-home .suggest-item{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:0;padding:14px 16px;cursor:pointer;transition:all .12s;position:relative}
+.void-home .suggest-item::before{content:'>';position:absolute;left:8px;top:50%;transform:translateY(-50%);font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--accent);opacity:0;transition:opacity .12s}
+.void-home .suggest-item:hover{border-color:var(--text-dim);background:var(--bg-raised)}
+.void-home .suggest-item:hover::before{opacity:1}
+.void-home .suggest-item .st{font-size:11px;font-weight:500;color:var(--text-dim);margin-bottom:3px;font-family:'IBM Plex Mono',monospace;padding-left:10px}
+.void-home .suggest-item .sd{font-size:10px;color:var(--text-muted);line-height:1.4;font-family:'IBM Plex Mono',monospace;padding-left:10px}
+.void-home .footnote{margin-top:32px;font-size:10px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;letter-spacing:2px;text-transform:uppercase}
+
+/* Void — Runtime */
+.void-runtime{display:flex;flex-direction:column;background:var(--bg)}
+.void-runtime .topbar{display:flex;align-items:center;gap:10px;padding:8px 16px;border-bottom:1px solid var(--border);background:var(--bg-card);font-family:'IBM Plex Mono',monospace}
+.void-runtime .topbar .back{width:24px;height:24px;border-radius:0;border:1px solid var(--border);background:transparent;color:var(--text-muted);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;font-family:'IBM Plex Mono',monospace;transition:all .1s}
+.void-runtime .topbar .back:hover{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+.void-runtime .topbar .title{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:400;color:var(--text-dim);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:0.5px}
+.void-runtime .topbar .status{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:1px}
+.void-runtime .topbar .dot{width:5px;height:5px;border-radius:0;background:var(--accent);animation:blink 1.5s step-end infinite}
+.void-runtime .columns{display:flex;flex:1;overflow:hidden}
+.void-runtime .col-left{width:45%;border-right:1px solid var(--border);overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
+.void-runtime .col-right{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.void-runtime .card{background:var(--bg-card);border:1px solid var(--border);border-radius:0;padding:14px 16px}
+.void-runtime .card-head{font-size:9px;font-weight:500;color:var(--text-muted);text-transform:uppercase;letter-spacing:2.5px;margin-bottom:12px;font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;gap:8px}
+.void-runtime .card-head::before{content:'$';color:var(--text-dim);font-size:10px}
+.void-runtime .step-row{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:11px;color:var(--text-dim);font-family:'IBM Plex Mono',monospace}
+.void-runtime .step-num{width:18px;height:18px;border-radius:0;background:var(--accent-dim);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:600;color:var(--accent);flex-shrink:0;font-family:'IBM Plex Mono',monospace}
+.void-runtime .step-bar{flex:1;height:2px;background:var(--border);overflow:hidden}
+.void-runtime .step-fill{height:100%;background:var(--accent)}
+.void-runtime .step-label{font-size:9px;color:var(--text-muted);min-width:44px;text-align:right;font-family:'IBM Plex Mono',monospace}
+.void-runtime .lev-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border-subtle);font-size:11px;font-family:'IBM Plex Mono',monospace}
+.void-runtime .lev-row:last-child{border-bottom:none}
+.void-runtime .lev-rank{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text-muted);width:18px}
+.void-runtime .lev-name{flex:1;color:var(--text-dim)}
+.void-runtime .lev-score{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--accent);background:var(--accent-dim);padding:2px 6px;border-radius:0}
+.void-runtime .canvas-wrap{flex:1;display:flex;flex-direction:column}
+.void-runtime .canvas-tabs{display:flex;gap:2px;padding:6px 12px;background:var(--bg-card);border-bottom:1px solid var(--border-subtle);font-family:'IBM Plex Mono',monospace}
+.void-runtime .canvas-tab{padding:4px 10px;font-size:9px;border-radius:0;color:var(--text-muted);cursor:pointer;transition:all .1s;text-transform:uppercase;letter-spacing:1px}
+.void-runtime .canvas-tab.active{background:var(--accent);color:var(--bg)}
+.void-runtime .canvas-tab:hover:not(.active){color:var(--text-dim)}
+.void-runtime .canvas-area{flex:1;background:var(--bg);position:relative;overflow:hidden}
+.void-runtime .canvas-area::before{content:'';position:absolute;inset:0;background-image:
+  linear-gradient(var(--border-subtle) 1px,transparent 1px),
+  linear-gradient(90deg,var(--border-subtle) 1px,transparent 1px);background-size:40px 40px;opacity:.4}
+.void-runtime .canvas-area::after{content:'';position:absolute;inset:0;background-image:var(--scanline);pointer-events:none;opacity:.3}
+.void-runtime .canvas-node{position:absolute;background:var(--bg-card);border:1px solid var(--border);border-radius:0;padding:5px 10px;font-size:10px;color:var(--text-dim);white-space:nowrap;font-family:'IBM Plex Mono',monospace;transition:border-color .1s}
+.void-runtime .canvas-node:hover{border-color:var(--text-dim)}
+.void-runtime .input-bar{border-top:1px solid var(--border);padding:8px 12px;background:var(--bg-card)}
+.void-runtime .input-bar input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:0;padding:8px 10px;color:var(--text);font-size:12px;outline:none;font-family:'IBM Plex Mono',monospace;transition:border-color .15s}
+.void-runtime .input-bar input::placeholder{color:var(--text-muted);font-family:'IBM Plex Mono',monospace}
+.void-runtime .input-bar input:focus{border-color:var(--text-dim)}
+
+/* ── Shared transitions ── */
+.suggest-item,.topbar,.card,.step-row,.lev-row,.canvas-node,.input-bar input,.brand-mark,.back,.canvas-tab{transition:all .3s ease}
+</style>
+</head>
+<body>
+
+<button class="theme-toggle" onclick="document.body.classList.toggle('light');this.querySelector('.icon').textContent=document.body.classList.contains('light')?'🌙':'☀️'">
+  <span class="icon">☀️</span> Day / Night
+</button>
+
+<div class="page-header">
+  <h1>Design <em>Exploration</em></h1>
+  <p class="sub">Systematology 四套视觉风格 · 每套含 Day + Night 双主题</p>
+  <div class="hint"><span class="pulse"></span> 点击右上角切换 Day / Night</div>
+</div>
+
+<div class="styles-grid">
+
+  <!-- ═══ A: SAGE ═══ -->
+  <div class="style-section">
+    <div class="style-meta">
+      <span class="num">A</span>
+      <h2>Sage 自然绿</h2>
+      <span class="tagline">Cormorant Garamond + DM Sans · 有机 · 纸质 · 植物</span>
+    </div>
+    <div class="style-preview">
+      <div class="sage-home">
+        <div class="brand-mark"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div>
+        <h3>Creating Systematology</h3>
+        <p class="tagline">基于 RAG 的知识研究助手 — 探索体系学的智慧</p>
+        <div class="search"><input type="text" placeholder="输入你的研究问题..." readonly><span class="icon">→</span></div>
+        <div class="suggest">
+          <div class="suggest-item"><div class="st">气候变化</div><div class="sd">碳排放的因果回路分析</div></div>
+          <div class="suggest-item"><div class="st">能源政策</div><div class="sd">补贴对技术创新的影响</div></div>
+          <div class="suggest-item"><div class="st">公共卫生</div><div class="sd">防控政策的系统性评估</div></div>
+          <div class="suggest-item"><div class="st">经济系统</div><div class="sd">供应链韧性的杠杆点</div></div>
+        </div>
+        <p class="footnote">Enter 发送 · Shift+Enter 换行</p>
+      </div>
+      <div class="sage-runtime">
+        <div class="topbar"><button class="back">←</button><div class="title">新能源补贴政策如何影响碳排放的因果机制？</div><div class="status"><div class="dot"></div>分析完成</div></div>
+        <div class="columns">
+          <div class="col-left">
+            <div class="card"><div class="card-head">Thinking Pipeline</div>
+              <div class="step-row"><div class="step-num">✓</div>① 检索<div class="step-bar"><div class="step-fill" style="width:100%"></div></div><div class="step-label">12 篇文献</div></div>
+              <div class="step-row"><div class="step-num">✓</div>② 建图<div class="step-bar"><div class="step-fill" style="width:100%"></div></div><div class="step-label">18 节点</div></div>
+              <div class="step-row"><div class="step-num">✓</div>③ 评估<div class="step-bar"><div class="step-fill" style="width:100%"></div></div><div class="step-label">5 杠杆点</div></div>
+            </div>
+            <div class="card"><div class="card-head">杠杆点排序</div>
+              <div class="lev-row"><div class="lev-rank">1</div><div class="lev-name">碳定价机制强度</div><div class="lev-score">0.87</div></div>
+              <div class="lev-row"><div class="lev-rank">2</div><div class="lev-name">研发投入占比</div><div class="lev-score">0.72</div></div>
+              <div class="lev-row"><div class="lev-rank">3</div><div class="lev-name">电网接入能力</div><div class="lev-score">0.58</div></div>
+            </div>
+          </div>
+          <div class="col-right">
+            <div class="canvas-wrap">
+              <div class="canvas-tabs"><div class="canvas-tab active">SVG</div><div class="canvas-tab">React Flow</div><div class="canvas-tab">D3.js</div></div>
+              <div class="canvas-area">
+                <div class="canvas-node" style="top:18%;left:35%">补贴力度</div>
+                <div class="canvas-node" style="top:35%;left:58%">碳定价机制</div>
+                <div class="canvas-node" style="top:55%;left:28%">清洁技术研发</div>
+                <div class="canvas-node" style="top:72%;left:52%">碳排放</div>
+                <div class="canvas-node" style="top:40%;left:15%">财政压力</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="input-bar"><input type="text" placeholder="继续追问..." readonly></div>
+      </div>
+    </div>
+    <div class="palette-bar">
+      <div class="palette-swatch" style="background:var(--bg,#0c110e)"></div>
+      <div class="palette-swatch" style="background:var(--bg-card,#141c16)"></div>
+      <div class="palette-swatch" style="background:var(--border,#243a28)"></div>
+      <div class="palette-swatch" style="background:var(--accent-dim,#285e2e)"></div>
+      <div class="palette-swatch" style="background:var(--accent,#5cb862)"></div>
+      <div class="palette-swatch" style="background:var(--highlight,#92e898)"></div>
+      <div class="palette-swatch" style="background:var(--text,#c8dfc8)"></div>
+    </div>
+  </div>
+
+  <!-- ═══ B: OCEAN ═══ -->
+  <div class="style-section">
+    <div class="style-meta">
+      <span class="num">B</span>
+      <h2>Ocean 海洋蓝</h2>
+      <span class="tagline">Instrument Sans + JetBrains Mono · 蓝图 · 玻璃 · 电光</span>
+    </div>
+    <div class="style-preview">
+      <div class="ocean-home">
+        <div class="brand-mark"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
+        <h3>Creating Systematology</h3>
+        <p class="tagline">基于 RAG 的知识研究助手 — 探索体系学的智慧</p>
+        <div class="search"><input type="text" placeholder="输入你的研究问题..." readonly><span class="icon">→</span></div>
+        <div class="suggest">
+          <div class="suggest-item"><div class="st">气候变化</div><div class="sd">碳排放的因果回路分析</div></div>
+          <div class="suggest-item"><div class="st">能源政策</div><div class="sd">补贴对技术创新的影响</div></div>
+          <div class="suggest-item"><div class="st">公共卫生</div><div class="sd">防控政策的系统性评估</div></div>
+          <div class="suggest-item"><div class="st">经济系统</div><div class="sd">供应链韧性的杠杆点</div></div>
+        </div>
+        <p class="footnote">Enter 发送 · Shift+Enter 换行</p>
+      </div>
+      <div class="ocean-runtime">
+        <div class="topbar"><button class="back">←</button><div class="title">新能源补贴政策如何影响碳排放的因果机制？</div><div class="status"><div class="dot"></div>COMPLETED</div></div>
+        <div class="columns">
+          <div class="col-left">
+            <div class="card"><div class="card-head">THINKING PIPELINE</div>
+              <div class="step-row"><div class="step-num">01</div>检索<div class="step-bar"><div class="step-fill" style="width:100%"></div></div><div class="step-label">12 docs</div></div>
+              <div class="step-row"><div class="step-num">02</div>建图<div class="step-bar"><div class="step-fill" style="width:100%"></div></div><div class="step-label">18 nodes</div></div>
+              <div class="step-row"><div class="step-num">03</div>评估<div class="step-bar"><div class="step-fill" style="width:100%"></div></div><div class="step-label">5 points</div></div>
+            </div>
+            <div class="card"><div class="card-head">LEVERAGE POINTS</div>
+              <div class="lev-row"><div class="lev-rank">#01</div><div class="lev-name">碳定价机制强度</div><div class="lev-score">87%</div></div>
+              <div class="lev-row"><div class="lev-rank">#02</div><div class="lev-name">研发投入占比</div><div class="lev-score">72%</div></div>
+              <div class="lev-row"><div class="lev-rank">#03</div><div class="lev-name">电网接入能力</div><div class="lev-score">58%</div></div>
+            </div>
+          </div>
+          <div class="col-right">
+            <div class="canvas-wrap">
+              <div class="canvas-tabs"><div class="canvas-tab active">SVG</div><div class="canvas-tab">REACT FLOW</div><div class="canvas-tab">D3.JS</div></div>
+              <div class="canvas-area">
+                <div class="canvas-node" style="top:20%;left:32%">补贴力度</div>
+                <div class="canvas-node" style="top:38%;left:56%">碳定价机制</div>
+                <div class="canvas-node" style="top:58%;left:26%">清洁技术研发</div>
+                <div class="canvas-node" style="top:74%;left:50%">碳排放</div>
+                <div class="canvas-node" style="top:42%;left:12%">财政压力</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="input-bar"><input type="text" placeholder="继续追问..." readonly></div>
+      </div>
+    </div>
+    <div class="palette-bar">
+      <div class="palette-swatch" style="background:var(--bg,#05080e)"></div>
+      <div class="palette-swatch" style="background:var(--bg-card,rgba(8,16,28,0.85))"></div>
+      <div class="palette-swatch" style="background:var(--border,rgba(30,80,140,0.25))"></div>
+      <div class="palette-swatch" style="background:var(--accent-dim,rgba(59,154,255,0.12))"></div>
+      <div class="palette-swatch" style="background:var(--accent,#3b9aff)"></div>
+      <div class="palette-swatch" style="background:var(--highlight,#60b8ff)"></div>
+      <div class="palette-swatch" style="background:var(--text,#b8d4f0)"></div>
+    </div>
+  </div>
+
+  <!-- ═══ C: EMBER ═══ -->
+  <div class="style-section">
+    <div class="style-meta">
+      <span class="num">C</span>
+      <h2>Ember 暖光</h2>
+      <span class="tagline">Source Serif 4 + DM Sans · 烛光 · 琥珀 · 柔光晕</span>
+    </div>
+    <div class="style-preview">
+      <div class="ember-home">
+        <div class="brand-mark"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div>
+        <h3>Creating Systematology</h3>
+        <p class="tagline">基于 RAG 的知识研究助手 — 探索体系学的智慧</p>
+        <div class="search"><input type="text" placeholder="输入你的研究问题..." readonly><span class="icon">→</span></div>
+        <div class="suggest">
+          <div class="suggest-item"><div class="st">气候变化</div><div class="sd">碳排放的因果回路分析</div></div>
+          <div class="suggest-item"><div class="st">能源政策</div><div class="sd">补贴对技术创新的影响</div></div>
+          <div class="suggest-item"><div class="st">公共卫生</div><div class="sd">防控政策的系统性评估</div></div>
+          <div class="suggest-item"><div class="st">经济系统</div><div class="sd">供应链韧性的杠杆点</div></div>
+        </div>
+        <p class="footnote">Enter 发送 · Shift+Enter 换行</p>
+      </div>
+      <div class="ember-runtime">
+        <div class="topbar"><button class="back">←</button><div class="title">新能源补贴政策如何影响碳排放的因果机制？</div><div class="status"><div class="dot"></div>分析完成</div></div>
+        <div class="columns">
+          <div class="col-left">
+            <div class="card"><div class="card-head">分析流程</div>
+              <div class="step-row"><div class="step-num">1</div>检索<div class="step-bar"><div class="step-fill" style="width:100%"></div></div><div class="step-label">12 篇文献</div></div>
+              <div class="step-row"><div class="step-num">2</div>建图<div class="step-bar"><div class="step-fill" style="width:100%"></div></div><div class="step-label">18 节点</div></div>
+              <div class="step-row"><div class="step-num">3</div>评估<div class="step-bar"><div class="step-fill" style="width:100%"></div></div><div class="step-label">5 杠杆点</div></div>
+            </div>
+            <div class="card"><div class="card-head">杠杆点排序</div>
+              <div class="lev-row"><div class="lev-rank">1</div><div class="lev-name">碳定价机制强度</div><div class="lev-score">0.87</div></div>
+              <div class="lev-row"><div class="lev-rank">2</div><div class="lev-name">研发投入占比</div><div class="lev-score">0.72</div></div>
+              <div class="lev-row"><div class="lev-rank">3</div><div class="lev-name">电网接入能力</div><div class="lev-score">0.58</div></div>
+            </div>
+          </div>
+          <div class="col-right">
+            <div class="canvas-wrap">
+              <div class="canvas-tabs"><div class="canvas-tab active">SVG</div><div class="canvas-tab">React Flow</div><div class="canvas-tab">D3.js</div></div>
+              <div class="canvas-area">
+                <div class="canvas-node" style="top:18%;left:34%">补贴力度</div>
+                <div class="canvas-node" style="top:36%;left:57%">碳定价机制</div>
+                <div class="canvas-node" style="top:56%;left:27%">清洁技术研发</div>
+                <div class="canvas-node" style="top:73%;left:51%">碳排放</div>
+                <div class="canvas-node" style="top:41%;left:13%">财政压力</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="input-bar"><input type="text" placeholder="继续追问..." readonly></div>
+      </div>
+    </div>
+    <div class="palette-bar">
+      <div class="palette-swatch" style="background:var(--bg,#100c08)"></div>
+      <div class="palette-swatch" style="background:var(--bg-card,rgba(28,20,12,0.9))"></div>
+      <div class="palette-swatch" style="background:var(--border,rgba(180,120,40,0.18))"></div>
+      <div class="palette-swatch" style="background:var(--accent-dim,rgba(232,152,56,0.12))"></div>
+      <div class="palette-swatch" style="background:var(--accent,#e89838)"></div>
+      <div class="palette-swatch" style="background:var(--highlight,#f0c060)"></div>
+      <div class="palette-swatch" style="background:var(--text,#e8d4b8)"></div>
+    </div>
+  </div>
+
+  <!-- ═══ D: VOID ═══ -->
+  <div class="style-section">
+    <div class="style-meta">
+      <span class="num">D</span>
+      <h2>Void 虚空</h2>
+      <span class="tagline">IBM Plex Mono · 终端 · 扫描线 · 极简</span>
+    </div>
+    <div class="style-preview">
+      <div class="void-home">
+        <div class="brand-mark"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="0"/><path d="M9 9h6M9 12h4"/></svg></div>
+        <h3>Creating Systematology</h3>
+        <p class="tagline">基于 RAG 的知识研究助手 — 探索体系学的智慧</p>
+        <div class="search"><input type="text" placeholder="$ 输入你的研究问题..." readonly><span class="icon">⏎</span></div>
+        <div class="suggest">
+          <div class="suggest-item"><div class="st">气候变化</div><div class="sd">碳排放的因果回路分析</div></div>
+          <div class="suggest-item"><div class="st">能源政策</div><div class="sd">补贴对技术创新的影响</div></div>
+          <div class="suggest-item"><div class="st">公共卫生</div><div class="sd">防控政策的系统性评估</div></div>
+          <div class="suggest-item"><div class="st">经济系统</div><div class="sd">供应链韧性的杠杆点</div></div>
+        </div>
+        <p class="footnote">Enter 执行 · Esc 中断</p>
+      </div>
+      <div class="void-runtime">
+        <div class="topbar"><button class="back">←</button><div class="title">新能源补贴政策如何影响碳排放的因果机制？</div><div class="status"><div class="dot"></div>DONE</div></div>
+        <div class="columns">
+          <div class="col-left">
+            <div class="card"><div class="card-head">Pipeline</div>
+              <div class="step-row"><div class="step-num">01</div>检索<div class="step-bar"><div class="step-fill" style="width:100%"></div></div><div class="step-label">12</div></div>
+              <div class="step-row"><div class="step-num">02</div>建图<div class="step-bar"><div class="step-fill" style="width:100%"></div></div><div class="step-label">18</div></div>
+              <div class="step-row"><div class="step-num">03</div>评估<div class="step-bar"><div class="step-fill" style="width:100%"></div></div><div class="step-label">5</div></div>
+            </div>
+            <div class="card"><div class="card-head">Leverage</div>
+              <div class="lev-row"><div class="lev-rank">01</div><div class="lev-name">碳定价机制强度</div><div class="lev-score">.87</div></div>
+              <div class="lev-row"><div class="lev-rank">02</div><div class="lev-name">研发投入占比</div><div class="lev-score">.72</div></div>
+              <div class="lev-row"><div class="lev-rank">03</div><div class="lev-name">电网接入能力</div><div class="lev-score">.58</div></div>
+            </div>
+          </div>
+          <div class="col-right">
+            <div class="canvas-wrap">
+              <div class="canvas-tabs"><div class="canvas-tab active">svg</div><div class="canvas-tab">react-flow</div><div class="canvas-tab">d3</div></div>
+              <div class="canvas-area">
+                <div class="canvas-node" style="top:20%;left:33%">补贴力度</div>
+                <div class="canvas-node" style="top:38%;left:56%">碳定价机制</div>
+                <div class="canvas-node" style="top:58%;left:27%">清洁技术研发</div>
+                <div class="canvas-node" style="top:75%;left:50%">碳排放</div>
+                <div class="canvas-node" style="top:42%;left:13%">财政压力</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="input-bar"><input type="text" placeholder="$ 继续追问..." readonly></div>
+      </div>
+    </div>
+    <div class="palette-bar">
+      <div class="palette-swatch" style="background:#000"></div>
+      <div class="palette-swatch" style="background:#0a0a0a"></div>
+      <div class="palette-swatch" style="background:#222"></div>
+      <div class="palette-swatch" style="background:#1a1a1a"></div>
+      <div class="palette-swatch" style="background:#555"></div>
+      <div class="palette-swatch" style="background:#888"></div>
+      <div class="palette-swatch" style="background:#fff"></div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

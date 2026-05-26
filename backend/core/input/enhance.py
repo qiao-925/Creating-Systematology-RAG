@@ -1,4 +1,4 @@
-"""CLDFlow input enhancement: HyDE and multi-query generation."""
+"""Systematology input enhancement: HyDE and multi-query generation."""
 
 from __future__ import annotations
 

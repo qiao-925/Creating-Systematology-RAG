@@ -1,4 +1,4 @@
-"""CLDFlow input pipeline: orchestrates enhance → retrieve → stop_rules."""
+"""Systematology input pipeline: orchestrates enhance → retrieve → stop_rules."""
 
 from __future__ import annotations
 

@@ -1,1 +1,1 @@
-"""FastAPI API layer for CLDFlow."""
+"""FastAPI API layer for Systematology."""

@@ -50,10 +50,10 @@
 | `docs/design/figma-phase1-workflow.md` | 新增 | 阶段一 Figma-only 流程 |
 | `docs/design/style-exploration-matrix.md` | 新增 | 7 版 Awesome Design MD 对比矩阵 |
 | `docs/design/thinking-observability-spec.md` | 新增 | Perplexity 式 Thinking 规格 |
-| `docs/CLDFlow MVP Builder/tracks/B-前端-Demo.md` | 修改 | 更新 Figma 链接与阶段划分 |
+| `docs/Systematology MVP Builder/tracks/B-前端-Demo.md` | 修改 | 更新 Figma 链接与阶段划分 |
 | `.claude/memory/project_frontend_design_decisions.md` | 修改 | 设计决策与 Figma 工作流 |
 
-**Figma**：https://www.figma.com/design/6ajDseXpLEBRGu12Ta4BRM/CLDFlow-V2-Design-Mockup
+**Figma**：https://www.figma.com/design/6ajDseXpLEBRGu12Ta4BRM/Systematology-V2-Design-Mockup
 
 ---
 
@@ -76,7 +76,7 @@
 | `web/src/components/chat/sources-panel.tsx` | 修改 | 来源面板样式优化 |
 | `web/src/app/globals.css` | 修改 | 全局样式更新 |
 | `design-mockup-v2.html` | 修改 | 设计稿更新 |
-| `docs/CLDFlow MVP Builder/tracks/B-前端-Demo.md` | 修改 | 前端 Demo 文档更新 |
+| `docs/Systematology MVP Builder/tracks/B-前端-Demo.md` | 修改 | 前端 Demo 文档更新 |
 
 ---
 

@@ -15,7 +15,7 @@ export interface Source {
   metadata?: Record<string, unknown>;
 }
 
-export type AppMode = "chat" | "research" | "cldflow";
+export type AppMode = "chat" | "research" | "systematology";
 
 export interface AppConfig {
   selected_model: string;
@@ -56,26 +56,26 @@ export interface ResearchResult {
   next_questions: string[];
 }
 
-// CLDFlow types
-export interface CLDFlowRequest {
+// Systematology types
+export interface SystematologyRequest {
   question: string;
   documents?: string[];
 }
 
-export interface CLDFlowNode {
+export interface SystematologyNode {
   id: string;
   label: string;
   description?: string;
 }
 
-export interface CLDFlowEdge {
+export interface SystematologyEdge {
   source: string;
   target: string;
   relation: string;
   weight?: number;
 }
 
-export interface CLDFlowLeveragePoint {
+export interface SystematologyLeveragePoint {
   node_id: string;
   node_label: string;
   impact_score: number;
@@ -83,26 +83,26 @@ export interface CLDFlowLeveragePoint {
   rank: number;
 }
 
-export interface CLDFlowReport {
+export interface SystematologyReport {
   cld_visualization?: {
-    nodes?: CLDFlowNode[];
-    edges?: CLDFlowEdge[];
+    nodes?: SystematologyNode[];
+    edges?: SystematologyEdge[];
     raw_response?: string;
   };
   scenario_comparison?: Record<string, unknown>;
-  leverage_ranking?: CLDFlowLeveragePoint[];
+  leverage_ranking?: SystematologyLeveragePoint[];
   synthesized_insights?: string;
   evidence_tracing?: Record<string, unknown>;
 }
 
-export interface CLDFlowFailureReport {
+export interface SystematologyFailureReport {
   run_id: string;
   stage: string;
   reason: string;
   details?: Record<string, unknown>;
 }
 
-export interface CLDFlowResponse {
+export interface SystematologyResponse {
   success: boolean;
-  report: CLDFlowReport | CLDFlowFailureReport;
+  report: SystematologyReport | SystematologyFailureReport;
 }

@@ -1,4 +1,4 @@
-"""CLDFlow orchestration guardrails.
+"""Systematology orchestration guardrails.
 
 Five guardrails for pipeline safety:
 - Pipeline Rail: ensure CLD runs before FCM/D2D

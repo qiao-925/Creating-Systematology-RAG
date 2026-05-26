@@ -1,6 +1,6 @@
-# CLDFlow Perspective Generation System
+# Systematology Perspective Generation System
 
-基于 DDC（杜威十进制分类法）的动态视角生成系统，为 CLDFlow 提供多 Agent 分析的 Specialist Agent 角色模板。
+基于 DDC（杜威十进制分类法）的动态视角生成系统，为 Systematology 提供多 Agent 分析的 Specialist Agent 角色模板。
 
 ## 核心特性
 

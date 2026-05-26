@@ -1,4 +1,4 @@
-"""CLDFlow MVP service orchestration."""
+"""Systematology MVP service orchestration."""
 
 from __future__ import annotations
 
@@ -19,11 +19,11 @@ from backend.core.models import (
 )
 from backend.infrastructure.logger import get_logger
 
-logger = get_logger("cldflow.service")
+logger = get_logger("systematology.service")
 
 
-class CLDFlowAppService:
-    """Minimal CLDFlow MVP application service."""
+class SystematologyAppService:
+    """Minimal Systematology MVP application service."""
 
     def __init__(self, budget_turns: int = 10):
         self._budget_turns = budget_turns
@@ -87,5 +87,5 @@ class CLDFlowAppService:
 
     def fail(self, run_context: RunContext, stage: str, reason: str, **details: Any) -> StructuredFailureReport:
         run_context.failures.append(FailureRecord(stage=stage, reason=reason, details=details))
-        logger.warning("CLDFlow failure", stage=stage, reason=reason, details=details)
+        logger.warning("Systematology failure", stage=stage, reason=reason, details=details)
         return StructuredFailureReport(run_id=run_context.run_id, stage=stage, reason=reason, details=details)

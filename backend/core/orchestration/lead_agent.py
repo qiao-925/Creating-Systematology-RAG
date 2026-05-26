@@ -1,4 +1,4 @@
-"""CLDFlow Lead Agent: orchestrates CLD → FCM → D2D pipeline.
+"""Systematology Lead Agent: orchestrates CLD → FCM → D2D pipeline.
 
 Uses LlamaIndex AgentWorkflow + ReActAgent, following the pattern
 established in backend/business/research_kernel/agent.py.
@@ -16,14 +16,14 @@ from backend.core.orchestration.prompts import LEAD_AGENT_SYSTEM_PROMPT
 from backend.core.orchestration.tools import create_lead_agent_tools
 from backend.infrastructure.logger import get_logger
 
-logger = get_logger("cldflow.lead_agent")
+logger = get_logger("systematology.lead_agent")
 
 DEFAULT_MAX_ITERATIONS = 30
 DEFAULT_TIMEOUT_SECONDS = 180.0
 
 
 class LeadAgent:
-    """CLDFlow Lead Agent: orchestrates the full analysis pipeline."""
+    """Systematology Lead Agent: orchestrates the full analysis pipeline."""
 
     def __init__(
         self,
@@ -43,7 +43,7 @@ class LeadAgent:
         documents: list[Any] | None = None,
         run_context: RunContext | None = None,
     ) -> StructuredReport | StructuredFailureReport:
-        """Execute the full CLDFlow pipeline.
+        """Execute the full Systematology pipeline.
 
         Args:
             question: Research question.
@@ -67,7 +67,7 @@ class LeadAgent:
         tools = create_lead_agent_tools(run_context, llm=self._llm, judge_model=self._judge_model)
 
         agent = ReActAgent(
-            name="CLDFlowLeadAgent",
+            name="SystematologyLeadAgent",
             description="Research pipeline orchestrator: CLD → FCM → D2D → Report",
             system_prompt=LEAD_AGENT_SYSTEM_PROMPT,
             tools=tools,
@@ -76,7 +76,7 @@ class LeadAgent:
 
         workflow = AgentWorkflow(
             agents=[agent],
-            root_agent="CLDFlowLeadAgent",
+            root_agent="SystematologyLeadAgent",
             timeout=self._timeout_seconds,
         )
 

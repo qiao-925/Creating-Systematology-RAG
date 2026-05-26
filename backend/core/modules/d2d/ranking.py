@@ -1,4 +1,4 @@
-"""CLDFlow D2D ranking: ranks leverage points by impact and confidence.
+"""Systematology D2D ranking: ranks leverage points by impact and confidence.
 
 Combines sensitivity results with uncertainty ranges to produce
 the final LeverageAnalysis output.
@@ -9,7 +9,7 @@ from __future__ import annotations
 from backend.core.models import LeverageAnalysis, NodeImpact, SharedCLD
 from backend.infrastructure.logger import get_logger
 
-logger = get_logger("cldflow.d2d.ranking")
+logger = get_logger("systematology.d2d.ranking")
 
 
 def rank_leverage_points(

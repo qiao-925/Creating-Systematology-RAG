@@ -761,7 +761,7 @@ FCM被称为**半定量（semi-quantitative）**方法：
 
 ## 对项目的启示
 
-**CLDFlow的三层架构合理性**：
+**Systematology的三层架构合理性**：
 ```
 CLD（定性）→ FCM（半定量）→ D2D（全定量）
 ```

@@ -1,1 +1,1 @@
-"""CLDFlow CLD module."""
+"""Systematology CLD module."""
