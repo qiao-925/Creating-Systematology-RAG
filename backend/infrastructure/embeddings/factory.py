@@ -69,12 +69,11 @@ def create_embedding(
     
     match embedding_type:
         case "local":
-            from backend.infrastructure.embeddings.local_embedding import LocalEmbedding
-            _global_embedding_instance = LocalEmbedding(
-                model_name=model_name,
-                **kwargs
+            raise ValueError(
+                "Local embedding (sentence-transformers) has been removed. "
+                "Use 'hf-inference' (HuggingFace Inference API) instead."
             )
-        
+
         case "hf-inference":
             from backend.infrastructure.embeddings.hf_inference_embedding import HFInferenceEmbedding
             

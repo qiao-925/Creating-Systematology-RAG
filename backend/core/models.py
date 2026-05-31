@@ -105,6 +105,10 @@ class RunContext:
     tool_calls: list[str] = field(default_factory=list)
     failures: list[FailureRecord] = field(default_factory=list)
     self_review_passed: bool = False
+    # Intermediate results cache — avoids relying on LLM to pass large JSON
+    cached_cld: SharedCLD | None = None
+    cached_fcm: WeightedFCM | None = None
+    cached_leverage: LeverageAnalysis | None = None
 
 
 class Scenario(BaseModel):

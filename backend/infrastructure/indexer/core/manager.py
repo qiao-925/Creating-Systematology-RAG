@@ -148,22 +148,8 @@ class IndexManager:
                 from llama_index.embeddings.base import BaseEmbedding as LlamaBaseEmbedding
                 logger.debug("✅ 成功导入 llama_index.embeddings.base.BaseEmbedding")
             except ImportError:
-                # 如果直接导入失败，尝试通过 HuggingFaceEmbedding 的 MRO 找到 BaseEmbedding
-                try:
-                    from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-                    # 通过 MRO 找到 BaseEmbedding（而不是直接取 __bases__[0]，可能是 MultiModalEmbedding）
-                    for base_class in HuggingFaceEmbedding.__mro__:
-                        if base_class.__name__ == 'BaseEmbedding' and 'embeddings' in base_class.__module__:
-                            LlamaBaseEmbedding = base_class
-                            logger.debug(f"✅ 通过MRO找到BaseEmbedding: {base_class.__module__}.{base_class.__name__}")
-                            break
-                    
-                    if LlamaBaseEmbedding is None:
-                        logger.warning("⚠️  无法在 HuggingFaceEmbedding 的 MRO 中找到 BaseEmbedding，将跳过类型检查")
-                        LlamaBaseEmbedding = None
-                except (ImportError, IndexError, AttributeError):
-                    logger.warning("⚠️  无法导入LlamaIndex BaseEmbedding，将跳过类型检查")
-                    LlamaBaseEmbedding = None
+                logger.warning("⚠️  无法导入LlamaIndex BaseEmbedding，将跳过类型检查")
+                LlamaBaseEmbedding = None
         
         # 如果embed_model本身就是LlamaIndex兼容的，直接返回
         if LlamaBaseEmbedding and isinstance(self.embed_model, LlamaBaseEmbedding):

@@ -151,14 +151,16 @@ async def self_review_gate(
     specialist_outputs: list[dict[str, Any]],
     conflicts: list[dict[str, Any]],
     llm: LLM,
-    min_quality_score: float = 0.4,
+    min_quality_score: float = 0.35,
 ) -> tuple[bool, dict[str, Any]]:
     """Run self-review gate. Returns (passed, review_details).
 
     The gate fails if:
     - quality_score < min_quality_score
-    - judge says not approved
     - CLD has < 2 nodes or < 1 edge
+
+    Note: the binary 'approved' field from the judge is advisory only;
+    quality_score is the primary gating criterion to avoid double-gating.
     """
     # Structural checks
     if len(shared_cld.nodes) < 2:
@@ -169,8 +171,6 @@ async def self_review_gate(
     # Judge evaluation
     review = await judge_cld_output(shared_cld, specialist_outputs, conflicts, llm)
 
-    if not review.get("approved", True):
-        return False, review
     if review.get("quality_score", 0.0) < min_quality_score:
         return False, review
 

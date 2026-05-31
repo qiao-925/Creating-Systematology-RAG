@@ -8,7 +8,8 @@ Flow:
   4. pull  — Force pull from Gist and decrypt to .env
 
 Encryption: PBKDF2 key derivation + HMAC-authenticated XOR stream (stdlib only).
-Key derived from: `gh auth token` (GitHub OAuth token).
+Key derived from: GitHub username (account-level, survives device changes).
+Override: set ENV_SYNC_KEY env var to use a custom passphrase instead.
 Gist config stored at: <project_root>/.env.remote  (committed, no secrets)
 """
 
@@ -28,13 +29,41 @@ REMOTE_CONFIG = PROJECT_ROOT / ".env.remote"
 GIST_FILENAME = "env.encrypted"
 
 
-# ── GitHub Auth ────────────────────────────────────────────────
+# ── Passphrase (account-level, survives device changes) ─────────
+
+def _get_passphrase() -> str:
+    """Get encryption passphrase (account-level, not device-level).
+
+    Priority:
+      1. ENV_SYNC_KEY env var  — custom passphrase (strongest, user-controlled)
+      2. GitHub username       — account-level, same across all devices
+
+    This replaces the old gh-auth-token approach which was device-bound.
+    """
+    # 1. Custom passphrase (strongest)
+    custom = os.environ.get("ENV_SYNC_KEY", "").strip()
+    if custom:
+        return custom
+
+    # 2. GitHub username (account-level)
+    try:
+        result = subprocess.run(
+            ["gh", "api", "user", "-q", ".login"],
+            capture_output=True, text=True, timeout=30,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return "github:" + result.stdout.strip()
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+    raise RuntimeError(
+        "Cannot determine passphrase. Either:\n"
+        "  - Run: gh auth login\n"
+        "  - Or set ENV_SYNC_KEY env var with a custom passphrase"
+    )
+
 
 def _get_gh_token() -> str:
-    """Get GitHub OAuth token from gh CLI.
-
-    Raises RuntimeError if gh is not installed or not authenticated.
-    """
+    """Get GitHub OAuth token from gh CLI (used only for backward compat)."""
     try:
         result = subprocess.run(
             ["gh", "auth", "token"],
@@ -62,8 +91,8 @@ def _get_gh_token() -> str:
 # ── Crypto (stdlib only) ──────────────────────────────────────
 
 def _derive_key(passphrase: str, salt: bytes, length: int) -> bytes:
-    """PBKDF2 key derivation."""
-    return hashlib.pbkdf2_hmac("sha256", passphrase.encode(), salt, 100_000, dklen=length)
+    """PBKDF2 key derivation (high iteration count compensates for public entropy sources)."""
+    return hashlib.pbkdf2_hmac("sha256", passphrase.encode(), salt, 1_000_000, dklen=length)
 
 
 def _key_stream(key: bytes, length: int) -> bytes:
@@ -161,11 +190,11 @@ def cmd_init():
         print(f"ERROR: {ENV_FILE} not found. Create it first, then run init.")
         sys.exit(1)
 
-    token = _get_gh_token()
+    passphrase = _get_passphrase()
 
     # Encrypt
     env_data = ENV_FILE.read_bytes()
-    blob = encrypt(env_data, token).decode()
+    blob = encrypt(env_data, passphrase).decode()
 
     # Push to Gist
     print("Pushing encrypted .env to private GitHub Gist...")
@@ -196,22 +225,48 @@ def cmd_push():
         print("ERROR: Not initialized. Run: python scripts/env_sync.py init")
         sys.exit(1)
 
-    token = _get_gh_token()
-    blob = encrypt(ENV_FILE.read_bytes(), token).decode()
+    passphrase = _get_passphrase()
+    blob = encrypt(ENV_FILE.read_bytes(), passphrase).decode()
     _gist_update(cfg["gist_id"], blob)
     print("Pushed encrypted .env to Gist.")
 
 
 def cmd_pull():
-    """Pull from Gist and decrypt to .env."""
+    """Pull from Gist and decrypt to .env.
+
+    Tries account-level passphrase first, then falls back to device-level
+    gh auth token for backward compatibility. On successful fallback,
+    auto-migrates the Gist to the new passphrase.
+    """
     cfg = _load_config()
     if not cfg.get("gist_id"):
         print("ERROR: Not initialized. Run: python scripts/env_sync.py init")
         sys.exit(1)
 
-    token = _get_gh_token()
-    blob = _gist_read(cfg["gist_id"])
-    env_data = decrypt(blob.encode(), token)
+    blob = _gist_read(cfg["gist_id"]).encode()
+    passphrase = _get_passphrase()
+
+    # Try account-level passphrase
+    try:
+        env_data = decrypt(blob, passphrase)
+    except ValueError:
+        # Fallback: try old device-level gh auth token
+        print("Account-level passphrase failed, trying device token (backward compat)...")
+        try:
+            old_key = _get_gh_token()
+            env_data = decrypt(blob, old_key)
+        except (ValueError, RuntimeError):
+            raise RuntimeError(
+                "Decryption failed with both account-level and device-level keys.\n"
+                "The Gist may be corrupted, or you may need to set ENV_SYNC_KEY\n"
+                "to the original passphrase used for encryption."
+            )
+        # Auto-migrate: re-encrypt with new passphrase
+        print("Auto-migrating Gist to account-level passphrase...")
+        new_blob = encrypt(env_data, passphrase).decode()
+        _gist_update(cfg["gist_id"], new_blob)
+        print("Migration complete. Future pulls will work on any device.")
+
     ENV_FILE.write_bytes(env_data)
     ENV_FILE.chmod(0o600)
     print(f"Pulled and decrypted .env ({len(env_data)} bytes).")
@@ -227,9 +282,19 @@ def cmd_auto():
         return  # Not configured — skip silently
 
     try:
-        token = _get_gh_token()
-        blob = _gist_read(cfg["gist_id"])
-        env_data = decrypt(blob.encode(), token)
+        blob = _gist_read(cfg["gist_id"]).encode()
+        passphrase = _get_passphrase()
+
+        try:
+            env_data = decrypt(blob, passphrase)
+        except ValueError:
+            # Fallback: try old device-level gh auth token
+            old_key = _get_gh_token()
+            env_data = decrypt(blob, old_key)
+            # Auto-migrate silently
+            new_blob = encrypt(env_data, passphrase).decode()
+            _gist_update(cfg["gist_id"], new_blob)
+
         ENV_FILE.write_bytes(env_data)
         ENV_FILE.chmod(0o600)
         print(f"[env-sync] Auto-pulled .env from Gist ({len(env_data)} bytes)")

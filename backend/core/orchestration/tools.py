@@ -43,7 +43,7 @@ def _make_run_cld_tool(run_context: RunContext, llm: Any = None, judge_model: st
             max_perspectives: Maximum perspectives to generate (1-5).
 
         Returns:
-            JSON with shared_cld, perspectives_used, confidence, diagnostics.
+            JSON summary with node/edge count and key structure.
         """
         try:
             docs = json.loads(documents_json) if documents_json else []
@@ -60,8 +60,15 @@ def _make_run_cld_tool(run_context: RunContext, llm: Any = None, judge_model: st
                 max_perspectives=max_perspectives,
             )
             output = await module.run(input_data)
+            run_context.cached_cld = output.shared_cld
             run_context.tool_calls.append("run_cld_analysis")
-            return json.dumps(output.model_dump(), default=str)
+            return json.dumps({
+                "status": "ok",
+                "nodes": len(output.shared_cld.nodes),
+                "edges": len(output.shared_cld.edges),
+                "perspectives": output.perspectives_used,
+                "confidence": output.confidence,
+            })
         except Exception as exc:
             run_context.failures.append(FailureRecord(stage="cld_analysis", reason=str(exc)))
             return json.dumps({"error": str(exc), "stage": "cld_analysis"})
@@ -77,21 +84,29 @@ def _make_run_fcm_tool(run_context: RunContext) -> FunctionTool:
     """Create the FCM simulation tool for the Lead Agent."""
 
     def run_fcm_analysis(
-        shared_cld_json: str,
+        shared_cld_json: str = "",
         scenarios_json: str = "[]",
     ) -> str:
-        """Run FCM (Fuzzy Cognitive Map) simulation on a SharedCLD.
+        """Run FCM (Fuzzy Cognitive Map) simulation on the cached SharedCLD.
+
+        The shared_cld_json argument is ignored — FCM reads from the cached CLD result.
+        This avoids relying on the LLM to pass large JSON between tools.
 
         Args:
-            shared_cld_json: JSON of the SharedCLD from CLD analysis.
+            shared_cld_json: Ignored (reads from RunContext cache).
             scenarios_json: JSON array of intervention scenarios (optional).
 
         Returns:
-            JSON with weighted_fcm and diagnostics.
+            JSON summary with matrix dimensions and simulation results.
         """
         try:
-            cld_data = json.loads(shared_cld_json)
-            shared_cld = SharedCLD(**cld_data)
+            shared_cld = run_context.cached_cld
+            if shared_cld is None:
+                # Fallback: try parsing from JSON argument
+                if shared_cld_json and shared_cld_json != "":
+                    shared_cld = SharedCLD(**json.loads(shared_cld_json))
+                else:
+                    raise ValueError("No cached CLD and no shared_cld_json provided")
 
             from backend.core.modules.fcm.mapper import map_weights
             from backend.core.modules.fcm.simulator import run_simulation
@@ -101,7 +116,6 @@ def _make_run_fcm_tool(run_context: RunContext) -> FunctionTool:
                 scenarios = json.loads(scenarios_json)
                 node_labels = [n.label for n in shared_cld.nodes]
                 for scenario in scenarios:
-                    # Apply interventions: override baseline state for specified nodes
                     initial = list(weighted_fcm.baseline_state)
                     for node_label, value in scenario.get("interventions", {}).items():
                         if node_label in node_labels:
@@ -110,8 +124,16 @@ def _make_run_fcm_tool(run_context: RunContext) -> FunctionTool:
                     state = run_simulation(weighted_fcm, shared_cld, initial_state=initial)
                     weighted_fcm.intervention_states[scenario.get("name", "unnamed")] = state
 
+            run_context.cached_fcm = weighted_fcm
             run_context.tool_calls.append("run_fcm_analysis")
-            return json.dumps(weighted_fcm.model_dump(), default=str)
+            n = len(shared_cld.nodes)
+            return json.dumps({
+                "status": "ok",
+                "nodes": n,
+                "edges": len(shared_cld.edges),
+                "non_zero_weights": sum(1 for row in weighted_fcm.weight_matrix for w in row if w != 0),
+                "scenarios_run": list(weighted_fcm.intervention_states.keys()),
+            })
         except Exception as exc:
             run_context.failures.append(FailureRecord(stage="fcm_analysis", reason=str(exc)))
             return json.dumps({"error": str(exc), "stage": "fcm_analysis"})
@@ -119,7 +141,7 @@ def _make_run_fcm_tool(run_context: RunContext) -> FunctionTool:
     return FunctionTool.from_defaults(
         fn=run_fcm_analysis,
         name="run_fcm_analysis",
-        description="Run FCM simulation on a SharedCLD. Returns weighted FCM with simulation results.",
+        description="Run FCM simulation on the cached CLD. Returns simulation summary.",
     )
 
 
@@ -127,21 +149,27 @@ def _make_run_d2d_tool(run_context: RunContext) -> FunctionTool:
     """Create the D2D analysis tool for the Lead Agent."""
 
     def run_d2d_analysis(
-        shared_cld_json: str,
+        shared_cld_json: str = "",
         perturbation_pct: float = 0.1,
     ) -> str:
-        """Run D2D (Dynamic Leverage Point) analysis on a SharedCLD.
+        """Run D2D (Dynamic Leverage Point) analysis on the cached SharedCLD.
+
+        The shared_cld_json argument is ignored — D2D reads from the cached CLD result.
 
         Args:
-            shared_cld_json: JSON of the SharedCLD from CLD analysis.
+            shared_cld_json: Ignored (reads from RunContext cache).
             perturbation_pct: Perturbation percentage (0-1, default 0.1 = 10%).
 
         Returns:
-            JSON with leverage_analysis and diagnostics.
+            JSON summary with top leverage points.
         """
         try:
-            cld_data = json.loads(shared_cld_json)
-            shared_cld = SharedCLD(**cld_data)
+            shared_cld = run_context.cached_cld
+            if shared_cld is None:
+                if shared_cld_json and shared_cld_json != "":
+                    shared_cld = SharedCLD(**json.loads(shared_cld_json))
+                else:
+                    raise ValueError("No cached CLD and no shared_cld_json provided")
 
             from backend.core.modules.d2d.sensitivity import compute_sensitivity
             from backend.core.modules.d2d.ranking import rank_leverage_points
@@ -149,8 +177,14 @@ def _make_run_d2d_tool(run_context: RunContext) -> FunctionTool:
             sensitivity = compute_sensitivity(shared_cld, perturbation_pct)
             leverage = rank_leverage_points(sensitivity, shared_cld)
 
+            run_context.cached_leverage = leverage
             run_context.tool_calls.append("run_d2d_analysis")
-            return json.dumps(leverage.model_dump(), default=str)
+            top = sorted(leverage.leverage_points, key=lambda x: x.impact_score, reverse=True)[:5]
+            return json.dumps({
+                "status": "ok",
+                "leverage_points_count": len(leverage.leverage_points),
+                "top_leverage": [{"node": lp.node, "score": round(lp.impact_score, 3), "confidence": lp.confidence} for lp in top],
+            })
         except Exception as exc:
             run_context.failures.append(FailureRecord(stage="d2d_analysis", reason=str(exc)))
             return json.dumps({"error": str(exc), "stage": "d2d_analysis"})
@@ -158,7 +192,7 @@ def _make_run_d2d_tool(run_context: RunContext) -> FunctionTool:
     return FunctionTool.from_defaults(
         fn=run_d2d_analysis,
         name="run_d2d_analysis",
-        description="Run D2D leverage point analysis on a SharedCLD. Returns leverage ranking.",
+        description="Run D2D leverage point analysis on the cached CLD. Returns top leverage points.",
     )
 
 
@@ -166,26 +200,32 @@ def _make_report_tool(run_context: RunContext) -> FunctionTool:
     """Create the report generation tool for the Lead Agent."""
 
     def generate_report(
-        shared_cld_json: str,
+        shared_cld_json: str = "",
         weighted_fcm_json: str = "null",
         leverage_analysis_json: str = "null",
         synthesized_insights: str = "",
     ) -> str:
-        """Generate a structured report from all analysis results.
+        """Generate a structured report from cached analysis results.
+
+        JSON arguments are ignored — the report is built from RunContext cache.
+        Only synthesized_insights is used directly.
 
         Args:
-            shared_cld_json: JSON of the SharedCLD.
-            weighted_fcm_json: JSON of WeightedFCM (optional).
-            leverage_analysis_json: JSON of LeverageAnalysis (optional).
+            shared_cld_json: Ignored (reads from cache).
+            weighted_fcm_json: Ignored (reads from cache).
+            leverage_analysis_json: Ignored (reads from cache).
             synthesized_insights: Natural language synthesis of findings.
 
         Returns:
             JSON StructuredReport.
         """
         try:
-            shared_cld = SharedCLD(**json.loads(shared_cld_json))
-            weighted_fcm = WeightedFCM(**json.loads(weighted_fcm_json)) if weighted_fcm_json != "null" else None
-            leverage = LeverageAnalysis(**json.loads(leverage_analysis_json)) if leverage_analysis_json != "null" else None
+            shared_cld = run_context.cached_cld
+            weighted_fcm = run_context.cached_fcm
+            leverage = run_context.cached_leverage
+
+            if shared_cld is None:
+                raise ValueError("No cached CLD — run CLD analysis first")
 
             report = StructuredReport(
                 cld_visualization={
@@ -205,7 +245,7 @@ def _make_report_tool(run_context: RunContext) -> FunctionTool:
     return FunctionTool.from_defaults(
         fn=generate_report,
         name="generate_report",
-        description="Synthesize CLD/FCM/D2D results into a structured report.",
+        description="Synthesize CLD/FCM/D2D results into a structured report. Reads from cached analysis results.",
     )
 
 

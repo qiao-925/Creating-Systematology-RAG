@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useCallback, useState } from "react";
+import { useMemo, useCallback, useState, useEffect } from "react";
 import {
   ReactFlow,
   Background,
@@ -72,9 +72,17 @@ function toFlowData(data: CLDData) {
 }
 
 export function CLDCanvasReactFlow({ data }: Props) {
-  const initial = useMemo(() => toFlowData(data), [data]);
-  const [nodes, setNodes] = useState(initial.nodes);
-  const [edges, setEdges] = useState(initial.edges);
+  const { nodes: initialNodes, edges: initialEdges } = useMemo(
+    () => toFlowData(data),
+    [data],
+  );
+  const [nodes, setNodes] = useState(initialNodes);
+  const [edges, setEdges] = useState(initialEdges);
+
+  useEffect(() => {
+    setNodes(initialNodes);
+    setEdges(initialEdges);
+  }, [initialNodes, initialEdges]);
 
   const onNodesChange: OnNodesChange = useCallback(
     (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),

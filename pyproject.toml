@@ -7,16 +7,13 @@ requires-python = ">=3.12"
 dependencies = [
     "llama-index>=0.14.3",
     "llama-index-llms-litellm>=0.6.0",
-    "llama-index-embeddings-huggingface>=0.3.0",
     "llama-index-vector-stores-chroma>=0.2.0",
     "llama-index-readers-file>=0.2.0",
-    "llama-index-readers-web>=0.2.0",
     "chromadb>=0.5.0",
     "openai>=1.12.0",
     "python-dotenv>=1.0.0",
     "pyyaml>=6.0.0",
     "tqdm>=4.66.0",
-    "huggingface-hub>=0.20.0",
     "pydantic-settings>=2.0.0",
     "structlog>=24.1.0",
     "requests>=2.31.0",
@@ -24,7 +21,6 @@ dependencies = [
     "uvicorn[standard]>=0.32.0",
     "sse-starlette>=2.1.0",
     "networkx>=3.0",
-    "sentence-transformers>=2.0.0",
     "instructor>=1.0.0",
     "numpy>=1.26.0",
 ]
@@ -52,21 +48,3 @@ url = "https://pypi.tuna.tsinghua.edu.cn/simple"
 default = true
 explicit = false
 
-# ==================== PyTorch CUDA 配置 ====================
-# 配置从 PyTorch 官方 CUDA 索引安装，确保使用 GPU 版本
-# 注意：Windows 平台默认会从 PyPI 安装 CPU 版本
-# 需要使用 uv pip install 手动安装 CUDA 版本
-
-[[tool.uv.index]]
-name = "pytorch-cu121"
-url = "https://download.pytorch.org/whl/cu121"
-explicit = true
-
-# 注意：uv.lock 在 Windows 上默认锁定 CPU 版本
-# 解决方案：安装 CUDA 版本后，使用 uv pip install 直接安装（不会被 uv sync 覆盖）
-# 或者手动修改 uv.lock 中的 torch source 为 pytorch-cu121 索引
-[tool.uv.sources]
-# 注释：理论上这应该工作，但在 Windows 上 uv lock 仍可能选择 CPU 版本
-# torch = { index = "pytorch-cu121" }
-# torchvision = { index = "pytorch-cu121" }
-# torchaudio = { index = "pytorch-cu121" }

@@ -24,7 +24,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from backend.infrastructure.embeddings.base import BaseEmbedding
-from backend.infrastructure.config import config, get_gpu_device, is_gpu_available
+from backend.infrastructure.config import config, get_gpu_device
 from backend.infrastructure.logger import get_logger
 
 logger = get_logger('local_embedding')
@@ -86,21 +86,14 @@ class LocalEmbedding(BaseEmbedding):
     def _load_model(self):
         """加载模型"""
         logger.info(f"📦 加载本地 Embedding 模型: {self.model_name}")
-        
-        # 输出设备信息
-        if self.device.startswith("cuda") and is_gpu_available():
-            import torch
-            device_name = torch.cuda.get_device_name()
-            logger.info(f"✅ 使用GPU加速: {self.device} ({device_name})")
-        else:
-            logger.warning("⚠️  使用CPU模式（性能较慢）")
-        
+        logger.info("🖥️  使用 CPU 模式")
+
         # 构建模型参数
         model_kwargs = {
             "trust_remote_code": True,
             "cache_folder": self.cache_folder,
         }
-        
+
         # 创建HuggingFaceEmbedding实例
         try:
             from llama_index.embeddings.huggingface import HuggingFaceEmbedding
@@ -116,20 +109,8 @@ class LocalEmbedding(BaseEmbedding):
             max_length=self.max_length,
             **model_kwargs
         )
-        
-        # 移动到指定设备
-        try:
-            if self.device.startswith("cuda") and is_gpu_available():
-                if hasattr(self._model, '_model') and hasattr(self._model._model, 'to'):
-                    self._model._model = self._model._model.to(self.device)
-                    logger.info(f"✅ 模型已移动到GPU: {self.device}")
-                elif hasattr(self._model, 'model') and hasattr(self._model.model, 'to'):
-                    self._model.model = self._model.model.to(self.device)
-                    logger.info(f"✅ 模型已移动到GPU: {self.device}")
-        except Exception as e:
-            logger.warning(f"⚠️  无法将模型移动到GPU: {e}")
-        
-        logger.info(f"✅ 模型加载完成")
+
+        logger.info("✅ 模型加载完成")
         logger.info(f"   批处理大小: {self.embed_batch_size}")
         logger.info(f"   最大长度: {self.max_length}")
     

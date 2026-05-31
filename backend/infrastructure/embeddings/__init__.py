@@ -28,7 +28,6 @@ from typing import Any
 
 __all__ = [
     'BaseEmbedding',
-    'LocalEmbedding',
     'HFInferenceEmbedding',
     'create_embedding',
     # 统计相关
@@ -45,8 +44,9 @@ def __getattr__(name: str) -> Any:
         from backend.infrastructure.embeddings.base import BaseEmbedding
         return BaseEmbedding
     elif name == 'LocalEmbedding':
-        from backend.infrastructure.embeddings.local_embedding import LocalEmbedding
-        return LocalEmbedding
+        raise ImportError(
+            "LocalEmbedding has been removed. Use HFInferenceEmbedding (HuggingFace Inference API) instead."
+        )
     elif name == 'HFInferenceEmbedding':
         from backend.infrastructure.embeddings.hf_inference_embedding import HFInferenceEmbedding
         return HFInferenceEmbedding

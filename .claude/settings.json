@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 /c/Users/nonep/Desktop/Creating-Systematology-RAG/.claude/hooks/validate_path_hook.py"
+            "command": "python3 .claude/hooks/validate_path_hook.py"
           }
         ]
       }
@@ -17,11 +17,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 /c/Users/nonep/Desktop/Creating-Systematology-RAG/.claude/hooks/validate_plan_hook.py"
+            "command": "python3 .claude/hooks/validate_plan_hook.py"
           },
           {
             "type": "command",
-            "command": "python3 /c/Users/nonep/Desktop/Creating-Systematology-RAG/.claude/hooks/archive_plan_hook.py"
+            "command": "python3 .claude/hooks/archive_plan_hook.py"
           }
         ]
       }

@@ -7,7 +7,7 @@
   - 前端
   - test system
   - docs
-  - 部署
+  - 部署 CI集成
 
 ## 后续迭代计划
 

@@ -36,25 +36,14 @@ def create_llama_index_adapter(embedding_instance):
         try:
             from llama_index.embeddings.base import BaseEmbedding as LlamaBaseEmbedding
             logger.debug("✅ 成功导入 llama_index.embeddings.base.BaseEmbedding")
-        except ImportError:
-            try:
-                from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-                for base_class in HuggingFaceEmbedding.__mro__:
-                    if base_class.__name__ == 'BaseEmbedding' and 'embeddings' in base_class.__module__:
-                        LlamaBaseEmbedding = base_class
-                        logger.debug(f"✅ 通过MRO找到BaseEmbedding: {base_class.__module__}.{base_class.__name__}")
-                        break
-                
-                if LlamaBaseEmbedding is None:
-                    raise ImportError("无法在 HuggingFaceEmbedding 的 MRO 中找到 BaseEmbedding")
-            except (ImportError, AttributeError) as e:
-                error_msg = (
-                    "无法导入LlamaIndex BaseEmbedding。"
-                    "请确保已安装 llama-index 或 llama-index-core。"
-                    f"错误详情: {e}"
-                )
-                logger.error(error_msg)
-                raise ImportError(error_msg) from e
+        except ImportError as e:
+            error_msg = (
+                "无法导入LlamaIndex BaseEmbedding。"
+                "请确保已安装 llama-index 或 llama-index-core。"
+                f"错误详情: {e}"
+            )
+            logger.error(error_msg)
+            raise ImportError(error_msg) from e
     
     if LlamaBaseEmbedding and LlamaBaseEmbedding.__name__ != 'BaseEmbedding':
         error_msg = (

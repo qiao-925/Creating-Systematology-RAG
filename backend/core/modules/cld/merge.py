@@ -1,60 +1,27 @@
-"""Systematology CLD merge: node deduplication using embedding similarity.
+"""Systematology CLD merge: node deduplication using string similarity.
 
-Uses sentence-transformers (MiniLM-L6-v2) for cosine similarity computation.
-Falls back to string matching if sentence-transformers is unavailable.
+Project uses API-based LLM; no local sentence-transformers needed.
+String similarity (Jaccard on character trigrams) is sufficient for
+short concept labels in CLD node merging.
 """
 
 from __future__ import annotations
-
-from typing import Any
-
-import numpy as np
 
 from backend.core.models import CausalLink, CLDNode
 from backend.infrastructure.logger import get_logger
 
 logger = get_logger("systematology.merge")
 
-# Cosine similarity threshold for merging
-MERGE_THRESHOLD = 0.8
-
-# Lazy-loaded model
-_model = None
-
-
-def _get_model():
-    """Lazy-load sentence-transformers model."""
-    global _model
-    if _model is None:
-        try:
-            from sentence_transformers import SentenceTransformer
-            _model = SentenceTransformer("all-MiniLM-L6-v2")
-            logger.info("Loaded MiniLM-L6-v2 for node merging")
-        except Exception as exc:
-            logger.warning("sentence-transformers not available, using string fallback", error=str(exc))
-            _model = "fallback"
-    return _model
-
-
-def _cosine_similarity_manual(vec_a: list[float], vec_b: list[float]) -> float:
-    """Compute cosine similarity between two vectors."""
-    a = np.array(vec_a)
-    b = np.array(vec_b)
-    norm_a = np.linalg.norm(a)
-    norm_b = np.linalg.norm(b)
-    if norm_a == 0 or norm_b == 0:
-        return 0.0
-    return float(np.dot(a, b) / (norm_a * norm_b))
+MERGE_THRESHOLD = 0.6
 
 
 def _string_similarity(a: str, b: str) -> float:
-    """Fallback string similarity using character n-grams."""
+    """String similarity using character n-grams (Jaccard)."""
     a_lower = a.lower().strip()
     b_lower = b.lower().strip()
     if a_lower == b_lower:
         return 1.0
 
-    # Jaccard on character trigrams
     def trigrams(s: str) -> set[str]:
         return {s[i:i+3] for i in range(max(len(s) - 2, 0))}
 
@@ -65,7 +32,7 @@ def _string_similarity(a: str, b: str) -> float:
 
 
 def compute_similarity_matrix(nodes: list[CLDNode]) -> list[list[float]]:
-    """Compute pairwise similarity matrix for nodes.
+    """Compute pairwise similarity matrix for nodes using string similarity.
 
     Args:
         nodes: List of CLDNode objects.
@@ -75,29 +42,14 @@ def compute_similarity_matrix(nodes: list[CLDNode]) -> list[list[float]]:
     """
     n = len(nodes)
     labels = [node.label for node in nodes]
-
-    model = _get_model()
-
-    if model != "fallback":
-        # Use sentence-transformers
-        embeddings = model.encode(labels)
-        sim_matrix = [[0.0] * n for _ in range(n)]
-        for i in range(n):
-            for j in range(n):
-                if i == j:
-                    sim_matrix[i][j] = 1.0
-                else:
-                    sim_matrix[i][j] = _cosine_similarity_manual(
-                        embeddings[i].tolist(), embeddings[j].tolist()
-                    )
-        return sim_matrix
-    else:
-        # Fallback: string similarity
-        sim_matrix = [[0.0] * n for _ in range(n)]
-        for i in range(n):
-            for j in range(n):
+    sim_matrix = [[0.0] * n for _ in range(n)]
+    for i in range(n):
+        for j in range(n):
+            if i == j:
+                sim_matrix[i][j] = 1.0
+            else:
                 sim_matrix[i][j] = _string_similarity(labels[i], labels[j])
-        return sim_matrix
+    return sim_matrix
 
 
 def merge_nodes(

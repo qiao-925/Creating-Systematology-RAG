@@ -34,6 +34,25 @@ class SpecialistLink(BaseModel):
     target: str
     relation: Literal["influences", "causes", "enables", "inhibits", "supports", "requires"] = "influences"
 
+    @classmethod
+    def coerce_relation(cls, value: str) -> str:
+        """Map common LLM outputs to valid relation types."""
+        mapping: dict[str, str] = {
+            "increases": "causes",
+            "decreases": "inhibits",
+            "leads to": "causes",
+            "reduces": "inhibits",
+            "strengthens": "supports",
+            "weakens": "inhibits",
+            "drives": "causes",
+            "constrains": "inhibits",
+            "promotes": "enables",
+            "restricts": "inhibits",
+            "improves": "supports",
+            "worsens": "inhibits",
+        }
+        return mapping.get(value.lower().strip(), value)
+
 
 class SpecialistOutput(BaseModel):
     """Schema for specialist LLM output. Used for validation and instructor."""
@@ -209,7 +228,16 @@ def _parse_and_validate(text: str) -> dict[str, Any]:
                     validated = SpecialistLink.model_validate(link)
                     links.append(validated.model_dump())
                 except Exception:
-                    continue
+                    # Try coercing the relation value
+                    raw_rel = link.get("relation", "influences")
+                    coerced = SpecialistLink.coerce_relation(str(raw_rel))
+                    try:
+                        link_copy = dict(link)
+                        link_copy["relation"] = coerced
+                        validated = SpecialistLink.model_validate(link_copy)
+                        links.append(validated.model_dump())
+                    except Exception:
+                        continue
         return {"nodes": nodes, "links": links}
 
 

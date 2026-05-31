@@ -7,7 +7,7 @@
 | Zone | 目录 | 内容类型 |
 |------|------|---------|
 | Backend | `backend/` | Python：FastAPI、core 逻辑、infrastructure、prompts |
-| Backend tests | `backend/tests/` | 后端单元/集成测试 |
+| Backend tests | `tests/` | 后端单元/集成测试 |
 | Frontend source | `web/src/` | TypeScript、React 组件、hooks、stores、CSS |
 | Frontend config | `web/` 根 | next.config.ts、package.json、tsconfig.json |
 | Integration/E2E tests | `tests/` | 跨系统集成和 E2E 测试 |
@@ -20,7 +20,7 @@
 
 - Python 文件只能放在 `backend/` 或 `scripts/`
 - TypeScript/CSS 文件只能放在 `web/`
-- 测试文件只能放在 `backend/tests/` 或 `tests/`
+- 测试文件只能放在 `tests/`
 - 文档只能放在 `docs/`
 - 根目录新文件必须在 `path-rules.yaml` 的 `root_files` 白名单中
 

@@ -104,14 +104,14 @@ class LeadAgent:
                 user_msg=user_msg,
                 max_iterations=self._max_iterations,
             )
+            response_text = str(response)
             logger.info(
                 "Lead Agent completed",
                 tool_calls=run_context.tool_calls,
                 failures=len(run_context.failures),
             )
 
-            # Try to extract structured report from response
-            response_text = str(response)
+            # Build result from cache (tools store results in RunContext)
             if run_context.failures:
                 last_failure = run_context.failures[-1]
                 return StructuredFailureReport(
@@ -121,9 +121,25 @@ class LeadAgent:
                     details=last_failure.details,
                 )
 
+            cld = run_context.cached_cld
+            fcm = run_context.cached_fcm
+            leverage = run_context.cached_leverage
+
+            if cld is None:
+                return StructuredFailureReport(
+                    run_id=run_context.run_id,
+                    stage="orchestration",
+                    reason="No CLD result produced",
+                )
+
             return StructuredReport(
-                cld_visualization={"raw_response": response_text[:2000]},
-                synthesized_insights=response_text[:5000],
+                cld_visualization={
+                    "nodes": [n.model_dump() for n in cld.nodes],
+                    "edges": [e.model_dump() for e in cld.edges],
+                },
+                scenario_comparison=fcm.model_dump() if fcm else None,
+                leverage_ranking=[lp.model_dump() for lp in leverage.leverage_points] if leverage else None,
+                synthesized_insights=response_text[:5000] if response_text else "Analysis completed.",
                 evidence_tracing={
                     "run_id": run_context.run_id,
                     "tool_calls": run_context.tool_calls,

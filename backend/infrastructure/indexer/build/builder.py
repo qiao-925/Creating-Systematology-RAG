@@ -7,7 +7,7 @@ from typing import List, Optional, Tuple, Dict, Callable, TYPE_CHECKING
 
 from llama_index.core.schema import Document as LlamaDocument
 
-from backend.infrastructure.config import config, get_gpu_device
+from backend.infrastructure.config import config
 from backend.infrastructure.logger import get_logger
 from backend.infrastructure.indexer.build.normal import build_index_normal_mode
 from backend.infrastructure.indexer.build.filter import filter_vectorized_documents
@@ -81,18 +81,10 @@ def build_index_method(
         return index, vector_ids_map
     
     documents = documents_to_process
-    device = get_gpu_device()
-    
+
     logger.info(f"[阶段2.1] 🔨 开始构建索引，共 {len(documents)} 个文档")
     logger.info(f"[阶段2.1]    分块参数: size={index_manager.chunk_size}, overlap={index_manager.chunk_overlap}")
-    
-    if device.startswith("cuda"):
-        import torch
-        device_name = torch.cuda.get_device_name()
-        logger.info(f"[阶段2.2] 📊 索引构建设备: {device} ⚡ GPU加速模式")
-        logger.info(f"[阶段2.2]    GPU: {device_name}")
-    else:
-        logger.warning(f"[阶段2.2] 📊 索引构建设备: {device} 🐌 CPU模式")
+    logger.info(f"[阶段2.2] 📊 索引构建设备: cpu")
     
     try:
         # 只使用正常模式（批处理模式已移除）
