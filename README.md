@@ -10,7 +10,7 @@ pinned: false
 
 # Systematology Agent
 
-> 将系统动力学（CLD / FCM / D2D）编码为工具链的 AI Agent，用于复杂系统的因果建模与杠杆分析
+> 围绕**动态假设（Dynamic Hypothesis）研究**的 AI Agent 工具链：从文本中提取关键变量与因果关系，构建因果环路图（CLD），进而执行模糊认知图仿真（FCM）与动态杠杆点分析（D2D），服务于复杂系统的因果建模与杠杆分析
 ---
 
 ## 1. 快速开始

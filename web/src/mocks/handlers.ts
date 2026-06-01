@@ -4,11 +4,53 @@ import {
   mockConfig,
   mockModels,
   mockResearchResult,
-  mockSystematologyResponse,
+  mockSystematologyEnergy,
+  mockSystematologyHealth,
+  mockSystematologyEconomy,
   mockFailureResponse,
 } from "./data";
+import type { SystematologyResponse } from "@/types";
 
 let currentConfig = { ...mockConfig };
+
+/**
+ * Match question keywords to the most appropriate scenario.
+ * Priority: failure > specific domain keywords > default (energy)
+ */
+function matchScenario(question: string): SystematologyResponse {
+  const q = question.toLowerCase();
+
+  // Failure trigger (highest priority)
+  if (q.includes("失败") || q.includes("fail")) {
+    return mockFailureResponse;
+  }
+
+  // Public Health scenario
+  if (
+    q.includes("健康") || q.includes("医疗") || q.includes("疾病") ||
+    q.includes("疫情") || q.includes("疫苗") || q.includes("老龄化") ||
+    q.includes("公共卫生") || q.includes("医院") || q.includes("慢性病") ||
+    q.includes("医保") || q.includes("health") || q.includes("medical") ||
+    q.includes("disease") || q.includes("pandemic")
+  ) {
+    return mockSystematologyHealth;
+  }
+
+  // Economy & Industry scenario
+  if (
+    q.includes("经济") || q.includes("产业") || q.includes("利率") ||
+    q.includes("房地产") || q.includes("市场") || q.includes("就业") ||
+    q.includes("创新") || q.includes("产业升级") || q.includes("房价") ||
+    q.includes("金融") || q.includes("economy") || q.includes("housing") ||
+    q.includes("market") || q.includes("industry")
+  ) {
+    return mockSystematologyEconomy;
+  }
+
+  // Energy & Climate scenario (default, also matched by explicit keywords)
+  // Keywords: 能源, 气候, 碳, 补贴, 碳排放, 新能源, 温室, 环境
+  return mockSystematologyEnergy;
+}
 
 export const handlers = [
   http.get("/api/health", async () => {
@@ -95,11 +137,10 @@ export const handlers = [
   }),
 
   http.post("/api/systematology/analyze", async ({ request }) => {
-    await delay(800);
+    await delay(2500);
     const body = (await request.json()) as { question?: string };
-    if (body.question?.includes("失败") || body.question?.includes("fail")) {
-      return HttpResponse.json(mockFailureResponse);
-    }
-    return HttpResponse.json(mockSystematologyResponse);
+    const question = body.question ?? "";
+    const response = matchScenario(question);
+    return HttpResponse.json(response);
   }),
 ];

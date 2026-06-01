@@ -1,11 +1,10 @@
 "use client";
 
-import { ArrowLeft, Settings, Layers } from "lucide-react";
+import { ArrowLeft, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 interface Props {
-  onSettingsClick?: () => void;
   /** Show question title instead of "Systematology" */
   questionTitle?: string;
   /** Status indicator — "running" | "completed" | "idle" */
@@ -16,7 +15,7 @@ interface Props {
   onBack?: () => void;
 }
 
-export function HeaderBar({ onSettingsClick, questionTitle, status, onNewConversation, onBack }: Props) {
+export function HeaderBar({ questionTitle, status, onNewConversation, onBack }: Props) {
   const statusDot =
     status === "running"
       ? "bg-primary animate-pulse"
@@ -73,15 +72,6 @@ export function HeaderBar({ onSettingsClick, questionTitle, status, onNewConvers
             </Button>
           )}
           <ThemeToggle />
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-muted-foreground hover:text-foreground"
-            onClick={onSettingsClick}
-            title="Settings"
-          >
-            <Settings className="h-4 w-4" />
-          </Button>
         </div>
       </div>
     </header>

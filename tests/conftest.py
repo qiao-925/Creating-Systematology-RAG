@@ -1,12 +1,11 @@
 """
-pytest core configuration and global test stubs.
+pytest core configuration — slim, no global mock injection.
 """
 
 from __future__ import annotations
 
 import os
 import sys
-import types
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -16,69 +15,6 @@ import pytest
 # Ensure project root is importable
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
-
-
-# -------------------- Global dependency stubs --------------------
-
-# ChromaDB stub (avoid real API usage and missing dependency errors)
-try:
-    import chromadb  # noqa: F401
-    chromadb.PersistentClient = MagicMock
-    chromadb.Client = MagicMock
-    chromadb.CloudClient = MagicMock
-    if not hasattr(chromadb, "errors"):
-        chromadb.errors = MagicMock()
-    if not hasattr(chromadb.errors, "ChromaAuthError"):
-        chromadb.errors.ChromaAuthError = Exception
-except ImportError:
-    chromadb = MagicMock()
-    chromadb.PersistentClient = MagicMock
-    chromadb.Client = MagicMock
-    chromadb.CloudClient = MagicMock
-    chromadb.errors = MagicMock()
-    chromadb.errors.ChromaAuthError = Exception
-    chromadb.Collection = MagicMock
-    sys.modules["chromadb"] = chromadb
-
-# Ensure chromadb.api.models.Collection import works even when mocked
-chromadb_api_module = sys.modules.get("chromadb.api") or types.ModuleType("chromadb.api")
-chromadb_models_module = sys.modules.get("chromadb.api.models") or types.ModuleType("chromadb.api.models")
-chromadb_collection_module = sys.modules.get("chromadb.api.models.Collection") or types.ModuleType(
-    "chromadb.api.models.Collection"
-)
-chromadb_collection_module.Collection = getattr(chromadb_collection_module, "Collection", MagicMock)
-chromadb_api_module.models = chromadb_models_module
-chromadb_models_module.Collection = chromadb_collection_module
-sys.modules["chromadb.api"] = chromadb_api_module
-sys.modules["chromadb.api.models"] = chromadb_models_module
-sys.modules["chromadb.api.models.Collection"] = chromadb_collection_module
-
-
-# LlamaIndex stubs (if missing)
-try:
-    from llama_index.core import Document  # noqa: F401
-    from llama_index.vector_stores.chroma import ChromaVectorStore  # noqa: F401
-except ImportError:
-    llama_index_module = MagicMock()
-    llama_index_core_module = MagicMock()
-
-    class _StubDocument:
-        def __init__(self, text: str = "", metadata: dict | None = None, **kwargs):
-            self.text = text
-            self.metadata = metadata or {}
-            self.extra_info = kwargs
-
-    llama_index_core_module.Document = _StubDocument
-    llama_index_module.core = llama_index_core_module
-    sys.modules["llama_index"] = llama_index_module
-    sys.modules["llama_index.core"] = llama_index_core_module
-
-    chroma_vector_store_module = MagicMock()
-    chroma_vector_store_module.ChromaVectorStore = MagicMock
-    vector_stores_module = MagicMock()
-    vector_stores_module.chroma = chroma_vector_store_module
-    sys.modules["llama_index.vector_stores.chroma"] = chroma_vector_store_module
-    sys.modules["llama_index.vector_stores"] = vector_stores_module
 
 
 # Windows UTF-8 console setup
@@ -106,6 +42,7 @@ def test_data_dir():
 
 @pytest.fixture(autouse=True, scope="session")
 def patch_deepseek_support():
+    """Patch tiktoken / llama_index for DeepSeek model name compatibility."""
     patches: list[tuple[str, object]] = []
 
     try:
@@ -167,6 +104,7 @@ def mock_env_vars(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def mock_chromadb_client(monkeypatch):
+    """Mock ChromaDB clients to avoid real API calls during tests."""
     try:
         import chromadb
 

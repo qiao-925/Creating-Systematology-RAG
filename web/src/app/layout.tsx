@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Creating Systematology RAG",
-  description: "Knowledge research assistant powered by RAG",
+  title: "Creating Systematology — 体系学因果分析",
+  description: "基于 RAG 的因果回路分析工具，探索复杂系统的反馈结构与杠杆点",
 };
 
 export default function RootLayout({

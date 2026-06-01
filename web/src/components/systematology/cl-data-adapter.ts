@@ -10,7 +10,6 @@ interface LeveragePoint {
   uncertainty: [number, number];
 }
 
-// Backend may send either SystematologyLeveragePoint or raw NodeImpact shape
 interface RawLeveragePoint {
   node?: string;
   node_id?: string;
@@ -57,14 +56,28 @@ const RELATION_TO_POLARITY: Record<string, "+" | "-"> = {
   requires: "+",
 };
 
+// Match SVG canvas constants
+const CHAR_W = 16;
+const NODE_PAD_X = 40;
+const NODE_H = 36;
+const MIN_NODE_W = 80;
+
+function estimatedNodeW(label: string): number {
+  return Math.max(MIN_NODE_W, label.length * CHAR_W + NODE_PAD_X);
+}
+
 function layoutNodes(nodes: SystematologyNode[]): CLDNode[] {
   const n = nodes.length;
   if (n === 0) return [];
 
-  // Circular layout with radius proportional to node count
-  const radius = Math.max(120, n * 25);
-  const cx = 400;
-  const cy = 280;
+  // Compute radius large enough so nodes don't overlap
+  // Max node angular width ≈ max(w) / radius, need spacing between adjacent nodes
+  const maxW = Math.max(...nodes.map((nd) => estimatedNodeW(nd.label)));
+  const minSpacing = 20; // px between adjacent node edges on circle
+  // Circular arc per node: 2*PI / n, need: radius * angle >= maxW + minSpacing
+  const radius = Math.max(140, n * 28, (n * (maxW + minSpacing)) / (2 * Math.PI));
+  const cx = Math.max(radius + 60, 440);
+  const cy = Math.max(radius + 60, 320);
 
   return nodes.map((node, i) => {
     const angle = (2 * Math.PI * i) / n - Math.PI / 2;

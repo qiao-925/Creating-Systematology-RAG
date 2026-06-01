@@ -1,7 +1,7 @@
 [project]
 name = "systematology"
 version = "0.1.0"
-description = "Creating Systematology - Causal Loop Diagram Analysis Pipeline based on LlamaIndex"
+description = "Creating Systematology - Dynamic Hypothesis to CLD pipeline with FCM simulation & D2D leverage analysis"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
