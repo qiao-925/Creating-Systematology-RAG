@@ -1,16 +1,5 @@
-# CLAUDE.md
+# 重构迁移规则 —— 用于系统级的重构，重写
 
-@.claude/rules/plan-doc-spec.md
-@.claude/rules/path-placement.md
-@.claude/rules/plan-execution.md
-@.claude/rules/design-workflow.md
+1. 'v1'目录定义： 作为历史版本的只读目录，仅为新版本构建提供参考，迁移过程中逐步清理其中文件。
+2. 新系统在根目录进行构建，不得在v1目录中进行任何构建操作。
 
-## 文档地图
-项目全局文档索引与约束体系概览见 [AGENTS.md](AGENTS.md)。
-
-## 跨端同步
-Claude Code 全局配置（settings、skills、plugins、memory、会话历史）通过专用仓库 `dev-sync` 同步。
-仓库地址：https://github.com/qiao-925/dev-sync（私有）
-新机器首次使用时 clone 该仓库并运行 `setup.sh`（Linux）或 `setup.cmd`（Windows）。
-
-所有计划使用中文命名文件！
