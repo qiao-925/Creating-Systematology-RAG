@@ -1,0 +1,45 @@
+# Wayfinding — application.yml
+# 唯一配置文件（进 git）。secrets 由 Doppler 注入（doppler run），此处仅引用环境变量名。
+#
+# 模型切换：在 Doppler 面板改 LLM_MODEL_ID（可设 dev/prd 不同值），零代码。
+# 三种模型来源已预注册，任选其一即用。
+
+app:
+  title: Wayfinding
+  port: 8000
+
+model:
+  embedding: BAAI/bge-base-zh-v1.5
+
+  llms:
+    default: deepseek-chat        # 会被 env LLM_MODEL_ID 覆盖
+    available:
+      # ── 类别 2 · 云端 API key（至少配置一个）──
+      - id: deepseek-chat
+        name: DeepSeek Chat
+        litellm_model: deepseek/deepseek-chat
+        api_key_env: DEEPSEEK_API_KEY
+        temperature: 0.7
+        max_tokens: 4096
+
+      - id: deepseek-reasoner
+        name: DeepSeek Reasoner
+        litellm_model: deepseek/deepseek-reasoner
+        api_key_env: DEEPSEEK_API_KEY
+        supports_reasoning: true
+        temperature: null
+        max_tokens: 32768
+
+      # ── 类别 1 · 本地部署（Ollama，免 key）──
+      - id: ollama-llama3
+        name: Ollama Llama3 (local)
+        litellm_model: ollama/llama3
+        api_base: http://localhost:11434
+        api_key_env: null         # 免 key
+
+      # ── 类别 3 · HF 托管 API ──
+      - id: hf-endpoint
+        name: HF Inference Endpoint
+        litellm_model: huggingface/<org>/<model>
+        api_base: https://<your-endpoint>.endpoints.huggingface.cloud
+        api_key_env: HF_TOKEN

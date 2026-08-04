@@ -12,9 +12,8 @@ node_modules/
 .next/
 dist/
 
-# 环境变量与敏感配置
-.env
-*.env.local
+# 环境变量与敏感配置 — secrets 由 Doppler 注入（doppler run），无 .env 文件
+# .doppler.yaml（项目/配置引用，无 secrets）建议提交，便于新机器一键关联
 
 # 系统
 .DS_Store

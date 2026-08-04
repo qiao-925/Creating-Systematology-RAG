@@ -7,12 +7,12 @@ Connecting the unknown to the human knowledge coordinates.
 ## Quick Start
 
 ```bash
-make env-pull     # pull & decrypt API keys
-make              # install deps + run tests
-make run          # start frontend → http://localhost:3000
+doppler setup     # one-time: link to Doppler project (wayfinding / dev)
+make              # install deps + start backend (:8000) & frontend (:3000)
 ```
 
-> Manual setup: `cp .env.example .env`, then fill in at least one LLM key (`DEEPSEEK_API_KEY`, `MIMO_API_KEY`, or `KIMI_API_KEY`).
+> Secrets are injected by [Doppler](https://doppler.com) (`doppler run`) — there is no `.env` file.
+> Model selection lives in `application.yml` (three pre-registered sources: cloud API / local Ollama / HF endpoint) and can be overridden per-environment via the `LLM_MODEL_ID` secret in Doppler.
 
 ## Usage
 
