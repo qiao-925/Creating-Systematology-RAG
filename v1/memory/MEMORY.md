@@ -1,0 +1,2 @@
+- [Systematology architecture gaps](project_systematology-architecture-gaps.md) — guardrails uncalled, sentence-transformers missing, rater/uncertainty detached from pipeline
+- [Paper improvement checklist](project_paper-improvement-checklist.md) — living list: two-stage method, guardrail wiring, evaluation metrics

@@ -1,36 +1,34 @@
-# AGENTS.md
+# 重构迁移规则 —— 用于系统级的重构，重写
 
-此文档用于构建执行 Agent 的全局地图理解。
+1. 'v1'目录定义： 作为历史版本的只读目录，仅为新版本构建提供参考，迁移过程中逐步清理其中文件。
+2. 新系统在根目录进行构建，不得在v1目录中进行任何构建操作。
 
-## 文档地图
+---
 
-```
-ARCHITECTURE.md                   ← 架构设计（工作流 + 技术栈 + 目录结构 + 数据统计）
-README.md                         ← 项目说明 + 快速开始 + Systematology 使用指南
-AGENTS.md                         ← 本文件：Agent 全局地图
+# 构建哲学（人主导 · AI 协助）—— 2026-08-19 定稿
 
-docs/
-├── constraint-system.md          ← 约束体系（rules/hooks/yaml 三层防线详解）
-├── decision-log.md               ← 决策日志（每次核心任务的资产变更记录，只增不改）
-├── dependency-list.md            ← 项目构建依赖清单 + Context7 安装说明
-├── claude-plugins-inventory.md   ← Claude Code 插件全量清单
-├── Systematology MVP Builder/    ← Systematology MVP 计划与审查
-│   ├── Systematology-MVP-plan.md ← Systematology 可执行计划书
-│   └── tracks/                   ← 分 Track 进度文档
-├── references/                   ← 设计参考库（外部模式借鉴）
-├── Research & Brainstorm/        ← 研究与头脑风暴材料（论文 + 架构设计）
-└── design/                       ← 设计文档
-    ├── Systematology 设计锚定摘要.md
-    └── sketch/                   ← HTML 原型草稿
-```
+## 核心：人做判断题，AI 做填空题
 
-**快速导航**：
-- [ARCHITECTURE.md](ARCHITECTURE.md) — 架构设计
-- [README.md](README.md) — 项目说明 + 快速开始
-- [constraint-system.md](docs/constraint-system.md) — 约束体系
-- [decision-log.md](docs/decision-log.md) — 决策日志
-- [dependency-list.md](docs/dependency-list.md) — 项目构建依赖清单
-- [claude-plugins-inventory.md](docs/claude-plugins-inventory.md) — Claude Code 插件清单
-- [references/](docs/references/) — 设计参考库
-- [Research & Brainstorm/](docs/Research%20%26%20Brainstorm/) — 研究与头脑风暴
+- 方向、取舍、验收的判断权**永远在人**；AI 负责起草、实现、挑刺，不负责做决定。
+- AI 是**起草员 + 挑刺员**，不是主导者。不把项目构建整体交给 AI 或任何方法论。
+- 认知卸载要谨慎：AI 部分能力更强，但判断力不可替代人。**启发，不是代劳**——对自己也一样。
+
+## 结构 vs 灵活：实时平衡，不是工具能代答的
+
+> 软件开发本质上是规范与灵活的平衡艺术。—— Roger S. Pressman《软件工程》
+
+- 结构过强则灵活差，灵活过强则无结构。这是每个项目实时做的取舍。
+- 不追求一次性定稿的完备规范；**粗粒度先行，构建中逐步完善**。
+- 新方法论（SDD 等）只是传统软件工程的扩展，可参考、不迷信。
+
+## 最少产出
+
+- AI 时代数据产出庞大，**只产必要的那一份，不产解释性的第二份**。
+- 传统流程（需求 → 设计 → 实现）仍是骨架。文档每多一份，就是多一根往回扯的绳子。
+- **产品定位以 README 为准，不写独立 PRD / 需求文档**。README 描述核心功能，其余专注实现。
+
+## 记忆锚点
+
+- AI 每次会话失忆。CLAUDE.md 是对抗意图漂移的锚：**新会话开工前先读本文件**。
+- 需求 / 设计 / 实现三份文档是锚点，随构建演进。
 

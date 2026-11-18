@@ -1,0 +1,69 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# 虚拟环境
+venv/
+.venv/
+ENV/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+!.vscode/mcp.json
+.codex/
+!.agent/
+.agent/*
+!.agent/project.yaml
+!.agent/prompts/
+.agent/prompts/*
+!.agent/prompts/execute-plan.md
+!.agent/prompts/review-checkpoint.md
+!.agent/prompts/recover-failure.md
+!.agent/runtime/
+
+# 测试
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# 环境变量与敏感配置
+.env
+.chroma_env
+.cursor/mcp.json
+
+# 应用数据
+# 向量库：只忽略非版本化的旧格式，允许 version_* 目录提交
+vector_store/*
+!vector_store/version_*/
+!vector_store/.gitkeep
+
+sessions/
+data/processed/
+data/users.json
+data/github_metadata.json
+data/github_repos/**
+!data/github_repos/.gitkeep
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# uv
+.python-version
+
+# 日志
+*.log
+logs/
+
+.specstory/**
+
+# Playwright MCP temp artifacts
+.playwright-mcp/

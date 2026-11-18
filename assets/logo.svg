@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!--
+  Wayfinding — 纯 wordmark logo
+  "Wayfinding" 全称，自适应黑/白，深浅主题均可读。
+  注意：本文件使用 <text> 渲染，依赖等宽字体（Fira Code / JetBrains Mono）。
+-->
+<svg
+   xmlns="http://www.w3.org/2000/svg"
+   width="656"
+   height="200"
+   viewBox="0 0 656 200">
+  <style>
+    #wordmark {
+      fill: #000000;
+      stroke: #ffffff;
+      stroke-width: 3;
+      paint-order: stroke;
+    }
+    @media (prefers-color-scheme: dark) {
+      #wordmark {
+        fill: #ffffff;
+        stroke: none;
+      }
+    }
+  </style>
+  <text
+     id="wordmark"
+     aria-label="Wayfinding"
+     x="328"
+     y="145"
+     text-anchor="middle"
+     font-family="'Fira Code','JetBrains Mono','SF Mono',Consolas,monospace"
+     font-size="96"
+     font-weight="700">Wayfinding</text>
+</svg>
